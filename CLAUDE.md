@@ -6,8 +6,10 @@
 
 backend(`backend/` で実行)
 
-- `uv sync`
+- `uv sync`(dev と scraper の両グループが入る。Web 用イメージは `--no-group scraper`)
+- `uv run playwright install chromium`(取り込みや fixture 生成で Playwright を使うとき)
 - `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`(CI と同じ)
+- `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf` で時間割表を JSON Lines に変換
 
 frontend(`frontend/` で実行)
 
@@ -24,7 +26,7 @@ frontend(`frontend/` で実行)
 
 - domain: エンティティ(Course, TimeSlot, Semester, Plan, SemesterPlan)と純粋ロジック(時間割生成)。標準ライブラリ以外を import しない
 - application: ユースケース(CreatePlan, IngestSyllabus)とポート。ポートは差し替え先が実在するものだけ(LLM、埋め込み、科目リポジトリ、Plan リポジトリ、シラバス取得元)
-- infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`scrapers/<university>/`、`auth/`
+- infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`curriculum/<university>/`(時間割表の解析)、`scrapers/<university>/`(シラバスの取得と解析)、`auth/`
 - presentation: `api/`(FastAPI ルータ、接頭辞 `/api/v1`)、`schemas/`(Pydantic DTO)、`cli/`
 
 frontend は API を呼んで表示するだけで、業務ロジックを置かない。バックエンドは Next.js の Route Handler 経由で呼ぶ。
