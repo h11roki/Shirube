@@ -20,6 +20,9 @@ scraper = [
     "playwright>=1.64.0",
 ]
 
+[tool.uv]
+default-groups = ["dev", "scraper"]
+
 [tool.ruff]
 line-length = 100
 target-version = "py313"
