@@ -2,10 +2,15 @@ from dataclasses import dataclass
 from typing import Protocol
 
 from app.domain.course import CourseSection
+from app.domain.syllabus import Syllabus
 
 
 class TimetableSource(Protocol):
     def sections(self) -> list[CourseSection]: ...
+
+
+class SyllabusSource(Protocol):
+    def syllabus(self, code: str) -> Syllabus | None: ...
 
 
 @dataclass(frozen=True)

@@ -39,6 +39,11 @@ class RawStore:
     def detail_path(self, code: str) -> Path:
         return self._details / f"{code}{PAGE_SUFFIX}"
 
+    def saved_detail_codes(self) -> list[str]:
+        if not self._details.exists():
+            return []
+        return sorted(path.stem for path in self._details.glob(f"*{PAGE_SUFFIX}"))
+
     def _saved_listing_pages(self) -> list[str]:
         if not self._listings.exists():
             return []
