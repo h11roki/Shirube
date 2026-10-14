@@ -1,5 +1,4 @@
 import re
-import unicodedata
 from pathlib import Path
 
 import pdfplumber
@@ -7,7 +6,13 @@ import pdfplumber
 from app.domain.course import Audience, CourseSection, Term, TimeSlot, Weekday
 
 COLUMN_COUNT = 13
-TERM_BY_SECTION = {"春学期": Term.SPRING, "秋学期": Term.AUTUMN}
+CODE_COLUMN = 6
+FREE_TEXT_COLUMNS = frozenset({7, 10, 11})
+TERM_BY_SECTION: dict[str, Term | None] = {
+    "春学期": Term.SPRING,
+    "秋学期": Term.AUTUMN,
+    "その他": None,
+}
 WEEKDAY_BY_KANJI = {
     "月": Weekday.MON,
     "火": Weekday.TUE,
@@ -18,47 +23,63 @@ WEEKDAY_BY_KANJI = {
     "日": Weekday.SUN,
 }
 ALL_DEPARTMENTS = "全"
+ON_DEMAND = "@"
 MAX_GRADE = 4
 NOTE_MARK = "※"
 VARIANT_SEPARATOR = "/"
 NAME_SEPARATOR = "、"
 DEPARTMENT_SEPARATOR = "・"
 EMPTY_ROOM = "-"
-CARRIED_LINE_MARK = re.compile(r"^I ?", re.MULTILINE)
+CARRIED_MARK = re.compile(r"^I ?", re.MULTILINE)
+CARRIED_MARK_BEFORE_WIDE_TEXT = re.compile(r"^I(?=\s|[^\x00-\x7f])", re.MULTILINE)
 SECTION_HEADING = re.compile(r"^【(.+?)】")
 COURSE_CODE = re.compile(r"^\d{5}$")
 PERIOD_RANGE = re.compile(r"(\d+)-(\d+)")
-ENTRY_YEARS = re.compile(r"^(\d{2})(?:-(\d{2}))?$")
-GRADES = re.compile(r"^(\d(?:[～~]\d)?(?:\.\d(?:[～~]\d)?)*)(のみ)?$")
-GRADE_RANGE = re.compile(r"^(\d)[～~](\d)$")
+ENTRY_YEARS = re.compile(r"^(\d{2})(?:[-－−](\d{2}))?$")
+GRADES = re.compile(r"^(\d(?:[～~〜]\d)?(?:\.\d(?:[～~〜]\d)?)*)(のみ)?$")
+GRADE_RANGE = re.compile(r"^(\d)[～~〜](\d)$")
+ASCII_WORD_CHAR = re.compile(r"[A-Za-z0-9]")
 WHITESPACE = re.compile(r"\s+")
-RADICAL_CHARS = frozenset(map(chr, range(0x2E80, 0x2FE0)))
 
 
-def parse_timetable(path: Path) -> list[CourseSection]:
-    sections: list[CourseSection] = []
-    term: Term | None = None
-    with pdfplumber.open(path) as pdf:
-        for page in pdf.pages:
-            for table in page.extract_tables():
-                for raw_row in table:
-                    row = [_unified(cell or "") for cell in raw_row]
-                    heading = SECTION_HEADING.match(row[0])
-                    if heading:
-                        term = TERM_BY_SECTION.get(heading.group(1))
-                        continue
-                    if len(row) != COLUMN_COUNT:
-                        continue
-                    cells = normalize_row(row)
-                    if COURSE_CODE.match(_compact(cells[6])):
-                        sections.append(section_from_row(term, cells))
-    return sections
+class TimetableFormatError(ValueError):
+    pass
+
+
+class RitsumeikanTimetablePdf:
+    def __init__(self, path: Path) -> None:
+        self._path = path
+
+    def sections(self) -> list[CourseSection]:
+        sections: list[CourseSection] = []
+        term: Term | None = None
+        with pdfplumber.open(self._path) as pdf:
+            for number, page in enumerate(pdf.pages, start=1):
+                for table in page.extract_tables():
+                    for raw_row in table:
+                        row = [cell or "" for cell in raw_row]
+                        heading = SECTION_HEADING.match(row[0])
+                        if heading:
+                            term = _term_of(heading.group(1), number)
+                            continue
+                        if len(row) != COLUMN_COUNT:
+                            continue
+                        cells = normalize_row(row)
+                        code = _compact(cells[CODE_COLUMN])
+                        if COURSE_CODE.match(code):
+                            sections.append(_section_at(number, code, term, cells))
+        return sections
 
 
 def normalize_row(row: list[str]) -> list[str]:
     if not row[0].startswith("I"):
         return row
-    return [CARRIED_LINE_MARK.sub("", cell) for cell in row]
+    return [
+        (CARRIED_MARK_BEFORE_WIDE_TEXT if index in FREE_TEXT_COLUMNS else CARRIED_MARK).sub(
+            "", cell
+        )
+        for index, cell in enumerate(row)
+    ]
 
 
 def section_from_row(term: Term | None, cells: list[str]) -> CourseSection:
@@ -94,13 +115,31 @@ def section_from_row(term: Term | None, cells: list[str]) -> CourseSection:
     )
 
 
+def _term_of(title: str, page: int) -> Term | None:
+    if title not in TERM_BY_SECTION:
+        raise TimetableFormatError(f"{page} ページ: 未知の見出し【{title}】")
+    return TERM_BY_SECTION[title]
+
+
+def _section_at(page: int, code: str, term: Term | None, cells: list[str]) -> CourseSection:
+    try:
+        return section_from_row(term, cells)
+    except ValueError as error:
+        raise TimetableFormatError(f"{page} ページ 授業CD {code}: {error}") from error
+
+
 def _slots(weekday: str, period: str) -> tuple[TimeSlot, ...]:
-    day = WEEKDAY_BY_KANJI.get(weekday)
-    span = PERIOD_RANGE.search(period)
-    if day is None or span is None:
+    if ON_DEMAND in (weekday, period):
         return ()
-    first, last = int(span.group(1)), int(span.group(2))
-    return tuple(TimeSlot(day, (start + 1) // 2) for start in range(first, last + 1, 2))
+    day = WEEKDAY_BY_KANJI.get(weekday)
+    spans = PERIOD_RANGE.findall(period)
+    if day is None or not spans:
+        raise ValueError(f"曜日・時限を読めません: {weekday!r} {period!r}")
+    return tuple(
+        TimeSlot(day, (start + 1) // 2)
+        for first, last in spans
+        for start in range(int(first), int(last) + 1, 2)
+    )
 
 
 def _departments(text: str) -> frozenset[str] | None:
@@ -112,7 +151,11 @@ def _departments(text: str) -> frozenset[str] | None:
 def _audiences(category: str, entry_years: str, grades: str) -> tuple[Audience, ...]:
     columns = [text.split(VARIANT_SEPARATOR) for text in (category, entry_years, grades)]
     count = max(len(column) for column in columns)
-    aligned = [column if len(column) == count else column * count for column in columns]
+    if any(len(column) not in (1, count) for column in columns):
+        raise ValueError(
+            f"区分・入学年度・回生の対応が取れません: {category!r} {entry_years!r} {grades!r}"
+        )
+    aligned = [column * count if len(column) == 1 else column for column in columns]
     return tuple(
         Audience(*_year_range(years), eligible_grades=_grades(grade), category=cat)
         for cat, years, grade in zip(*aligned, strict=True)
@@ -159,14 +202,13 @@ def _room(text: str) -> str | None:
     return None if joined in ("", EMPTY_ROOM) else joined
 
 
-def _unified(text: str) -> str:
-    return "".join(
-        unicodedata.normalize("NFKC", char) if char in RADICAL_CHARS else char for char in text
-    )
-
-
 def _joined(text: str) -> str:
-    return text.replace("\n", "")
+    joined = ""
+    for line in filter(None, (line.strip() for line in text.splitlines())):
+        if joined and ASCII_WORD_CHAR.match(joined[-1]) and ASCII_WORD_CHAR.match(line[0]):
+            joined += " "
+        joined += line
+    return joined
 
 
 def _compact(text: str) -> str:

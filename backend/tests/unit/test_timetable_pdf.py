@@ -1,3 +1,5 @@
+import pytest
+
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import normalize_row, section_from_row
 
@@ -61,12 +63,23 @@ def test_period_span_covers_consecutive_periods() -> None:
     assert section.slots == (TimeSlot(Weekday.MON, 4), TimeSlot(Weekday.MON, 5))
 
 
+def test_several_period_spans_in_one_cell_are_all_kept() -> None:
+    section = section_from_row(Term.SPRING, row(period="1-2・5-6"))
+
+    assert section.slots == (TimeSlot(Weekday.MON, 1), TimeSlot(Weekday.MON, 3))
+
+
 def test_on_demand_row_has_no_slot_and_no_term() -> None:
     section = section_from_row(None, row(weekday="@", period="@", room="-"))
 
     assert section.slots == ()
     assert section.term is None
     assert section.room is None
+
+
+def test_unreadable_period_is_an_error_rather_than_no_slot() -> None:
+    with pytest.raises(ValueError, match="曜日・時限"):
+        section_from_row(Term.SPRING, row(period="午後"))
 
 
 def test_all_departments_is_represented_by_none() -> None:
@@ -90,14 +103,20 @@ def test_variants_separated_by_slash_become_separate_audiences() -> None:
     )
 
 
+def test_variant_count_mismatch_is_an_error() -> None:
+    with pytest.raises(ValueError, match="対応が取れません"):
+        section_from_row(Term.SPRING, row(category="A/B/C", entry_years="26-20/19-16"))
+
+
 def test_only_marker_restricts_grades_to_the_listed_ones() -> None:
     section = section_from_row(Term.AUTUMN, row(grades="1.2のみ"))
 
     assert section.audiences[0].eligible_grades == frozenset({1, 2})
 
 
-def test_grade_range_with_only_marker_expands_to_each_grade() -> None:
-    section = section_from_row(Term.AUTUMN, row(grades="1～4のみ"))
+@pytest.mark.parametrize("grades", ["1～4のみ", "1〜4のみ", "1~4のみ"])
+def test_grade_range_with_only_marker_expands_to_each_grade(grades: str) -> None:
+    section = section_from_row(Term.AUTUMN, row(grades=grades))
 
     assert section.audiences[0].eligible_grades == frozenset({1, 2, 3, 4})
 
@@ -116,10 +135,19 @@ def test_note_after_marker_is_split_from_name() -> None:
     assert section.note == "2020年度以前入学者のみ受講可"
 
 
-def test_wrapped_name_is_joined() -> None:
+def test_wrapped_japanese_name_is_joined_without_a_space() -> None:
     section = section_from_row(Term.SPRING, row(name="スポーツ方法実習Ⅰ(A)【バスケットボー\nル】"))
 
     assert section.name == "スポーツ方法実習Ⅰ(A)【バスケットボール】"
+
+
+def test_wrapped_latin_words_keep_a_space_between_them() -> None:
+    section = section_from_row(
+        Term.SPRING, row(name="Introduction to\nInformation Science", instructors="John\nSmith")
+    )
+
+    assert section.name == "Introduction to Information Science"
+    assert section.instructors == ("John Smith",)
 
 
 def test_stray_mark_above_period_and_class_is_ignored() -> None:
@@ -142,3 +170,14 @@ def test_carried_over_row_marks_are_removed() -> None:
     assert section.audiences == (Audience(2016, 2019, frozenset({1, 2, 3, 4}), "教養B"),)
     assert section.instructors == ("庄子 萌", "羽谷 沙織", "石川 涼子")
     assert section.registration == "抽選"
+
+
+def test_carried_over_row_keeps_latin_text_starting_with_i() -> None:
+    carried = ["I火", "I1-2", "I教養B", "I全", "I19-16", "I1", "I31061"]
+    carried += ["Introduction to\nInformation Science", "IG2", "I2", "Ian Smith", "I -", "I抽選"]
+
+    section = section_from_row(Term.AUTUMN, normalize_row(carried))
+
+    assert section.name == "Introduction to Information Science"
+    assert section.instructors == ("Ian Smith",)
+    assert section.class_code == "G2"

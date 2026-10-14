@@ -1,13 +1,13 @@
 from pathlib import Path
 
 from app.domain.course import Audience, Term, TimeSlot, Weekday
-from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import parse_timetable
+from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import RitsumeikanTimetablePdf
 
 SAMPLE = Path(__file__).parents[1] / "fixtures" / "timetable" / "sample.pdf"
 
 
 def test_sample_pdf_yields_every_course_row_with_its_term() -> None:
-    sections = {section.code: section for section in parse_timetable(SAMPLE)}
+    sections = {section.code: section for section in RitsumeikanTimetablePdf(SAMPLE).sections()}
 
     assert set(sections) == {"34982", "32453", "34793", "32423", "16806"}
     assert sections["34982"].name == "スポーツ方法実習Ⅰ(A)【バスケットボール】"

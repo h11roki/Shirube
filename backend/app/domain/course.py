@@ -5,9 +5,6 @@ from enum import Enum
 class Term(Enum):
     SPRING = "spring"
     AUTUMN = "autumn"
-    FULL_YEAR = "full_year"
-    SUMMER_INTENSIVE = "summer_intensive"
-    WINTER_INTENSIVE = "winter_intensive"
 
 
 class Weekday(Enum):
