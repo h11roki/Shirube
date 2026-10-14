@@ -9,7 +9,8 @@ backend(`backend/` で実行)
 - `uv sync`(dev と scraper の両グループが入る。Web 用イメージは `--no-default-groups` で本体の依存だけ)
 - `uv run playwright install chromium`(取り込みや fixture 生成で Playwright を使うとき)
 - `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`(CI と同じ)
-- `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf` で時間割表を JSON Lines に変換
+- `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
+- `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/` に保存。どちらも保存済みは飛ばすので中断後に再実行できる
 
 frontend(`frontend/` で実行)
 
