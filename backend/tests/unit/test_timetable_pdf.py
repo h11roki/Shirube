@@ -122,6 +122,15 @@ def test_wrapped_name_is_joined() -> None:
     assert section.name == "スポーツ方法実習Ⅰ(A)【バスケットボール】"
 
 
+def test_stray_mark_above_period_and_class_is_ignored() -> None:
+    section = section_from_row(
+        Term.AUTUMN, row(weekday="木", period="三\n9-10", class_code="三\nX8")
+    )
+
+    assert section.slots == (TimeSlot(Weekday.THU, 5),)
+    assert section.class_code == "X8"
+
+
 def test_carried_over_row_marks_are_removed() -> None:
     carried = ["I火", "I @", "I教 養B", "I全", "I 19-16", "I 1", "I310 61", "Basic Skills"]
     carried += ["IG2", "I2", "庄子 萌、羽谷 沙織、\nI石川 涼子", "I -", "I抽 選"]

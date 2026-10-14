@@ -27,7 +27,7 @@ EMPTY_ROOM = "-"
 CARRIED_LINE_MARK = re.compile(r"^I ?", re.MULTILINE)
 SECTION_HEADING = re.compile(r"^【(.+?)】")
 COURSE_CODE = re.compile(r"^\d{5}$")
-PERIOD_RANGE = re.compile(r"^(\d+)-(\d+)$")
+PERIOD_RANGE = re.compile(r"(\d+)-(\d+)")
 ENTRY_YEARS = re.compile(r"^(\d{2})(?:-(\d{2}))?$")
 GRADES = re.compile(r"^(\d(?:[～~]\d)?(?:\.\d(?:[～~]\d)?)*)(のみ)?$")
 GRADE_RANGE = re.compile(r"^(\d)[～~](\d)$")
@@ -81,7 +81,7 @@ def section_from_row(term: Term | None, cells: list[str]) -> CourseSection:
     return CourseSection(
         code=_compact(code),
         name=title.strip(),
-        class_code=_compact(class_code) or None,
+        class_code=_last_line(class_code) or None,
         term=term,
         slots=_slots(_compact(weekday), _compact(period)),
         departments=_departments(_compact(departments)),
@@ -96,7 +96,7 @@ def section_from_row(term: Term | None, cells: list[str]) -> CourseSection:
 
 def _slots(weekday: str, period: str) -> tuple[TimeSlot, ...]:
     day = WEEKDAY_BY_KANJI.get(weekday)
-    span = PERIOD_RANGE.match(period)
+    span = PERIOD_RANGE.search(period)
     if day is None or span is None:
         return ()
     first, last = int(span.group(1)), int(span.group(2))
@@ -147,6 +147,11 @@ def _grade_part(text: str) -> range:
 
 def _names(text: str) -> list[str]:
     return [name.strip() for name in _joined(text).split(NAME_SEPARATOR) if name.strip()]
+
+
+def _last_line(text: str) -> str:
+    lines = [_compact(line) for line in text.splitlines() if _compact(line)]
+    return lines[-1] if lines else ""
 
 
 def _room(text: str) -> str | None:
