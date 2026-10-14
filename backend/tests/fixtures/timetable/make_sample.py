@@ -1,7 +1,12 @@
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import A4, landscape
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+from reportlab.platypus import SimpleDocTemplate, Spacer, Table, TableStyle
 
+FONT = "HeiseiKakuGo-W5"
 HEADER = [
     "曜日",
     "時限",
@@ -26,7 +31,7 @@ SPRING_ROWS = [
         "26-16",
         "1",
         "34982",
-        "スポーツ方法実習Ⅰ(A)【バスケットボー<br>ル】",
+        "スポーツ方法実習Ⅰ(A)【バスケットボー\nル】",
         "2",
         "1",
         "櫻木 規美子",
@@ -44,7 +49,7 @@ SPRING_ROWS = [
         "電動移動機械システム",
         "B8",
         "2",
-        "川畑 良尚、峯元 高<br>志、福水 洋平",
+        "川畑 良尚、峯元 高\n志、福水 洋平",
         "Ｃ３０５",
         "本",
     ],
@@ -96,30 +101,32 @@ OTHER_ROWS = [
         "選考",
     ],
 ]
-STYLE = "table{border-collapse:collapse;font-size:9px}td,th{border:1px solid #000;padding:2px}"
+COLUMN_WIDTHS = [30, 30, 55, 40, 55, 40, 45, 150, 35, 30, 110, 60, 45]
 
 
-def table(heading: str, rows: list[list[str]]) -> str:
-    head = "".join(f"<th>{cell}</th>" for cell in HEADER)
-    body = "".join("<tr>" + "".join(f"<td>{cell}</td>" for cell in row) + "</tr>" for row in rows)
-    return f"<table><tr><td colspan='13'>{heading}</td></tr><tr>{head}</tr>{body}</table>"
+def table(heading: str, rows: list[list[str]]) -> Table:
+    data = [[heading] + [""] * (len(HEADER) - 1), HEADER, *rows]
+    built = Table(data, colWidths=COLUMN_WIDTHS)
+    built.setStyle(
+        TableStyle(
+            [
+                ("FONTNAME", (0, 0), (-1, -1), FONT),
+                ("FONTSIZE", (0, 0), (-1, -1), 6),
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.black),
+                ("SPAN", (0, 0), (-1, 0)),
+            ]
+        )
+    )
+    return built
 
 
 def main() -> None:
-    html = f"<html><head><style>{STYLE}</style></head><body>"
-    html += (
-        table("【春学期】月曜日", SPRING_ROWS)
-        + "<br>"
-        + table("【その他】", OTHER_ROWS)
-        + "</body></html>"
-    )
+    pdfmetrics.registerFont(UnicodeCIDFont(FONT))
     output = Path(__file__).with_name("sample.pdf")
-    with sync_playwright() as playwright:
-        browser = playwright.chromium.launch()
-        page = browser.new_page()
-        page.set_content(html)
-        page.pdf(path=str(output), format="A4")
-        browser.close()
+    document = SimpleDocTemplate(str(output), pagesize=landscape(A4))
+    document.build(
+        [table("【春学期】月曜日", SPRING_ROWS), Spacer(1, 12), table("【その他】", OTHER_ROWS)]
+    )
 
 
 if __name__ == "__main__":

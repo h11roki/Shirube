@@ -12,7 +12,9 @@ dev = [
     "httpx2>=2.13.1",
     "mypy>=2.4.0",
     "pytest>=9.1.1",
+    "reportlab>=5.0.1",
     "ruff>=0.17.0",
+    "types-reportlab>=5.0.0.20261008",
 ]
 scraper = [
     "beautifulsoup4>=4.15.0",
