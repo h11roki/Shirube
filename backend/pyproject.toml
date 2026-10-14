@@ -14,6 +14,11 @@ dev = [
     "pytest>=9.1.1",
     "ruff>=0.17.0",
 ]
+scraper = [
+    "beautifulsoup4>=4.15.0",
+    "pdfplumber>=0.11.10",
+    "playwright>=1.64.0",
+]
 
 [tool.ruff]
 line-length = 100
