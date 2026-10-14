@@ -6,14 +6,12 @@ from pathlib import Path
 from app.application.fetch_syllabus import FetchSyllabus
 from app.infrastructure.scrapers.ritsumeikan.portal import SyllabusPortal
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
-
-DEFAULT_ROOT = Path("data/raw")
+from app.presentation.cli.raw_options import add_raw_store_options
 
 
 def main() -> None:
     shared = argparse.ArgumentParser(add_help=False)
-    shared.add_argument("--year", type=int, default=2026)
-    shared.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    add_raw_store_options(shared)
     parser = argparse.ArgumentParser(description="シラバスの一覧と詳細を取得して保存する")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser(

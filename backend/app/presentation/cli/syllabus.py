@@ -1,20 +1,17 @@
 import argparse
 import json
 from dataclasses import asdict
-from pathlib import Path
 
 from app.application.ports import SyllabusSource
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-
-DEFAULT_ROOT = Path("data/raw")
+from app.presentation.cli.raw_options import add_raw_store_options
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="保存済みの詳細ページを解析して表示する")
-    parser.add_argument("--year", type=int, default=2026)
-    parser.add_argument("--root", type=Path, default=DEFAULT_ROOT)
+    add_raw_store_options(parser)
     parser.add_argument("codes", nargs="*", help="授業コード。省略時は保存済みを全て検査する")
     args = parser.parse_args()
 

@@ -30,6 +30,7 @@ class Syllabus:
     overview: str
     objectives: str
     preparation: str
+    schedule_note: str
     sessions: tuple[Session, ...]
     class_format: str
     self_study: str
