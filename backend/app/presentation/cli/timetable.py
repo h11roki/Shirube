@@ -4,14 +4,16 @@ from dataclasses import asdict
 from enum import Enum
 from pathlib import Path
 
-from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import parse_timetable
+from app.application.ports import TimetableSource
+from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import RitsumeikanTimetablePdf
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="授業時間割表の PDF を JSON Lines に変換する")
     parser.add_argument("pdf", type=Path)
     args = parser.parse_args()
-    for section in parse_timetable(args.pdf):
+    source: TimetableSource = RitsumeikanTimetablePdf(args.pdf)
+    for section in source.sections():
         print(json.dumps(asdict(section), ensure_ascii=False, default=_plain))
 
 
