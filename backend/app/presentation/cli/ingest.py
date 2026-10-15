@@ -3,7 +3,7 @@ import sys
 from pathlib import Path
 
 from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
@@ -45,6 +45,8 @@ def main() -> None:
         sys.exit(f"取り込みを止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
+    except SQLAlchemyError as error:
+        sys.exit(f"DB の操作に失敗しました: {error}")
     finally:
         engine.dispose()
 
