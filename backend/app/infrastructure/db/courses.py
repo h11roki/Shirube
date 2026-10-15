@@ -55,17 +55,7 @@ class SqlCourseRepository:
 
     def syllabi(self, year: int) -> list[Syllabus]:
         with DbSession(self._engine) as db:
-            aliases: dict[str, list[CourseName]] = defaultdict(list)
-            for name in db.scalars(
-                select(SyllabusCodeRow)
-                .where(SyllabusCodeRow.year == year, SyllabusCodeRow.position > 0)
-                .order_by(SyllabusCodeRow.syllabus_code, SyllabusCodeRow.position)
-            ):
-                aliases[name.syllabus_code].append(CourseName(name.code, name.title))
-            rows = db.scalars(
-                select(SyllabusRow).where(SyllabusRow.year == year).order_by(SyllabusRow.code)
-            )
-            return [_syllabus(row, tuple(aliases[row.code])) for row in rows]
+            return _load_syllabi(db, year)
 
     def syllabus(self, year: int, code: str) -> Syllabus | None:
         with DbSession(self._engine) as db:
@@ -76,13 +66,24 @@ class SqlCourseRepository:
             )
             if primary_code is None:
                 return None
-            names = db.scalars(
-                select(SyllabusCodeRow)
-                .where(SyllabusCodeRow.year == year, SyllabusCodeRow.syllabus_code == primary_code)
-                .order_by(SyllabusCodeRow.position)
-            )
-            aliases = tuple(CourseName(name.code, name.title) for name in names if name.position)
-            return _syllabus(db.get_one(SyllabusRow, (year, primary_code)), aliases)
+            return _load_syllabi(db, year, primary_code)[0]
+
+
+def _load_syllabi(db: DbSession, year: int, primary_code: str | None = None) -> list[Syllabus]:
+    names = select(SyllabusCodeRow).where(
+        SyllabusCodeRow.year == year, SyllabusCodeRow.position > 0
+    )
+    rows = select(SyllabusRow).where(SyllabusRow.year == year)
+    if primary_code is not None:
+        names = names.where(SyllabusCodeRow.syllabus_code == primary_code)
+        rows = rows.where(SyllabusRow.code == primary_code)
+    aliases: dict[str, list[CourseName]] = defaultdict(list)
+    for name in db.scalars(names.order_by(SyllabusCodeRow.syllabus_code, SyllabusCodeRow.position)):
+        aliases[name.syllabus_code].append(CourseName(name.code, name.title))
+    return [
+        _syllabus(row, tuple(aliases[row.code]))
+        for row in db.scalars(rows.order_by(SyllabusRow.code))
+    ]
 
 
 def _section_row(year: int, section: CourseSection) -> CourseSectionRow:
