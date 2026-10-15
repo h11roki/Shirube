@@ -1,5 +1,7 @@
+import json
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -14,7 +16,7 @@ from app.application.evaluate_search import (
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import DEFAULT_DATASET, load_dataset, render
+from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
 
@@ -101,7 +103,66 @@ def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
 
     assert (dataset.year, dataset.department) == (2026, "情")
     assert len(dataset.cases) == 10
-    assert all(len(case.skills) >= 3 and len(case.expected) >= 5 for case in dataset.cases)
+    assert all(len(case.skills) >= 3 for case in dataset.cases)
+
+
+JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
+LABELS = {"core", "foundation"}
+REASON_ORDER = ("professor", "student", "engineer")
+
+
+def strict_json(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+
+
+def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
+    judgments = strict_json(JUDGMENTS)
+    first, second = judgments["parts"]
+    halves = set(first) | set(second)
+    voted: dict[str, set[str]] = {judge: set() for judge in judgments["judges"]}
+    pages: dict[str, str] = {}
+    for occupation in judgments["occupations"]:
+        names = [course["name"] for course in occupation["courses"]]
+        assert len(names) == len(set(names)), occupation["name"]
+        for course in occupation["courses"]:
+            where = (occupation["name"], course["name"])
+            assert pages.setdefault(course["name"], course["page"]) == course["page"], where
+            assert course["votes"].keys() <= voted.keys(), where
+            for judge, vote in course["votes"].items():
+                assert 0 < len(vote["evidence"]) <= 40, (*where, judge)
+                voted[judge].add(course["name"])
+
+    assert len(first) + len(second) == len(halves) == 188
+    for judge, courses in voted.items():
+        assert courses <= halves, judge
+        assert courses & set(first) and courses & set(second), judge
+
+
+def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregation() -> None:
+    judgments = strict_json(JUDGMENTS)
+    majority: dict[str, list[tuple[str, str]]] = {}
+    for occupation in judgments["occupations"]:
+        ranked: list[tuple[int, str, str]] = []
+        for course in occupation["courses"]:
+            where = (occupation["name"], course["name"])
+            votes = course["votes"]
+            assert all(vote["label"] in LABELS for vote in votes.values()), where
+            cores = [judge for judge in REASON_ORDER if votes.get(judge, {}).get("label") == "core"]
+            if len(cores) == 1:
+                assert course.get("decision") in LABELS, where
+            else:
+                assert "decision" not in course, where
+            if len(cores) >= 2 or course.get("decision") == "core":
+                ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
+        majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
+
+    dataset = strict_json(DEFAULT_DATASET)
+
+    assert (dataset["year"], dataset["department"]) == (judgments["year"], judgments["department"])
+    assert {
+        occupation["name"]: list(occupation["expected"].items())
+        for occupation in dataset["occupations"]
+    } == majority
 
 
 VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
