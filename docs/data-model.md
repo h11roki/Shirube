@@ -70,7 +70,7 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 | syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
 | syllabus_chunks | (year, syllabus_code, section) | SyllabusChunk の1件と content_hash。syllabi を指し、シラバスを入れ替えると消える(ADR 0015) |
-| embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。どのチャンクからも引かれなくなった行は `embed` の最後に消す |
+| embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。今のモデル以外の行と、どのチャンクからも引かれなくなった行は `embed --prune` で消す |
 
 時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。チャンクの埋め込みは、チャンクの content_hash と設定のモデル名で embeddings を引く。`EmbedSyllabi` はまだ埋め込みの無いハッシュだけを API に送る。
 
