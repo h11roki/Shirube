@@ -91,6 +91,25 @@ def test_cross_listed_codes_are_fetched_once_under_the_primary_code(tmp_path: Pa
     assert not store.detail_path("10002").exists()
 
 
+def test_conflicting_code_is_reported_missing_and_the_run_continues(tmp_path: Path) -> None:
+    catalog = FakeCatalog(
+        {
+            "a": [listing_html("10001:科目甲(A8) § 10002:科目乙(A8)")],
+            "b": [listing_page(("10002:科目乙(A8)", "/syllabus/s/r-syllabus/other/202610002"))],
+        },
+        {},
+    )
+    store = RawStore(tmp_path, 2026)
+    fetch = FetchSyllabus(catalog, store)
+    fetch.listings()
+
+    missing = fetch.details(["10002", "10001"])
+
+    assert missing == ["10002"]
+    assert catalog.lookup_calls == []
+    assert catalog.detail_calls == [href_of("10001")]
+
+
 def test_saved_details_and_lookups_are_not_fetched_again(tmp_path: Path) -> None:
     catalog = FakeCatalog({}, {})
     store = RawStore(tmp_path, 2026)

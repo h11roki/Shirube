@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from app.application.ports import DetailLink
-from app.infrastructure.scrapers.ritsumeikan.store import ListingConflictError, RawStore
+from app.application.ports import DetailLink, ListingConflictError
+from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from tests.unit.listing_page import listing_page
 
 PAGE_X = "/r-syllabus/x/202610001"

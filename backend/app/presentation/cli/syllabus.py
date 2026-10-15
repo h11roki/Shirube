@@ -2,7 +2,7 @@ import argparse
 import json
 from dataclasses import asdict
 
-from app.application.ports import SyllabusSource
+from app.application.ports import ListingConflictError, SyllabusSource
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
@@ -19,7 +19,11 @@ def main() -> None:
     source: SyllabusSource = StoredSyllabi(store)
     if args.codes:
         for code in args.codes:
-            syllabus = source.syllabus(code)
+            try:
+                syllabus = source.syllabus(code)
+            except ListingConflictError as error:
+                print(error)
+                continue
             print(json.dumps(asdict(syllabus) if syllabus else None, ensure_ascii=False, indent=1))
         return
     failures = []
@@ -32,7 +36,7 @@ def main() -> None:
             continue
         if syllabus is not None and syllabus.code != code:
             failures.append(f"{code}: 保存名と主コード {syllabus.code} が違う")
-    print(f"保存済み {len(codes)} 件、解析できない {len(failures)} 件")
+    print(f"保存済み {len(codes)} 件、問題 {len(failures)} 件")
     print("\n".join(failures))
 
 

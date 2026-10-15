@@ -27,6 +27,10 @@ class DetailLink:
     href: str
 
 
+class ListingConflictError(ValueError):
+    pass
+
+
 class SyllabusCatalog(Protocol):
     def listing_queries(self) -> list[ListingQuery]: ...
 
@@ -44,6 +48,6 @@ class RawPages(Protocol):
 
     def detail_link(self, code: str) -> DetailLink | None: ...
 
-    def has_detail(self, primary_code: str) -> bool: ...
+    def has_detail(self, code: str) -> bool: ...
 
     def save_detail(self, primary_code: str, page: str) -> None: ...

@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Iterable
 
-from app.application.ports import DetailLink, RawPages, SyllabusCatalog
+from app.application.ports import DetailLink, ListingConflictError, RawPages, SyllabusCatalog
 
 LOOKUP_KEY_PREFIX = "code_"
 
@@ -26,7 +26,12 @@ class FetchSyllabus:
         for code in codes:
             if self._pages.has_detail(code):
                 continue
-            link = self._pages.detail_link(code) or self._looked_up_link(code)
+            try:
+                link = self._pages.detail_link(code) or self._looked_up_link(code)
+            except ListingConflictError as error:
+                missing.append(code)
+                logger.warning("%s", error)
+                continue
             if link is None:
                 missing.append(code)
                 logger.warning("%s: 見つからない", code)
@@ -34,7 +39,7 @@ class FetchSyllabus:
             if self._pages.has_detail(link.primary_code):
                 continue
             self._pages.save_detail(link.primary_code, self._catalog.detail_page(link.href))
-            logger.info("%s: 保存", link.primary_code)
+            logger.info("%s: 保存 (%s)", code, link.primary_code)
         return missing
 
     def _looked_up_link(self, code: str) -> DetailLink | None:
