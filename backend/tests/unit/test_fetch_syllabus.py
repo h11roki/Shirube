@@ -9,12 +9,12 @@ def href_of(code: str) -> str:
     return f"/syllabus/s/r-syllabus/id{code}/2026{code}"
 
 
-def listing_html(*codes: str) -> str:
+def listing_html(*titles: str) -> str:
     rows = "".join(
-        f"<tr><th><a href='{href_of(code)}'>{code}:科目{code}(A8)</a></th>"
+        f"<tr><th><a href='{href_of(title.partition(':')[0])}'>{title}</a></th>"
         "<td>理工学部</td><td>春セメスター</td><td>月1</td><td>BKC</td>"
         "<td>教員</td><td>日本語</td><td>2</td></tr>"
-        for code in codes
+        for title in titles
     )
     return f"<table><tbody>{rows}</tbody></table>"
 
@@ -44,7 +44,9 @@ class FakeCatalog:
 
 
 def test_listings_are_saved_once_as_raw_pages(tmp_path: Path) -> None:
-    catalog = FakeCatalog({"a": [listing_html("10001"), listing_html("10002")], "b": []}, {})
+    catalog = FakeCatalog(
+        {"a": [listing_html("10001:科目甲(A8)"), listing_html("10002:科目乙(A8)")], "b": []}, {}
+    )
     store = RawStore(tmp_path, 2026)
     fetch = FetchSyllabus(catalog, store)
 
@@ -54,13 +56,16 @@ def test_listings_are_saved_once_as_raw_pages(tmp_path: Path) -> None:
     assert catalog.listing_calls == ["a", "b"]
     assert (tmp_path / "ritsumeikan" / "2026" / "listings" / "a" / "2.html").read_text(
         encoding="utf-8"
-    ) == listing_html("10002")
+    ) == listing_html("10002:科目乙(A8)")
     assert store.has_listing("b")
     assert RawStore(tmp_path, 2026).href_of("10002") == href_of("10002")
 
 
 def test_details_come_from_the_index_then_from_a_code_lookup(tmp_path: Path) -> None:
-    catalog = FakeCatalog({"a": [listing_html("10001")]}, {"90002": [listing_html("1", "90002")]})
+    catalog = FakeCatalog(
+        {"a": [listing_html("10001:科目甲(A8)")]},
+        {"90002": [listing_html("1:科目丙(A8)", "90002:科目丁(A8)")]},
+    )
     store = RawStore(tmp_path, 2026)
     fetch = FetchSyllabus(catalog, store)
     fetch.listings()
@@ -73,6 +78,22 @@ def test_details_come_from_the_index_then_from_a_code_lookup(tmp_path: Path) -> 
         store.detail_path("10001").read_text(encoding="utf-8") == f"<html>{href_of('10001')}</html>"
     )
     assert missing == ["30003"]
+
+
+def test_cross_listed_codes_share_the_page_of_the_primary_code(tmp_path: Path) -> None:
+    catalog = FakeCatalog({"a": [listing_html("10001:科目甲(A8) § 10002:科目乙(A8)")]}, {})
+    store = RawStore(tmp_path, 2026)
+    fetch = FetchSyllabus(catalog, store)
+    fetch.listings()
+
+    missing = fetch.details(["10002", "10001"])
+
+    assert missing == []
+    assert catalog.lookup_calls == []
+    assert catalog.detail_calls == [href_of("10001")]
+    assert store.detail_path("10002") == store.detail_path("10001")
+    assert store.detail_path("10001").name == "10001.html"
+    assert RawStore(tmp_path, 2026).has_detail("10002")
 
 
 def test_saved_details_and_lookups_are_not_fetched_again(tmp_path: Path) -> None:
