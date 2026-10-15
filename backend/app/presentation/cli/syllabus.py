@@ -26,9 +26,12 @@ def main() -> None:
     codes = store.saved_detail_codes()
     for code in codes:
         try:
-            source.syllabus(code)
+            syllabus = source.syllabus(code)
         except SyllabusFormatError as error:
             failures.append(f"{code}: {error}")
+            continue
+        if syllabus is not None and syllabus.code != code:
+            failures.append(f"{code}: 保存名と主コード {syllabus.code} が違う")
     print(f"保存済み {len(codes)} 件、解析できない {len(failures)} 件")
     print("\n".join(failures))
 

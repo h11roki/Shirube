@@ -24,6 +24,8 @@ class FetchSyllabus:
     def details(self, codes: Iterable[str]) -> list[str]:
         missing: list[str] = []
         for code in codes:
+            if self._pages.has_detail(code):
+                continue
             link = self._pages.detail_link(code) or self._looked_up_link(code)
             if link is None:
                 missing.append(code)

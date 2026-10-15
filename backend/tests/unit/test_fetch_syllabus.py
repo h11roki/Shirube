@@ -3,6 +3,7 @@ from pathlib import Path
 from app.application.fetch_syllabus import FetchSyllabus
 from app.application.ports import DetailLink, ListingQuery
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
+from tests.unit.listing_page import listing_page
 
 
 def href_of(code: str) -> str:
@@ -10,13 +11,7 @@ def href_of(code: str) -> str:
 
 
 def listing_html(*titles: str) -> str:
-    rows = "".join(
-        f"<tr><th><a href='{href_of(title.partition(':')[0])}'>{title}</a></th>"
-        "<td>理工学部</td><td>春セメスター</td><td>月1</td><td>BKC</td>"
-        "<td>教員</td><td>日本語</td><td>2</td></tr>"
-        for title in titles
-    )
-    return f"<table><tbody>{rows}</tbody></table>"
+    return listing_page(*((title, href_of(title[:5])) for title in titles))
 
 
 class FakeCatalog:
@@ -99,7 +94,6 @@ def test_cross_listed_codes_are_fetched_once_under_the_primary_code(tmp_path: Pa
 def test_saved_details_and_lookups_are_not_fetched_again(tmp_path: Path) -> None:
     catalog = FakeCatalog({}, {})
     store = RawStore(tmp_path, 2026)
-    store.save_listing("a", [listing_html("10001:科目甲(A8)")])
     store.save_detail("10001", "<html></html>")
     store.save_listing("code_30003", [listing_html()])
 

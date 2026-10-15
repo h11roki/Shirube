@@ -9,6 +9,7 @@ from app.infrastructure.scrapers.ritsumeikan.listing import (
     parse_listing,
     parse_page_count,
 )
+from tests.unit.listing_page import listing_page
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan" / "search_results.html"
 
@@ -31,16 +32,9 @@ def test_search_results_page_yields_one_row_per_course() -> None:
 
 
 def test_cross_listed_row_keeps_the_other_names_as_aliases() -> None:
-    link = (
-        "<th><a href='/syllabus/s/r-syllabus/x/202616806'>"
-        "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)</a></th>"
-    )
-    cells = (
-        "<td>理工学部</td><td>通年</td><td></td><td>衣笠</td><td>甲</td><td>日本語</td><td>2</td>"
-    )
-    html = f"<table><tbody><tr>{link}{cells}</tr></tbody></table>"
+    title = "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)"
 
-    row = parse_listing(html)[0]
+    row = parse_listing(listing_page((title, "/syllabus/s/r-syllabus/x/202616806")))[0]
 
     assert row.code == "16806"
     assert row.title == "平和人権フィールドスタディ (GR)"
@@ -55,12 +49,8 @@ def test_row_with_too_few_cells_is_an_error() -> None:
         parse_listing(html)
 
 
-def test_alias_without_a_course_code_is_an_error() -> None:
-    link = "<th><a href='/syllabus/s/r-syllabus/x/202610001'>10001:a § b</a></th>"
-    cells = (
-        "<td>理工学部</td><td>通年</td><td></td><td>衣笠</td><td>甲</td><td>日本語</td><td>2</td>"
-    )
-    html = f"<table><tbody><tr>{link}{cells}</tr></tbody></table>"
+def test_title_without_a_leading_course_code_is_an_error() -> None:
+    html = listing_page(("科目 § 10001:a", "/syllabus/s/r-syllabus/x/202610001"))
 
     with pytest.raises(ListingFormatError, match="授業コード"):
         parse_listing(html)

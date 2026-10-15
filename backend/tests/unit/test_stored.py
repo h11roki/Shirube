@@ -2,13 +2,14 @@ from pathlib import Path
 
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
+from tests.unit.listing_page import listing_page
 
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan"
-LISTING = (
-    "<table><tbody><tr><th><a href='/syllabus/s/r-syllabus/x/202616806'>"
-    "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)</a></th>"
-    "<td>理工学部</td><td>通年</td><td></td><td>衣笠</td><td>甲</td><td>日本語</td><td>2</td>"
-    "</tr></tbody></table>"
+LISTING = listing_page(
+    (
+        "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)",
+        "/syllabus/s/r-syllabus/x/202616806",
+    )
 )
 
 

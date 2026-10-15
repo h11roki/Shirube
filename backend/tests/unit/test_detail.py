@@ -147,9 +147,11 @@ def test_synthetic_cross_listed_title_splits_into_aliases() -> None:
     assert syllabus.aliases == (CourseName("99998", "別名(A1)"), CourseName("99997", "別名2(B1)"))
 
 
-def test_alias_without_a_course_code_is_a_format_error() -> None:
-    with pytest.raises(SyllabusFormatError, match="授業コード"):
-        parse_detail(document(title="99999:試験科目(A1) § 別名(A1)"))
+def test_section_sign_inside_a_title_is_not_a_separator() -> None:
+    syllabus = parse_detail(document(title="99999:民法入門 §90条(A1) § 99998:別名(A1)"))
+
+    assert syllabus.title == "民法入門 §90条(A1)"
+    assert syllabus.aliases == (CourseName("99998", "別名(A1)"),)
 
 
 def test_unreadable_credits_are_a_format_error() -> None:
