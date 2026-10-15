@@ -1,3 +1,4 @@
+import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -102,6 +103,27 @@ def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
     assert (dataset.year, dataset.department) == (2026, "情")
     assert len(dataset.cases) == 10
     assert all(len(case.skills) >= 3 for case in dataset.cases)
+
+
+def test_expected_courses_are_the_judges_majority_and_the_decided_splits() -> None:
+    judgments = json.loads(DEFAULT_DATASET.with_name("judgments.json").read_text(encoding="utf-8"))
+    majority: dict[str, set[str]] = {}
+    for occupation in judgments["occupations"]:
+        names: set[str] = set()
+        voters: set[str] = set()
+        for course in occupation["courses"]:
+            voters |= course["votes"].keys()
+            cores = sum(vote["label"] == "core" for vote in course["votes"].values())
+            assert ("decision" in course) == (cores == 1), (occupation["name"], course["name"])
+            if cores >= 2 or course.get("decision") == "core":
+                names.add(course["name"])
+        assert voters == judgments["judges"].keys(), occupation["name"]
+        majority[occupation["name"]] = names
+
+    dataset = load_dataset(DEFAULT_DATASET)
+
+    assert (judgments["year"], judgments["department"]) == (dataset.year, dataset.department)
+    assert {case.occupation: set(case.expected) for case in dataset.cases} == majority
 
 
 VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
