@@ -20,19 +20,26 @@ class FakeEmbedder:
 
 
 class FakeChunkSearch:
-    def __init__(self, hits: list[ChunkHit], years_not_embedded: tuple[int, ...] = ()) -> None:
+    def __init__(
+        self,
+        hits: list[ChunkHit],
+        hits_by_vector: dict[float, list[ChunkHit]] | None = None,
+        embedded: bool = True,
+    ) -> None:
         self._hits = hits
-        self._years_not_embedded = list(years_not_embedded)
+        self._hits_by_vector = hits_by_vector or {}
+        self._embedded = embedded
         self.calls: list[tuple[int, str, list[float], set[str]]] = []
 
-    def years_not_embedded(self, model: str) -> list[int]:
-        return self._years_not_embedded
+    def is_embedded(self, year: int, model: str) -> bool:
+        return self._embedded
 
     def best_chunks(
         self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
     ) -> list[ChunkHit]:
         self.calls.append((year, model, vector, syllabus_codes))
-        return [hit for hit in self._hits if hit.syllabus_code in syllabus_codes]
+        hits = self._hits_by_vector.get(vector[0], self._hits)
+        return [hit for hit in hits if hit.syllabus_code in syllabus_codes]
 
 
 class FakeCourseRepository:

@@ -34,50 +34,48 @@ def courses() -> FakeCourseRepository:
     )
 
 
-def test_queries_are_embedded_at_once_and_searched_among_candidate_pages() -> None:
-    chunks = FakeChunkSearch(HITS)
-    embedder = FakeEmbedder()
-
-    rankings = SearchCourses(courses(), chunks, embedder).run(
-        2026, ["回路の設計", "論理"], "情", ALL_GRADES, 10
+def test_candidates_are_course_names_offered_to_the_student_that_have_a_syllabus() -> None:
+    candidates = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder()).candidates(
+        2026, "情", ALL_GRADES
     )
+
+    assert candidates.names == {"電子回路Ⅰ", "論理回路"}
+
+
+def test_queries_are_embedded_at_once_and_each_is_ranked_by_its_own_vector() -> None:
+    chunks = FakeChunkSearch(
+        [],
+        hits_by_vector={
+            5.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.6), *HITS[1:]],
+            2.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.9), *HITS[1:]],
+        },
+    )
+    embedder = FakeEmbedder()
+    candidates = SearchCourses(courses(), chunks, embedder).candidates(2026, "情", ALL_GRADES)
+
+    rankings = candidates.rank(["回路の設計", "論理"], 10)
 
     assert embedder.calls == [["回路の設計", "論理"]]
-    assert chunks.calls == [
-        (2026, FAKE_MODEL, [5.0], {"10001", "30001"}),
-        (2026, FAKE_MODEL, [2.0], {"10001", "30001"}),
+    assert [call[1:] for call in chunks.calls] == [
+        (FAKE_MODEL, [5.0], {"10001", "30001"}),
+        (FAKE_MODEL, [2.0], {"10001", "30001"}),
     ]
-    assert [(match.name, match.similarity) for match in rankings[0]] == [
-        ("論理回路", 0.7),
-        ("電子回路Ⅰ", 0.6),
-    ]
-    assert len(rankings) == 2
+    assert [match.name for match in rankings[0]] == ["論理回路", "電子回路Ⅰ"]
+    assert [match.name for match in rankings[1]] == ["電子回路Ⅰ", "論理回路"]
 
 
-def test_candidates_are_course_names_that_have_a_syllabus() -> None:
-    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder())
+def test_no_candidates_is_an_error_instead_of_empty_results() -> None:
+    search = SearchCourses(courses(), FakeChunkSearch(HITS), FakeEmbedder())
 
-    assert search.candidates(2026, "情", ALL_GRADES) == {"電子回路Ⅰ", "論理回路"}
-
-
-def test_no_candidates_means_no_embedding_call() -> None:
-    embedder = FakeEmbedder()
-
-    rankings = SearchCourses(courses(), FakeChunkSearch(HITS), embedder).run(
-        2026, ["回路"], "情", frozenset(), 10
-    )
-
-    assert rankings == [[]]
-    assert embedder.calls == []
+    with pytest.raises(SearchError, match="候補の科目がありません"):
+        search.candidates(2026, "情", frozenset())
 
 
 def test_year_not_embedded_with_the_model_is_an_error_instead_of_empty_results() -> None:
-    embedder = FakeEmbedder()
-    search = SearchCourses(courses(), FakeChunkSearch(HITS, years_not_embedded=(2026,)), embedder)
+    search = SearchCourses(courses(), FakeChunkSearch(HITS, embedded=False), FakeEmbedder())
 
     with pytest.raises(SearchError, match="2026 年度のシラバスがモデル fake-embedding で"):
-        search.run(2026, ["回路"], "情", ALL_GRADES, 10)
-    assert embedder.calls == []
+        search.candidates(2026, "情", ALL_GRADES)
 
 
 def test_vectors_that_do_not_match_the_queries_are_an_error() -> None:
@@ -85,7 +83,9 @@ def test_vectors_that_do_not_match_the_queries_are_an_error() -> None:
         def embed(self, texts: list[str]) -> list[list[float]]:
             return super().embed(texts)[1:]
 
-    search = SearchCourses(courses(), FakeChunkSearch(HITS), ShortEmbedder())
+    candidates = SearchCourses(courses(), FakeChunkSearch(HITS), ShortEmbedder()).candidates(
+        2026, "情", ALL_GRADES
+    )
 
     with pytest.raises(SearchError, match="埋め込み 1 件がクエリ 2 件と合いません"):
-        search.run(2026, ["回路", "論理"], "情", ALL_GRADES, 10)
+        candidates.rank(["回路", "論理"], 10)

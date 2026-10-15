@@ -27,12 +27,22 @@ def load_dataset(path: Path) -> EvaluationDataset:
     cases = []
     for occupation in document["occupations"]:
         name, skills, expected = occupation["name"], occupation["skills"], occupation["expected"]
-        if not isinstance(skills, list) or not all(isinstance(skill, str) for skill in skills):
-            raise ValueError(f"{name}: skills は文字列の配列にしてください")
-        if not isinstance(expected, dict):
-            raise ValueError(f"{name}: expected は科目名から理由への対応にしてください")
+        if not isinstance(skills, list) or not skills or not all(_text(skill) for skill in skills):
+            raise ValueError(f"{name}: skills は空でない文字列の配列にしてください")
+        if not isinstance(expected, dict) or not all(_text(why) for why in expected.values()):
+            raise ValueError(
+                f"{name}: expected は科目名から理由(空でない文字列)への対応にしてください"
+            )
         cases.append(EvaluationCase(str(name), tuple(skills), tuple(expected)))
+    names = [case.occupation for case in cases]
+    duplicated = sorted({name for name in names if names.count(name) > 1})
+    if duplicated:
+        raise ValueError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
     return EvaluationDataset(int(document["year"]), str(document["department"]), tuple(cases))
+
+
+def _text(value: object) -> bool:
+    return isinstance(value, str) and bool(value.strip())
 
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:

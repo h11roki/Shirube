@@ -51,7 +51,7 @@ class ChunkRepository(Protocol):
 
 
 class ChunkSearch(Protocol):
-    def years_not_embedded(self, model: str) -> list[int]: ...
+    def is_embedded(self, year: int, model: str) -> bool: ...
 
     def best_chunks(
         self, year: int, model: str, vector: list[float], syllabus_codes: set[str]

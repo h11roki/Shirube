@@ -94,16 +94,21 @@ def test_years_not_embedded_with_the_model_are_listed(
     year_chunks = chunks_of(syllabus("10001", year=YEAR))
 
     assert chunks.years_not_embedded(MODEL) == [YEAR]
+    assert not chunks.is_embedded(YEAR, MODEL)
 
     chunks.replace_chunks(YEAR, year_chunks)
     chunks.save_embeddings(OLD_MODEL, {chunk.content_hash: vector(0.4) for chunk in year_chunks})
 
     assert chunks.years_not_embedded(MODEL) == [YEAR]
     assert chunks.years_not_embedded(OLD_MODEL) == []
+    assert not chunks.is_embedded(YEAR, MODEL)
+    assert chunks.is_embedded(YEAR, OLD_MODEL)
 
     chunks.save_embeddings(MODEL, {chunk.content_hash: vector(0.5) for chunk in year_chunks})
 
     assert chunks.years_not_embedded(MODEL) == []
+    assert chunks.is_embedded(YEAR, MODEL)
+    assert not chunks.is_embedded(YEAR + 1, MODEL)
 
 
 def unit(*leading: float) -> list[float]:

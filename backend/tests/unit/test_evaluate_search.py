@@ -1,4 +1,3 @@
-import json
 from dataclasses import replace
 from pathlib import Path
 
@@ -18,8 +17,6 @@ from app.domain.ranking import ChunkHit
 from app.presentation.cli.evaluate import DEFAULT_DATASET, load_dataset, render
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
-
-DATASET = Path(__file__).parents[2] / "eval" / "occupations.json"
 
 
 def search_over(similarities: dict[str, float]) -> SearchCourses:
@@ -80,41 +77,43 @@ def test_report_lists_recalls_and_ranks() -> None:
     )
 
 
-def test_committed_dataset_has_ten_occupations_with_skills_and_reasons() -> None:
-    dataset = load_dataset(DATASET)
-    raw = json.loads(DATASET.read_text(encoding="utf-8"))
+def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
+    dataset = load_dataset(DEFAULT_DATASET)
 
     assert (dataset.year, dataset.department) == (2026, "情")
     assert len(dataset.cases) == 10
-    assert len({case.occupation for case in dataset.cases}) == 10
     assert all(len(case.skills) >= 3 and len(case.expected) >= 5 for case in dataset.cases)
-    assert all(
-        reason.strip()
-        for occupation in raw["occupations"]
-        for reason in occupation["expected"].values()
-    )
-    assert DATASET.resolve() == DEFAULT_DATASET
+
+
+VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
 
 
 @pytest.mark.parametrize(
-    ("occupation", "message"),
+    ("occupations", "message"),
     [
-        (
-            '{"name": "職業", "skills": "C 言語", "expected": {"甲": "理由"}}',
-            "skills は文字列の配列",
-        ),
+        ('{"name": "職業", "skills": "C 言語", "expected": {"甲": "理由"}}', "skills は空でない"),
+        ('{"name": "職業", "skills": [], "expected": {"甲": "理由"}}', "skills は空でない"),
         ('{"name": "職業", "skills": ["C"], "expected": ["甲"]}', "expected は科目名から理由"),
+        ('{"name": "職業", "skills": ["C"], "expected": {"甲": ""}}', "expected は科目名から理由"),
         (
             '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由", "甲": "別の理由"}}',
             "同じ項目が 2 回あります: 甲",
         ),
+        (f"{VALID}, {VALID}", "同じ職業が 2 回あります: 職業"),
     ],
-    ids=["skills-as-a-string", "expected-as-a-list", "duplicated-course"],
+    ids=[
+        "skills-as-a-string",
+        "no-skills",
+        "expected-as-a-list",
+        "empty-reason",
+        "duplicated-course",
+        "duplicated-occupation",
+    ],
 )
-def test_malformed_dataset_is_rejected(tmp_path: Path, occupation: str, message: str) -> None:
+def test_malformed_dataset_is_rejected(tmp_path: Path, occupations: str, message: str) -> None:
     path = tmp_path / "occupations.json"
     path.write_text(
-        f'{{"year": 2026, "department": "情", "occupations": [{occupation}]}}', encoding="utf-8"
+        f'{{"year": 2026, "department": "情", "occupations": [{occupations}]}}', encoding="utf-8"
     )
 
     with pytest.raises(ValueError, match=message):

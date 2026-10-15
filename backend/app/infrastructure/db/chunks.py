@@ -92,6 +92,18 @@ class SqlChunkRepository:
             )
             return result.rowcount
 
+    def is_embedded(self, year: int, model: str) -> bool:
+        has_chunks = exists().where(SyllabusChunkRow.year == year)
+        unembedded = exists().where(
+            SyllabusChunkRow.year == year,
+            ~exists().where(
+                EmbeddingRow.model == model,
+                EmbeddingRow.content_hash == SyllabusChunkRow.content_hash,
+            ),
+        )
+        with DbSession(self._engine) as db:
+            return bool(db.scalar(select(and_(has_chunks, ~unembedded))))
+
     def best_chunks(
         self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
     ) -> list[ChunkHit]:
