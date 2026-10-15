@@ -56,7 +56,7 @@ flowchart LR
 
 ## テーブル(infrastructure/db/models.py、ADR 0014)
 
-取り込み元ごとに表を分け、入れ子は JSONB で持つ。全表が year を持ち、`IngestCourses` が年度単位で全削除と挿入を1トランザクションで行う。
+取り込み元ごとに表を分け、入れ子は JSONB で持つ。全表が year を持ち、`IngestTimetable` が course_sections を、`IngestSyllabi` が syllabi と syllabus_codes を、年度単位で全削除と挿入を1トランザクションで入れ替える。片方を取り直しても他方には触れない。
 
 | 表 | 主キー | 内容 |
 |---|---|---|

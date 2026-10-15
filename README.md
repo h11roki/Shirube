@@ -48,7 +48,7 @@ docker compose up
 DB のスキーマは Alembic で管理する。初回と、`backend/migrations/versions/` が増えたときに適用する。
 
 ```sh
-docker compose exec backend uv run alembic upgrade head
+docker compose exec backend uv run --no-sync alembic upgrade head
 ```
 
 科目データは、時間割表の PDF と保存済みのシラバス(`backend/data/`、git 管理外)から取り込む。手順は `CLAUDE.md` のコマンド一覧にある。
