@@ -3,6 +3,8 @@ from dataclasses import dataclass
 from app.application.ports import ChunkRepository, CourseRepository, Embedder
 from app.domain.chunk import chunks_of
 
+EMBED_BATCH_SIZE = 100
+
 
 class EmbedError(ValueError):
     pass
@@ -11,6 +13,7 @@ class EmbedError(ValueError):
 @dataclass(frozen=True)
 class EmbedReport:
     chunks: int
+    texts: int
     embedded: int
     reused: int
 
@@ -31,13 +34,18 @@ class EmbedSyllabi:
         text_of = {chunk.content_hash: chunk.text for chunk in chunks}
         known = self._chunks.embedded_hashes(self._embedder.model, set(text_of))
         missing = [content_hash for content_hash in text_of if content_hash not in known]
-        if missing:
-            vectors = self._embedder.embed([text_of[content_hash] for content_hash in missing])
+        for start in range(0, len(missing), EMBED_BATCH_SIZE):
+            batch = missing[start : start + EMBED_BATCH_SIZE]
+            vectors = self._embedder.embed([text_of[content_hash] for content_hash in batch])
             self._chunks.save_embeddings(
-                self._embedder.model, dict(zip(missing, vectors, strict=True))
+                self._embedder.model, dict(zip(batch, vectors, strict=True))
             )
         self._chunks.replace_chunks(year, chunks)
-        return EmbedReport(len(chunks), len(missing), len(text_of) - len(missing))
+        return EmbedReport(len(chunks), len(text_of), len(missing), len(text_of) - len(missing))
 
     def prune(self) -> int:
+        unembedded = self._chunks.years_without_chunks()
+        if unembedded:
+            years = "、".join(str(year) for year in unembedded)
+            raise EmbedError(f"{years} 年度のシラバスにチャンクがありません")
         return self._chunks.prune_embeddings(self._embedder.model)

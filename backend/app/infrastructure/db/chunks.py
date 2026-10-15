@@ -3,7 +3,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session as DbSession
 
 from app.domain.chunk import SyllabusChunk
-from app.infrastructure.db.models import EmbeddingRow, SyllabusChunkRow
+from app.infrastructure.db.models import EmbeddingRow, SyllabusChunkRow, SyllabusRow
 
 
 class SqlChunkRepository:
@@ -46,6 +46,15 @@ class SqlChunkRepository:
                     content_hash=chunk.content_hash,
                 )
                 for chunk in chunks
+            )
+
+    def years_without_chunks(self) -> list[int]:
+        chunked = exists().where(SyllabusChunkRow.year == SyllabusRow.year)
+        with DbSession(self._engine) as db:
+            return list(
+                db.scalars(
+                    select(SyllabusRow.year).where(~chunked).distinct().order_by(SyllabusRow.year)
+                )
             )
 
     def prune_embeddings(self, model: str) -> int:

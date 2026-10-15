@@ -42,8 +42,7 @@ def test_saved_embeddings_are_found_by_model_and_hash(
     assert chunks.embedded_hashes(MODEL, set()) == set()
     with engine.connect() as connection:
         stored = connection.scalar(select(EmbeddingRow.vector).where(EmbeddingRow.model == MODEL))
-    assert stored is not None
-    assert list(stored) == pytest.approx(vector(0.5))
+    assert stored == pytest.approx(vector(0.5))
 
 
 def test_chunks_are_replaced_per_year_and_follow_their_syllabus(
@@ -86,3 +85,15 @@ def test_prune_removes_other_models_and_embeddings_no_chunk_refers_to(
     assert removed == 2
     assert chunks.embedded_hashes(MODEL, {kept.content_hash, "c" * 64}) == {kept.content_hash}
     assert chunks.embedded_hashes(OLD_MODEL, {kept.content_hash}) == set()
+
+
+def test_years_with_syllabi_but_no_chunks_are_listed(
+    stores: tuple[SqlCourseRepository, SqlChunkRepository],
+) -> None:
+    _, chunks = stores
+
+    assert chunks.years_without_chunks() == [YEAR]
+
+    chunks.replace_chunks(YEAR, chunks_of(syllabus("10001", year=YEAR)))
+
+    assert chunks.years_without_chunks() == []
