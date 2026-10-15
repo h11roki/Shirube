@@ -65,9 +65,13 @@ def upgrade() -> None:
         ),
         sa.PrimaryKeyConstraint("year", "code"),
     )
+    op.create_index(
+        "ix_syllabus_codes_year_syllabus_code", "syllabus_codes", ["year", "syllabus_code"]
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_syllabus_codes_year_syllabus_code", table_name="syllabus_codes")
     op.drop_table("syllabus_codes")
     op.drop_table("syllabi")
     op.drop_table("course_sections")

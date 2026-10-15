@@ -1,6 +1,6 @@
 from typing import TypedDict
 
-from sqlalchemy import ForeignKeyConstraint, Text
+from sqlalchemy import ForeignKeyConstraint, Index, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -83,6 +83,7 @@ class SyllabusCodeRow(Base):
         ForeignKeyConstraint(
             ["year", "syllabus_code"], ["syllabi.year", "syllabi.code"], ondelete="CASCADE"
         ),
+        Index("ix_syllabus_codes_year_syllabus_code", "year", "syllabus_code"),
     )
 
     year: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
