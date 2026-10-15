@@ -1,8 +1,11 @@
 from typing import TypedDict
 
+from pgvector.sqlalchemy import Vector
 from sqlalchemy import ForeignKeyConstraint, Index, Text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+EMBEDDING_DIMENSIONS = 1536
 
 
 class SlotJson(TypedDict):
@@ -91,3 +94,27 @@ class SyllabusCodeRow(Base):
     title: Mapped[str]
     syllabus_code: Mapped[str]
     position: Mapped[int]
+
+
+class SyllabusChunkRow(Base):
+    __tablename__ = "syllabus_chunks"
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ["year", "syllabus_code"], ["syllabi.year", "syllabi.code"], ondelete="CASCADE"
+        ),
+        Index("ix_syllabus_chunks_content_hash", "content_hash"),
+    )
+
+    year: Mapped[int] = mapped_column(primary_key=True, autoincrement=False)
+    syllabus_code: Mapped[str] = mapped_column(primary_key=True)
+    section: Mapped[str] = mapped_column(primary_key=True)
+    text: Mapped[str]
+    content_hash: Mapped[str]
+
+
+class EmbeddingRow(Base):
+    __tablename__ = "embeddings"
+
+    model: Mapped[str] = mapped_column(primary_key=True)
+    content_hash: Mapped[str] = mapped_column(primary_key=True)
+    vector: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
