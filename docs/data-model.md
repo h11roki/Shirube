@@ -11,6 +11,8 @@ flowchart LR
   C -- 主コードと別名 --> K[(syllabus_codes)]
   K -- syllabus_code --> N
   M -. code .-> K
+  N -->|chunks_of| H[(syllabus_chunks)]
+  H -- model と content_hash --> E[(embeddings)]
 ```
 
 ## CourseSection(domain/course.py)
@@ -54,6 +56,10 @@ flowchart LR
 | schedule_note, sessions | str, tuple[Session, ...] | 授業スケジュール表 | 回が「-」の行は注記。回の列は自由記述なので文字列のまま |
 | grading | tuple[GradingItem, ...] | 成績評価方法表 | 種別、割合、基準 |
 
+## SyllabusChunk(domain/chunk.py、ADR 0005、0015)
+
+Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授業スケジュール の 3 つまでのチャンクを作る。本文は「科目名、見出し、本文」の順。授業スケジュールは各回のテーマとキーワードを並べ、回の番号と注記は入れない。本文が空のセクションは作らない。content_hash は本文の SHA-256 で、埋め込みの再利用のキーになる。2026 年度の 530 ページから 1,589 チャンクができる。
+
 ## テーブル(infrastructure/db/models.py、ADR 0014)
 
 取り込み元ごとに表を分け、入れ子は JSONB で持つ。全表が year を持ち、`IngestTimetable` が course_sections を、`IngestSyllabi` が syllabi と syllabus_codes を、年度単位で全削除と挿入を1トランザクションで入れ替える。片方を取り直しても他方には触れない。
@@ -63,8 +69,10 @@ flowchart LR
 | course_sections | (year, code) | CourseSection の1件。term と slots の weekday は列挙の値(spring / mon)、slots・departments・audiences・instructors は JSONB。departments が全学科のときは SQL の NULL |
 | syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
+| syllabus_chunks | (year, syllabus_code, section) | SyllabusChunk の1件と content_hash。syllabi を指し、シラバスを入れ替えると消える(ADR 0015) |
+| embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。どのチャンクからも引かれなくなった行は `embed` の最後に消す |
 
-時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。
+時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。チャンクの埋め込みは、チャンクの content_hash と設定のモデル名で embeddings を引く。`EmbedSyllabi` はまだ埋め込みの無いハッシュだけを API に送る。
 
 ## 道標での使い方
 
