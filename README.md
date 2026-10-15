@@ -43,7 +43,7 @@ docker compose up
 - フロント: http://localhost:3000
 - バックエンド: http://localhost:8000 (OpenAPI: http://localhost:8000/docs)
 
-ポートが使用中のときは `FRONTEND_PORT` / `BACKEND_PORT` / `DB_PORT` で手元側のポートを変えられる。シラバスの埋め込み(`embed` コマンド)は手元で実行し、`OPENAI_API_KEY` を環境変数で渡す。リポジトリ直下の `.envrc`(direnv、git 管理外)に `export OPENAI_API_KEY=...` を書き、`direnv allow` で有効にする。direnv は一番近い `.envrc` だけを読むので、親ディレクトリの `.envrc` も引き継ぐときは先頭に `source_up` を書く。
+ポートが使用中のときは `FRONTEND_PORT` / `BACKEND_PORT` / `DB_PORT` で手元側のポートを変えられる。シラバスの埋め込み(`embed` コマンド)と検索の評価(`evaluate` コマンド)は手元で実行し、`OPENAI_API_KEY` を環境変数で渡す。リポジトリ直下の `.envrc`(direnv、git 管理外)に `export OPENAI_API_KEY=...` を書き、`direnv allow` で有効にする。direnv は一番近い `.envrc` だけを読むので、親ディレクトリの `.envrc` も引き継ぐときは先頭に `source_up` を書く。
 
 DB のスキーマは Alembic で管理する。初回と、`backend/migrations/versions/` が増えたときに適用する。
 
