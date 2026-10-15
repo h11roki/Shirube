@@ -41,3 +41,10 @@ def test_unknown_or_unsaved_codes_are_none(tmp_path: Path) -> None:
 
     assert source.syllabus("16807") is None
     assert source.syllabus("99999") is None
+
+
+def test_every_saved_page_is_listed_once(tmp_path: Path) -> None:
+    store = saved_store(tmp_path, with_listing=True)
+    store.save_detail("32494", (FIXTURES / "detail_32494.html").read_text(encoding="utf-8"))
+
+    assert [page.code for page in StoredSyllabi(store).syllabi()] == ["16806", "32494"]

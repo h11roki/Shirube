@@ -18,12 +18,14 @@ class SqlCourseRepository:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def replace(self, year: int, sections: list[CourseSection], syllabi: list[Syllabus]) -> None:
+    def replace_sections(self, year: int, sections: list[CourseSection]) -> None:
         with DbSession(self._engine) as db, db.begin():
-            db.execute(delete(SyllabusCodeRow).where(SyllabusCodeRow.year == year))
-            db.execute(delete(SyllabusRow).where(SyllabusRow.year == year))
             db.execute(delete(CourseSectionRow).where(CourseSectionRow.year == year))
             db.add_all(_section_row(year, section) for section in sections)
+
+    def replace_syllabi(self, year: int, syllabi: list[Syllabus]) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(delete(SyllabusRow).where(SyllabusRow.year == year))
             db.add_all(_syllabus_row(year, syllabus) for syllabus in syllabi)
             db.flush()
             db.add_all(

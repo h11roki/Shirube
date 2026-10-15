@@ -7,7 +7,6 @@ from alembic import command
 from alembic.config import Config
 from sqlalchemy import create_engine
 
-from app.domain.course import Term
 from app.domain.syllabus import CourseName
 from app.infrastructure.db.courses import SqlCourseRepository
 from tests.builders import course_section, syllabus
@@ -19,15 +18,16 @@ YEAR = 2099
 pytestmark = pytest.mark.skipif(DATABASE_URL is None, reason="DATABASE_URL が無い")
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture
 def repository() -> Iterator[SqlCourseRepository]:
     assert DATABASE_URL is not None
     command.upgrade(Config(str(ALEMBIC_INI)), "head")
     engine = create_engine(DATABASE_URL)
     repository = SqlCourseRepository(engine)
     yield repository
-    repository.replace(YEAR, [], [])
-    repository.replace(YEAR + 1, [], [])
+    for year in (YEAR, YEAR + 1):
+        repository.replace_sections(year, [])
+        repository.replace_syllabi(year, [])
     engine.dispose()
 
 
@@ -38,21 +38,35 @@ def test_sections_and_syllabi_round_trip(repository: SqlCourseRepository) -> Non
     ]
     shared = syllabus("10001", aliases=(CourseName("10002", "別名(6T)"),), year=YEAR)
 
-    repository.replace(YEAR, sections, [shared])
+    repository.replace_sections(YEAR, sections)
+    repository.replace_syllabi(YEAR, [shared])
 
     assert repository.sections(YEAR) == sections
-    assert repository.sections(YEAR)[0].term is Term.SPRING
     assert repository.syllabus(YEAR, "10001") == shared
     assert repository.syllabus(YEAR, "10002") == shared
     assert repository.syllabus(YEAR, "99999") is None
 
 
-def test_replace_swaps_only_the_rows_of_that_year(repository: SqlCourseRepository) -> None:
-    repository.replace(YEAR, [course_section("10001")], [syllabus("10001", year=YEAR)])
-    repository.replace(YEAR + 1, [course_section("20001")], [])
+def test_each_source_is_replaced_without_touching_the_other(
+    repository: SqlCourseRepository,
+) -> None:
+    repository.replace_sections(YEAR, [course_section("10001")])
+    repository.replace_syllabi(YEAR, [syllabus("10001", year=YEAR)])
 
-    repository.replace(YEAR, [course_section("10003")], [])
+    repository.replace_syllabi(YEAR, [syllabus("10003", year=YEAR)])
+    repository.replace_sections(YEAR, [course_section("10002")])
 
-    assert [section.code for section in repository.sections(YEAR)] == ["10003"]
+    assert [section.code for section in repository.sections(YEAR)] == ["10002"]
     assert repository.syllabus(YEAR, "10001") is None
+    assert repository.syllabus(YEAR, "10003") == syllabus("10003", year=YEAR)
+
+
+def test_replacing_a_year_keeps_the_other_years(repository: SqlCourseRepository) -> None:
+    repository.replace_sections(YEAR + 1, [course_section("20001")])
+    repository.replace_syllabi(YEAR + 1, [syllabus("20001", year=YEAR + 1)])
+
+    repository.replace_sections(YEAR, [course_section("10001")])
+    repository.replace_syllabi(YEAR, [syllabus("10001", year=YEAR)])
+
     assert [section.code for section in repository.sections(YEAR + 1)] == ["20001"]
+    assert repository.syllabus(YEAR + 1, "20001") == syllabus("20001", year=YEAR + 1)

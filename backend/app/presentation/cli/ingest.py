@@ -1,35 +1,41 @@
 import argparse
-import logging
+import sys
 from pathlib import Path
 
 from sqlalchemy import create_engine
 
-from app.application.ingest_courses import IngestCourses
+from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import RitsumeikanTimetablePdf
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-from app.presentation.cli.raw_options import add_raw_store_options
+from app.presentation.cli.raw_options import DEFAULT_YEAR, add_raw_store_options
 from app.settings import Settings
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="時間割表と保存済みシラバスを DB に取り込む")
-    add_raw_store_options(parser)
-    parser.add_argument("timetable", type=Path, help="授業時間割表の PDF")
+    parser = argparse.ArgumentParser(description="時間割表とシラバスを年度単位で DB に入れ替える")
+    commands = parser.add_subparsers(dest="command", required=True)
+    timetable = commands.add_parser("timetable", help="その年度の時間割表を全て取り込む")
+    timetable.add_argument("--year", type=int, default=DEFAULT_YEAR)
+    timetable.add_argument("pdfs", type=Path, nargs="+", help="授業時間割表の PDF")
+    syllabi = commands.add_parser("syllabi", help="保存済みのシラバスを全て取り込む")
+    add_raw_store_options(syllabi)
     args = parser.parse_args()
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    ingest = IngestCourses(
-        RitsumeikanTimetablePdf(args.timetable),
-        StoredSyllabi(RawStore(args.root, args.year)),
-        SqlCourseRepository(create_engine(Settings().database_url)),
-    )
-    report = ingest.run(args.year)
+    repository = SqlCourseRepository(create_engine(Settings().database_url))
+    try:
+        if args.command == "timetable":
+            sources = [RitsumeikanTimetablePdf(pdf) for pdf in args.pdfs]
+            print(f"時間割表 {IngestTimetable(sources, repository).run(args.year)} 行")
+            return
+        source = StoredSyllabi(RawStore(args.root, args.year))
+        report = IngestSyllabi(source, repository).run(args.year)
+    except IngestError as error:
+        sys.exit(f"取り込みを止めました: {error}")
     print(
-        f"時間割表 {report.sections} 行、シラバス {report.syllabi} 件、"
-        f"シラバス無し {len(report.codes_without_syllabus)} 件: "
-        f"{' '.join(report.codes_without_syllabus)}"
+        f"シラバス {report.pages} ページ、時間割表でシラバス無し "
+        f"{len(report.codes_without_syllabus)} 件: {' '.join(report.codes_without_syllabus)}"
     )
 
 

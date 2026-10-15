@@ -14,4 +14,10 @@ class StoredSyllabi:
             if link is None or not self._store.has_detail(link.primary_code):
                 return None
             primary = link.primary_code
-        return parse_detail(self._store.detail_path(primary).read_text(encoding="utf-8"))
+        return self._parsed(primary)
+
+    def syllabi(self) -> list[Syllabus]:
+        return [self._parsed(code) for code in self._store.saved_detail_codes()]
+
+    def _parsed(self, primary_code: str) -> Syllabus:
+        return parse_detail(self._store.detail_path(primary_code).read_text(encoding="utf-8"))
