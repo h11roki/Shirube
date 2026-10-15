@@ -40,7 +40,7 @@
 
 時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は syllabus_codes の主コード以外の行から組み立てる。
 
-slots、departments、audiences、instructors、sessions、grading は JSONB 列に、ドメインの値オブジェクトをそのままの形で入れる。列挙(Term、Weekday)は値の文字列で入れる。
+slots、departments、audiences、instructors、sessions、grading は JSONB 列に、ドメインの値オブジェクトをそのままの形で入れる。列挙(Term、Weekday)は値の文字列で入れる。departments が None(全学科)のときは JSON の null ではなく SQL の NULL にし、`departments IS NULL` で引けるようにする。
 
 取り込みは取り込み元ごとのユースケースが行い、どちらも年度の既存行を全て消してから挿入し、1トランザクションで確定する。
 
@@ -67,3 +67,4 @@ slots、departments、audiences、instructors、sessions、grading は JSONB 列
 
 - 全学に広げて件数が数十万になり、全件読みが遅くなったとき(配当と学科を子テーブルにする)
 - 入れ子の中身を単独で集計・表示する画面ができたとき
+- 2つ目の学科の時間割表を入れたとき、同じ授業コードの行が学科ごとに違う内容(学科、教室、注記など)で載っていたとき。その時点の実データを見て、まとめ方を決める

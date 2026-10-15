@@ -60,7 +60,7 @@ flowchart LR
 
 | 表 | 主キー | 内容 |
 |---|---|---|
-| course_sections | (year, code) | CourseSection の1件。term と slots の weekday は列挙の値(spring / mon)、slots・departments・audiences・instructors は JSONB |
+| course_sections | (year, code) | CourseSection の1件。term と slots の weekday は列挙の値(spring / mon)、slots・departments・audiences・instructors は JSONB。departments が全学科のときは SQL の NULL |
 | syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
 
