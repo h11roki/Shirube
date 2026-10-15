@@ -1,6 +1,7 @@
 import json
 from dataclasses import replace
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -105,25 +106,64 @@ def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
     assert all(len(case.skills) >= 3 for case in dataset.cases)
 
 
-def test_expected_courses_are_the_judges_majority_and_the_decided_splits() -> None:
-    judgments = json.loads(DEFAULT_DATASET.with_name("judgments.json").read_text(encoding="utf-8"))
-    majority: dict[str, set[str]] = {}
+JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
+LABELS = {"core", "foundation"}
+
+
+def strict_json(path: Path) -> Any:
+    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        keys = [key for key, _ in pairs]
+        assert len(keys) == len(set(keys)), f"{path.name}: 同じ項目が 2 回あります: {keys}"
+        return dict(pairs)
+
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+
+
+def test_every_judge_voted_on_both_halves_of_the_courses() -> None:
+    judgments = strict_json(JUDGMENTS)
+    first, second = (set(part) for part in judgments["parts"])
+    voted: dict[str, set[str]] = {judge: set() for judge in judgments["judges"]}
     for occupation in judgments["occupations"]:
-        names: set[str] = set()
-        voters: set[str] = set()
+        names = [course["name"] for course in occupation["courses"]]
+        assert len(names) == len(set(names)), occupation["name"]
         for course in occupation["courses"]:
-            voters |= course["votes"].keys()
-            cores = sum(vote["label"] == "core" for vote in course["votes"].values())
-            assert ("decision" in course) == (cores == 1), (occupation["name"], course["name"])
-            if cores >= 2 or course.get("decision") == "core":
-                names.add(course["name"])
-        assert voters == judgments["judges"].keys(), occupation["name"]
-        majority[occupation["name"]] = names
+            assert course["votes"].keys() <= voted.keys(), (occupation["name"], course["name"])
+            for judge in course["votes"]:
+                voted[judge].add(course["name"])
 
-    dataset = load_dataset(DEFAULT_DATASET)
+    assert not first & second
+    for judge, courses in voted.items():
+        assert courses <= first | second, judge
+        assert courses & first and courses & second, judge
 
-    assert (judgments["year"], judgments["department"]) == (dataset.year, dataset.department)
-    assert {case.occupation: set(case.expected) for case in dataset.cases} == majority
+
+def test_expected_courses_and_reasons_follow_the_judges_majority_and_decisions() -> None:
+    judgments = strict_json(JUDGMENTS)
+    majority: dict[str, dict[str, list[str]]] = {}
+    for occupation in judgments["occupations"]:
+        chosen: dict[str, list[str]] = {}
+        for course in occupation["courses"]:
+            where = (occupation["name"], course["name"])
+            votes = course["votes"].values()
+            assert all(vote["label"] in LABELS for vote in votes), where
+            core_evidence = [vote["evidence"] for vote in votes if vote["label"] == "core"]
+            if len(core_evidence) == 1:
+                assert course.get("decision") in LABELS, where
+            else:
+                assert "decision" not in course, where
+            if len(core_evidence) >= 2 or course.get("decision") == "core":
+                chosen[course["name"]] = core_evidence
+        majority[occupation["name"]] = chosen
+
+    dataset = strict_json(DEFAULT_DATASET)
+
+    assert (dataset["year"], dataset["department"]) == (judgments["year"], judgments["department"])
+    assert {occupation["name"] for occupation in dataset["occupations"]} == majority.keys()
+    for occupation in dataset["occupations"]:
+        evidence = majority[occupation["name"]]
+        assert occupation["expected"].keys() == evidence.keys(), occupation["name"]
+        for course, why in occupation["expected"].items():
+            assert why in evidence[course], (occupation["name"], course)
 
 
 VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
