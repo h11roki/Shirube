@@ -3,10 +3,14 @@ from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
 
+from app.infrastructure.scrapers.ritsumeikan.text import (
+    FACULTY_SEPARATOR,
+    NAME_SEPARATOR,
+    split_list,
+)
+
 DETAIL_LINK = "a[href*='r-syllabus']"
 CELL_COUNT = 7
-FACULTY_SEPARATOR = ","
-NAME_SEPARATOR = "、"
 PAGE_COUNT = re.compile(r"全\s*(\d+)\s*件（\s*(\d+)\s*/\s*(\d+)\s*ページ）")
 
 
@@ -54,13 +58,11 @@ def parse_listing(html: str) -> list[ListingRow]:
             ListingRow(
                 code=code,
                 title=title,
-                faculties=tuple(name.strip() for name in faculties.split(FACULTY_SEPARATOR)),
+                faculties=split_list(faculties, FACULTY_SEPARATOR),
                 term_label=term_label,
                 slot_label=slot_label,
                 campus=campus,
-                instructors=tuple(
-                    n.strip() for n in instructors.split(NAME_SEPARATOR) if n.strip()
-                ),
+                instructors=split_list(instructors, NAME_SEPARATOR),
                 language=language,
                 credits=credits,
                 href=href,
