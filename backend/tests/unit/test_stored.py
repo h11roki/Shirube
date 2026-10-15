@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pytest
+
+from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
 from tests.unit.listing_page import listing_page
@@ -41,3 +44,18 @@ def test_unknown_or_unsaved_codes_are_none(tmp_path: Path) -> None:
 
     assert source.syllabus("16807") is None
     assert source.syllabus("99999") is None
+
+
+def test_every_saved_page_is_listed_once(tmp_path: Path) -> None:
+    store = saved_store(tmp_path, with_listing=True)
+    store.save_detail("32494", (FIXTURES / "detail_32494.html").read_text(encoding="utf-8"))
+
+    assert [page.code for page in StoredSyllabi(store).syllabi()] == ["16806", "32494"]
+
+
+def test_unreadable_page_is_named_in_the_error(tmp_path: Path) -> None:
+    store = saved_store(tmp_path, with_listing=False)
+    store.save_detail("10001", "<html><body></body></html>")
+
+    with pytest.raises(SyllabusFormatError, match="^10001: 科目の見出し表"):
+        StoredSyllabi(store).syllabi()

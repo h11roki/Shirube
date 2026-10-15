@@ -54,19 +54,20 @@ class RitsumeikanTimetablePdf:
         term: Term | None = None
         with pdfplumber.open(self._path) as pdf:
             for number, page in enumerate(pdf.pages, start=1):
+                location = f"{self._path.name} {number} ページ"
                 for table in page.extract_tables():
                     for raw_row in table:
                         row = [cell or "" for cell in raw_row]
                         heading = SECTION_HEADING.match(row[0])
                         if heading:
-                            term = _term_of(heading.group(1), number)
+                            term = _term_of(heading.group(1), location)
                             continue
                         if len(row) != COLUMN_COUNT:
                             continue
                         cells = normalize_row(row)
                         code = _compact(cells[CODE_COLUMN])
                         if COURSE_CODE.match(code):
-                            sections.append(_section_at(number, code, term, cells))
+                            sections.append(_section_at(location, code, term, cells))
         return sections
 
 
@@ -114,17 +115,17 @@ def section_from_row(term: Term | None, cells: list[str]) -> CourseSection:
     )
 
 
-def _term_of(title: str, page: int) -> Term | None:
+def _term_of(title: str, location: str) -> Term | None:
     if title not in TERM_BY_SECTION:
-        raise TimetableFormatError(f"{page} ページ: 未知の見出し【{title}】")
+        raise TimetableFormatError(f"{location}: 未知の見出し【{title}】")
     return TERM_BY_SECTION[title]
 
 
-def _section_at(page: int, code: str, term: Term | None, cells: list[str]) -> CourseSection:
+def _section_at(location: str, code: str, term: Term | None, cells: list[str]) -> CourseSection:
     try:
         return section_from_row(term, cells)
     except ValueError as error:
-        raise TimetableFormatError(f"{page} ページ 授業CD {code}: {error}") from error
+        raise TimetableFormatError(f"{location} 授業CD {code}: {error}") from error
 
 
 def _slots(weekday: str, period: str) -> tuple[TimeSlot, ...]:

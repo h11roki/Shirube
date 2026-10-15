@@ -6,7 +6,7 @@ from pathlib import Path
 from app.application.fetch_syllabus import FetchSyllabus
 from app.infrastructure.scrapers.ritsumeikan.portal import SyllabusPortal
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
-from app.presentation.cli.raw_options import add_raw_store_options
+from app.presentation.cli.options import add_raw_store_options
 
 
 def main() -> None:
