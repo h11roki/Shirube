@@ -7,9 +7,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from app.application.embed_syllabi import EmbedError, EmbedSyllabi, PruneRefusedError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
-from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
-from app.presentation.cli.environment import database_engine, load_settings
+from app.presentation.cli.environment import database_engine, load_settings, openai_embedder
 from app.presentation.cli.options import add_year_option
 
 
@@ -24,17 +22,8 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = load_settings()
-    if settings.openai_api_key is None:
-        sys.exit("環境変数を確かめてください: OPENAI_API_KEY が設定されていません")
-    if settings.embedding_dimensions != EMBEDDING_DIMENSIONS:
-        sys.exit(
-            f"EMBEDDING_DIMENSIONS {settings.embedding_dimensions} が DB の列の "
-            f"{EMBEDDING_DIMENSIONS} と違います。列を変えるマイグレーションが要ります"
-        )
+    embedder = openai_embedder(settings)
     engine = database_engine(settings)
-    embedder = OpenAIEmbedder(
-        settings.embedding_model, settings.embedding_dimensions, settings.openai_api_key
-    )
     embed = EmbedSyllabi(SqlCourseRepository(engine), SqlChunkRepository(engine), embedder)
     try:
         report = embed.run(args.year)

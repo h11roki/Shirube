@@ -1,9 +1,29 @@
-from sqlalchemy import Engine, Text, any_, bindparam, delete, exists, or_, select, union
-from sqlalchemy.dialects.postgresql import ARRAY, insert
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    Engine,
+    Exists,
+    Float,
+    Text,
+    and_,
+    any_,
+    bindparam,
+    delete,
+    exists,
+    or_,
+    select,
+    union,
+)
+from sqlalchemy.dialects.postgresql import ARRAY, distinct_on, insert
 from sqlalchemy.orm import Session as DbSession
 
-from app.domain.chunk import SyllabusChunk
-from app.infrastructure.db.models import EmbeddingRow, SyllabusChunkRow, SyllabusRow
+from app.domain.chunk import ChunkSection, SyllabusChunk
+from app.domain.ranking import ChunkHit
+from app.infrastructure.db.models import (
+    EMBEDDING_DIMENSIONS,
+    EmbeddingRow,
+    SyllabusChunkRow,
+    SyllabusRow,
+)
 
 
 class SqlChunkRepository:
@@ -55,12 +75,9 @@ class SqlChunkRepository:
 
     def years_not_embedded(self, model: str) -> list[int]:
         chunked = exists().where(SyllabusChunkRow.year == SyllabusRow.year)
-        embedded = exists().where(
-            EmbeddingRow.model == model, EmbeddingRow.content_hash == SyllabusChunkRow.content_hash
-        )
         years = union(
             select(SyllabusRow.year).where(~chunked),
-            select(SyllabusChunkRow.year).where(~embedded),
+            select(SyllabusChunkRow.year).where(~_embedded_with(model)),
         ).subquery()
         with DbSession(self._engine) as db:
             return list(db.scalars(select(years.c.year).order_by(years.c.year)))
@@ -72,3 +89,42 @@ class SqlChunkRepository:
                 delete(EmbeddingRow).where(or_(EmbeddingRow.model != model, ~referenced))
             )
             return result.rowcount
+
+    def is_embedded(self, year: int, model: str) -> bool:
+        has_chunks = exists().where(SyllabusChunkRow.year == year)
+        unembedded = exists().where(SyllabusChunkRow.year == year, ~_embedded_with(model))
+        with DbSession(self._engine) as db:
+            return bool(db.scalar(select(and_(has_chunks, ~unembedded))))
+
+    def best_chunks(
+        self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
+    ) -> list[ChunkHit]:
+        if not syllabus_codes:
+            return []
+        query = bindparam("query", vector, type_=Vector(EMBEDDING_DIMENSIONS))
+        pages = bindparam("pages", list(syllabus_codes), type_=ARRAY(Text()))
+        distance = EmbeddingRow.vector.op("<=>", return_type=Float())(query)
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(SyllabusChunkRow.syllabus_code, SyllabusChunkRow.section, distance)
+                .join(
+                    EmbeddingRow,
+                    and_(
+                        EmbeddingRow.model == model,
+                        EmbeddingRow.content_hash == SyllabusChunkRow.content_hash,
+                    ),
+                )
+                .where(SyllabusChunkRow.year == year, SyllabusChunkRow.syllabus_code == any_(pages))
+                .ext(distinct_on(SyllabusChunkRow.syllabus_code))
+                .order_by(SyllabusChunkRow.syllabus_code, distance, SyllabusChunkRow.section)
+            )
+            return [
+                ChunkHit(syllabus_code, ChunkSection(section), 1.0 - cosine_distance)
+                for syllabus_code, section, cosine_distance in rows
+            ]
+
+
+def _embedded_with(model: str) -> Exists:
+    return exists().where(
+        EmbeddingRow.model == model, EmbeddingRow.content_hash == SyllabusChunkRow.content_hash
+    )

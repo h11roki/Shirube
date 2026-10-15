@@ -94,13 +94,55 @@ def test_years_not_embedded_with_the_model_are_listed(
     year_chunks = chunks_of(syllabus("10001", year=YEAR))
 
     assert chunks.years_not_embedded(MODEL) == [YEAR]
+    assert not chunks.is_embedded(YEAR, MODEL)
 
     chunks.replace_chunks(YEAR, year_chunks)
     chunks.save_embeddings(OLD_MODEL, {chunk.content_hash: vector(0.4) for chunk in year_chunks})
 
     assert chunks.years_not_embedded(MODEL) == [YEAR]
     assert chunks.years_not_embedded(OLD_MODEL) == []
+    assert not chunks.is_embedded(YEAR, MODEL)
+    assert chunks.is_embedded(YEAR, OLD_MODEL)
 
     chunks.save_embeddings(MODEL, {chunk.content_hash: vector(0.5) for chunk in year_chunks})
 
     assert chunks.years_not_embedded(MODEL) == []
+    assert chunks.is_embedded(YEAR, MODEL)
+    assert not chunks.is_embedded(YEAR + 1, MODEL)
+
+
+def unit(*leading: float) -> list[float]:
+    return [*leading] + [0.0] * (EMBEDDING_DIMENSIONS - len(leading))
+
+
+def test_best_chunk_of_each_given_page_is_found_with_the_model(
+    stores: tuple[SqlCourseRepository, SqlChunkRepository],
+) -> None:
+    _, chunks = stores
+    overview = SyllabusChunk("10001", ChunkSection.OVERVIEW, "概要の本文")
+    objectives = SyllabusChunk("10001", ChunkSection.OBJECTIVES, "到達目標の本文")
+    other_page = SyllabusChunk("10002", ChunkSection.OVERVIEW, "別のページ")
+    chunks.replace_chunks(YEAR, [overview, objectives, other_page])
+    chunks.save_embeddings(
+        MODEL,
+        {
+            overview.content_hash: unit(1.0),
+            objectives.content_hash: unit(0.6, 0.8),
+            other_page.content_hash: unit(0.0, 1.0),
+        },
+    )
+    chunks.save_embeddings(OLD_MODEL, {overview.content_hash: unit(0.0, 1.0)})
+    query = unit(0.0, 1.0)
+
+    hits = chunks.best_chunks(YEAR, MODEL, query, {"10001", "10002"})
+
+    assert len(hits) == 2
+    best = {hit.syllabus_code: hit for hit in hits}
+    assert best["10001"].section is ChunkSection.OBJECTIVES
+    assert best["10001"].similarity == pytest.approx(0.8)
+    assert best["10002"].similarity == pytest.approx(1.0)
+    assert [hit.syllabus_code for hit in chunks.best_chunks(YEAR, MODEL, query, {"10001"})] == [
+        "10001"
+    ]
+    assert chunks.best_chunks(YEAR, MODEL, query, set()) == []
+    assert chunks.best_chunks(YEAR + 1, MODEL, query, {"10001"}) == []

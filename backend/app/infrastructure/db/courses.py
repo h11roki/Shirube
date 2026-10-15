@@ -68,6 +68,15 @@ class SqlCourseRepository:
                 return None
             return _load_syllabi(db, year, primary_code)[0]
 
+    def syllabus_codes(self, year: int) -> dict[str, str]:
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(SyllabusCodeRow.code, SyllabusCodeRow.syllabus_code).where(
+                    SyllabusCodeRow.year == year
+                )
+            )
+            return {code: syllabus_code for code, syllabus_code in rows}
+
 
 def _load_syllabi(db: DbSession, year: int, primary_code: str | None = None) -> list[Syllabus]:
     names = select(SyllabusCodeRow).where(
