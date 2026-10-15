@@ -82,8 +82,10 @@ def test_same_code_with_different_rows_is_an_error() -> None:
 def test_empty_timetable_does_not_wipe_the_year() -> None:
     repository = FakeRepository()
 
-    with pytest.raises(IngestError, match="1 件も"):
+    with pytest.raises(IngestError, match="1 つ目の時間割表から科目を 1 件も"):
         IngestTimetable([FakeTimetable()], repository).run(2026)
+    with pytest.raises(IngestError, match="渡されていません"):
+        IngestTimetable([], repository).run(2026)
     assert repository.section_calls == []
 
 

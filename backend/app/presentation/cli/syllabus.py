@@ -32,7 +32,7 @@ def main() -> None:
         try:
             syllabus = source.syllabus(code)
         except SyllabusFormatError as error:
-            failures.append(f"{code}: {error}")
+            failures.append(str(error))
             continue
         if syllabus is not None and syllabus.code != code:
             failures.append(f"{code}: 保存名と主コード {syllabus.code} が違う")

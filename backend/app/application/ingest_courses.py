@@ -21,6 +21,8 @@ class IngestTimetable:
         self._repository = repository
 
     def run(self, year: int) -> int:
+        if not self._sources:
+            raise IngestError("時間割表が渡されていません")
         sections: dict[str, CourseSection] = {}
         for number, source in enumerate(self._sources, start=1):
             rows = source.sections()
@@ -37,8 +39,6 @@ class IngestTimetable:
             for row in rows:
                 if sections.setdefault(row.code, row) != row:
                     raise IngestError(f"{row.code} が時間割表に内容を変えて 2 回現れます")
-        if not sections:
-            raise IngestError("時間割表が渡されていません")
         self._repository.replace_sections(year, list(sections.values()))
         return len(sections)
 

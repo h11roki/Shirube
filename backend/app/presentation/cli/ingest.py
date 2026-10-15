@@ -2,7 +2,9 @@ import argparse
 import sys
 from pathlib import Path
 
+from pydantic import ValidationError
 from sqlalchemy import create_engine
+from sqlalchemy.exc import OperationalError
 
 from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
@@ -27,7 +29,10 @@ def main() -> None:
     add_raw_store_options(syllabi)
     args = parser.parse_args()
 
-    engine = create_engine(Settings().database_url)
+    try:
+        engine = create_engine(Settings().database_url)
+    except ValidationError:
+        sys.exit("DATABASE_URL を設定してください")
     repository = SqlCourseRepository(engine)
     try:
         if args.command == "timetable":
@@ -42,6 +47,8 @@ def main() -> None:
         )
     except (IngestError, TimetableFormatError, SyllabusFormatError) as error:
         sys.exit(f"取り込みを止めました: {error}")
+    except OperationalError as error:
+        sys.exit(f"DB に接続できません: {error.orig}")
     finally:
         engine.dispose()
 
