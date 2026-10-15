@@ -10,7 +10,7 @@ backend(`backend/` で実行)
 - `uv run playwright install chromium`(取り込みや fixture 生成で Playwright を使うとき)
 - `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`(CI と同じ)
 - `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
-- `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/` に保存。どちらも保存済みは飛ばすので中断後に再実行できる
+- `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/<主コード>.html` に保存(合併科目は別名のコードでも主コードのページに当たる、ADR 0013)。どちらも保存済みは飛ばすので中断後に再実行できる
 - `uv run python -m app.presentation.cli.syllabus 32494` で保存済みの詳細ページを解析して JSON 表示。引数なしで保存済み全件の解析検査
 
 frontend(`frontend/` で実行)

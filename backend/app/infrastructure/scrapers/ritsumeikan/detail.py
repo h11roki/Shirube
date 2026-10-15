@@ -1,5 +1,3 @@
-import re
-
 from bs4 import BeautifulSoup
 
 from app.domain.syllabus import GradingItem, Session, Syllabus
@@ -7,6 +5,7 @@ from app.infrastructure.scrapers.ritsumeikan.text import (
     FACULTY_SEPARATOR,
     NAME_SEPARATOR,
     split_list,
+    split_titles,
 )
 
 HEADER_LABELS = (
@@ -33,7 +32,6 @@ TEXT_LABELS = {
 SCHEDULE_LABEL = "授業スケジュール"
 GRADING_LABEL = "成績評価方法"
 NOTE_ROW_LABEL = "-"
-COURSE_CODE = re.compile(r"^\d{5}$")
 
 
 class SyllabusFormatError(ValueError):
@@ -45,9 +43,10 @@ def parse_detail(html: str) -> Syllabus:
     header = _header(soup)
     texts = _texts(soup)
     tables = _tables(soup)
-    code, _, title = header["授業科目名"].partition(":")
-    if not COURSE_CODE.match(code):
-        raise SyllabusFormatError(f"科目名に授業コードがありません: {header['授業科目名']!r}")
+    try:
+        primary, *aliases = split_titles(header["授業科目名"])
+    except ValueError as error:
+        raise SyllabusFormatError(str(error)) from error
     try:
         year, credits = int(header["年度"]), int(header["単位数"])
     except ValueError as error:
@@ -56,8 +55,9 @@ def parse_detail(html: str) -> Syllabus:
         ) from error
     schedule = _rows(tables, SCHEDULE_LABEL, 3)
     return Syllabus(
-        code=code,
-        title=title,
+        code=primary.code,
+        title=primary.title,
+        aliases=tuple(aliases),
         year=year,
         term_label=header["学期"],
         slot_label=header["開講曜日・時限"],

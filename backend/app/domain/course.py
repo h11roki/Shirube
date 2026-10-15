@@ -1,5 +1,8 @@
+import re
 from dataclasses import dataclass
 from enum import Enum
+
+COURSE_CODE = re.compile(r"^\d{5}$")
 
 
 class Term(Enum):

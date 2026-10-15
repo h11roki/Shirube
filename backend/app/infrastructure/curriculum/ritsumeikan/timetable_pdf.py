@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pdfplumber
 
-from app.domain.course import Audience, CourseSection, Term, TimeSlot, Weekday
+from app.domain.course import COURSE_CODE, Audience, CourseSection, Term, TimeSlot, Weekday
 
 COLUMN_COUNT = 13
 CODE_COLUMN = 6
@@ -33,7 +33,6 @@ EMPTY_ROOM = "-"
 CARRIED_MARK = re.compile(r"^I ?", re.MULTILINE)
 CARRIED_MARK_BEFORE_WIDE_TEXT = re.compile(r"^I(?=\s|[^\x00-\x7f])", re.MULTILINE)
 SECTION_HEADING = re.compile(r"^【(.+?)】")
-COURSE_CODE = re.compile(r"^\d{5}$")
 PERIOD_RANGE = re.compile(r"(\d+)-(\d+)")
 ENTRY_YEARS = re.compile(r"^(\d{2})(?:[-－−](\d{2}))?$")
 GRADES = re.compile(r"^(\d(?:[～~〜]\d)?(?:\.\d(?:[～~〜]\d)?)*)(のみ)?$")
