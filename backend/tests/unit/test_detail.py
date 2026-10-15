@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.domain.syllabus import GradingItem
+from app.domain.syllabus import CourseAlias, GradingItem
 from app.infrastructure.scrapers.ritsumeikan.detail import (
     HEADER_LABELS,
     TEXT_LABELS,
@@ -49,6 +49,7 @@ def test_header_fields_are_read_from_the_summary_table() -> None:
 
     assert syllabus.code == "32463"
     assert syllabus.title == "電子情報工学入門(6A)"
+    assert syllabus.aliases == ()
     assert syllabus.year == 2026
     assert syllabus.term_label == "春セメスター"
     assert syllabus.slot_label == "月5"
@@ -128,6 +129,27 @@ def test_synthetic_document_parses_with_note_row_excluded() -> None:
     assert syllabus.schedule_note == "注記"
     assert [session.theme for session in syllabus.sessions] == ["導入"]
     assert syllabus.grading == (GradingItem("定期試験", "100", "基準"),)
+
+
+def test_cross_listed_page_keeps_the_other_names_as_aliases() -> None:
+    syllabus = parse_detail(fixture("16806"))
+
+    assert syllabus.code == "16806"
+    assert syllabus.title == "平和人権フィールドスタディ (GR)"
+    assert syllabus.aliases == (CourseAlias("16807", "国際平和交流セミナー(GR)"),)
+
+
+def test_synthetic_cross_listed_title_splits_into_aliases() -> None:
+    syllabus = parse_detail(document(title="99999:試験科目(A1) § 99998:別名(A1) § 99997:別名2(B1)"))
+
+    assert syllabus.code == "99999"
+    assert syllabus.title == "試験科目(A1)"
+    assert syllabus.aliases == (CourseAlias("99998", "別名(A1)"), CourseAlias("99997", "別名2(B1)"))
+
+
+def test_alias_without_a_course_code_is_a_format_error() -> None:
+    with pytest.raises(SyllabusFormatError, match="授業コード"):
+        parse_detail(document(title="99999:試験科目(A1) § 別名(A1)"))
 
 
 def test_unreadable_credits_are_a_format_error() -> None:

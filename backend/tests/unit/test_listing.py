@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from app.domain.syllabus import CourseAlias
 from app.infrastructure.scrapers.ritsumeikan.listing import (
     ListingFormatError,
     PageCount,
@@ -26,6 +27,24 @@ def test_search_results_page_yields_one_row_per_course() -> None:
     assert first.language == "日本語"
     assert first.credits == "2"
     assert first.href == "/syllabus/s/r-syllabus/a0ifD000003Rw21QAC/202632463"
+    assert first.aliases == ()
+
+
+def test_cross_listed_row_keeps_the_other_names_as_aliases() -> None:
+    link = (
+        "<th><a href='/syllabus/s/r-syllabus/x/202616806'>"
+        "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)</a></th>"
+    )
+    cells = (
+        "<td>理工学部</td><td>通年</td><td></td><td>衣笠</td><td>甲</td><td>日本語</td><td>2</td>"
+    )
+    html = f"<table><tbody><tr>{link}{cells}</tr></tbody></table>"
+
+    row = parse_listing(html)[0]
+
+    assert row.code == "16806"
+    assert row.title == "平和人権フィールドスタディ (GR)"
+    assert row.aliases == (CourseAlias("16807", "国際平和交流セミナー(GR)"),)
 
 
 def test_row_with_too_few_cells_is_an_error() -> None:

@@ -2,11 +2,12 @@ import re
 
 from bs4 import BeautifulSoup
 
-from app.domain.syllabus import GradingItem, Session, Syllabus
+from app.domain.syllabus import CourseAlias, GradingItem, Session, Syllabus
 from app.infrastructure.scrapers.ritsumeikan.text import (
     FACULTY_SEPARATOR,
     NAME_SEPARATOR,
     split_list,
+    split_titles,
 )
 
 HEADER_LABELS = (
@@ -45,9 +46,10 @@ def parse_detail(html: str) -> Syllabus:
     header = _header(soup)
     texts = _texts(soup)
     tables = _tables(soup)
-    code, _, title = header["授業科目名"].partition(":")
-    if not COURSE_CODE.match(code):
+    titles = split_titles(header["授業科目名"])
+    if not all(COURSE_CODE.match(code) for code, _ in titles):
         raise SyllabusFormatError(f"科目名に授業コードがありません: {header['授業科目名']!r}")
+    (code, title), *others = titles
     try:
         year, credits = int(header["年度"]), int(header["単位数"])
     except ValueError as error:
@@ -58,6 +60,7 @@ def parse_detail(html: str) -> Syllabus:
     return Syllabus(
         code=code,
         title=title,
+        aliases=tuple(CourseAlias(*other) for other in others),
         year=year,
         term_label=header["学期"],
         slot_label=header["開講曜日・時限"],
