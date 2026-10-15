@@ -13,6 +13,16 @@ class SyllabusSource(Protocol):
     def syllabus(self, code: str) -> Syllabus | None: ...
 
 
+class CourseRepository(Protocol):
+    def replace(
+        self, year: int, sections: list[CourseSection], syllabi: list[Syllabus]
+    ) -> None: ...
+
+    def sections(self, year: int) -> list[CourseSection]: ...
+
+    def syllabus(self, year: int, code: str) -> Syllabus | None: ...
+
+
 @dataclass(frozen=True)
 class ListingQuery:
     key: str
