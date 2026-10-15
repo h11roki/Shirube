@@ -1,6 +1,7 @@
 import hashlib
 from dataclasses import dataclass
 from enum import Enum
+from functools import cached_property
 
 from app.domain.syllabus import Syllabus
 
@@ -24,7 +25,7 @@ class SyllabusChunk:
     section: ChunkSection
     text: str
 
-    @property
+    @cached_property
     def content_hash(self) -> str:
         return hashlib.sha256(self.text.encode("utf-8")).hexdigest()
 
