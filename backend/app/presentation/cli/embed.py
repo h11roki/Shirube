@@ -4,7 +4,7 @@ import sys
 from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from app.application.embed_syllabi import EmbedError, EmbedSyllabi
+from app.application.embed_syllabi import EmbedError, EmbedSyllabi, PruneRefusedError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
@@ -45,7 +45,9 @@ def main() -> None:
         if args.prune:
             print(f"使われなくなった埋め込みの削除 {embed.prune()} 件")
     except EmbedError as error:
-        sys.exit(f"埋め込みを止めました: {error}。先に ingest syllabi と embed を実行してください")
+        sys.exit(f"埋め込みを止めました: {error}")
+    except PruneRefusedError as error:
+        sys.exit(f"埋め込みは済みましたが、削除はしませんでした: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:

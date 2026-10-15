@@ -10,6 +10,10 @@ class EmbedError(ValueError):
     pass
 
 
+class PruneRefusedError(ValueError):
+    pass
+
+
 @dataclass(frozen=True)
 class EmbedReport:
     chunks: int
@@ -31,12 +35,16 @@ class EmbedSyllabi:
         if not syllabi:
             raise EmbedError(f"{year} 年度のシラバスが DB にありません")
         chunks = [chunk for syllabus in syllabi for chunk in chunks_of(syllabus)]
+        if not chunks:
+            raise EmbedError(f"{year} 年度のシラバスに本文のあるセクションがありません")
         text_of = {chunk.content_hash: chunk.text for chunk in chunks}
         known = self._chunks.embedded_hashes(self._embedder.model, set(text_of))
         missing = [content_hash for content_hash in text_of if content_hash not in known]
         for start in range(0, len(missing), EMBED_BATCH_SIZE):
             batch = missing[start : start + EMBED_BATCH_SIZE]
             vectors = self._embedder.embed([text_of[content_hash] for content_hash in batch])
+            if len(vectors) != len(batch):
+                raise EmbedError(f"埋め込み {len(vectors)} 件が本文 {len(batch)} 件と合いません")
             self._chunks.save_embeddings(
                 self._embedder.model, dict(zip(batch, vectors, strict=True))
             )
@@ -44,8 +52,8 @@ class EmbedSyllabi:
         return EmbedReport(len(chunks), len(text_of), len(missing), len(text_of) - len(missing))
 
     def prune(self) -> int:
-        unembedded = self._chunks.years_without_chunks()
-        if unembedded:
-            years = "、".join(str(year) for year in unembedded)
-            raise EmbedError(f"{years} 年度のシラバスにチャンクがありません")
+        pending = self._chunks.years_not_embedded(self._embedder.model)
+        if pending:
+            years = "、".join(str(year) for year in pending)
+            raise PruneRefusedError(f"{years} 年度が今のモデルで埋め込まれていません")
         return self._chunks.prune_embeddings(self._embedder.model)

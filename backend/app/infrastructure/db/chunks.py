@@ -1,5 +1,5 @@
-from sqlalchemy import Engine, delete, exists, or_, select
-from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy import Engine, Text, any_, bindparam, delete, exists, or_, select, union
+from sqlalchemy.dialects.postgresql import ARRAY, insert
 from sqlalchemy.orm import Session as DbSession
 
 from app.domain.chunk import SyllabusChunk
@@ -13,11 +13,12 @@ class SqlChunkRepository:
     def embedded_hashes(self, model: str, hashes: set[str]) -> set[str]:
         if not hashes:
             return set()
+        wanted = bindparam("hashes", sorted(hashes), type_=ARRAY(Text()))
         with DbSession(self._engine) as db:
             return set(
                 db.scalars(
                     select(EmbeddingRow.content_hash).where(
-                        EmbeddingRow.model == model, EmbeddingRow.content_hash.in_(hashes)
+                        EmbeddingRow.model == model, EmbeddingRow.content_hash == any_(wanted)
                     )
                 )
             )
@@ -37,30 +38,37 @@ class SqlChunkRepository:
     def replace_chunks(self, year: int, chunks: list[SyllabusChunk]) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(delete(SyllabusChunkRow).where(SyllabusChunkRow.year == year))
-            db.add_all(
-                SyllabusChunkRow(
-                    year=year,
-                    syllabus_code=chunk.syllabus_code,
-                    section=chunk.section.value,
-                    text=chunk.text,
-                    content_hash=chunk.content_hash,
+            if chunks:
+                db.execute(
+                    insert(SyllabusChunkRow),
+                    [
+                        {
+                            "year": year,
+                            "syllabus_code": chunk.syllabus_code,
+                            "section": chunk.section.value,
+                            "text": chunk.text,
+                            "content_hash": chunk.content_hash,
+                        }
+                        for chunk in chunks
+                    ],
                 )
-                for chunk in chunks
-            )
 
-    def years_without_chunks(self) -> list[int]:
+    def years_not_embedded(self, model: str) -> list[int]:
         chunked = exists().where(SyllabusChunkRow.year == SyllabusRow.year)
+        embedded = exists().where(
+            EmbeddingRow.model == model, EmbeddingRow.content_hash == SyllabusChunkRow.content_hash
+        )
+        years = union(
+            select(SyllabusRow.year).where(~chunked),
+            select(SyllabusChunkRow.year).where(~embedded),
+        ).subquery()
         with DbSession(self._engine) as db:
-            return list(
-                db.scalars(
-                    select(SyllabusRow.year).where(~chunked).distinct().order_by(SyllabusRow.year)
-                )
-            )
+            return list(db.scalars(select(years.c.year).order_by(years.c.year)))
 
     def prune_embeddings(self, model: str) -> int:
         referenced = exists().where(SyllabusChunkRow.content_hash == EmbeddingRow.content_hash)
-        with self._engine.begin() as connection:
-            result = connection.execute(
+        with DbSession(self._engine) as db, db.begin():
+            result = db.connection().execute(
                 delete(EmbeddingRow).where(or_(EmbeddingRow.model != model, ~referenced))
             )
             return result.rowcount

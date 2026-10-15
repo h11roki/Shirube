@@ -87,13 +87,20 @@ def test_prune_removes_other_models_and_embeddings_no_chunk_refers_to(
     assert chunks.embedded_hashes(OLD_MODEL, {kept.content_hash}) == set()
 
 
-def test_years_with_syllabi_but_no_chunks_are_listed(
+def test_years_not_embedded_with_the_model_are_listed(
     stores: tuple[SqlCourseRepository, SqlChunkRepository],
 ) -> None:
     _, chunks = stores
+    year_chunks = chunks_of(syllabus("10001", year=YEAR))
 
-    assert chunks.years_without_chunks() == [YEAR]
+    assert chunks.years_not_embedded(MODEL) == [YEAR]
 
-    chunks.replace_chunks(YEAR, chunks_of(syllabus("10001", year=YEAR)))
+    chunks.replace_chunks(YEAR, year_chunks)
+    chunks.save_embeddings(OLD_MODEL, {chunk.content_hash: vector(0.4) for chunk in year_chunks})
 
-    assert chunks.years_without_chunks() == []
+    assert chunks.years_not_embedded(MODEL) == [YEAR]
+    assert chunks.years_not_embedded(OLD_MODEL) == []
+
+    chunks.save_embeddings(MODEL, {chunk.content_hash: vector(0.5) for chunk in year_chunks})
+
+    assert chunks.years_not_embedded(MODEL) == []

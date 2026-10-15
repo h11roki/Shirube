@@ -1,3 +1,5 @@
+from dataclasses import replace
+
 import pytest
 
 from app.application.embed_syllabi import (
@@ -5,6 +7,7 @@ from app.application.embed_syllabi import (
     EmbedError,
     EmbedReport,
     EmbedSyllabi,
+    PruneRefusedError,
 )
 from app.domain.chunk import SyllabusChunk, chunks_of
 from tests.builders import syllabus
@@ -31,13 +34,13 @@ class FakeChunkRepository:
     def __init__(
         self,
         embedded: dict[str, list[float]] | None = None,
-        years_without_chunks: tuple[int, ...] = (),
+        pending_years: tuple[int, ...] = (),
     ) -> None:
         self.embedded = dict(embedded or {})
         self.saved: list[tuple[str, dict[str, list[float]]]] = []
         self.replaced: list[tuple[int, list[SyllabusChunk]]] = []
         self.pruned_for: list[str] = []
-        self._years_without_chunks = list(years_without_chunks)
+        self._pending_years = list(pending_years)
 
     def embedded_hashes(self, model: str, hashes: set[str]) -> set[str]:
         return hashes & set(self.embedded)
@@ -48,8 +51,8 @@ class FakeChunkRepository:
     def replace_chunks(self, year: int, chunks: list[SyllabusChunk]) -> None:
         self.replaced.append((year, chunks))
 
-    def years_without_chunks(self) -> list[int]:
-        return self._years_without_chunks
+    def years_not_embedded(self, model: str) -> list[int]:
+        return self._pending_years
 
     def prune_embeddings(self, model: str) -> int:
         self.pruned_for.append(model)
@@ -117,6 +120,29 @@ def test_year_without_syllabi_is_an_error() -> None:
     assert store.replaced == []
 
 
+def test_year_whose_syllabi_have_no_text_is_an_error() -> None:
+    empty = replace(syllabus("10001"), overview="", objectives="", sessions=())
+    store = FakeChunkRepository()
+
+    with pytest.raises(EmbedError, match="本文のあるセクションがありません"):
+        EmbedSyllabi(FakeCourseRepository(syllabi=(empty,)), store, FakeEmbedder()).run(2026)
+    assert store.replaced == []
+
+
+def test_vectors_that_do_not_match_the_texts_are_an_error() -> None:
+    class ShortEmbedder(FakeEmbedder):
+        def embed(self, texts: list[str]) -> list[list[float]]:
+            return super().embed(texts)[1:]
+
+    store = FakeChunkRepository()
+    pages = FakeCourseRepository(syllabi=(syllabus("10001"),))
+
+    with pytest.raises(EmbedError, match="埋め込み 2 件が本文 3 件と合いません"):
+        EmbedSyllabi(pages, store, ShortEmbedder()).run(2026)
+    assert store.saved == []
+    assert store.replaced == []
+
+
 def test_prune_keeps_only_the_current_model() -> None:
     store = FakeChunkRepository()
 
@@ -126,9 +152,11 @@ def test_prune_keeps_only_the_current_model() -> None:
     assert store.pruned_for == [MODEL]
 
 
-def test_prune_refuses_while_a_year_has_syllabi_but_no_chunks() -> None:
-    store = FakeChunkRepository(years_without_chunks=(2025, 2027))
+def test_prune_refuses_while_a_year_is_not_embedded_with_the_current_model() -> None:
+    store = FakeChunkRepository(pending_years=(2025, 2027))
 
-    with pytest.raises(EmbedError, match="2025、2027 年度のシラバスにチャンクがありません"):
+    with pytest.raises(
+        PruneRefusedError, match="2025、2027 年度が今のモデルで埋め込まれていません"
+    ):
         EmbedSyllabi(FakeCourseRepository(), store, FakeEmbedder()).prune()
     assert store.pruned_for == []
