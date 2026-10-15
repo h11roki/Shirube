@@ -12,7 +12,7 @@ backend(`backend/` で実行)
 - `DATABASE_URL=... uv run alembic upgrade head` でマイグレーション。モデルを変えたら `DATABASE_URL=... uv run alembic revision --autogenerate --rev-id <次の4桁> -m "<内容>"` で `migrations/versions/<4桁>_<内容>.py` を生成する(テンプレートと ruff の hook で整形済みになる。拡張機能の作成など autogenerate が拾わない操作は手で足す)
 - `DATABASE_URL=... uv run python -m app.presentation.cli.ingest timetable data/curriculum/<時間割表>.pdf ...` でその年度の時間割表を全てまとめて、`... ingest syllabi` で保存済みシラバスを全て、それぞれ年度単位で DB に入れ替える(ADR 0014)。片方だけ取り直せる
 - `DATABASE_URL=... OPENAI_API_KEY=... uv run python -m app.presentation.cli.embed` で、その年度のシラバスをチャンクにして埋め込む(ADR 0015)。`ingest syllabi` の後に実行する。埋め込み済みの本文は API を呼ばずに再利用する。`--prune` で今のモデル以外と使われなくなった埋め込みを消す(今のモデルで埋め込み終わっていない年度があれば断る)。embed を 2 つ同時に走らせない
-- `DATABASE_URL=... OPENAI_API_KEY=... uv run python -m app.presentation.cli.evaluate` で、`eval/occupations.json` の職業ごとに検索の再現率@10 と @20 を出す(ADR 0016)。`embed` の後に実行する。チャンクの切り方、モデル、クエリを変えたら測り直す
+- `DATABASE_URL=... OPENAI_API_KEY=... uv run python -m app.presentation.cli.evaluate` で、`eval/occupations.json` の職業ごとに検索の再現率@10 と @20 を出す(ADR 0017)。`embed` の後に実行する。チャンクの切り方、モデル、クエリを変えたら測り直す。期待する科目は手で書き換えず、`eval/judgments.json` の判定の多数決と高橋さんの決定から作る(テストが一致を確かめる)
 - `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
 - `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/<主コード>.html` に保存(合併科目は別名のコードでも主コードのページに当たる、ADR 0013)。どちらも保存済みは飛ばすので中断後に再実行できる
 - `uv run python -m app.presentation.cli.syllabus 32494` で保存済みの詳細ページを解析して JSON 表示。引数なしで保存済み全件の解析検査
