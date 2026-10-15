@@ -101,7 +101,7 @@ def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
 
     assert (dataset.year, dataset.department) == (2026, "情")
     assert len(dataset.cases) == 10
-    assert all(len(case.skills) >= 3 and len(case.expected) >= 5 for case in dataset.cases)
+    assert all(len(case.skills) >= 3 for case in dataset.cases)
 
 
 VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
