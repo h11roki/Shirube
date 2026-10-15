@@ -56,15 +56,34 @@ def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
         EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
 
 
-def test_occupation_without_expected_courses_is_an_error() -> None:
-    case = EvaluationCase("職業", ("スキル",), ())
+@pytest.mark.parametrize(
+    ("occupation", "skills", "expected", "message"),
+    [
+        ("  ", ("スキル",), ("甲",), "職業名が空です"),
+        ("職業", (), ("甲",), "職業: スキルが空です"),
+        ("職業", ("",), ("甲",), "職業: スキルが空です"),
+        ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
+    ],
+    ids=["blank-occupation", "no-skills", "blank-skill", "no-expected-courses"],
+)
+def test_case_without_a_name_skills_or_expected_courses_is_rejected(
+    occupation: str, skills: tuple[str, ...], expected: tuple[str, ...], message: str
+) -> None:
+    with pytest.raises(EvaluationError, match=message):
+        EvaluationCase(occupation, skills, expected)
 
-    with pytest.raises(EvaluationError, match="期待する科目がありません: 職業"):
-        EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
+
+def test_dataset_without_cases_or_with_repeated_occupations_is_rejected() -> None:
+    case = EvaluationCase("職業", ("スキル",), ("甲",))
+
+    with pytest.raises(EvaluationError, match="評価する職業がありません"):
+        EvaluationDataset(2026, "情", ())
+    with pytest.raises(EvaluationError, match="同じ職業が 2 回あります: 職業"):
+        EvaluationDataset(2026, "情", (case, case))
 
 
 def test_query_joins_the_occupation_and_its_skills() -> None:
-    case = EvaluationCase("組込みエンジニア", ("C 言語", "マイコン"), ())
+    case = EvaluationCase("組込みエンジニア", ("C 言語", "マイコン"), ("甲",))
 
     assert case.query == "組込みエンジニア\nC 言語\nマイコン"
 
@@ -91,8 +110,12 @@ VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
 @pytest.mark.parametrize(
     ("occupations", "message"),
     [
-        ('{"name": "職業", "skills": "C 言語", "expected": {"甲": "理由"}}', "skills は空でない"),
-        ('{"name": "職業", "skills": [], "expected": {"甲": "理由"}}', "skills は空でない"),
+        ('{"name": null, "skills": ["C"], "expected": {"甲": "理由"}}', "name は文字列"),
+        (
+            '{"name": "職業", "skills": "C 言語", "expected": {"甲": "理由"}}',
+            "skills は文字列の配列",
+        ),
+        ('{"name": "職業", "skills": [], "expected": {"甲": "理由"}}', "スキルが空です"),
         ('{"name": "職業", "skills": ["C"], "expected": ["甲"]}', "expected は科目名から理由"),
         ('{"name": "職業", "skills": ["C"], "expected": {"甲": ""}}', "expected は科目名から理由"),
         (
@@ -102,6 +125,7 @@ VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
         (f"{VALID}, {VALID}", "同じ職業が 2 回あります: 職業"),
     ],
     ids=[
+        "name-not-a-string",
         "skills-as-a-string",
         "no-skills",
         "expected-as-a-list",
@@ -117,4 +141,15 @@ def test_malformed_dataset_is_rejected(tmp_path: Path, occupations: str, message
     )
 
     with pytest.raises(ValueError, match=message):
+        load_dataset(path)
+
+
+@pytest.mark.parametrize("year", ["true", "2026.5", '"2026"'])
+def test_year_must_be_an_integer(tmp_path: Path, year: str) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        f'{{"year": {year}, "department": "情", "occupations": [{VALID}]}}', encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match="year は整数"):
         load_dataset(path)

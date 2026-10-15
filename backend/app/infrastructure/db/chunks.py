@@ -1,6 +1,7 @@
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
     Engine,
+    Exists,
     Float,
     Text,
     and_,
@@ -74,12 +75,9 @@ class SqlChunkRepository:
 
     def years_not_embedded(self, model: str) -> list[int]:
         chunked = exists().where(SyllabusChunkRow.year == SyllabusRow.year)
-        embedded = exists().where(
-            EmbeddingRow.model == model, EmbeddingRow.content_hash == SyllabusChunkRow.content_hash
-        )
         years = union(
             select(SyllabusRow.year).where(~chunked),
-            select(SyllabusChunkRow.year).where(~embedded),
+            select(SyllabusChunkRow.year).where(~_embedded_with(model)),
         ).subquery()
         with DbSession(self._engine) as db:
             return list(db.scalars(select(years.c.year).order_by(years.c.year)))
@@ -94,13 +92,7 @@ class SqlChunkRepository:
 
     def is_embedded(self, year: int, model: str) -> bool:
         has_chunks = exists().where(SyllabusChunkRow.year == year)
-        unembedded = exists().where(
-            SyllabusChunkRow.year == year,
-            ~exists().where(
-                EmbeddingRow.model == model,
-                EmbeddingRow.content_hash == SyllabusChunkRow.content_hash,
-            ),
-        )
+        unembedded = exists().where(SyllabusChunkRow.year == year, ~_embedded_with(model))
         with DbSession(self._engine) as db:
             return bool(db.scalar(select(and_(has_chunks, ~unembedded))))
 
@@ -124,9 +116,15 @@ class SqlChunkRepository:
                 )
                 .where(SyllabusChunkRow.year == year, SyllabusChunkRow.syllabus_code == any_(pages))
                 .ext(distinct_on(SyllabusChunkRow.syllabus_code))
-                .order_by(SyllabusChunkRow.syllabus_code, distance)
+                .order_by(SyllabusChunkRow.syllabus_code, distance, SyllabusChunkRow.section)
             )
             return [
                 ChunkHit(syllabus_code, ChunkSection(section), 1.0 - cosine_distance)
                 for syllabus_code, section, cosine_distance in rows
             ]
+
+
+def _embedded_with(model: str) -> Exists:
+    return exists().where(
+        EmbeddingRow.model == model, EmbeddingRow.content_hash == SyllabusChunkRow.content_hash
+    )

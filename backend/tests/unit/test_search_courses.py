@@ -45,7 +45,7 @@ def test_candidates_are_course_names_offered_to_the_student_that_have_a_syllabus
 def test_queries_are_embedded_at_once_and_each_is_ranked_by_its_own_vector() -> None:
     chunks = FakeChunkSearch(
         [],
-        hits_by_vector={
+        hits_by_length={
             5.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.6), *HITS[1:]],
             2.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.9), *HITS[1:]],
         },

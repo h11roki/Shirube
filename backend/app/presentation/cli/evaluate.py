@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+from collections import Counter
 from pathlib import Path
 
 from openai import OpenAIError
@@ -24,30 +25,29 @@ DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.js
 
 def load_dataset(path: Path) -> EvaluationDataset:
     document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    year, department = document["year"], document["department"]
+    if isinstance(year, bool) or not isinstance(year, int) or not isinstance(department, str):
+        raise ValueError("year は整数、department は文字列にしてください")
     cases = []
     for occupation in document["occupations"]:
         name, skills, expected = occupation["name"], occupation["skills"], occupation["expected"]
-        if not isinstance(skills, list) or not skills or not all(_text(skill) for skill in skills):
-            raise ValueError(f"{name}: skills は空でない文字列の配列にしてください")
-        if not isinstance(expected, dict) or not all(_text(why) for why in expected.values()):
+        if not isinstance(name, str):
+            raise ValueError(f"name は文字列にしてください: {name!r}")
+        if not isinstance(skills, list) or not all(isinstance(skill, str) for skill in skills):
+            raise ValueError(f"{name}: skills は文字列の配列にしてください")
+        if not isinstance(expected, dict) or not all(
+            isinstance(why, str) and why.strip() for why in expected.values()
+        ):
             raise ValueError(
                 f"{name}: expected は科目名から理由(空でない文字列)への対応にしてください"
             )
-        cases.append(EvaluationCase(str(name), tuple(skills), tuple(expected)))
-    names = [case.occupation for case in cases]
-    duplicated = sorted({name for name in names if names.count(name) > 1})
-    if duplicated:
-        raise ValueError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
-    return EvaluationDataset(int(document["year"]), str(document["department"]), tuple(cases))
-
-
-def _text(value: object) -> bool:
-    return isinstance(value, str) and bool(value.strip())
+        cases.append(EvaluationCase(name, tuple(skills), tuple(expected)))
+    return EvaluationDataset(year, department, tuple(cases))
 
 
 def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
-    keys = [key for key, _ in pairs]
-    duplicated = sorted({key for key in keys if keys.count(key) > 1})
+    counts = Counter(key for key, _ in pairs)
+    duplicated = sorted(key for key, count in counts.items() if count > 1)
     if duplicated:
         raise ValueError(f"同じ項目が 2 回あります: {'、'.join(duplicated)}")
     return dict(pairs)

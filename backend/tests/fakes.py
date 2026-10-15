@@ -23,11 +23,11 @@ class FakeChunkSearch:
     def __init__(
         self,
         hits: list[ChunkHit],
-        hits_by_vector: dict[float, list[ChunkHit]] | None = None,
+        hits_by_length: dict[float, list[ChunkHit]] | None = None,
         embedded: bool = True,
     ) -> None:
         self._hits = hits
-        self._hits_by_vector = hits_by_vector or {}
+        self._hits_by_length = hits_by_length or {}
         self._embedded = embedded
         self.calls: list[tuple[int, str, list[float], set[str]]] = []
 
@@ -38,7 +38,7 @@ class FakeChunkSearch:
         self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
     ) -> list[ChunkHit]:
         self.calls.append((year, model, vector, syllabus_codes))
-        hits = self._hits_by_vector.get(vector[0], self._hits)
+        hits = self._hits_by_length.get(vector[0], self._hits)
         return [hit for hit in hits if hit.syllabus_code in syllabus_codes]
 
 

@@ -1,3 +1,4 @@
+from collections import Counter
 from dataclasses import dataclass
 
 from app.application.search_courses import SearchCourses
@@ -16,6 +17,14 @@ class EvaluationCase:
     skills: tuple[str, ...]
     expected: tuple[str, ...]
 
+    def __post_init__(self) -> None:
+        if not self.occupation.strip():
+            raise EvaluationError("職業名が空です")
+        if not self.skills or not all(skill.strip() for skill in self.skills):
+            raise EvaluationError(f"{self.occupation}: スキルが空です")
+        if not self.expected:
+            raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
+
     @property
     def query(self) -> str:
         return "\n".join((self.occupation, *self.skills))
@@ -26,6 +35,14 @@ class EvaluationDataset:
     year: int
     department: str
     cases: tuple[EvaluationCase, ...]
+
+    def __post_init__(self) -> None:
+        if not self.cases:
+            raise EvaluationError("評価する職業がありません")
+        counts = Counter(case.occupation for case in self.cases)
+        duplicated = sorted(name for name, count in counts.items() if count > 1)
+        if duplicated:
+            raise EvaluationError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
 
 
 @dataclass(frozen=True)
@@ -51,11 +68,6 @@ class EvaluateSearch:
         self._search = search
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
-        if not dataset.cases:
-            raise EvaluationError("評価する職業がありません")
-        empty = [case.occupation for case in dataset.cases if not case.expected]
-        if empty:
-            raise EvaluationError(f"期待する科目がありません: {'、'.join(empty)}")
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
         expected = {name for case in dataset.cases for name in case.expected}
         unknown = sorted(expected - candidates.names)
