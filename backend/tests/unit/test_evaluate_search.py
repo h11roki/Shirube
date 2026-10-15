@@ -16,7 +16,7 @@ from app.application.evaluate_search import (
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import DEFAULT_DATASET, load_dataset, render
+from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
 
@@ -108,62 +108,61 @@ def test_committed_dataset_is_the_default_and_has_ten_occupations() -> None:
 
 JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
 LABELS = {"core", "foundation"}
+REASON_ORDER = ("professor", "student", "engineer")
 
 
 def strict_json(path: Path) -> Any:
-    def unique(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
-        keys = [key for key, _ in pairs]
-        assert len(keys) == len(set(keys)), f"{path.name}: 同じ項目が 2 回あります: {keys}"
-        return dict(pairs)
-
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique)
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
 
 
-def test_every_judge_voted_on_both_halves_of_the_courses() -> None:
+def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
     judgments = strict_json(JUDGMENTS)
-    first, second = (set(part) for part in judgments["parts"])
+    first, second = judgments["parts"]
+    halves = set(first) | set(second)
     voted: dict[str, set[str]] = {judge: set() for judge in judgments["judges"]}
+    pages: dict[str, str] = {}
     for occupation in judgments["occupations"]:
         names = [course["name"] for course in occupation["courses"]]
         assert len(names) == len(set(names)), occupation["name"]
         for course in occupation["courses"]:
-            assert course["votes"].keys() <= voted.keys(), (occupation["name"], course["name"])
-            for judge in course["votes"]:
+            where = (occupation["name"], course["name"])
+            assert pages.setdefault(course["name"], course["page"]) == course["page"], where
+            assert course["votes"].keys() <= voted.keys(), where
+            for judge, vote in course["votes"].items():
+                assert 0 < len(vote["evidence"]) <= 40, (*where, judge)
                 voted[judge].add(course["name"])
 
-    assert not first & second
+    assert len(first) + len(second) == len(halves) == 188
     for judge, courses in voted.items():
-        assert courses <= first | second, judge
-        assert courses & first and courses & second, judge
+        assert courses <= halves, judge
+        assert courses & set(first) and courses & set(second), judge
 
 
-def test_expected_courses_and_reasons_follow_the_judges_majority_and_decisions() -> None:
+def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregation() -> None:
     judgments = strict_json(JUDGMENTS)
-    majority: dict[str, dict[str, list[str]]] = {}
+    majority: dict[str, list[tuple[str, str]]] = {}
     for occupation in judgments["occupations"]:
-        chosen: dict[str, list[str]] = {}
+        ranked: list[tuple[int, str, str]] = []
         for course in occupation["courses"]:
             where = (occupation["name"], course["name"])
-            votes = course["votes"].values()
-            assert all(vote["label"] in LABELS for vote in votes), where
-            core_evidence = [vote["evidence"] for vote in votes if vote["label"] == "core"]
-            if len(core_evidence) == 1:
+            votes = course["votes"]
+            assert all(vote["label"] in LABELS for vote in votes.values()), where
+            cores = [judge for judge in REASON_ORDER if votes.get(judge, {}).get("label") == "core"]
+            if len(cores) == 1:
                 assert course.get("decision") in LABELS, where
             else:
                 assert "decision" not in course, where
-            if len(core_evidence) >= 2 or course.get("decision") == "core":
-                chosen[course["name"]] = core_evidence
-        majority[occupation["name"]] = chosen
+            if len(cores) >= 2 or course.get("decision") == "core":
+                ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
+        majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
 
     dataset = strict_json(DEFAULT_DATASET)
 
     assert (dataset["year"], dataset["department"]) == (judgments["year"], judgments["department"])
-    assert {occupation["name"] for occupation in dataset["occupations"]} == majority.keys()
-    for occupation in dataset["occupations"]:
-        evidence = majority[occupation["name"]]
-        assert occupation["expected"].keys() == evidence.keys(), occupation["name"]
-        for course, why in occupation["expected"].items():
-            assert why in evidence[course], (occupation["name"], course)
+    assert {
+        occupation["name"]: list(occupation["expected"].items())
+        for occupation in dataset["occupations"]
+    } == majority
 
 
 VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
