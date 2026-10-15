@@ -8,7 +8,7 @@ from app.application.ingest_courses import (
     IngestTimetable,
     SyllabusReport,
 )
-from app.domain.course import CourseSection
+from app.domain.course import Audience, CourseSection
 from app.domain.syllabus import CourseName, Syllabus
 from tests.builders import course_section, syllabus
 
@@ -95,6 +95,19 @@ def test_timetable_of_another_year_is_rejected() -> None:
     assert repository.section_calls == []
 
 
+def test_previous_year_timetable_mixed_with_this_year_is_rejected() -> None:
+    last_year = replace(
+        course_section("20001"),
+        audiences=(Audience(2019, 2025, frozenset({1, 2, 3, 4}), "専門"),),
+    )
+    sources = [FakeTimetable(course_section("10001")), FakeTimetable(last_year)]
+    repository = FakeRepository()
+
+    with pytest.raises(IngestError, match="2 つ目の時間割表の最も新しい入学年度 2025"):
+        IngestTimetable(sources, repository).run(2026)
+    assert repository.section_calls == []
+
+
 def test_syllabi_are_stored_and_codes_without_a_page_are_reported() -> None:
     shared = syllabus("10001", aliases=(CourseName("10002", "別名(6T)"),))
     repository = FakeRepository(
@@ -107,14 +120,29 @@ def test_syllabi_are_stored_and_codes_without_a_page_are_reported() -> None:
     assert repository.syllabus_calls == [(2026, [shared])]
 
 
-def test_code_on_two_pages_is_an_error() -> None:
-    pages = FakeSyllabi(
-        syllabus("10001", aliases=(CourseName("10002", "別名(6T)"),)), syllabus("10002")
-    )
+@pytest.mark.parametrize(
+    ("pages", "message"),
+    [
+        (
+            [syllabus("10001", aliases=(CourseName("10002", "別名(6T)"),)), syllabus("10002")],
+            "10002 が 2 か所に現れます: ページ 10001 と 10002",
+        ),
+        (
+            [syllabus("10001"), syllabus("10001")],
+            "10001 が 2 か所に現れます: ページ 10001 と 10001",
+        ),
+        (
+            [syllabus("10001", aliases=(CourseName("10002", "甲"), CourseName("10002", "乙")))],
+            "10002 が 2 か所に現れます: ページ 10001 と 10001",
+        ),
+    ],
+    ids=["alias-on-another-page", "same-page-saved-twice", "alias-repeated-on-a-page"],
+)
+def test_code_appearing_twice_is_an_error(pages: list[Syllabus], message: str) -> None:
     repository = FakeRepository()
 
-    with pytest.raises(IngestError, match="10002 が 2 つのページ 10001 10002"):
-        IngestSyllabi(pages, repository).run(2026)
+    with pytest.raises(IngestError, match=message):
+        IngestSyllabi(FakeSyllabi(*pages), repository).run(2026)
     assert repository.syllabus_calls == []
 
 

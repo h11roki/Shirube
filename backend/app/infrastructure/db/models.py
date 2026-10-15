@@ -42,7 +42,7 @@ class CourseSectionRow(Base):
     class_code: Mapped[str | None]
     term: Mapped[str | None]
     slots: Mapped[list[SlotJson]] = mapped_column(JSONB)
-    departments: Mapped[list[str] | None] = mapped_column(JSONB)
+    departments: Mapped[list[str] | None] = mapped_column(JSONB(none_as_null=True))
     audiences: Mapped[list[AudienceJson]] = mapped_column(JSONB)
     credits: Mapped[int]
     instructors: Mapped[list[str]] = mapped_column(JSONB)

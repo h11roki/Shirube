@@ -22,18 +22,23 @@ class IngestTimetable:
 
     def run(self, year: int) -> int:
         sections: dict[str, CourseSection] = {}
-        for source in self._sources:
-            for section in source.sections():
-                if sections.setdefault(section.code, section) != section:
-                    raise IngestError(f"{section.code} が時間割表に内容を変えて 2 回現れます")
+        for number, source in enumerate(self._sources, start=1):
+            rows = source.sections()
+            if not rows:
+                raise IngestError(f"{number} つ目の時間割表から科目を 1 件も読めません")
+            newest = max(
+                (audience.entry_year_to for row in rows for audience in row.audiences),
+                default=None,
+            )
+            if newest != year:
+                raise IngestError(
+                    f"{number} つ目の時間割表の最も新しい入学年度 {newest} が {year} と違います"
+                )
+            for row in rows:
+                if sections.setdefault(row.code, row) != row:
+                    raise IngestError(f"{row.code} が時間割表に内容を変えて 2 回現れます")
         if not sections:
-            raise IngestError("時間割表から科目を 1 件も読めません")
-        newest = max(
-            (audience.entry_year_to for s in sections.values() for audience in s.audiences),
-            default=None,
-        )
-        if newest != year:
-            raise IngestError(f"時間割表の最も新しい入学年度 {newest} が {year} と違います")
+            raise IngestError("時間割表が渡されていません")
         self._repository.replace_sections(year, list(sections.values()))
         return len(sections)
 
@@ -54,10 +59,11 @@ class IngestSyllabi:
                     f"{syllabus.code}: シラバスの年度 {syllabus.year} が {year} と違います"
                 )
             for code in (syllabus.code, *(alias.code for alias in syllabus.aliases)):
-                if page_of.setdefault(code, syllabus.code) != syllabus.code:
+                if code in page_of:
                     raise IngestError(
-                        f"{code} が 2 つのページ {page_of[code]} {syllabus.code} に現れます"
+                        f"{code} が 2 か所に現れます: ページ {page_of[code]} と {syllabus.code}"
                     )
+                page_of[code] = syllabus.code
         self._repository.replace_syllabi(year, syllabi)
         missing = tuple(
             section.code
