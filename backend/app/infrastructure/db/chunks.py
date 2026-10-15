@@ -1,9 +1,28 @@
-from sqlalchemy import Engine, Text, any_, bindparam, delete, exists, or_, select, union
+from pgvector.sqlalchemy import Vector
+from sqlalchemy import (
+    Engine,
+    Float,
+    Text,
+    and_,
+    any_,
+    bindparam,
+    delete,
+    exists,
+    or_,
+    select,
+    union,
+)
 from sqlalchemy.dialects.postgresql import ARRAY, insert
 from sqlalchemy.orm import Session as DbSession
 
-from app.domain.chunk import SyllabusChunk
-from app.infrastructure.db.models import EmbeddingRow, SyllabusChunkRow, SyllabusRow
+from app.domain.chunk import ChunkSection, SyllabusChunk
+from app.domain.ranking import ChunkHit
+from app.infrastructure.db.models import (
+    EMBEDDING_DIMENSIONS,
+    EmbeddingRow,
+    SyllabusChunkRow,
+    SyllabusRow,
+)
 
 
 class SqlChunkRepository:
@@ -72,3 +91,28 @@ class SqlChunkRepository:
                 delete(EmbeddingRow).where(or_(EmbeddingRow.model != model, ~referenced))
             )
             return result.rowcount
+
+    def similarities(
+        self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
+    ) -> list[ChunkHit]:
+        if not syllabus_codes:
+            return []
+        query = bindparam("query", vector, type_=Vector(EMBEDDING_DIMENSIONS))
+        pages = bindparam("pages", sorted(syllabus_codes), type_=ARRAY(Text()))
+        distance = EmbeddingRow.vector.op("<=>", return_type=Float())(query)
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(SyllabusChunkRow.syllabus_code, SyllabusChunkRow.section, distance)
+                .join(
+                    EmbeddingRow,
+                    and_(
+                        EmbeddingRow.model == model,
+                        EmbeddingRow.content_hash == SyllabusChunkRow.content_hash,
+                    ),
+                )
+                .where(SyllabusChunkRow.year == year, SyllabusChunkRow.syllabus_code == any_(pages))
+            )
+            return [
+                ChunkHit(syllabus_code, ChunkSection(section), 1.0 - cosine_distance)
+                for syllabus_code, section, cosine_distance in rows
+            ]

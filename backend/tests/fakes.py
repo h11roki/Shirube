@@ -25,3 +25,10 @@ class FakeCourseRepository:
 
     def syllabus(self, year: int, code: str) -> Syllabus | None:
         return next((page for page in self.stored_syllabi if page.code == code), None)
+
+    def syllabus_codes(self, year: int) -> dict[str, str]:
+        return {
+            code: page.code
+            for page in self.stored_syllabi
+            for code in (page.code, *(alias.code for alias in page.aliases))
+        }

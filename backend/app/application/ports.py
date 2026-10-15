@@ -3,6 +3,7 @@ from typing import Protocol
 
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
+from app.domain.ranking import ChunkHit
 from app.domain.syllabus import Syllabus
 
 
@@ -27,6 +28,8 @@ class CourseRepository(Protocol):
 
     def syllabus(self, year: int, code: str) -> Syllabus | None: ...
 
+    def syllabus_codes(self, year: int) -> dict[str, str]: ...
+
 
 class Embedder(Protocol):
     @property
@@ -45,6 +48,12 @@ class ChunkRepository(Protocol):
     def years_not_embedded(self, model: str) -> list[int]: ...
 
     def prune_embeddings(self, model: str) -> int: ...
+
+
+class ChunkSearch(Protocol):
+    def similarities(
+        self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
+    ) -> list[ChunkHit]: ...
 
 
 @dataclass(frozen=True)

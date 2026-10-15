@@ -104,3 +104,33 @@ def test_years_not_embedded_with_the_model_are_listed(
     chunks.save_embeddings(MODEL, {chunk.content_hash: vector(0.5) for chunk in year_chunks})
 
     assert chunks.years_not_embedded(MODEL) == []
+
+
+def test_similarities_cover_only_the_given_pages_of_the_year_and_model(
+    stores: tuple[SqlCourseRepository, SqlChunkRepository],
+) -> None:
+    _, chunks = stores
+    near = SyllabusChunk("10001", ChunkSection.OVERVIEW, "近い本文")
+    far = SyllabusChunk("10001", ChunkSection.OBJECTIVES, "遠い本文")
+    other_page = SyllabusChunk("10002", ChunkSection.OVERVIEW, "別のページ")
+    chunks.replace_chunks(YEAR, [near, far, other_page])
+    direction = [1.0] + [0.0] * (EMBEDDING_DIMENSIONS - 1)
+    sideways = [0.0, 1.0] + [0.0] * (EMBEDDING_DIMENSIONS - 2)
+    chunks.save_embeddings(
+        MODEL,
+        {
+            near.content_hash: direction,
+            far.content_hash: sideways,
+            other_page.content_hash: direction,
+        },
+    )
+    chunks.save_embeddings(OLD_MODEL, {far.content_hash: direction})
+
+    hits = chunks.similarities(YEAR, MODEL, direction, {"10001"})
+
+    by_section = {hit.section: hit.similarity for hit in hits}
+    assert {hit.syllabus_code for hit in hits} == {"10001"}
+    assert by_section[ChunkSection.OVERVIEW] == pytest.approx(1.0)
+    assert by_section[ChunkSection.OBJECTIVES] == pytest.approx(0.0)
+    assert chunks.similarities(YEAR, MODEL, direction, set()) == []
+    assert chunks.similarities(YEAR + 1, MODEL, direction, {"10001"}) == []
