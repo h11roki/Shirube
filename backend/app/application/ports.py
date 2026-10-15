@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Protocol
 
+from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.syllabus import Syllabus
 
@@ -22,7 +23,26 @@ class CourseRepository(Protocol):
 
     def sections(self, year: int) -> list[CourseSection]: ...
 
+    def syllabi(self, year: int) -> list[Syllabus]: ...
+
     def syllabus(self, year: int, code: str) -> Syllabus | None: ...
+
+
+class Embedder(Protocol):
+    @property
+    def model(self) -> str: ...
+
+    def embed(self, texts: list[str]) -> list[list[float]]: ...
+
+
+class ChunkRepository(Protocol):
+    def embedded_hashes(self, model: str, hashes: set[str]) -> set[str]: ...
+
+    def save_embeddings(self, model: str, vectors: dict[str, list[float]]) -> None: ...
+
+    def replace_chunks(self, year: int, chunks: list[SyllabusChunk]) -> None: ...
+
+    def prune_embeddings(self) -> int: ...
 
 
 @dataclass(frozen=True)

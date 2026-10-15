@@ -1,3 +1,5 @@
+from collections import defaultdict
+
 from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import Session as DbSession
 
@@ -50,6 +52,20 @@ class SqlCourseRepository:
                 .order_by(CourseSectionRow.code)
             )
             return [_section(row) for row in rows]
+
+    def syllabi(self, year: int) -> list[Syllabus]:
+        with DbSession(self._engine) as db:
+            aliases: dict[str, list[CourseName]] = defaultdict(list)
+            for name in db.scalars(
+                select(SyllabusCodeRow)
+                .where(SyllabusCodeRow.year == year, SyllabusCodeRow.position > 0)
+                .order_by(SyllabusCodeRow.syllabus_code, SyllabusCodeRow.position)
+            ):
+                aliases[name.syllabus_code].append(CourseName(name.code, name.title))
+            rows = db.scalars(
+                select(SyllabusRow).where(SyllabusRow.year == year).order_by(SyllabusRow.code)
+            )
+            return [_syllabus(row, tuple(aliases[row.code])) for row in rows]
 
     def syllabus(self, year: int, code: str) -> Syllabus | None:
         with DbSession(self._engine) as db:

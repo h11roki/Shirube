@@ -1,31 +1,14 @@
-import os
 from collections.abc import Iterator
-from pathlib import Path
 
 import pytest
-from alembic import command
-from alembic.config import Config
-from sqlalchemy import Engine, create_engine, func, select
+from sqlalchemy import Engine, func, select
 
 from app.domain.syllabus import CourseName
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import CourseSectionRow
 from tests.builders import course_section, syllabus
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-ALEMBIC_INI = Path(__file__).parents[2] / "alembic.ini"
 YEAR = 2099
-
-pytestmark = pytest.mark.skipif(DATABASE_URL is None, reason="DATABASE_URL が無い")
-
-
-@pytest.fixture(scope="module")
-def engine() -> Iterator[Engine]:
-    assert DATABASE_URL is not None
-    command.upgrade(Config(str(ALEMBIC_INI)), "head")
-    engine = create_engine(DATABASE_URL)
-    yield engine
-    engine.dispose()
 
 
 @pytest.fixture
@@ -51,6 +34,17 @@ def test_sections_and_syllabi_round_trip(repository: SqlCourseRepository) -> Non
     assert repository.syllabus(YEAR, "10001") == shared
     assert repository.syllabus(YEAR, "10002") == shared
     assert repository.syllabus(YEAR, "99999") is None
+
+
+def test_all_syllabi_of_a_year_come_back_with_their_aliases(
+    repository: SqlCourseRepository,
+) -> None:
+    aliases = (CourseName("10002", "乙"), CourseName("10003", "丙"))
+    pages = [syllabus("10001", aliases=aliases, year=YEAR), syllabus("20001", year=YEAR)]
+    repository.replace_syllabi(YEAR, list(reversed(pages)))
+    repository.replace_syllabi(YEAR + 1, [syllabus("30001", year=YEAR + 1)])
+
+    assert repository.syllabi(YEAR) == pages
 
 
 def test_all_departments_are_stored_as_sql_null(
