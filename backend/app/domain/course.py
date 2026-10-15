@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 COURSE_CODE = re.compile(r"^\d{5}$")
+ALL_GRADES = frozenset({1, 2, 3, 4})
 
 
 class Term(Enum):
@@ -48,3 +49,12 @@ class CourseSection:
     room: str | None
     registration: str
     note: str | None
+
+    def offered_to(self, department: str, grade: int, year: int) -> bool:
+        cohort_in_grade = year - grade + 1
+        in_department = self.departments is None or department in self.departments
+        return in_department and any(
+            grade in audience.eligible_grades
+            and audience.entry_year_from <= cohort_in_grade <= audience.entry_year_to
+            for audience in self.audiences
+        )
