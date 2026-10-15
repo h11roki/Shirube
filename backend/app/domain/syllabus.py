@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 
 @dataclass(frozen=True)
-class CourseAlias:
+class CourseName:
     code: str
     title: str
 
@@ -25,7 +25,7 @@ class GradingItem:
 class Syllabus:
     code: str
     title: str
-    aliases: tuple[CourseAlias, ...]
+    aliases: tuple[CourseName, ...]
     year: int
     term_label: str
     slot_label: str

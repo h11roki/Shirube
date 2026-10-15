@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 from bs4 import BeautifulSoup, Tag
 
-from app.domain.syllabus import CourseAlias
+from app.domain.syllabus import CourseName
 from app.infrastructure.scrapers.ritsumeikan.text import (
     FACULTY_SEPARATOR,
     NAME_SEPARATOR,
@@ -24,7 +24,7 @@ class ListingFormatError(ValueError):
 class ListingRow:
     code: str
     title: str
-    aliases: tuple[CourseAlias, ...]
+    aliases: tuple[CourseName, ...]
     faculties: tuple[str, ...]
     term_label: str
     slot_label: str
@@ -53,15 +53,18 @@ def parse_listing(html: str) -> list[ListingRow]:
         cells = [cell.get_text(" ", strip=True) for cell in _cells_after_link(tr)]
         if not isinstance(href, str) or len(cells) < CELL_COUNT:
             raise ListingFormatError(f"一覧の行を読めません: {tr.get_text(' ', strip=True)[:80]!r}")
-        (code, title), *others = split_titles(link.get_text(strip=True))
+        try:
+            primary, *aliases = split_titles(link.get_text(strip=True))
+        except ValueError as error:
+            raise ListingFormatError(str(error)) from error
         faculties, term_label, slot_label, campus, instructors, language, credits = cells[
             :CELL_COUNT
         ]
         rows.append(
             ListingRow(
-                code=code,
-                title=title,
-                aliases=tuple(CourseAlias(*other) for other in others),
+                code=primary.code,
+                title=primary.title,
+                aliases=tuple(aliases),
                 faculties=split_list(faculties, FACULTY_SEPARATOR),
                 term_label=term_label,
                 slot_label=slot_label,

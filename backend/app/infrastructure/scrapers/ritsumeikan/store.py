@@ -1,11 +1,16 @@
 import os
 from pathlib import Path
 
+from app.application.ports import DetailLink
 from app.infrastructure.scrapers.ritsumeikan.listing import ListingRow, parse_listing
 
 LISTING_DIR = "listings"
 DETAIL_DIR = "details"
 PAGE_SUFFIX = ".html"
+
+
+class ListingConflictError(ValueError):
+    pass
 
 
 class RawStore:
@@ -23,31 +28,29 @@ class RawStore:
             _write_atomically(directory / f"{number}{PAGE_SUFFIX}", page)
         directory.mkdir(parents=True, exist_ok=True)
         if self._rows is not None:
-            self._rows.update(_rows_by_code(pages))
+            _index_rows(self._rows, pages)
 
-    def href_of(self, code: str) -> str | None:
-        row = self._listed(code)
-        return row.href if row else None
+    def detail_link(self, code: str) -> DetailLink | None:
+        if self._rows is None:
+            rows: dict[str, ListingRow] = {}
+            _index_rows(rows, self._saved_listing_pages())
+            self._rows = rows
+        row = self._rows.get(code)
+        return DetailLink(row.code, row.href) if row else None
 
-    def has_detail(self, code: str) -> bool:
-        return self.detail_path(code).exists()
+    def has_detail(self, primary_code: str) -> bool:
+        return self.detail_path(primary_code).exists()
 
-    def save_detail(self, code: str, page: str) -> None:
-        _write_atomically(self.detail_path(code), page)
+    def save_detail(self, primary_code: str, page: str) -> None:
+        _write_atomically(self.detail_path(primary_code), page)
 
-    def detail_path(self, code: str) -> Path:
-        row = self._listed(code)
-        return self._details / f"{row.code if row else code}{PAGE_SUFFIX}"
+    def detail_path(self, primary_code: str) -> Path:
+        return self._details / f"{primary_code}{PAGE_SUFFIX}"
 
     def saved_detail_codes(self) -> list[str]:
         if not self._details.exists():
             return []
         return sorted(path.stem for path in self._details.glob(f"*{PAGE_SUFFIX}"))
-
-    def _listed(self, code: str) -> ListingRow | None:
-        if self._rows is None:
-            self._rows = _rows_by_code(self._saved_listing_pages())
-        return self._rows.get(code)
 
     def _saved_listing_pages(self) -> list[str]:
         if not self._listings.exists():
@@ -56,13 +59,15 @@ class RawStore:
         return [path.read_text(encoding="utf-8") for path in paths]
 
 
-def _rows_by_code(pages: list[str]) -> dict[str, ListingRow]:
-    rows: dict[str, ListingRow] = {}
+def _index_rows(rows: dict[str, ListingRow], pages: list[str]) -> None:
     for page in pages:
         for row in parse_listing(page):
             for code in (row.code, *(alias.code for alias in row.aliases)):
-                rows.setdefault(code, row)
-    return rows
+                known = rows.setdefault(code, row)
+                if known.href != row.href:
+                    raise ListingConflictError(
+                        f"{code} が複数のページに現れます: {known.href} {row.href}"
+                    )
 
 
 def _write_atomically(path: Path, text: str) -> None:

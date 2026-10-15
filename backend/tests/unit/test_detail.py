@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.domain.syllabus import CourseAlias, GradingItem
+from app.domain.syllabus import CourseName, GradingItem
 from app.infrastructure.scrapers.ritsumeikan.detail import (
     HEADER_LABELS,
     TEXT_LABELS,
@@ -136,7 +136,7 @@ def test_cross_listed_page_keeps_the_other_names_as_aliases() -> None:
 
     assert syllabus.code == "16806"
     assert syllabus.title == "平和人権フィールドスタディ (GR)"
-    assert syllabus.aliases == (CourseAlias("16807", "国際平和交流セミナー(GR)"),)
+    assert syllabus.aliases == (CourseName("16807", "国際平和交流セミナー(GR)"),)
 
 
 def test_synthetic_cross_listed_title_splits_into_aliases() -> None:
@@ -144,7 +144,7 @@ def test_synthetic_cross_listed_title_splits_into_aliases() -> None:
 
     assert syllabus.code == "99999"
     assert syllabus.title == "試験科目(A1)"
-    assert syllabus.aliases == (CourseAlias("99998", "別名(A1)"), CourseAlias("99997", "別名2(B1)"))
+    assert syllabus.aliases == (CourseName("99998", "別名(A1)"), CourseName("99997", "別名2(B1)"))
 
 
 def test_alias_without_a_course_code_is_a_format_error() -> None:

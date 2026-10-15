@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from app.domain.syllabus import CourseAlias
+from app.domain.syllabus import CourseName
 from app.infrastructure.scrapers.ritsumeikan.listing import (
     ListingFormatError,
     PageCount,
@@ -44,14 +44,25 @@ def test_cross_listed_row_keeps_the_other_names_as_aliases() -> None:
 
     assert row.code == "16806"
     assert row.title == "平和人権フィールドスタディ (GR)"
-    assert row.aliases == (CourseAlias("16807", "国際平和交流セミナー(GR)"),)
+    assert row.aliases == (CourseName("16807", "国際平和交流セミナー(GR)"),)
 
 
 def test_row_with_too_few_cells_is_an_error() -> None:
-    link = "<th><a href='/syllabus/s/r-syllabus/x/1'>1:a</a></th>"
+    link = "<th><a href='/syllabus/s/r-syllabus/x/202610001'>10001:a</a></th>"
     html = f"<table><tbody><tr>{link}<td>b</td></tr></tbody></table>"
 
-    with pytest.raises(ListingFormatError):
+    with pytest.raises(ListingFormatError, match="一覧の行"):
+        parse_listing(html)
+
+
+def test_alias_without_a_course_code_is_an_error() -> None:
+    link = "<th><a href='/syllabus/s/r-syllabus/x/202610001'>10001:a § b</a></th>"
+    cells = (
+        "<td>理工学部</td><td>通年</td><td></td><td>衣笠</td><td>甲</td><td>日本語</td><td>2</td>"
+    )
+    html = f"<table><tbody><tr>{link}{cells}</tr></tbody></table>"
+
+    with pytest.raises(ListingFormatError, match="授業コード"):
         parse_listing(html)
 
 

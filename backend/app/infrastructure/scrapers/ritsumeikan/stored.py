@@ -10,5 +10,8 @@ class StoredSyllabi:
     def syllabus(self, code: str) -> Syllabus | None:
         path = self._store.detail_path(code)
         if not path.exists():
+            link = self._store.detail_link(code)
+            path = self._store.detail_path(link.primary_code) if link else path
+        if not path.exists():
             return None
         return parse_detail(path.read_text(encoding="utf-8"))

@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from app.application.fetch_syllabus import FetchSyllabus
-from app.application.ports import ListingQuery
+from app.application.ports import DetailLink, ListingQuery
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 
 
@@ -58,13 +58,13 @@ def test_listings_are_saved_once_as_raw_pages(tmp_path: Path) -> None:
         encoding="utf-8"
     ) == listing_html("10002:科目乙(A8)")
     assert store.has_listing("b")
-    assert RawStore(tmp_path, 2026).href_of("10002") == href_of("10002")
+    assert RawStore(tmp_path, 2026).detail_link("10002") == DetailLink("10002", href_of("10002"))
 
 
 def test_details_come_from_the_index_then_from_a_code_lookup(tmp_path: Path) -> None:
     catalog = FakeCatalog(
         {"a": [listing_html("10001:科目甲(A8)")]},
-        {"90002": [listing_html("1:科目丙(A8)", "90002:科目丁(A8)")]},
+        {"90002": [listing_html("10003:科目丙(A8)", "90002:科目丁(A8)")]},
     )
     store = RawStore(tmp_path, 2026)
     fetch = FetchSyllabus(catalog, store)
@@ -80,7 +80,7 @@ def test_details_come_from_the_index_then_from_a_code_lookup(tmp_path: Path) -> 
     assert missing == ["30003"]
 
 
-def test_cross_listed_codes_share_the_page_of_the_primary_code(tmp_path: Path) -> None:
+def test_cross_listed_codes_are_fetched_once_under_the_primary_code(tmp_path: Path) -> None:
     catalog = FakeCatalog({"a": [listing_html("10001:科目甲(A8) § 10002:科目乙(A8)")]}, {})
     store = RawStore(tmp_path, 2026)
     fetch = FetchSyllabus(catalog, store)
@@ -91,14 +91,15 @@ def test_cross_listed_codes_share_the_page_of_the_primary_code(tmp_path: Path) -
     assert missing == []
     assert catalog.lookup_calls == []
     assert catalog.detail_calls == [href_of("10001")]
-    assert store.detail_path("10002") == store.detail_path("10001")
-    assert store.detail_path("10001").name == "10001.html"
-    assert RawStore(tmp_path, 2026).has_detail("10002")
+    assert store.detail_link("10002") == DetailLink("10001", href_of("10001"))
+    assert store.has_detail("10001")
+    assert not store.detail_path("10002").exists()
 
 
 def test_saved_details_and_lookups_are_not_fetched_again(tmp_path: Path) -> None:
     catalog = FakeCatalog({}, {})
     store = RawStore(tmp_path, 2026)
+    store.save_listing("a", [listing_html("10001:科目甲(A8)")])
     store.save_detail("10001", "<html></html>")
     store.save_listing("code_30003", [listing_html()])
 
