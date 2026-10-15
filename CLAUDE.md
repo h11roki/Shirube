@@ -25,7 +25,7 @@ frontend(`frontend/` で実行)
 全体
 
 - `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える
-- `OPENAI_API_KEY` は main の checkout の直下の `.envrc`(direnv、git 管理外、`direnv allow` 済み)にある。先頭の `source_up` で親の `.envrc` の GH_TOKEN も引き継ぐ。worktree にこのファイルは無いが、`.claude/worktrees/` の下なら direnv が親をたどって読む(それ以外の場所に作った worktree では読まれない)。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値はコマンドにも出力にも書かない
+- `OPENAI_API_KEY` は README の「起動」のとおりリポジトリ直下の `.envrc` から読む。worktree にこのファイルは無いが、`.claude/worktrees/` の下なら direnv が親をたどって読む。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値はコマンドにも出力にも書かない
 
 ## 構成と依存の向き
 

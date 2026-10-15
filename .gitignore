@@ -10,6 +10,7 @@ node_modules/
 !.env.example
 .envrc
 .envrc.*
+!.envrc.example
 .DS_Store
 .idea/
 .vscode/
