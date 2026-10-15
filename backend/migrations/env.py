@@ -15,6 +15,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 
+def database_url() -> str:
+    return config.get_main_option("sqlalchemy.url") or Settings().database_url
+
+
 def render_vector(type_: str, obj: object, autogen_context: AutogenContext) -> str | Literal[False]:
     if type_ == "type" and isinstance(obj, Vector):
         autogen_context.imports.add("from pgvector.sqlalchemy import Vector")
@@ -24,7 +28,7 @@ def render_vector(type_: str, obj: object, autogen_context: AutogenContext) -> s
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=Settings().database_url,
+        url=database_url(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -34,7 +38,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(Settings().database_url, poolclass=pool.NullPool)
+    engine = create_engine(database_url(), poolclass=pool.NullPool)
     with engine.connect() as connection:
         context.configure(
             connection=connection, target_metadata=target_metadata, render_item=render_vector
