@@ -45,7 +45,8 @@ flowchart LR
 |---|---|---|---|
 | code, title | str | 科目名欄の先頭 | 主コードと科目名。ページの URL と保存ファイル名は主コード |
 | aliases | tuple[CourseAlias, ...] | 科目名欄の2つ目以降 | 別名のコードと科目名。時間割表との結合は主コードと別名の両方で行う |
-| year, term_label, slot_label, faculties, instructors, credits | | 見出し表 | 学期とコマは表示用の文字列のまま。道標の制約には時間割表の値を使う |
+| year, credits | int | 見出し表 | 年度と単位数 |
+| term_label, slot_label, faculties, instructors | str, str, tuple[str, ...], tuple[str, ...] | 見出し表 | 学期とコマは表示用の文字列のまま。道標の制約には時間割表の値を使う |
 | campus, language, overview, objectives, preparation, class_format, self_study, grading_note, advice, remarks | str | 各項目 | 段落の空行を保持した本文 |
 | schedule_note, sessions | str, tuple[Session, ...] | 授業スケジュール表 | 回が「-」の行は注記。回の列は自由記述なので文字列のまま |
 | grading | tuple[GradingItem, ...] | 成績評価方法表 | 種別、割合、基準 |
