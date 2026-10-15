@@ -40,4 +40,3 @@ def downgrade() -> None:
     op.drop_index("ix_syllabus_chunks_content_hash", table_name="syllabus_chunks")
     op.drop_table("syllabus_chunks")
     op.drop_table("embeddings")
-    op.execute("DROP EXTENSION IF EXISTS vector")
