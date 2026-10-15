@@ -25,6 +25,7 @@ frontend(`frontend/` で実行)
 全体
 
 - `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える
+- `OPENAI_API_KEY` はリポジトリ直下の `.envrc`(direnv、git 管理外)にある。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値は表示しない
 
 ## 構成と依存の向き
 
