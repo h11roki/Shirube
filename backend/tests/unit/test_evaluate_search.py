@@ -15,10 +15,9 @@ from app.application.evaluate_search import (
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import load_dataset, render
+from app.presentation.cli.evaluate import DEFAULT_DATASET, load_dataset, render
 from tests.builders import course_section, syllabus
-from tests.fakes import FakeCourseRepository
-from tests.unit.test_search_courses import FakeChunkSearch, FakeEmbedder
+from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
 
 DATASET = Path(__file__).parents[2] / "eval" / "occupations.json"
 
@@ -60,6 +59,13 @@ def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
         EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
 
 
+def test_occupation_without_expected_courses_is_an_error() -> None:
+    case = EvaluationCase("職業", ("スキル",), ())
+
+    with pytest.raises(EvaluationError, match="期待する科目がありません: 職業"):
+        EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
+
+
 def test_query_joins_the_occupation_and_its_skills() -> None:
     case = EvaluationCase("組込みエンジニア", ("C 言語", "マイコン"), ())
 
@@ -87,3 +93,29 @@ def test_committed_dataset_has_ten_occupations_with_skills_and_reasons() -> None
         for occupation in raw["occupations"]
         for reason in occupation["expected"].values()
     )
+    assert DATASET.resolve() == DEFAULT_DATASET
+
+
+@pytest.mark.parametrize(
+    ("occupation", "message"),
+    [
+        (
+            '{"name": "職業", "skills": "C 言語", "expected": {"甲": "理由"}}',
+            "skills は文字列の配列",
+        ),
+        ('{"name": "職業", "skills": ["C"], "expected": ["甲"]}', "expected は科目名から理由"),
+        (
+            '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由", "甲": "別の理由"}}',
+            "同じ項目が 2 回あります: 甲",
+        ),
+    ],
+    ids=["skills-as-a-string", "expected-as-a-list", "duplicated-course"],
+)
+def test_malformed_dataset_is_rejected(tmp_path: Path, occupation: str, message: str) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        f'{{"year": 2026, "department": "情", "occupations": [{occupation}]}}', encoding="utf-8"
+    )
+
+    with pytest.raises(ValueError, match=message):
+        load_dataset(path)

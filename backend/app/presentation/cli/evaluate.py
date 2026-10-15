@@ -14,28 +14,33 @@ from app.application.evaluate_search import (
     EvaluationError,
     EvaluationReport,
 )
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, SearchError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.presentation.cli.environment import database_engine, load_settings, openai_embedder
 
-DEFAULT_DATASET = Path("eval/occupations.json")
+DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
 
 
 def load_dataset(path: Path) -> EvaluationDataset:
-    document = json.loads(path.read_text(encoding="utf-8"))
-    return EvaluationDataset(
-        year=int(document["year"]),
-        department=str(document["department"]),
-        cases=tuple(
-            EvaluationCase(
-                occupation=str(occupation["name"]),
-                skills=tuple(str(skill) for skill in occupation["skills"]),
-                expected=tuple(str(name) for name in occupation["expected"]),
-            )
-            for occupation in document["occupations"]
-        ),
-    )
+    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    cases = []
+    for occupation in document["occupations"]:
+        name, skills, expected = occupation["name"], occupation["skills"], occupation["expected"]
+        if not isinstance(skills, list) or not all(isinstance(skill, str) for skill in skills):
+            raise ValueError(f"{name}: skills は文字列の配列にしてください")
+        if not isinstance(expected, dict):
+            raise ValueError(f"{name}: expected は科目名から理由への対応にしてください")
+        cases.append(EvaluationCase(str(name), tuple(skills), tuple(expected)))
+    return EvaluationDataset(int(document["year"]), str(document["department"]), tuple(cases))
+
+
+def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+    keys = [key for key, _ in pairs]
+    duplicated = sorted({key for key in keys if keys.count(key) > 1})
+    if duplicated:
+        raise ValueError(f"同じ項目が 2 回あります: {'、'.join(duplicated)}")
+    return dict(pairs)
 
 
 def render(report: EvaluationReport) -> str:
@@ -67,7 +72,7 @@ def main() -> None:
     search = SearchCourses(SqlCourseRepository(engine), SqlChunkRepository(engine), embedder)
     try:
         print(render(EvaluateSearch(search).run(dataset)))
-    except EvaluationError as error:
+    except (EvaluationError, SearchError) as error:
         sys.exit(f"評価を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")

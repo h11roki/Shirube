@@ -11,23 +11,8 @@ from app.application.embed_syllabi import (
 )
 from app.domain.chunk import SyllabusChunk, chunks_of
 from tests.builders import syllabus
-from tests.fakes import FakeCourseRepository
-
-MODEL = "fake-embedding"
-
-
-class FakeEmbedder:
-    model = MODEL
-
-    def __init__(self, failing_call: int | None = None) -> None:
-        self.calls: list[list[str]] = []
-        self._failing_call = failing_call
-
-    def embed(self, texts: list[str]) -> list[list[float]]:
-        self.calls.append(texts)
-        if len(self.calls) == self._failing_call:
-            raise ConnectionError("API が応答しない")
-        return [[float(len(text))] for text in texts]
+from tests.fakes import FAKE_MODEL as MODEL
+from tests.fakes import FakeCourseRepository, FakeEmbedder
 
 
 class FakeChunkRepository:

@@ -53,20 +53,24 @@ class EvaluateSearch:
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         if not dataset.cases:
             raise EvaluationError("評価する職業がありません")
+        empty = [case.occupation for case in dataset.cases if not case.expected]
+        if empty:
+            raise EvaluationError(f"期待する科目がありません: {'、'.join(empty)}")
         year, department = dataset.year, dataset.department
         candidates = self._search.candidates(year, department, ALL_GRADES)
         unknown = sorted({name for case in dataset.cases for name in case.expected} - candidates)
         if unknown:
             raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
+        rankings = self._search.run(
+            year,
+            [case.query for case in dataset.cases],
+            department,
+            ALL_GRADES,
+            max(RECALL_CUTOFFS),
+        )
         results = []
-        for case in dataset.cases:
-            matches = self._search.run(
-                year, case.query, department, ALL_GRADES, max(RECALL_CUTOFFS)
-            )
+        for case, matches in zip(dataset.cases, rankings, strict=True):
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
-            results.append(
-                CaseResult(
-                    case.occupation, tuple((name, rank_of.get(name)) for name in case.expected)
-                )
-            )
+            ranks = tuple((name, rank_of.get(name)) for name in case.expected)
+            results.append(CaseResult(case.occupation, ranks))
         return EvaluationReport(tuple(results))

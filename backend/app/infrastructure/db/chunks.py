@@ -12,7 +12,7 @@ from sqlalchemy import (
     select,
     union,
 )
-from sqlalchemy.dialects.postgresql import ARRAY, insert
+from sqlalchemy.dialects.postgresql import ARRAY, distinct_on, insert
 from sqlalchemy.orm import Session as DbSession
 
 from app.domain.chunk import ChunkSection, SyllabusChunk
@@ -92,13 +92,13 @@ class SqlChunkRepository:
             )
             return result.rowcount
 
-    def similarities(
+    def best_chunks(
         self, year: int, model: str, vector: list[float], syllabus_codes: set[str]
     ) -> list[ChunkHit]:
         if not syllabus_codes:
             return []
         query = bindparam("query", vector, type_=Vector(EMBEDDING_DIMENSIONS))
-        pages = bindparam("pages", sorted(syllabus_codes), type_=ARRAY(Text()))
+        pages = bindparam("pages", list(syllabus_codes), type_=ARRAY(Text()))
         distance = EmbeddingRow.vector.op("<=>", return_type=Float())(query)
         with DbSession(self._engine) as db:
             rows = db.execute(
@@ -111,6 +111,8 @@ class SqlChunkRepository:
                     ),
                 )
                 .where(SyllabusChunkRow.year == year, SyllabusChunkRow.syllabus_code == any_(pages))
+                .ext(distinct_on(SyllabusChunkRow.syllabus_code))
+                .order_by(SyllabusChunkRow.syllabus_code, distance)
             )
             return [
                 ChunkHit(syllabus_code, ChunkSection(section), 1.0 - cosine_distance)
