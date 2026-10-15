@@ -6,7 +6,7 @@ from app.application.ports import ListingConflictError, SyllabusSource
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-from app.presentation.cli.raw_options import add_raw_store_options
+from app.presentation.cli.options import add_raw_store_options
 
 
 def main() -> None:
