@@ -20,11 +20,8 @@ def engine() -> Iterator[Engine]:
     test_url = server.set(database=f"{server.database}{TEST_DATABASE_SUFFIX}")
     admin = create_engine(server, isolation_level="AUTOCOMMIT")
     with admin.connect() as connection:
-        found = connection.scalar(
-            text("SELECT 1 FROM pg_database WHERE datname = :name"), {"name": test_url.database}
-        )
-        if found is None:
-            connection.execute(text(f'CREATE DATABASE "{test_url.database}"'))
+        connection.execute(text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)'))
+        connection.execute(text(f'CREATE DATABASE "{test_url.database}"'))
     admin.dispose()
     config = Config(str(ALEMBIC_INI))
     rendered = test_url.render_as_string(hide_password=False)
