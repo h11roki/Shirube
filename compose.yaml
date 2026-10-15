@@ -22,7 +22,6 @@ services:
     command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     environment:
       DATABASE_URL: postgresql+psycopg://shirube:shirube@db:5432/shirube
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
       - "${BACKEND_PORT:-8000}:8000"
     volumes:
