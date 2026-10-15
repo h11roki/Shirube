@@ -13,7 +13,6 @@ class EmbedReport:
     chunks: int
     embedded: int
     reused: int
-    pruned: int
 
 
 class EmbedSyllabi:
@@ -38,5 +37,7 @@ class EmbedSyllabi:
                 self._embedder.model, dict(zip(missing, vectors, strict=True))
             )
         self._chunks.replace_chunks(year, chunks)
-        pruned = self._chunks.prune_embeddings()
-        return EmbedReport(len(chunks), len(missing), len(text_of) - len(missing), pruned)
+        return EmbedReport(len(chunks), len(missing), len(text_of) - len(missing))
+
+    def prune(self) -> int:
+        return self._chunks.prune_embeddings(self._embedder.model)

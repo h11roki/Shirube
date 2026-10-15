@@ -1,4 +1,4 @@
-from sqlalchemy import Engine, delete, exists, select
+from sqlalchemy import Engine, delete, exists, or_, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session as DbSession
 
@@ -48,13 +48,10 @@ class SqlChunkRepository:
                 for chunk in chunks
             )
 
-    def prune_embeddings(self) -> int:
+    def prune_embeddings(self, model: str) -> int:
         referenced = exists().where(SyllabusChunkRow.content_hash == EmbeddingRow.content_hash)
-        with DbSession(self._engine) as db, db.begin():
-            removed = db.scalars(
-                delete(EmbeddingRow)
-                .where(~referenced)
-                .returning(EmbeddingRow.content_hash)
-                .execution_options(synchronize_session=False)
+        with self._engine.begin() as connection:
+            result = connection.execute(
+                delete(EmbeddingRow).where(or_(EmbeddingRow.model != model, ~referenced))
             )
-            return len(removed.all())
+            return result.rowcount

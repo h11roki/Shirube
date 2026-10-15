@@ -24,7 +24,7 @@ class FakeChunkRepository:
         self.embedded = dict(embedded or {})
         self.saved: list[tuple[str, dict[str, list[float]]]] = []
         self.replaced: list[tuple[int, list[SyllabusChunk]]] = []
-        self.prunes = 0
+        self.pruned_for: list[str] = []
 
     def embedded_hashes(self, model: str, hashes: set[str]) -> set[str]:
         return hashes & set(self.embedded)
@@ -35,8 +35,8 @@ class FakeChunkRepository:
     def replace_chunks(self, year: int, chunks: list[SyllabusChunk]) -> None:
         self.replaced.append((year, chunks))
 
-    def prune_embeddings(self) -> int:
-        self.prunes += 1
+    def prune_embeddings(self, model: str) -> int:
+        self.pruned_for.append(model)
         return 2
 
 
@@ -49,13 +49,22 @@ def test_only_chunks_without_an_embedding_are_sent_to_the_model() -> None:
 
     report = EmbedSyllabi(FakeCourseRepository(syllabi=pages), store, embedder).run(2026)
 
-    assert report == EmbedReport(chunks=6, embedded=5, reused=1, pruned=2)
+    assert report == EmbedReport(chunks=6, embedded=5, reused=1)
     assert embedder.calls == [[chunk.text for chunk in chunks[1:]]]
     assert store.saved == [
         (MODEL, {chunk.content_hash: [float(len(chunk.text))] for chunk in chunks[1:]})
     ]
     assert store.replaced == [(2026, chunks)]
-    assert store.prunes == 1
+    assert store.pruned_for == []
+
+
+def test_prune_keeps_only_the_current_model() -> None:
+    store = FakeChunkRepository()
+
+    removed = EmbedSyllabi(FakeCourseRepository(), store, FakeEmbedder()).prune()
+
+    assert removed == 2
+    assert store.pruned_for == [MODEL]
 
 
 def test_nothing_is_sent_when_every_chunk_is_already_embedded() -> None:
