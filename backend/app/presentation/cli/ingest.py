@@ -2,7 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from sqlalchemy import create_engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
@@ -14,7 +13,7 @@ from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-from app.presentation.cli.environment import load_settings
+from app.presentation.cli.environment import database_engine, load_settings
 from app.presentation.cli.options import add_raw_store_options, add_year_option
 
 
@@ -28,7 +27,7 @@ def main() -> None:
     add_raw_store_options(syllabi)
     args = parser.parse_args()
 
-    engine = create_engine(load_settings().database_url)
+    engine = database_engine(load_settings())
     repository = SqlCourseRepository(engine)
     try:
         if args.command == "timetable":
