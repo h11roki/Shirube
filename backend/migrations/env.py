@@ -10,12 +10,11 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 target_metadata = Base.metadata
-database_url = Settings().database_url
 
 
 def run_migrations_offline() -> None:
     context.configure(
-        url=database_url,
+        url=Settings().database_url,
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -25,7 +24,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    engine = create_engine(database_url, poolclass=pool.NullPool)
+    engine = create_engine(Settings().database_url, poolclass=pool.NullPool)
     with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)
         with context.begin_transaction():
