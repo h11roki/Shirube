@@ -45,6 +45,14 @@ docker compose up
 
 ポートが使用中のときは `FRONTEND_PORT` / `BACKEND_PORT` / `DB_PORT` で手元側のポートを変えられる。
 
+DB のスキーマは Alembic で管理する。初回と、`backend/migrations/versions/` が増えたときに適用する。
+
+```sh
+docker compose exec backend uv run alembic upgrade head
+```
+
+科目データは、時間割表の PDF と保存済みのシラバス(`backend/data/`、git 管理外)から取り込む。手順は `CLAUDE.md` のコマンド一覧にある。
+
 ## 設計
 
 ビジネスロジックは全てバックエンドに置き、フロントは API を呼んで表示するだけにする。バックエンドは domain / application / infrastructure / presentation の4層で、依存は presentation → application → domain の一方向。大学ごとのシラバス取得元は infrastructure の実装を足すだけで増やせる。

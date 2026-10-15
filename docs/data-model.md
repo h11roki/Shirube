@@ -6,8 +6,11 @@
 flowchart LR
   T[授業時間割表 PDF] -->|pdfplumber| S[CourseSection]
   Y[シラバス HTML] -->|BeautifulSoup| C[Syllabus]
-  S -- 授業コード --> M[(courses)]
-  C -- 主コードと別名 --> M
+  S -- 年度と授業コード --> M[(course_sections)]
+  C -- 年度と主コード --> N[(syllabi)]
+  C -- 主コードと別名 --> K[(syllabus_codes)]
+  K -- syllabus_code --> N
+  M -. code .-> K
 ```
 
 ## CourseSection(domain/course.py)
@@ -50,6 +53,18 @@ flowchart LR
 | campus, language, overview, objectives, preparation, class_format, self_study, grading_note, advice, remarks | str | 各項目 | 段落の空行を保持した本文 |
 | schedule_note, sessions | str, tuple[Session, ...] | 授業スケジュール表 | 回が「-」の行は注記。回の列は自由記述なので文字列のまま |
 | grading | tuple[GradingItem, ...] | 成績評価方法表 | 種別、割合、基準 |
+
+## テーブル(infrastructure/db/models.py、ADR 0014)
+
+取り込み元ごとに表を分け、入れ子は JSONB で持つ。全表が year を持ち、`IngestCourses` が年度単位で全削除と挿入を1トランザクションで行う。
+
+| 表 | 主キー | 内容 |
+|---|---|---|
+| course_sections | (year, code) | CourseSection の1件。term と slots の weekday は列挙の値(spring / mon)、slots・departments・audiences・instructors は JSONB |
+| syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
+| syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
+
+時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。
 
 ## 道標での使い方
 
