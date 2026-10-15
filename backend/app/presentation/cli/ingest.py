@@ -2,9 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from pydantic import ValidationError
-from sqlalchemy import create_engine
-from sqlalchemy.exc import OperationalError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
@@ -15,8 +13,8 @@ from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
+from app.presentation.cli.environment import database_engine, load_settings
 from app.presentation.cli.options import add_raw_store_options, add_year_option
-from app.settings import Settings
 
 
 def main() -> None:
@@ -29,10 +27,7 @@ def main() -> None:
     add_raw_store_options(syllabi)
     args = parser.parse_args()
 
-    try:
-        engine = create_engine(Settings().database_url)
-    except ValidationError:
-        sys.exit("DATABASE_URL を設定してください")
+    engine = database_engine(load_settings())
     repository = SqlCourseRepository(engine)
     try:
         if args.command == "timetable":
@@ -49,6 +44,8 @@ def main() -> None:
         sys.exit(f"取り込みを止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
+    except SQLAlchemyError as error:
+        sys.exit(f"DB の操作に失敗しました: {error}")
     finally:
         engine.dispose()
 

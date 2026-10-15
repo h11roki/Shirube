@@ -8,9 +8,10 @@ backend(`backend/` で実行)
 
 - `uv sync`(dev と scraper の両グループが入る。Web 用イメージは `--no-default-groups` で本体の依存だけ)
 - `uv run playwright install chromium`(取り込みや fixture 生成で Playwright を使うとき)
-- `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`(CI と同じ。DB の結合テストは `DATABASE_URL` があるときだけ走る。手元では `docker compose up -d db` のあと `DATABASE_URL=postgresql+psycopg://shirube:shirube@localhost:5432/shirube` を付ける)
-- `DATABASE_URL=... uv run alembic upgrade head` でマイグレーション。モデルを変えたら `DATABASE_URL=... uv run alembic revision --autogenerate --rev-id <次の4桁> -m "<内容>"` で `migrations/versions/<4桁>_<内容>.py` を生成する(テンプレートと ruff の hook で整形済みになる)
+- `uv run ruff check . && uv run ruff format --check . && uv run mypy && uv run pytest`(CI と同じ。DB の結合テストは `DATABASE_URL` があるときだけ走り、そのデータベース名に `_test` を付けた別のデータベースを作って使うので、手元の実データには触れない。手元では `docker compose up -d db` のあと `DATABASE_URL=postgresql+psycopg://shirube:shirube@localhost:5432/shirube` を付ける)
+- `DATABASE_URL=... uv run alembic upgrade head` でマイグレーション。モデルを変えたら `DATABASE_URL=... uv run alembic revision --autogenerate --rev-id <次の4桁> -m "<内容>"` で `migrations/versions/<4桁>_<内容>.py` を生成する(テンプレートと ruff の hook で整形済みになる。拡張機能の作成など autogenerate が拾わない操作は手で足す)
 - `DATABASE_URL=... uv run python -m app.presentation.cli.ingest timetable data/curriculum/<時間割表>.pdf ...` でその年度の時間割表を全てまとめて、`... ingest syllabi` で保存済みシラバスを全て、それぞれ年度単位で DB に入れ替える(ADR 0014)。片方だけ取り直せる
+- `DATABASE_URL=... OPENAI_API_KEY=... uv run python -m app.presentation.cli.embed` で、その年度のシラバスをチャンクにして埋め込む(ADR 0015)。`ingest syllabi` の後に実行する。埋め込み済みの本文は API を呼ばずに再利用する。`--prune` で今のモデル以外と使われなくなった埋め込みを消す(今のモデルで埋め込み終わっていない年度があれば断る)。embed を 2 つ同時に走らせない
 - `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
 - `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/<主コード>.html` に保存(合併科目は別名のコードでも主コードのページに当たる、ADR 0013)。どちらも保存済みは飛ばすので中断後に再実行できる
 - `uv run python -m app.presentation.cli.syllabus 32494` で保存済みの詳細ページを解析して JSON 表示。引数なしで保存済み全件の解析検査
