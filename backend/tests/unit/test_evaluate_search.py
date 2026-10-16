@@ -1,5 +1,4 @@
 import json
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -14,35 +13,24 @@ from app.application.evaluate_search import (
     EvaluationReport,
     with_analyzed_skills,
 )
+from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.search_courses import SearchCourses
-from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
-from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
-from tests.builders import course_section, syllabus
+from app.domain.recommendation import Relevance
+from app.presentation.cli.evaluate import render
+from app.presentation.cli.evaluation_data import (
+    DEFAULT_DATASET,
+    load_dataset,
+    reject_duplicate_keys,
+)
 from tests.fakes import (
-    FakeChunkSearch,
-    FakeCourseRepository,
-    FakeEmbedder,
     FakeOccupationAnalyzer,
+    courses_ranked_by,
 )
 
 
 def search_over(similarities: dict[str, float]) -> SearchCourses:
-    codes = [f"{10000 + number}" for number in range(len(similarities))]
-    names = list(similarities)
-    repository = FakeCourseRepository(
-        sections=tuple(
-            replace(course_section(code), name=name)
-            for code, name in zip(codes, names, strict=True)
-        ),
-        syllabi=tuple(syllabus(code) for code in codes),
-    )
-    hits = [
-        ChunkHit(code, ChunkSection.OVERVIEW, similarities[name])
-        for code, name in zip(codes, names, strict=True)
-    ]
-    return SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+    return courses_ranked_by(similarities)[1]
 
 
 def test_recall_counts_expected_courses_within_each_cutoff() -> None:
@@ -150,7 +138,7 @@ REASON_ORDER = ("professor", "student", "engineer")
 
 
 def strict_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
 
 
 def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
@@ -190,7 +178,10 @@ def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregat
                 assert course.get("decision") in LABELS, where
             else:
                 assert "decision" not in course, where
-            if len(cores) >= 2 or course.get("decision") == "core":
+            relevances = [Relevance(vote["label"]) for vote in votes.values()]
+            decision = course.get("decision")
+            decided = None if decision is None else Relevance(decision)
+            if judgment_of(relevances, decided) is Judgment.EXPECTED:
                 ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
         majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
 

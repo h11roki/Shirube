@@ -1,13 +1,9 @@
-from dataclasses import replace
-
 import pytest
 
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses, SearchError
-from app.domain.chunk import ChunkSection
 from app.domain.course import ALL_GRADES
 from app.domain.occupation import OccupationProfile
-from app.domain.ranking import ChunkHit
 from app.domain.recommendation import (
     CourseChoice,
     Recommendation,
@@ -22,6 +18,7 @@ from tests.fakes import (
     FakeCourseSelector,
     FakeEmbedder,
     FakeOccupationAnalyzer,
+    courses_ranked_by,
 )
 
 PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
@@ -33,19 +30,7 @@ def recommend_over(
     analyzer: FakeOccupationAnalyzer | None = None,
     limit: int = 30,
 ) -> RecommendCourses:
-    codes = [f"{10000 + number}" for number in range(len(similarities))]
-    repository = FakeCourseRepository(
-        sections=tuple(
-            replace(course_section(code), name=name)
-            for code, name in zip(codes, similarities, strict=True)
-        ),
-        syllabi=tuple(syllabus(code) for code in codes),
-    )
-    hits = [
-        ChunkHit(code, ChunkSection.OVERVIEW, similarity)
-        for code, similarity in zip(codes, similarities.values(), strict=True)
-    ]
-    search = SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+    repository, search = courses_ranked_by(similarities)
     return RecommendCourses(
         search,
         repository,
@@ -76,7 +61,7 @@ def test_core_courses_come_first_and_each_group_keeps_the_search_order() -> None
             RecommendedCourse("科目A", "10000", Relevance.FOUNDATION, "理由A"),
             RecommendedCourse("科目C", "10002", Relevance.FOUNDATION, "理由C"),
         ),
-        5,
+        ("科目A", "科目B", "科目C", "科目D", "科目E"),
     )
 
 
@@ -94,7 +79,7 @@ def test_selector_reads_the_top_candidates_with_their_syllabi() -> None:
         ("科目A", "10000"),
         ("科目B", "10001"),
     ]
-    assert (recommendation.courses, recommendation.considered) == ((), 2)
+    assert (recommendation.courses, recommendation.candidates) == ((), ("科目A", "科目B"))
 
 
 def test_a_course_outside_the_candidates_is_an_error() -> None:
@@ -125,5 +110,5 @@ def test_selector_is_skipped_when_no_chunk_is_found() -> None:
         "職業", 2026, "情", ALL_GRADES
     )
 
-    assert recommendation == Recommendation(PROFILE, (), 0)
+    assert recommendation == Recommendation(PROFILE, (), ())
     assert selector.calls == []

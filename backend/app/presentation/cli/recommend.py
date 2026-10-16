@@ -15,18 +15,17 @@ from app.domain.recommendation import (
 )
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.presentation.cli.environment import (
     database_engine,
     load_settings,
-    openai_api_key,
+    openai_course_selector,
     openai_embedder,
     openai_occupation_analyzer,
 )
+from app.presentation.cli.labels import RELEVANCE_LABELS
 from app.presentation.cli.options import add_year_option
 
 DEFAULT_DEPARTMENT = "情"
-RELEVANCE_LABELS = {Relevance.CORE: "中心", Relevance.FOUNDATION: "土台"}
 
 
 def render(recommendation: Recommendation) -> str:
@@ -39,7 +38,7 @@ def render(recommendation: Recommendation) -> str:
         courses = [course for course in recommendation.courses if course.relevance is relevance]
         lines.append(f"{RELEVANCE_LABELS[relevance]} {len(courses)} 科目")
         lines += [f"  {course.name}: {course.reason}" for course in courses]
-    lines.append(f"検索の上位 {recommendation.considered} 件から選んだ")
+    lines.append(f"検索の上位 {len(recommendation.candidates)} 件から選んだ")
     return "\n".join(lines)
 
 
@@ -56,7 +55,7 @@ def main() -> None:
     settings = load_settings()
     embedder = openai_embedder(settings)
     analyzer = openai_occupation_analyzer(settings)
-    selector = OpenAICourseSelector.connect(settings.chat_model, openai_api_key(settings))
+    selector = openai_course_selector(settings)
     engine = database_engine(settings)
     courses = SqlCourseRepository(engine)
     search = SearchCourses(courses, SqlChunkRepository(engine), embedder)

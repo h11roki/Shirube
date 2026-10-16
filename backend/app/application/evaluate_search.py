@@ -1,4 +1,5 @@
 from collections import Counter
+from collections.abc import Set
 from dataclasses import dataclass, replace
 
 from app.application.ports import OccupationAnalyzer
@@ -50,6 +51,11 @@ class EvaluationDataset:
         if duplicated:
             raise EvaluationError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
 
+    def require_courses_in(self, names: Set[str]) -> None:
+        unknown = sorted({name for case in self.cases for name in case.expected} - names)
+        if unknown:
+            raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
+
 
 def with_analyzed_skills(
     dataset: EvaluationDataset, analyzer: OccupationAnalyzer
@@ -85,10 +91,7 @@ class EvaluateSearch:
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
-        expected = {name for case in dataset.cases for name in case.expected}
-        unknown = sorted(expected - candidates.names)
-        if unknown:
-            raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
+        dataset.require_courses_in(candidates.names)
         queries = [case.query for case in dataset.cases]
         rankings = candidates.rank(queries, max(RECALL_CUTOFFS))
         results = []
