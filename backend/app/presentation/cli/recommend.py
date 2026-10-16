@@ -9,17 +9,17 @@ from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses, SearchError
 from app.domain.course import ALL_GRADES
 from app.domain.recommendation import (
-    RELEVANCE_ORDER,
     Recommendation,
     RecommendationError,
     Relevance,
 )
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
+from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.presentation.cli.environment import (
     database_engine,
     load_settings,
-    openai_course_selector,
+    openai_api_key,
     openai_embedder,
     openai_occupation_analyzer,
 )
@@ -35,7 +35,7 @@ def render(recommendation: Recommendation) -> str:
     if profile.assumption is not None:
         lines.append(f"前提: {profile.assumption}")
     lines.append(f"スキル: {' / '.join(profile.skills)}")
-    for relevance in RELEVANCE_ORDER:
+    for relevance in Relevance:
         courses = [course for course in recommendation.courses if course.relevance is relevance]
         lines.append(f"{RELEVANCE_LABELS[relevance]} {len(courses)} 科目")
         lines += [f"  {course.name}: {course.reason}" for course in courses]
@@ -56,7 +56,7 @@ def main() -> None:
     settings = load_settings()
     embedder = openai_embedder(settings)
     analyzer = openai_occupation_analyzer(settings)
-    selector = openai_course_selector(settings)
+    selector = OpenAICourseSelector.connect(settings.chat_model, openai_api_key(settings))
     engine = database_engine(settings)
     courses = SqlCourseRepository(engine)
     search = SearchCourses(courses, SqlChunkRepository(engine), embedder)

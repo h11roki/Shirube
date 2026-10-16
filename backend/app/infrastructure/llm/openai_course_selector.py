@@ -3,7 +3,7 @@ from typing import Any, Self
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
-from pydantic import SecretStr
+from pydantic import BaseModel, SecretStr
 
 from app.application.ports import CourseSelectionError
 from app.domain.occupation import OccupationProfile
@@ -73,6 +73,16 @@ def _schema(names: list[str]) -> dict[str, Any]:
     }
 
 
+class _Choice(BaseModel):
+    name: str
+    relevance: Relevance
+    reason: str
+
+
+class _Selection(BaseModel):
+    courses: list[_Choice]
+
+
 class OpenAICourseSelector:
     def __init__(self, chat: ChatOpenAI) -> None:
         self._chat = chat
@@ -89,13 +99,11 @@ class OpenAICourseSelector:
         )
         messages = [SystemMessage(INSTRUCTIONS), HumanMessage(_request(profile, candidates))]
         try:
-            output = client.invoke(messages)
-            if not isinstance(output, dict):
-                raise TypeError(f"答えの形が違います: {output!r}")
+            selection = _Selection.model_validate(client.invoke(messages))
             return [
-                CourseChoice(item["name"], Relevance(item["relevance"]), item["reason"].strip())
-                for item in output["courses"]
+                CourseChoice(choice.name, choice.relevance, choice.reason.strip())
+                for choice in selection.courses
             ]
-        except (OpenAIRefusalError, ValueError, TypeError, KeyError) as error:
+        except (OpenAIRefusalError, ValueError) as error:
             message = f"{profile.occupation}: LLM の答えを使えません: {error}"
             raise CourseSelectionError(message) from error

@@ -1,3 +1,11 @@
+import json
+from collections.abc import Set
+from typing import Any
+
+import httpx
+from langchain_openai import ChatOpenAI
+from pydantic import SecretStr
+
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
@@ -87,8 +95,8 @@ class FakeCourseRepository:
     def syllabi(self, year: int) -> list[Syllabus]:
         return self.stored_syllabi
 
-    def syllabus(self, year: int, code: str) -> Syllabus | None:
-        return next((page for page in self.stored_syllabi if page.code == code), None)
+    def syllabi_of(self, year: int, codes: Set[str]) -> dict[str, Syllabus]:
+        return {page.code: page for page in self.stored_syllabi if page.code in codes}
 
     def syllabus_codes(self, year: int) -> dict[str, str]:
         return {
@@ -96,3 +104,31 @@ class FakeCourseRepository:
             for page in self.stored_syllabi
             for code in (page.code, *(alias.code for alias in page.aliases))
         }
+
+
+def chat_answering(
+    message: dict[str, Any], requests: list[dict[str, Any]] | None = None
+) -> ChatOpenAI:
+    def respond(request: httpx.Request) -> httpx.Response:
+        if requests is not None:
+            requests.append(json.loads(request.content))
+        return httpx.Response(
+            200,
+            json={
+                "id": "chatcmpl-test",
+                "object": "chat.completion",
+                "created": 0,
+                "model": "test-model",
+                "choices": [
+                    {
+                        "index": 0,
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", **message},
+                    }
+                ],
+                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+            },
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(respond))
+    return ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)

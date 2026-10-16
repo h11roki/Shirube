@@ -31,9 +31,10 @@ def test_sections_and_syllabi_round_trip(repository: SqlCourseRepository) -> Non
     repository.replace_syllabi(YEAR, [shared])
 
     assert repository.sections(YEAR) == sections
-    assert repository.syllabus(YEAR, "10001") == shared
-    assert repository.syllabus(YEAR, "10002") == shared
-    assert repository.syllabus(YEAR, "99999") is None
+    assert repository.syllabi_of(YEAR, {"10001", "10002", "99999"}) == {
+        "10001": shared,
+        "10002": shared,
+    }
 
 
 def test_all_syllabi_of_a_year_come_back_with_their_aliases(
@@ -71,8 +72,9 @@ def test_each_source_is_replaced_without_touching_the_other(
     repository.replace_sections(YEAR, [course_section("10002")])
 
     assert [section.code for section in repository.sections(YEAR)] == ["10002"]
-    assert repository.syllabus(YEAR, "10001") is None
-    assert repository.syllabus(YEAR, "10003") == syllabus("10003", year=YEAR)
+    assert repository.syllabi_of(YEAR, {"10001", "10003"}) == {
+        "10003": syllabus("10003", year=YEAR)
+    }
 
 
 def test_replacing_a_year_keeps_the_other_years(repository: SqlCourseRepository) -> None:
@@ -83,4 +85,4 @@ def test_replacing_a_year_keeps_the_other_years(repository: SqlCourseRepository)
     repository.replace_syllabi(YEAR, [syllabus("10001", year=YEAR)])
 
     assert [section.code for section in repository.sections(YEAR + 1)] == ["20001"]
-    assert repository.syllabus(YEAR + 1, "20001") == syllabus("20001", year=YEAR + 1)
+    assert repository.syllabi_of(YEAR + 1, {"20001"}) == {"20001": syllabus("20001", year=YEAR + 1)}

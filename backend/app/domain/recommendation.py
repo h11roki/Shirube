@@ -11,9 +11,6 @@ class Relevance(Enum):
     FOUNDATION = "foundation"
 
 
-RELEVANCE_ORDER = (Relevance.CORE, Relevance.FOUNDATION)
-
-
 class RecommendationError(ValueError):
     pass
 

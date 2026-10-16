@@ -1,44 +1,18 @@
 import json
 from typing import Any
 
-import httpx
 import pytest
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
 from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import OccupationProfile
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
+from tests.fakes import chat_answering
 
 
 def analyzer_answering(
     message: dict[str, Any], requests: list[dict[str, Any]] | None = None
 ) -> OpenAIOccupationAnalyzer:
-    def respond(request: httpx.Request) -> httpx.Response:
-        if requests is not None:
-            requests.append(json.loads(request.content))
-        return httpx.Response(
-            200,
-            json={
-                "id": "chatcmpl-test",
-                "object": "chat.completion",
-                "created": 0,
-                "model": "test-model",
-                "choices": [
-                    {
-                        "index": 0,
-                        "finish_reason": "stop",
-                        "message": {"role": "assistant", **message},
-                    }
-                ],
-                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
-            },
-        )
-
-    client = httpx.Client(transport=httpx.MockTransport(respond))
-    return OpenAIOccupationAnalyzer(
-        ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
-    )
+    return OpenAIOccupationAnalyzer(chat_answering(message, requests))
 
 
 def answer(**fields: Any) -> dict[str, Any]:

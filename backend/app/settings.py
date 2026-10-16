@@ -1,4 +1,4 @@
-from pydantic import SecretStr
+from pydantic import PositiveInt, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,4 +10,4 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
     chat_model: str = "gpt-5.4-mini"
-    selection_candidate_limit: int = 30
+    selection_candidate_limit: PositiveInt = 30

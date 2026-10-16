@@ -2,10 +2,7 @@ import json
 from dataclasses import replace
 from typing import Any
 
-import httpx
 import pytest
-from langchain_openai import ChatOpenAI
-from pydantic import SecretStr
 
 from app.application.ports import CourseSelectionError
 from app.domain.occupation import OccupationProfile
@@ -13,6 +10,7 @@ from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
 from app.domain.syllabus import Session
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from tests.builders import syllabus
+from tests.fakes import chat_answering
 
 PROFILE = OccupationProfile("職業", "解釈した職業", "前提の文", ("甲", "乙", "丙"))
 CANDIDATES = [
@@ -32,30 +30,7 @@ CANDIDATES = [
 def selector_answering(
     message: dict[str, Any], requests: list[dict[str, Any]] | None = None
 ) -> OpenAICourseSelector:
-    def respond(request: httpx.Request) -> httpx.Response:
-        if requests is not None:
-            requests.append(json.loads(request.content))
-        return httpx.Response(
-            200,
-            json={
-                "id": "chatcmpl-test",
-                "object": "chat.completion",
-                "created": 0,
-                "model": "test-model",
-                "choices": [
-                    {
-                        "index": 0,
-                        "finish_reason": "stop",
-                        "message": {"role": "assistant", **message},
-                    }
-                ],
-                "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
-            },
-        )
-
-    client = httpx.Client(transport=httpx.MockTransport(respond))
-    chat = ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
-    return OpenAICourseSelector(chat)
+    return OpenAICourseSelector(chat_answering(message, requests))
 
 
 def answer(*courses: dict[str, str]) -> dict[str, Any]:

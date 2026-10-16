@@ -3,11 +3,11 @@ from collections.abc import Set
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.recommendation import (
-    RELEVANCE_ORDER,
     CandidateCourse,
     Recommendation,
     RecommendationError,
     RecommendedCourse,
+    Relevance,
 )
 
 
@@ -30,27 +30,30 @@ class RecommendCourses:
         candidates = self._search.candidates(year, department, grades)
         profile = self._analyzer.analyze(occupation)
         [matches] = candidates.rank([profile.query], self._candidate_limit)
-        offered = []
-        for match in matches:
-            page = self._courses.syllabus(year, match.syllabus_code)
-            if page is None:
-                message = f"{match.name}: シラバス {match.syllabus_code} が DB にありません"
-                raise RecommendationError(message)
-            offered.append(CandidateCourse(match.name, page))
-        if not offered:
+        if not matches:
             return Recommendation(profile, (), 0)
+        pages = self._courses.syllabi_of(year, {match.syllabus_code for match in matches})
+        missing = sorted({match.syllabus_code for match in matches} - pages.keys())
+        if missing:
+            raise RecommendationError(f"シラバスが DB にありません: {'、'.join(missing)}")
+        offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
         choices = self._selector.select(profile, offered)
-        rank_of = {match.name: rank for rank, match in enumerate(matches)}
-        unknown = sorted({choice.name for choice in choices} - rank_of.keys())
+        ranked = {match.name: (rank, match) for rank, match in enumerate(matches)}
+        unknown = sorted({choice.name for choice in choices} - ranked.keys())
         if unknown:
             raise RecommendationError(f"候補に無い科目が選ばれています: {'、'.join(unknown)}")
-        code_of = {match.name: match.syllabus_code for match in matches}
+        relevance_order = list(Relevance)
         ordered = sorted(
             choices,
-            key=lambda choice: (RELEVANCE_ORDER.index(choice.relevance), rank_of[choice.name]),
+            key=lambda choice: (
+                relevance_order.index(choice.relevance),
+                ranked[choice.name][0],
+            ),
         )
         courses = tuple(
-            RecommendedCourse(choice.name, code_of[choice.name], choice.relevance, choice.reason)
+            RecommendedCourse(
+                choice.name, ranked[choice.name][1].syllabus_code, choice.relevance, choice.reason
+            )
             for choice in ordered
         )
         return Recommendation(profile, courses, len(offered))

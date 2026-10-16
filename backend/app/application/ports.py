@@ -1,3 +1,4 @@
+from collections.abc import Set
 from dataclasses import dataclass
 from typing import Protocol
 
@@ -28,7 +29,7 @@ class CourseRepository(Protocol):
 
     def syllabi(self, year: int) -> list[Syllabus]: ...
 
-    def syllabus(self, year: int, code: str) -> Syllabus | None: ...
+    def syllabi_of(self, year: int, codes: Set[str]) -> dict[str, Syllabus]: ...
 
     def syllabus_codes(self, year: int) -> dict[str, str]: ...
 
