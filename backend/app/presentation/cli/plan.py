@@ -33,7 +33,7 @@ from app.presentation.composition import (
     university_today,
 )
 
-CLI_SUBJECT = "cli"
+CLI_SUBJECT = "cli:local"
 WEEKDAY_LABELS = {
     Weekday.MON: "月",
     Weekday.TUE: "火",

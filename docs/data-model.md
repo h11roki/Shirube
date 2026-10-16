@@ -91,7 +91,7 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 | syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
 | syllabus_chunks | (year, syllabus_code, section) | SyllabusChunk の1件と content_hash。syllabi を指し、シラバスを入れ替えると消える(ADR 0015) |
-| users | id | 利用者の1件。内部の id(UUID)と Google の sub(一意)と作った時刻だけを持ち、メールや名前は持たない。初めて確かめた JWT の sub で作る(ADR 0027) |
+| users | id | 利用者の1件。内部の id(UUID)と提供元つきの sub(一意、Google は `google:<sub>`、CLI は `cli:local`)と作った時刻だけを持ち、メールや名前は持たない。初めて確かめた JWT の sub で作る(ADR 0027) |
 | plans | id | Plan の1件。body は版番号つきの JSONB で、置いたクラスは時間割の行を写して持ち、推薦の科目と秋学期に続く通年の授業は科目名で指す。読むときは値の型まで確かめる。版 1 の形は `tests/fixtures/plan_v1.json` と比べるテストで守る。created_at は作った時刻(ADR 0024)。user_id は持ち主で users を指す(必須、索引つき、ADR 0027) |
 | embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。今のモデル以外の行と、どのチャンクからも引かれなくなった行は `embed --prune` で消す |
 

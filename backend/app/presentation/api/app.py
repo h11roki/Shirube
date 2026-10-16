@@ -19,10 +19,11 @@ from app.application.search_courses import NoCandidatesError
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
-from app.presentation.api.plans import BEARER_CHALLENGE, LOGIN_REQUIRED, plans_router
+from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
+LOGIN_REQUIRED = "ログインしてください"
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
 UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
@@ -48,7 +49,7 @@ async def _invalid_token(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse(
         {"detail": LOGIN_REQUIRED},
         status_code=status.HTTP_401_UNAUTHORIZED,
-        headers=BEARER_CHALLENGE,
+        headers={"WWW-Authenticate": "Bearer"},
     )
 
 

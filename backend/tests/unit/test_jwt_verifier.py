@@ -9,39 +9,52 @@ from app.application.ports import InvalidTokenError
 from app.infrastructure.auth.jwt_verifier import AUDIENCE, ISSUER, JwtVerifier
 
 SECRET = "s" * 32
-NOW = datetime.now(UTC)
+MINUTE = timedelta(minutes=1)
 
 
 def token(secret: str = SECRET, algorithm: str = "HS256", **overrides: Any) -> str:
+    now = datetime.now(UTC)
     claims = {
         "sub": "google-a",
         "iss": ISSUER,
         "aud": AUDIENCE,
-        "iat": NOW,
-        "exp": NOW + timedelta(minutes=5),
-        **overrides,
+        "iat": now,
+        "exp": now + 5 * MINUTE,
+        **{key: value(now) if callable(value) else value for key, value in overrides.items()},
     }
-    return jwt.encode(
-        {key: value for key, value in claims.items() if value is not None}, secret, algorithm
-    )
+    present = {key: value for key, value in claims.items() if value is not None}
+    return jwt.encode(present, secret, algorithm)
 
 
-def test_a_valid_token_gives_its_subject() -> None:
-    assert JwtVerifier(SecretStr(SECRET)).subject_of(token()) == "google-a"
+def verify(encoded: str) -> str:
+    return JwtVerifier(SecretStr(SECRET)).subject_of(encoded)
+
+
+def test_a_valid_token_gives_its_subject_in_the_google_namespace() -> None:
+    assert verify(token()) == "google:google-a"
+
+
+def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
+    ahead = token(iat=lambda now: now + timedelta(seconds=10), exp=lambda now: now + 5 * MINUTE)
+
+    assert verify(ahead) == "google:google-a"
 
 
 @pytest.mark.parametrize(
-    "bad",
+    "overrides",
     [
-        token(secret="t" * 32),
-        token(secret="s" * 64, algorithm="HS512"),
-        token(iss="someone-else"),
-        token(aud="someone-else"),
-        token(iat=NOW - timedelta(minutes=10), exp=NOW - timedelta(minutes=5)),
-        token(sub=None),
-        token(iat=None),
-        token(exp=NOW + timedelta(minutes=6)),
-        "not-a-jwt",
+        {"secret": "t" * 32},
+        {"secret": "s" * 64, "algorithm": "HS512"},
+        {"iss": "someone-else"},
+        {"aud": "someone-else"},
+        {"iat": lambda now: now - 10 * MINUTE, "exp": lambda now: now - 5 * MINUTE},
+        {"iat": lambda now: now + 2 * MINUTE, "exp": lambda now: now + 6 * MINUTE},
+        {"sub": None},
+        {"sub": " "},
+        {"iat": None},
+        {"exp": lambda now: now + 6 * MINUTE},
+        {"iat": lambda now: str(int(now.timestamp()))},
+        {"iat": True},
     ],
     ids=[
         "other-secret",
@@ -49,29 +62,29 @@ def test_a_valid_token_gives_its_subject() -> None:
         "other-issuer",
         "other-audience",
         "expired",
+        "issued-in-the-future",
         "no-subject",
+        "blank-subject",
         "no-issued-at",
         "lives-too-long",
-        "garbage",
+        "issued-at-as-text",
+        "issued-at-as-bool",
     ],
 )
-def test_tokens_that_cannot_be_trusted_are_rejected(bad: str) -> None:
+def test_tokens_that_cannot_be_trusted_are_rejected(overrides: dict[str, Any]) -> None:
     with pytest.raises(InvalidTokenError):
-        JwtVerifier(SecretStr(SECRET)).subject_of(bad)
+        verify(token(**overrides))
+
+
+@pytest.mark.parametrize("bad", ["not-a-jwt", ""])
+def test_strings_that_are_not_tokens_are_rejected(bad: str) -> None:
+    with pytest.raises(InvalidTokenError):
+        verify(bad)
 
 
 def test_an_unsigned_token_is_rejected() -> None:
-    unsigned = jwt.encode(
-        {
-            "sub": "google-a",
-            "iss": ISSUER,
-            "aud": AUDIENCE,
-            "iat": NOW,
-            "exp": NOW + timedelta(minutes=5),
-        },
-        key="",
-        algorithm="none",
-    )
+    now = datetime.now(UTC)
+    claims = {"sub": "google-a", "iss": ISSUER, "aud": AUDIENCE, "iat": now, "exp": now + MINUTE}
 
     with pytest.raises(InvalidTokenError):
-        JwtVerifier(SecretStr(SECRET)).subject_of(unsigned)
+        verify(jwt.encode(claims, key="", algorithm="none"))

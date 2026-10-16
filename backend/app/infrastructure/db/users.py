@@ -12,10 +12,16 @@ class SqlUserRepository:
         self._engine = engine
 
     def id_of(self, subject: str) -> UUID:
-        with DbSession(self._engine) as db, db.begin():
+        by_subject = select(UserRow.id).where(UserRow.subject == subject)
+        with DbSession(self._engine) as db:
+            existing = db.execute(by_subject).scalar_one_or_none()
+            if existing is not None:
+                return existing
             db.execute(
                 insert(UserRow)
                 .values(id=uuid4(), subject=subject)
                 .on_conflict_do_nothing(index_elements=[UserRow.subject])
             )
-            return db.execute(select(UserRow.id).where(UserRow.subject == subject)).scalar_one()
+            user_id = db.execute(by_subject).scalar_one()
+            db.commit()
+            return user_id

@@ -9,11 +9,9 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.application.create_plan import CreatePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
+from app.application.ports import InvalidTokenError
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
-
-LOGIN_REQUIRED = "ログインしてください"
-BEARER_CHALLENGE = {"WWW-Authenticate": "Bearer"}
 
 
 def plans_router(
@@ -30,9 +28,7 @@ def plans_router(
         credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     ) -> UUID:
         if credentials is None:
-            raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED, LOGIN_REQUIRED, headers=BEARER_CHALLENGE
-            )
+            raise InvalidTokenError("Authorization に Bearer の JWT がありません")
         return identify.run(credentials.credentials)
 
     @router.post("/plans", status_code=status.HTTP_201_CREATED)

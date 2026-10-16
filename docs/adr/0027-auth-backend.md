@@ -39,15 +39,16 @@ JWT の署名
 JWT
 
 - Route Handler は、利用者ごとのリクエストのたびに HS256 の JWT を作り、`Authorization: Bearer` で渡す。鍵は環境変数 `AUTH_JWT_SECRET`(32 文字以上)で、フロントとバックエンドが同じ値を持つ
-- 欄は `sub`(Google の sub)、`iss`(`shirube-frontend`)、`aud`(`shirube-backend`)、`iat`、`exp`。バックエンドはアルゴリズムを HS256 に限り、署名、`iss`、`aud`、`exp` を確かめ、`exp - iat` が 5 分を超えるものも受け付けない
+- 欄は `sub`(Google の sub)、`iss`(`shirube-frontend`)、`aud`(`shirube-backend`)、`iat`、`exp`。バックエンドはアルゴリズムを HS256 に限り、署名、`iss`、`aud`、`exp`、`iat` が先の時刻でないことを確かめ(時計のずれに 30 秒の余裕を持つ)、`iat` と `exp` が整数の秒でないもの、`exp - iat` が 5 分を超えるもの、`sub` が空のものも受け付けない
 - 確かめる部品はポート(`TokenVerifier`)の後ろに置き、PyJWT で実装する(ADR 0011 の再検討の条件の Cognito に替えるとき差し替える)
 
 利用者
 
 - users 表は内部の id(UUID)、Google の sub(一意)、作った時刻だけを持つ。メールと名前は保存せず、画面は Auth.js のセッションから出す
-- 確かめた JWT の sub で users 表を引き、無ければ作る(初めてのログインで作られる)
+- users 表の sub は提供元を前に付けて持つ(Google は `google:<sub>`)。ほかの提供元や CLI と名前が重ならない
+- 確かめた JWT の sub で users 表を引き、無ければ作る(初めてのログインで作られる)。ふだんは読むだけで、初めてのときだけ書く
 - plans は持ち主の内部の id を必須の列で持つ。Plan(domain)も持ち主の id を持つ
-- CLI は Google のログインを持たないので、`plan create` は sub が `cli` の利用者として作る。`plan show` は持ち主を確かめない(サーバーの中で動かす管理用)
+- CLI は Google のログインを持たないので、`plan create` は sub が `cli:local` の利用者として作る(JWT の利用者は必ず `google:` で始まるので、JWT からはこの利用者になれない)。`plan show` は持ち主を確かめない(サーバーの中で動かす管理用)
 
 API
 
