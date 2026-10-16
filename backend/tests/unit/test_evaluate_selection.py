@@ -5,37 +5,39 @@ import pytest
 from app.application.evaluate_search import EvaluationCase, EvaluationDataset, EvaluationError
 from app.application.evaluate_selection import (
     EvaluateSelection,
-    Judgement,
+    ExpectedCourse,
+    Judgment,
+    Pick,
     SelectionReport,
     SelectionResult,
-    judgement_of,
+    judgment_of,
 )
 from app.domain.occupation import OccupationProfile, OccupationProfileError
 from app.domain.recommendation import CourseChoice, Relevance
-from app.presentation.cli.evaluate_selection import load_judgements, render
+from app.presentation.cli.evaluate_selection import load_judgments, render
 from tests.fakes import FakeCourseSelector, courses_ranked_by
 
 DATASET = EvaluationDataset(
     2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A", "科目D")),)
 )
 SIMILARITIES = {"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6}
-JUDGEMENTS = {
-    ("職業", "科目A"): Judgement.EXPECTED,
-    ("職業", "科目B"): Judgement.FOUNDATION,
-    ("職業", "科目D"): Judgement.EXPECTED,
+JUDGMENTS = {
+    ("職業", "科目A"): Judgment.EXPECTED,
+    ("職業", "科目B"): Judgment.FOUNDATION,
+    ("職業", "科目D"): Judgment.EXPECTED,
 }
 
 
 @pytest.mark.parametrize(
-    ("labels", "decision", "judgement"),
+    ("labels", "decision", "judgment"),
     [
-        (["core", "core", "foundation"], None, Judgement.EXPECTED),
-        (["core", "foundation", "foundation"], "core", Judgement.EXPECTED),
-        (["core", "foundation", "foundation"], "foundation", Judgement.FOUNDATION),
-        (["core"], "foundation", Judgement.FOUNDATION),
-        (["foundation", "foundation"], None, Judgement.FOUNDATION),
-        (["foundation"], None, Judgement.MINORITY),
-        ([], None, Judgement.UNRELATED),
+        (["core", "core", "foundation"], None, Judgment.EXPECTED),
+        (["core", "foundation", "foundation"], "core", Judgment.EXPECTED),
+        (["core", "foundation", "foundation"], "foundation", Judgment.FOUNDATION),
+        (["core"], "foundation", Judgment.FOUNDATION),
+        (["foundation", "foundation"], None, Judgment.FOUNDATION),
+        (["foundation"], None, Judgment.MINORITY),
+        ([], None, Judgment.UNRELATED),
     ],
     ids=[
         "two-core",
@@ -47,13 +49,13 @@ JUDGEMENTS = {
         "none",
     ],
 )
-def test_judgement_follows_the_majority_and_the_decision(
-    labels: list[str], decision: str | None, judgement: Judgement
+def test_judgment_follows_the_majority_and_the_decision(
+    labels: list[str], decision: str | None, judgment: Judgment
 ) -> None:
-    assert judgement_of(labels, decision) is judgement
+    assert judgment_of(labels, decision) is judgment
 
 
-def test_selection_is_compared_with_the_judgements_using_the_handwritten_skills() -> None:
+def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills() -> None:
     repository, search = courses_ranked_by(SIMILARITIES)
     selector = FakeCourseSelector(
         [
@@ -63,7 +65,7 @@ def test_selection_is_compared_with_the_judgements_using_the_handwritten_skills(
         ]
     )
 
-    report = EvaluateSelection(search, repository, selector, 3).run(DATASET, JUDGEMENTS)
+    report = EvaluateSelection(search, repository, selector, 3).run(DATASET, JUDGMENTS)
 
     [(profile, candidates)] = selector.calls
     assert profile == OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
@@ -73,25 +75,27 @@ def test_selection_is_compared_with_the_judgements_using_the_handwritten_skills(
             SelectionResult(
                 "職業",
                 (
-                    ("科目A", Relevance.CORE, Judgement.EXPECTED),
-                    ("科目B", Relevance.FOUNDATION, Judgement.FOUNDATION),
-                    ("科目C", Relevance.FOUNDATION, Judgement.UNRELATED),
+                    Pick("科目A", Relevance.CORE, Judgment.EXPECTED),
+                    Pick("科目B", Relevance.FOUNDATION, Judgment.FOUNDATION),
+                    Pick("科目C", Relevance.FOUNDATION, Judgment.UNRELATED),
                 ),
-                (("科目A", Relevance.CORE), ("科目D", None)),
-                ("科目D",),
+                (
+                    ExpectedCourse("科目A", Relevance.CORE, searched=True),
+                    ExpectedCourse("科目D", None, searched=False),
+                ),
             ),
         )
     )
 
 
-def test_expected_courses_that_disagree_with_the_judgements_stop_the_evaluation() -> None:
+def test_expected_courses_that_disagree_with_the_judgments_stop_the_evaluation() -> None:
     repository, search = courses_ranked_by(SIMILARITIES)
-    judgements = {("職業", "科目A"): Judgement.EXPECTED}
+    judgments = {("職業", "科目A"): Judgment.EXPECTED}
 
     selector = FakeCourseSelector([])
 
     with pytest.raises(EvaluationError, match="期待する科目が判定と合いません: 職業"):
-        EvaluateSelection(search, repository, selector, 3).run(DATASET, judgements)
+        EvaluateSelection(search, repository, selector, 3).run(DATASET, judgments)
     assert selector.calls == []
 
 
@@ -103,7 +107,7 @@ def test_expected_course_names_outside_the_candidates_stop_before_calling_the_ll
     )
 
     with pytest.raises(EvaluationError, match="候補に無い科目名があります: 打ち間違い"):
-        EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGEMENTS)
+        EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGMENTS)
     assert selector.calls == []
 
 
@@ -113,7 +117,7 @@ def test_handwritten_skills_that_a_profile_cannot_hold_stop_before_calling_the_l
     dataset = EvaluationDataset(2026, "情", (EvaluationCase("職業", ("甲",), ("科目A",)),))
 
     with pytest.raises(OccupationProfileError, match="スキルは 3〜6 個"):
-        EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGEMENTS)
+        EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGMENTS)
     assert selector.calls == []
 
 
@@ -123,7 +127,7 @@ def write_judgments(tmp_path: Path, body: str) -> Path:
     return path
 
 
-def test_judgements_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> None:
+def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> None:
     path = write_judgments(
         tmp_path,
         '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
@@ -133,9 +137,9 @@ def test_judgements_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> N
         "]}]}",
     )
 
-    assert load_judgements(path, DATASET) == {
-        ("職業", "科目A"): Judgement.EXPECTED,
-        ("職業", "科目B"): Judgement.FOUNDATION,
+    assert load_judgments(path, DATASET) == {
+        ("職業", "科目A"): Judgment.EXPECTED,
+        ("職業", "科目B"): Judgment.FOUNDATION,
     }
 
 
@@ -151,28 +155,41 @@ def test_judgements_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> N
             '{"name": "科目A", "votes": {}}, {"name": "科目A", "votes": {}}]}]}',
             "同じ科目の判定が 2 回あります",
         ),
+        (
+            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
+            '{"name": "科目A", "votes": {"a": {"label": "unrelated"}}}]}]}',
+            "票か決定の値が違います",
+        ),
+        (
+            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
+            '{"name": "科目A", "votes": {}, "decision": "Core"}]}]}',
+            "票か決定の値が違います",
+        ),
     ],
-    ids=["other-year", "same-course-twice"],
+    ids=["other-year", "same-course-twice", "unknown-label", "unknown-decision"],
 )
-def test_judgements_for_another_year_or_with_a_repeated_course_are_rejected(
+def test_judgments_for_another_year_or_with_wrong_entries_are_rejected(
     tmp_path: Path, body: str, message: str
 ) -> None:
     with pytest.raises(ValueError, match=message):
-        load_judgements(write_judgments(tmp_path, body), DATASET)
+        load_judgments(write_judgments(tmp_path, body), DATASET)
 
 
-def test_render_counts_picks_by_judgement_and_names_the_misses() -> None:
+def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
     report = SelectionReport(
         (
             SelectionResult(
                 "職業",
                 (
-                    ("科目A", Relevance.CORE, Judgement.EXPECTED),
-                    ("科目B", Relevance.FOUNDATION, Judgement.FOUNDATION),
-                    ("科目C", Relevance.FOUNDATION, Judgement.UNRELATED),
+                    Pick("科目A", Relevance.CORE, Judgment.EXPECTED),
+                    Pick("科目B", Relevance.FOUNDATION, Judgment.FOUNDATION),
+                    Pick("科目C", Relevance.FOUNDATION, Judgment.UNRELATED),
                 ),
-                (("科目A", Relevance.CORE), ("科目E", None), ("科目D", None)),
-                ("科目D",),
+                (
+                    ExpectedCourse("科目A", Relevance.CORE, searched=True),
+                    ExpectedCourse("科目E", None, searched=True),
+                    ExpectedCourse("科目D", None, searched=False),
+                ),
             ),
         )
     )

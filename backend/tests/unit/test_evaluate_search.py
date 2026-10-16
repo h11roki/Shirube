@@ -13,7 +13,7 @@ from app.application.evaluate_search import (
     EvaluationReport,
     with_analyzed_skills,
 )
-from app.application.evaluate_selection import Judgement, judgement_of
+from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
 from app.presentation.cli.evaluate import (
@@ -178,7 +178,7 @@ def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregat
             else:
                 assert "decision" not in course, where
             labels = [vote["label"] for vote in votes.values()]
-            if judgement_of(labels, course.get("decision")) is Judgement.EXPECTED:
+            if judgment_of(labels, course.get("decision")) is Judgment.EXPECTED:
                 ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
         majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
 

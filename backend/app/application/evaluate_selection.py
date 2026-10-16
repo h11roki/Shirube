@@ -11,23 +11,23 @@ from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Relevance
 
 
-class Judgement(Enum):
+class Judgment(Enum):
     EXPECTED = "期待"
     FOUNDATION = "土台"
     MINORITY = "少数"
     UNRELATED = "関係なし"
 
 
-def judgement_of(labels: Sequence[str], decision: str | None) -> Judgement:
+def judgment_of(labels: Sequence[str], decision: str | None) -> Judgment:
     if decision is not None:
-        return Judgement.EXPECTED if decision == "core" else Judgement.FOUNDATION
-    if labels.count("core") >= 2:
-        return Judgement.EXPECTED
+        return Judgment.EXPECTED if decision == Relevance.CORE.value else Judgment.FOUNDATION
+    if labels.count(Relevance.CORE.value) >= 2:
+        return Judgment.EXPECTED
     if len(labels) >= 2:
-        return Judgement.FOUNDATION
+        return Judgment.FOUNDATION
     if labels:
-        return Judgement.MINORITY
-    return Judgement.UNRELATED
+        return Judgment.MINORITY
+    return Judgment.UNRELATED
 
 
 class HandwrittenProfiles:
@@ -42,19 +42,42 @@ class HandwrittenProfiles:
 
 
 @dataclass(frozen=True)
+class Pick:
+    name: str
+    relevance: Relevance
+    judgment: Judgment
+
+
+@dataclass(frozen=True)
+class ExpectedCourse:
+    name: str
+    picked: Relevance | None
+    searched: bool
+
+
+@dataclass(frozen=True)
 class SelectionResult:
     occupation: str
-    picks: tuple[tuple[str, Relevance, Judgement], ...]
-    expected: tuple[tuple[str, Relevance | None], ...]
-    unsearched: tuple[str, ...]
+    picks: tuple[Pick, ...]
+    expected: tuple[ExpectedCourse, ...]
 
-    def count(self, relevance: Relevance, judgement: Judgement) -> int:
+    def count(self, relevance: Relevance, judgment: Judgment) -> int:
         return sum(
-            1 for _, picked, judged in self.picks if picked is relevance and judged is judgement
+            1 for pick in self.picks if pick.relevance is relevance and pick.judgment is judgment
         )
 
-    def expected_as(self, relevance: Relevance | None) -> int:
-        return sum(1 for _, picked in self.expected if picked is relevance)
+    def expected_as(self, relevance: Relevance) -> int:
+        return sum(1 for course in self.expected if course.picked is relevance)
+
+    @property
+    def skipped(self) -> tuple[str, ...]:
+        return tuple(
+            course.name for course in self.expected if course.searched and course.picked is None
+        )
+
+    @property
+    def unsearched(self) -> tuple[str, ...]:
+        return tuple(course.name for course in self.expected if not course.searched)
 
 
 @dataclass(frozen=True)
@@ -76,22 +99,19 @@ class EvaluateSelection:
         self._candidate_limit = candidate_limit
 
     def run(
-        self, dataset: EvaluationDataset, judgements: Mapping[tuple[str, str], Judgement]
+        self, dataset: EvaluationDataset, judgments: Mapping[tuple[str, str], Judgment]
     ) -> SelectionReport:
         profiles = HandwrittenProfiles(dataset)
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
-        expected = {name for case in dataset.cases for name in case.expected}
-        unknown = sorted(expected - candidates.names)
-        if unknown:
-            raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
+        dataset.require_courses_in(candidates.names)
         disagreeing = [
             case.occupation
             for case in dataset.cases
             if set(case.expected)
             != {
                 course
-                for (occupation, course), judged in judgements.items()
-                if occupation == case.occupation and judged is Judgement.EXPECTED
+                for (occupation, course), judged in judgments.items()
+                if occupation == case.occupation and judged is Judgment.EXPECTED
             }
         ]
         if disagreeing:
@@ -105,19 +125,17 @@ class EvaluateSelection:
                 case.occupation, dataset.year, dataset.department, ALL_GRADES
             )
             picked = {course.name: course.relevance for course in recommendation.courses}
-            results.append(
-                SelectionResult(
-                    case.occupation,
-                    tuple(
-                        (
-                            course.name,
-                            course.relevance,
-                            judgements.get((case.occupation, course.name), Judgement.UNRELATED),
-                        )
-                        for course in recommendation.courses
-                    ),
-                    tuple((name, picked.get(name)) for name in case.expected),
-                    tuple(name for name in case.expected if name not in recommendation.candidates),
+            picks = tuple(
+                Pick(
+                    course.name,
+                    course.relevance,
+                    judgments.get((case.occupation, course.name), Judgment.UNRELATED),
                 )
+                for course in recommendation.courses
             )
+            expected = tuple(
+                ExpectedCourse(name, picked.get(name), name in recommendation.candidates)
+                for name in case.expected
+            )
+            results.append(SelectionResult(case.occupation, picks, expected))
         return SelectionReport(tuple(results))
