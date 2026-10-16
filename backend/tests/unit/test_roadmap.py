@@ -136,12 +136,11 @@ def test_classes_split_by_the_department_follow_the_users_choice() -> None:
 @pytest.mark.parametrize(
     ("chosen", "message"),
     [
-        ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: 情 のクラス TZ はありません"),
-        ({"情報科学Ⅱ": "TC"}, "情報科学Ⅱ: 情 のクラス TC はありません"),
+        ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: 選べるクラスは TA、TB です"),
+        ({"情報科学Ⅱ": "TC"}, "情報科学Ⅱ: 選べるクラスは TA、TB です"),
         ({"科目A": "6T"}, "科目A: 学科で分かれたクラスではない"),
-        ({"推薦に無い科目": "TA"}, "推薦に無い科目のクラスが選ばれています"),
     ],
-    ids=["unknown-class", "other-departments-class", "not-split", "not-recommended"],
+    ids=["unknown-class", "other-departments-class", "not-split"],
 )
 def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
     chosen: dict[str, str], message: str
@@ -181,6 +180,9 @@ def test_a_year_long_course_keeps_its_slot_in_the_autumn_of_the_same_grade() -> 
         [],
         ["秋の科目"],
     ]
+    first_autumn = roadmap.semesters[1]
+    assert [placed.course.name for placed in first_autumn.continuing] == ["通年の科目"]
+    assert first_autumn.credits == 0
 
 
 def test_one_class_listed_in_two_rows_is_not_a_split_class() -> None:
@@ -205,3 +207,42 @@ def test_a_roadmap_with_semesters_out_of_order_is_rejected() -> None:
         Roadmap((SemesterPlan(autumn, ()), SemesterPlan(spring, ())), ())
     with pytest.raises(RoadmapError, match="古い順に並べてください"):
         Roadmap((SemesterPlan(spring, ()), SemesterPlan(spring, ())), ())
+    with pytest.raises(RoadmapError, match="回生は 1〜4"):
+        Roadmap((SemesterPlan(Semester(5, Term.SPRING), ()),), ())
+
+
+def test_a_choice_for_a_course_that_was_not_recommended_this_time_is_ignored() -> None:
+    sections = [section("10000", "科目A")]
+
+    roadmap = place(recommend("科目A"), sections, "情", 2026, SPRING_1, 16, {"前回の科目": "TA"})
+
+    assert placed_names(roadmap.semesters[0]) == [("科目A", "6T")]
+
+
+def test_only_classes_open_to_the_users_remaining_grades_count_as_split() -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報科学Ⅱ", class_code="TA", departments=own, grades=frozenset({1})),
+        section("10001", "情報科学Ⅱ", class_code="TB", departments=own, grades=frozenset({2})),
+    ]
+    semesters = remaining_semesters(2, Term.SPRING)
+
+    roadmap = place(recommend("情報科学Ⅱ"), sections, "情", 2026, semesters, 16, {})
+
+    [placed] = roadmap.semesters[0].courses
+    assert (placed.section.class_code, placed.class_confirmed) == ("TB", True)
+
+
+def test_an_unchosen_split_course_is_placed_only_in_a_class_of_the_users_department() -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "科目A"),
+        section("10001", "情報科学Ⅱ", class_code="TA", departments=own),
+        section("10002", "情報科学Ⅱ", class_code="TB", departments=own),
+        section("10003", "情報科学Ⅱ", class_code="R1", slots=TUE_1),
+    ]
+
+    roadmap = place(recommend("科目A", "情報科学Ⅱ"), sections, "情", 2026, SPRING_1, 16, {})
+
+    assert placed_names(roadmap.semesters[0]) == [("科目A", "6T")]
+    assert [course.name for course in roadmap.unplaced] == ["情報科学Ⅱ"]
