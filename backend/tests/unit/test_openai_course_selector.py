@@ -81,9 +81,21 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
         {"content": None, "refusal": None},
         answer({"name": "科目A", "relevance": "maybe", "reason": "理由"}),
         answer({"name": "科目A", "relevance": "core", "reason": " "}),
+        answer(
+            {"name": "科目A", "relevance": "core", "reason": "理由"},
+            {"name": "科目A", "relevance": "foundation", "reason": "理由"},
+        ),
         {"content": json.dumps({"choices": []}), "refusal": None},
     ],
-    ids=["refusal", "broken-json", "no-content", "unknown-relevance", "blank-reason", "wrong-key"],
+    ids=[
+        "refusal",
+        "broken-json",
+        "no-content",
+        "unknown-relevance",
+        "blank-reason",
+        "same-course-twice",
+        "wrong-key",
+    ],
 )
 def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any]) -> None:
     with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):

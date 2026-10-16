@@ -37,18 +37,14 @@ class RecommendCourses:
         if missing:
             raise RecommendationError(f"シラバスが DB にありません: {'、'.join(missing)}")
         offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
-        choices = self._selector.select(profile, offered)
         ranked = {match.name: (rank, match) for rank, match in enumerate(matches)}
+        choices = self._selector.select(profile, offered)
         unknown = sorted({choice.name for choice in choices} - ranked.keys())
         if unknown:
             raise RecommendationError(f"候補に無い科目が選ばれています: {'、'.join(unknown)}")
-        relevance_order = list(Relevance)
+        group = {relevance: index for index, relevance in enumerate(Relevance)}
         ordered = sorted(
-            choices,
-            key=lambda choice: (
-                relevance_order.index(choice.relevance),
-                ranked[choice.name][0],
-            ),
+            choices, key=lambda choice: (group[choice.relevance], ranked[choice.name][0])
         )
         courses = tuple(
             RecommendedCourse(

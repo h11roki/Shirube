@@ -95,8 +95,8 @@ class FakeCourseRepository:
     def syllabi(self, year: int) -> list[Syllabus]:
         return self.stored_syllabi
 
-    def syllabi_of(self, year: int, codes: Set[str]) -> dict[str, Syllabus]:
-        return {page.code: page for page in self.stored_syllabi if page.code in codes}
+    def syllabi_of(self, year: int, primary_codes: Set[str]) -> dict[str, Syllabus]:
+        return {page.code: page for page in self.stored_syllabi if page.code in primary_codes}
 
     def syllabus_codes(self, year: int) -> dict[str, str]:
         return {

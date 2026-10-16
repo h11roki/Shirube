@@ -1,4 +1,6 @@
-from pydantic import PositiveInt, SecretStr
+from typing import Annotated
+
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,4 +12,4 @@ class Settings(BaseSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
     chat_model: str = "gpt-5.4-mini"
-    selection_candidate_limit: PositiveInt = 30
+    selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 30

@@ -31,10 +31,7 @@ def test_sections_and_syllabi_round_trip(repository: SqlCourseRepository) -> Non
     repository.replace_syllabi(YEAR, [shared])
 
     assert repository.sections(YEAR) == sections
-    assert repository.syllabi_of(YEAR, {"10001", "10002", "99999"}) == {
-        "10001": shared,
-        "10002": shared,
-    }
+    assert repository.syllabi_of(YEAR, {"10001", "10002", "99999"}) == {"10001": shared}
 
 
 def test_all_syllabi_of_a_year_come_back_with_their_aliases(
