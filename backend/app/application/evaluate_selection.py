@@ -70,6 +70,7 @@ class SelectionResult:
     occupation: str
     picks: tuple[Pick, ...]
     expected: tuple[ExpectedCourse, ...]
+    unlinked: tuple[str, ...]
 
     def count(self, relevance: Relevance, judgment: Judgment) -> int:
         return sum(
@@ -143,5 +144,7 @@ class EvaluateSelection:
                 ExpectedCourse(name, picked.get(name), name in recommendation.candidates)
                 for name in case.expected
             )
-            results.append(SelectionResult(case.occupation, picks, expected))
+            results.append(
+                SelectionResult(case.occupation, picks, expected, recommendation.unlinked)
+            )
         return SelectionReport(tuple(results))

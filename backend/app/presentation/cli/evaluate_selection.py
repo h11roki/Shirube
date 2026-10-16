@@ -74,6 +74,8 @@ def render(report: SelectionReport) -> str:
         unrelated = [pick.name for pick in result.picks if pick.judgment is Judgment.UNRELATED]
         if unrelated:
             lines.append(f"  関係なしを選んだ: {'、'.join(unrelated)}")
+        if result.unlinked:
+            lines.append(f"  中心につながらず外した土台: {'、'.join(result.unlinked)}")
         if result.skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(result.skipped)}")
         if result.unsearched:
@@ -89,7 +91,8 @@ def render(report: SelectionReport) -> str:
     lines.append(
         f"  中心の適合率 {_ratio(core_hits, len(cores))}、"
         f"期待する科目を中心に選んだ割合 {_ratio(as_core, expected)}、"
-        f"選んだ科目のうち関係なし {_ratio(unrelated_picks, len(picks))}"
+        f"選んだ科目のうち関係なし {_ratio(unrelated_picks, len(picks))}、"
+        f"中心につながらず外した土台 {sum(len(result.unlinked) for result in report.results)}"
     )
     return "\n".join(lines)
 

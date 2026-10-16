@@ -17,20 +17,24 @@ REASON_LIMIT = 80
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
 職業と必要なスキル、候補の授業のシラバスの抜粋を読み、\
-候補の授業それぞれを次の 3 つに分けてください。\
+候補の授業から core(中心)と foundation(土台)の授業を選んでください。\
 科目名だけで決めず、抜粋の中身で判断します。
 
 - core(中心): 授業の中心テーマが、その職業の仕事で直接使う知識・技能そのもの
-- foundation(土台): 中心に選んだ授業の内容を学ぶ前提として必要な基礎\
-(その中心の授業で使う数学、物理、回路、プログラミングの基礎など)
-- 関係なし: それ以外
+- foundation(土台): core に選んだ授業の内容を学ぶ前提として必要な基礎\
+(その core の授業で使う数学、物理、回路、プログラミングの基礎など)
 
-中心か土台か迷ったら土台にします。数の目安や上限はありません。関係なしの授業は答えに含めません。
+先に core を全て選び、そのあと foundation を選びます。\
+foundation には、その授業を前提にする core の授業を 1 つ prerequisite_for に書きます。\
+core に選んだどの授業の前提にもならない授業は foundation にしません。\
+core か foundation か迷った授業は、\
+前提にする core の授業があれば foundation、無ければ core にします。\
+どちらでもない授業は答えに含めません。数の目安や上限はありません。
 
-中心と土台の授業には、その職業を目指す学生がなぜ取るべきかを、抜粋の中身に基づいて自分の言葉で \
+理由には、その職業を目指す学生がなぜ取るべきかを、抜粋の中身に基づいて自分の言葉で \
 {REASON_LIMIT} 字以内で書きます。\
-土台の理由には、中心に選んだどの授業のどの内容の前提になるかを書きます。\
-前提になる中心の授業を挙げられない授業は関係なしにします。\
+foundation の理由には、prerequisite_for の授業のどの内容の前提になるかを、\
+両方の授業の抜粋に基づいて書きます。\
 抜粋の文をそのまま写さず、抜粋に書いていないことは書きません。"""
 
 
@@ -57,33 +61,63 @@ def _request(profile: OccupationProfile, candidates: list[CandidateCourse]) -> s
 
 
 def _schema(names: list[str]) -> dict[str, Any]:
-    choice = {
+    core = {
         "type": "object",
         "properties": {
-            "name": {"type": "string", "enum": names, "description": "候補の授業の科目名"},
-            "relevance": {"type": "string", "enum": [relevance.value for relevance in Relevance]},
+            "name": {"type": "string", "enum": names, "description": "core に選んだ授業の科目名"},
             "reason": {"type": "string", "description": f"取るべき理由。{REASON_LIMIT} 字以内"},
         },
-        "required": ["name", "relevance", "reason"],
+        "required": ["name", "reason"],
+        "additionalProperties": False,
+    }
+    foundation = {
+        "type": "object",
+        "properties": {
+            "name": {
+                "type": "string",
+                "enum": names,
+                "description": "foundation に選んだ授業の科目名",
+            },
+            "prerequisite_for": {
+                "type": "string",
+                "enum": names,
+                "description": "この授業を前提にする、core に選んだ授業の科目名",
+            },
+            "reason": {
+                "type": "string",
+                "description": "取るべき理由。prerequisite_for の授業のどの内容の"
+                f"前提になるかを書く。{REASON_LIMIT} 字以内",
+            },
+        },
+        "required": ["name", "prerequisite_for", "reason"],
         "additionalProperties": False,
     }
     return {
         "title": "CourseSelection",
         "type": "object",
-        "properties": {"courses": {"type": "array", "items": choice}},
-        "required": ["courses"],
+        "properties": {
+            "core": {"type": "array", "items": core},
+            "foundation": {"type": "array", "items": foundation},
+        },
+        "required": ["core", "foundation"],
         "additionalProperties": False,
     }
 
 
-class _Choice(BaseModel):
+class _Core(BaseModel):
     name: str
-    relevance: Relevance
+    reason: str
+
+
+class _Foundation(BaseModel):
+    name: str
+    prerequisite_for: str
     reason: str
 
 
 class _Selection(BaseModel):
-    courses: list[_Choice]
+    core: list[_Core]
+    foundation: list[_Foundation]
 
 
 class OpenAICourseSelector:
@@ -104,8 +138,16 @@ class OpenAICourseSelector:
         try:
             selection = _Selection.model_validate(client.invoke(messages))
             return [
-                CourseChoice(choice.name, choice.relevance, choice.reason.strip())
-                for choice in selection.courses
+                CourseChoice(choice.name, Relevance.CORE, choice.reason.strip())
+                for choice in selection.core
+            ] + [
+                CourseChoice(
+                    choice.name,
+                    Relevance.FOUNDATION,
+                    choice.reason.strip(),
+                    choice.prerequisite_for,
+                )
+                for choice in selection.foundation
             ]
         except (OpenAIRefusalError, ValueError) as error:
             message = f"{profile.occupation}: LLM の答えを使えません: {error}"

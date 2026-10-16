@@ -15,66 +15,145 @@ from app.domain.recommendation import (
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
 
 
+CORE, FOUNDATION = Relevance.CORE, Relevance.FOUNDATION
+
+
+def matches_of(*names: str) -> list[CourseMatch]:
+    return [
+        CourseMatch(name, 1.0 - rank / 10, f"1000{rank}", ChunkSection.OVERVIEW)
+        for rank, name in enumerate(names)
+    ]
+
+
 def test_choice_without_a_reason_is_rejected() -> None:
     with pytest.raises(RecommendationError, match="科目A: 理由が空です"):
-        CourseChoice("科目A", Relevance.CORE, " ")
+        CourseChoice("科目A", CORE, " ")
+
+
+@pytest.mark.parametrize(
+    ("relevance", "prerequisite_for", "message"),
+    [
+        (CORE, "科目B", "科目A: 中心の科目が前提にする科目を指しています"),
+        (FOUNDATION, None, "科目A: 土台の科目が前提にする中心の科目を指していません"),
+    ],
+    ids=["core-with-a-link", "foundation-without-a-link"],
+)
+def test_only_foundations_point_at_the_core_course_they_prepare_for(
+    relevance: Relevance, prerequisite_for: str | None, message: str
+) -> None:
+    with pytest.raises(RecommendationError, match=message):
+        CourseChoice("科目A", relevance, "理由", prerequisite_for)
+    with pytest.raises(RecommendationError, match=message):
+        RecommendedCourse("科目A", "10000", relevance, "理由", prerequisite_for)
 
 
 def test_recommendation_with_the_same_course_twice_is_rejected() -> None:
-    course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
+    course = RecommendedCourse("科目A", "10000", CORE, "理由")
 
     with pytest.raises(RecommendationError, match="同じ科目が 2 回選ばれています: 科目A"):
         Recommendation(PROFILE, (course, course), ("科目A",))
 
 
-def test_recommendation_of_a_course_that_was_not_a_candidate_is_rejected() -> None:
-    course = RecommendedCourse("科目Z", "10000", Relevance.CORE, "理由")
-
+@pytest.mark.parametrize(
+    ("courses", "unlinked"),
+    [
+        ((RecommendedCourse("科目Z", "10000", CORE, "理由"),), ()),
+        ((RecommendedCourse("科目A", "10000", CORE, "理由"),), ("科目Z",)),
+    ],
+    ids=["recommended", "unlinked"],
+)
+def test_recommendation_of_a_course_that_was_not_a_candidate_is_rejected(
+    courses: tuple[RecommendedCourse, ...], unlinked: tuple[str, ...]
+) -> None:
     with pytest.raises(RecommendationError, match="候補に無い科目が選ばれています: 科目Z"):
-        Recommendation(PROFILE, (course,), ("科目A",))
+        Recommendation(PROFILE, courses, ("科目A",), unlinked)
+
+
+def test_recommendation_with_a_foundation_for_a_course_that_is_not_core_is_rejected() -> None:
+    courses = (
+        RecommendedCourse("科目A", "10000", CORE, "理由A"),
+        RecommendedCourse("科目B", "10001", FOUNDATION, "理由B", "科目C"),
+        RecommendedCourse("科目C", "10002", FOUNDATION, "理由C", "科目A"),
+    )
+
+    with pytest.raises(RecommendationError, match="前提にする土台があります: 科目B"):
+        Recommendation(PROFILE, courses, ("科目A", "科目B", "科目C"))
+
+
+def test_recommendation_that_also_lists_a_course_as_unlinked_is_rejected() -> None:
+    course = RecommendedCourse("科目A", "10000", CORE, "理由")
+
+    with pytest.raises(RecommendationError, match="外した土台が推薦に入っています: 科目A"):
+        Recommendation(PROFILE, (course,), ("科目A",), ("科目A",))
 
 
 def test_arrange_puts_core_before_foundation_and_keeps_the_search_order() -> None:
-    matches = [
-        CourseMatch(name, 1.0 - rank / 10, f"1000{rank}", ChunkSection.OVERVIEW)
-        for rank, name in enumerate(["科目A", "科目B", "科目C", "科目D"])
-    ]
     choices = [
-        CourseChoice("科目D", Relevance.FOUNDATION, "理由D"),
-        CourseChoice("科目C", Relevance.CORE, "理由C"),
-        CourseChoice("科目A", Relevance.FOUNDATION, "理由A"),
+        CourseChoice("科目D", FOUNDATION, "理由D", "科目C"),
+        CourseChoice("科目C", CORE, "理由C"),
+        CourseChoice("科目A", FOUNDATION, "理由A", "科目C"),
     ]
 
-    recommendation = arrange(PROFILE, matches, choices)
+    recommendation = arrange(PROFILE, matches_of("科目A", "科目B", "科目C", "科目D"), choices)
 
-    assert recommendation.courses == (
-        RecommendedCourse("科目C", "10002", Relevance.CORE, "理由C"),
-        RecommendedCourse("科目A", "10000", Relevance.FOUNDATION, "理由A"),
-        RecommendedCourse("科目D", "10003", Relevance.FOUNDATION, "理由D"),
+    assert recommendation == Recommendation(
+        PROFILE,
+        (
+            RecommendedCourse("科目C", "10002", CORE, "理由C"),
+            RecommendedCourse("科目A", "10000", FOUNDATION, "理由A", "科目C"),
+            RecommendedCourse("科目D", "10003", FOUNDATION, "理由D", "科目C"),
+        ),
+        ("科目A", "科目B", "科目C", "科目D"),
     )
-    assert recommendation.candidates == ("科目A", "科目B", "科目C", "科目D")
 
 
 def test_arrange_keeps_one_choice_per_course_preferring_core_then_the_first() -> None:
-    matches = [
-        CourseMatch("科目A", 0.9, "10000", ChunkSection.OVERVIEW),
-        CourseMatch("科目B", 0.8, "10001", ChunkSection.OVERVIEW),
-    ]
     choices = [
-        CourseChoice("科目A", Relevance.FOUNDATION, "土台としての理由"),
-        CourseChoice("科目B", Relevance.FOUNDATION, "先の理由"),
-        CourseChoice("科目A", Relevance.CORE, "中心としての理由"),
-        CourseChoice("科目B", Relevance.FOUNDATION, "後の理由"),
+        CourseChoice("科目A", CORE, "先の中心の理由"),
+        CourseChoice("科目B", FOUNDATION, "先の理由", "科目A"),
+        CourseChoice("科目C", FOUNDATION, "土台としての理由", "科目A"),
+        CourseChoice("科目C", CORE, "中心としての理由"),
+        CourseChoice("科目A", CORE, "後の中心の理由"),
+        CourseChoice("科目B", FOUNDATION, "後の理由", "科目C"),
     ]
 
-    assert arrange(PROFILE, matches, choices).courses == (
-        RecommendedCourse("科目A", "10000", Relevance.CORE, "中心としての理由"),
-        RecommendedCourse("科目B", "10001", Relevance.FOUNDATION, "先の理由"),
+    assert arrange(PROFILE, matches_of("科目A", "科目B", "科目C"), choices).courses == (
+        RecommendedCourse("科目A", "10000", CORE, "先の中心の理由"),
+        RecommendedCourse("科目C", "10002", CORE, "中心としての理由"),
+        RecommendedCourse("科目B", "10001", FOUNDATION, "先の理由", "科目A"),
     )
 
 
-def test_arrange_rejects_a_choice_outside_the_matches() -> None:
-    matches = [CourseMatch("科目A", 0.9, "10000", ChunkSection.OVERVIEW)]
+def test_arrange_drops_foundations_for_courses_not_chosen_as_core() -> None:
+    choices = [
+        CourseChoice("科目A", CORE, "理由A"),
+        CourseChoice("科目D", FOUNDATION, "中心でない科目の前提", "科目B"),
+        CourseChoice("科目B", FOUNDATION, "理由B", "科目A"),
+        CourseChoice("科目C", FOUNDATION, "候補でない科目の前提", "科目Z"),
+        CourseChoice("科目D", FOUNDATION, "理由D", "科目A"),
+        CourseChoice("科目E", FOUNDATION, "自分の前提", "科目E"),
+    ]
 
+    recommendation = arrange(
+        PROFILE, matches_of("科目A", "科目B", "科目C", "科目D", "科目E"), choices
+    )
+
+    assert recommendation.courses == (
+        RecommendedCourse("科目A", "10000", CORE, "理由A"),
+        RecommendedCourse("科目B", "10001", FOUNDATION, "理由B", "科目A"),
+        RecommendedCourse("科目D", "10003", FOUNDATION, "理由D", "科目A"),
+    )
+    assert recommendation.unlinked == ("科目C", "科目E")
+
+
+def test_arrange_without_core_courses_drops_every_foundation() -> None:
+    choices = [CourseChoice("科目A", FOUNDATION, "理由A", "科目B")]
+
+    recommendation = arrange(PROFILE, matches_of("科目A", "科目B"), choices)
+
+    assert (recommendation.courses, recommendation.unlinked) == ((), ("科目A",))
+
+
+def test_arrange_rejects_a_choice_outside_the_matches() -> None:
     with pytest.raises(RecommendationError, match="候補に無い科目が選ばれています: 科目Z"):
-        arrange(PROFILE, matches, [CourseChoice("科目Z", Relevance.CORE, "理由")])
+        arrange(PROFILE, matches_of("科目A"), [CourseChoice("科目Z", CORE, "理由")])

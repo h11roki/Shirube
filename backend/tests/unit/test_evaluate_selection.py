@@ -65,9 +65,9 @@ def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills()
     repository, search = courses_ranked_by(SIMILARITIES)
     selector = FakeCourseSelector(
         [
-            CourseChoice("科目C", Relevance.FOUNDATION, "理由C"),
+            CourseChoice("科目C", Relevance.FOUNDATION, "理由C", "科目A"),
             CourseChoice("科目A", Relevance.CORE, "理由A"),
-            CourseChoice("科目B", Relevance.FOUNDATION, "理由B"),
+            CourseChoice("科目B", Relevance.FOUNDATION, "理由B", "科目C"),
         ]
     )
 
@@ -82,13 +82,13 @@ def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills()
                 "職業",
                 (
                     Pick("科目A", Relevance.CORE, Judgment.EXPECTED),
-                    Pick("科目B", Relevance.FOUNDATION, Judgment.FOUNDATION),
                     Pick("科目C", Relevance.FOUNDATION, Judgment.UNRELATED),
                 ),
                 (
                     ExpectedCourse("科目A", Relevance.CORE, searched=True),
                     ExpectedCourse("科目D", None, searched=False),
                 ),
+                ("科目B",),
             ),
         )
     )
@@ -222,6 +222,7 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
                     ExpectedCourse("科目E", None, searched=True),
                     ExpectedCourse("科目D", None, searched=False),
                 ),
+                ("科目F",),
             ),
         )
     )
@@ -233,9 +234,11 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
     )
     assert render(report) == (
         "職業\n" + summary + "  関係なしを選んだ: 科目C\n"
+        "  中心につながらず外した土台: 科目F\n"
         "  選ばなかった期待する科目: 科目E\n"
         "  検索の上位に無かった期待する科目: 科目D\n"
         "合計\n"
         + summary
-        + "  中心の適合率 100%、期待する科目を中心に選んだ割合 33%、選んだ科目のうち関係なし 33%"
+        + "  中心の適合率 100%、期待する科目を中心に選んだ割合 33%、選んだ科目のうち関係なし 33%、"
+        "中心につながらず外した土台 1"
     )
