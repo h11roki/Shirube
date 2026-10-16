@@ -227,8 +227,8 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
     )
 
     summary = (
-        "  中心 1 科目: 期待 1 / 土台 0 / 少数 0 / 関係なし 0\n"
-        "  土台 2 科目: 期待 0 / 土台 1 / 少数 0 / 関係なし 1\n"
+        "  中心 1 科目、判定は 期待 1 / 土台 0 / 少数 0 / 関係なし 0\n"
+        "  土台 2 科目、判定は 期待 0 / 土台 1 / 少数 0 / 関係なし 1\n"
         "  期待する科目 3: 中心 1 / 土台 0 / 選ばず 1 / 検索の上位に無い 1\n"
     )
     assert render(report) == (
