@@ -32,8 +32,9 @@ class RecommendCourses:
         [matches] = candidates.rank([profile.query], self._candidate_limit)
         if not matches:
             return Recommendation(profile, (), 0)
-        pages = self._courses.syllabi_of(year, {match.syllabus_code for match in matches})
-        missing = sorted({match.syllabus_code for match in matches} - pages.keys())
+        codes = {match.syllabus_code for match in matches}
+        pages = self._courses.syllabi_of(year, codes)
+        missing = sorted(codes - pages.keys())
         if missing:
             raise RecommendationError(f"シラバスが DB にありません: {'、'.join(missing)}")
         offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
