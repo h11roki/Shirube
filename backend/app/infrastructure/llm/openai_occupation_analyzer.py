@@ -3,10 +3,10 @@ from typing import Self
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
-from pydantic import BaseModel, Field, SecretStr, ValidationError
+from pydantic import BaseModel, Field, SecretStr
 
 from app.application.ports import OccupationAnalysisError
-from app.domain.occupation import SKILL_COUNT, OccupationProfile, OccupationProfileError
+from app.domain.occupation import SKILL_COUNT, OccupationProfile
 
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
@@ -45,10 +45,14 @@ class OpenAIOccupationAnalyzer:
         try:
             output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
             if not isinstance(output, _Profile):
-                raise OccupationAnalysisError(f"{occupation}: LLM の答えの形が違います: {output!r}")
+                raise TypeError(f"答えの形が違います: {output!r}")
+            assumption = output.assumption.strip() if output.assumption else None
             return OccupationProfile(
-                occupation, output.interpretation, output.assumption, tuple(output.skills)
+                occupation,
+                output.interpretation.strip(),
+                assumption or None,
+                tuple(skill.strip() for skill in output.skills),
             )
-        except (OpenAIRefusalError, ValidationError, OccupationProfileError) as error:
+        except (OpenAIRefusalError, ValueError, TypeError) as error:
             message = f"{occupation}: LLM の答えを使えません: {error}"
             raise OccupationAnalysisError(message) from error

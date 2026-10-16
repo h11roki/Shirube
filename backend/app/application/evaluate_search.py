@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.course import ALL_GRADES
-from app.domain.occupation import search_query
+from app.domain.occupation import is_single_line, search_query
 
 RECALL_CUTOFFS = (10, 20)
 
@@ -22,9 +22,11 @@ class EvaluationCase:
     def __post_init__(self) -> None:
         if not self.occupation.strip():
             raise EvaluationError("職業名が空です")
+        if not is_single_line(self.occupation):
+            raise EvaluationError(f"{self.occupation!r}: 職業名に改行があります")
         if not self.skills or not all(skill.strip() for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが空です")
-        if any("\n" in skill for skill in self.skills):
+        if not all(is_single_line(skill) for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルに改行があります")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")

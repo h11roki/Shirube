@@ -88,14 +88,18 @@ def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
         ("  ", ("スキル",), ("甲",), "職業名が空です"),
         ("職業", (), ("甲",), "職業: スキルが空です"),
         ("職業", ("",), ("甲",), "職業: スキルが空です"),
+        ("組込み\nエンジニア", ("スキル",), ("甲",), "職業名に改行があります"),
         ("職業", ("C 言語\nマイコン",), ("甲",), "職業: スキルに改行があります"),
+        ("職業", ("C 言語\rマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
     ],
     ids=[
         "blank-occupation",
         "no-skills",
         "blank-skill",
+        "multiline-occupation",
         "multiline-skill",
+        "carriage-return-in-skill",
         "no-expected-courses",
     ],
 )

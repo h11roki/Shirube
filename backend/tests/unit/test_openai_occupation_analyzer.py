@@ -72,16 +72,30 @@ def test_structured_answer_becomes_a_profile_and_the_schema_limits_the_skills() 
     assert (skills["minItems"], skills["maxItems"]) == (3, 6)
 
 
-def test_null_assumption_means_the_name_was_not_ambiguous() -> None:
+@pytest.mark.parametrize("assumption", [None, "", "  "], ids=["null", "empty", "blank"])
+def test_missing_assumption_means_the_name_was_not_ambiguous(assumption: str | None) -> None:
     analyzer = analyzer_answering(
-        answer(
-            interpretation="制御エンジニア",
-            assumption=None,
-            skills=["制御工学", "信号処理", "C 言語"],
-        )
+        answer(interpretation="制御エンジニア", assumption=assumption, skills=["甲", "乙", "丙"])
     )
 
     assert analyzer.analyze("制御エンジニア").assumption is None
+
+
+def test_surrounding_spaces_in_the_answer_are_trimmed() -> None:
+    analyzer = analyzer_answering(
+        answer(
+            interpretation=" 制御エンジニア ",
+            assumption=None,
+            skills=[" 制御工学", "信号処理 ", "C 言語"],
+        )
+    )
+
+    profile = analyzer.analyze("制御エンジニア")
+
+    assert (profile.interpretation, profile.skills) == (
+        "制御エンジニア",
+        ("制御工学", "信号処理", "C 言語"),
+    )
 
 
 @pytest.mark.parametrize(
@@ -90,9 +104,10 @@ def test_null_assumption_means_the_name_was_not_ambiguous() -> None:
         {"content": None, "refusal": "答えられません"},
         answer(interpretation="職業", assumption=None, skills=list("甲乙丙丁戊己庚")),
         {"content": "{not json", "refusal": None},
+        {"content": None, "refusal": None},
         answer(interpretation="職業", assumption=None, skills=["甲", "乙", "甲"]),
     ],
-    ids=["refusal", "seven-skills", "broken-json", "duplicated-skill"],
+    ids=["refusal", "seven-skills", "broken-json", "no-content", "duplicated-skill"],
 )
 def test_refused_or_unusable_answers_are_analysis_errors(message: dict[str, Any]) -> None:
     with pytest.raises(OccupationAnalysisError, match="職業: LLM の答えを使えません"):
