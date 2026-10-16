@@ -1,5 +1,6 @@
 import argparse
 import sys
+from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
@@ -31,7 +32,7 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.labels import RELEVANCE_LABELS
+from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
 
 JUDGMENT_LABELS = {
     Judgment.EXPECTED: "期待",
@@ -45,21 +46,28 @@ def _ratio(part: int, whole: int) -> str:
     return f"{part / whole:.0%}" if whole else "-"
 
 
+def _judged(label: str, judged: Sequence[Judgment]) -> str:
+    counts = Counter(judged)
+    parts = " / ".join(f"{JUDGMENT_LABELS[judgment]} {counts[judgment]}" for judgment in Judgment)
+    return f"  {label} {len(judged)} 科目、判定は {parts}"
+
+
 def _summary(results: Sequence[SelectionResult]) -> list[str]:
-    lines = []
-    for relevance in Relevance:
-        counts = {
-            judgment: sum(result.count(relevance, judgment) for result in results)
-            for judgment in Judgment
-        }
-        parts = " / ".join(
-            f"{JUDGMENT_LABELS[judgment]} {count}" for judgment, count in counts.items()
+    picks = [pick for result in results for pick in result.picks]
+    lines = [
+        _judged(
+            RELEVANCE_LABELS[relevance],
+            [pick.judgment for pick in picks if pick.relevance is relevance],
         )
-        lines.append(f"  {RELEVANCE_LABELS[relevance]} {sum(counts.values())} 科目、判定は {parts}")
+        for relevance in Relevance
+    ]
+    unlinked = [pick.judgment for result in results for pick in result.unlinked]
+    lines.append(_judged("中心につながらず外した土台", unlinked))
     lines.append(
         f"  期待する科目 {sum(len(result.expected) for result in results)}: "
         f"中心 {sum(result.expected_as(Relevance.CORE) for result in results)} / "
         f"土台 {sum(result.expected_as(Relevance.FOUNDATION) for result in results)} / "
+        f"外した {sum(len(result.expected_unlinked) for result in results)} / "
         f"選ばず {sum(len(result.skipped) for result in results)} / "
         f"検索の上位に無い {sum(len(result.unsearched) for result in results)}"
     )
@@ -74,6 +82,13 @@ def render(report: SelectionReport) -> str:
         unrelated = [pick.name for pick in result.picks if pick.judgment is Judgment.UNRELATED]
         if unrelated:
             lines.append(f"  関係なしを選んだ: {'、'.join(unrelated)}")
+        if result.unlinked:
+            unlinked = [
+                with_prerequisite(pick.name, pick.prerequisite_for) for pick in result.unlinked
+            ]
+            lines.append(f"  中心につながらず外した土台: {'、'.join(unlinked)}")
+        if result.expected_unlinked:
+            lines.append(f"  外した期待する科目: {'、'.join(result.expected_unlinked)}")
         if result.skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(result.skipped)}")
         if result.unsearched:

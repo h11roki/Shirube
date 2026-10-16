@@ -33,16 +33,19 @@ def selector_answering(
     return OpenAICourseSelector(chat_answering(message, requests))
 
 
-def answer(*courses: dict[str, str]) -> dict[str, Any]:
-    return {"content": json.dumps({"courses": list(courses)}, ensure_ascii=False), "refusal": None}
+def answer(
+    core: list[dict[str, str]] | None = None, foundation: list[dict[str, str]] | None = None
+) -> dict[str, Any]:
+    body = {"core": core or [], "foundation": foundation or []}
+    return {"content": json.dumps(body, ensure_ascii=False), "refusal": None}
 
 
 def test_answer_becomes_choices_and_names_are_limited_to_the_candidates() -> None:
     requests: list[dict[str, Any]] = []
     selector = selector_answering(
         answer(
-            {"name": "科目B", "relevance": "core", "reason": " 理由B "},
-            {"name": "科目A", "relevance": "foundation", "reason": "理由A"},
+            core=[{"name": "科目B", "reason": " 理由B "}],
+            foundation=[{"name": "科目A", "prerequisite_for": "科目B", "reason": "理由A"}],
         ),
         requests,
     )
@@ -51,14 +54,30 @@ def test_answer_becomes_choices_and_names_are_limited_to_the_candidates() -> Non
 
     assert choices == [
         CourseChoice("科目B", Relevance.CORE, "理由B"),
-        CourseChoice("科目A", Relevance.FOUNDATION, "理由A"),
+        CourseChoice("科目A", Relevance.FOUNDATION, "理由A", "科目B"),
     ]
     [request] = requests
     schema = request["response_format"]["json_schema"]
     assert schema["strict"] is True
-    item = schema["schema"]["properties"]["courses"]["items"]["properties"]
-    assert item["name"]["enum"] == ["科目A", "科目B"]
-    assert item["relevance"]["enum"] == ["core", "foundation"]
+    groups = schema["schema"]["properties"]
+    assert list(groups) == ["core", "foundation"]
+    core = groups["core"]["items"]["properties"]
+    foundation = groups["foundation"]["items"]["properties"]
+    assert core["name"]["enum"] == ["科目A", "科目B"]
+    assert list(foundation) == ["name", "prerequisite_for", "reason"]
+    assert (
+        foundation["name"]["enum"] == foundation["prerequisite_for"]["enum"] == ["科目A", "科目B"]
+    )
+
+
+def test_foundations_for_courses_not_chosen_as_core_are_left_to_arrange() -> None:
+    selector = selector_answering(
+        answer(foundation=[{"name": "科目A", "prerequisite_for": "科目B", "reason": "理由A"}])
+    )
+
+    assert selector.select(PROFILE, CANDIDATES) == [
+        CourseChoice("科目A", Relevance.FOUNDATION, "理由A", "科目B")
+    ]
 
 
 def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
@@ -79,17 +98,17 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
         {"content": None, "refusal": "答えられません"},
         {"content": "{not json", "refusal": None},
         {"content": None, "refusal": None},
-        answer({"name": "科目A", "relevance": "maybe", "reason": "理由"}),
-        answer({"name": "科目A", "relevance": "core", "reason": " "}),
-        {"content": json.dumps({"choices": []}), "refusal": None},
+        answer(foundation=[{"name": "科目A", "reason": "理由"}]),
+        answer(core=[{"name": "科目A", "reason": " "}]),
+        {"content": json.dumps({"courses": []}), "refusal": None},
     ],
     ids=[
         "refusal",
         "broken-json",
         "no-content",
-        "unknown-relevance",
+        "foundation-without-prerequisite",
         "blank-reason",
-        "wrong-key",
+        "old-shape",
     ],
 )
 def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any]) -> None:

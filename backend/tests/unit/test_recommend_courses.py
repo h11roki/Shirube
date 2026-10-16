@@ -43,9 +43,9 @@ def recommend_over(
 def test_core_courses_come_first_and_each_group_keeps_the_search_order() -> None:
     selector = FakeCourseSelector(
         [
-            CourseChoice("科目C", Relevance.FOUNDATION, "理由C"),
+            CourseChoice("科目C", Relevance.FOUNDATION, "理由C", "科目D"),
             CourseChoice("科目D", Relevance.CORE, "理由D"),
-            CourseChoice("科目A", Relevance.FOUNDATION, "理由A"),
+            CourseChoice("科目A", Relevance.FOUNDATION, "理由A", "科目B"),
             CourseChoice("科目B", Relevance.CORE, "理由B"),
         ]
     )
@@ -58,8 +58,8 @@ def test_core_courses_come_first_and_each_group_keeps_the_search_order() -> None
         (
             RecommendedCourse("科目B", "10001", Relevance.CORE, "理由B"),
             RecommendedCourse("科目D", "10003", Relevance.CORE, "理由D"),
-            RecommendedCourse("科目A", "10000", Relevance.FOUNDATION, "理由A"),
-            RecommendedCourse("科目C", "10002", Relevance.FOUNDATION, "理由C"),
+            RecommendedCourse("科目A", "10000", Relevance.FOUNDATION, "理由A", "科目B"),
+            RecommendedCourse("科目C", "10002", Relevance.FOUNDATION, "理由C", "科目D"),
         ),
         ("科目A", "科目B", "科目C", "科目D", "科目E"),
     )
