@@ -39,6 +39,10 @@ class Embedder(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+class OccupationAnalysisError(Exception):
+    pass
+
+
 class OccupationAnalyzer(Protocol):
     def analyze(self, occupation: str) -> OccupationProfile: ...
 
