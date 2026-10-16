@@ -17,12 +17,12 @@ class SqlUserRepository:
             existing = db.execute(by_subject).scalar_one_or_none()
             if existing is not None:
                 return existing
-            created = db.execute(
-                insert(UserRow)
-                .values(id=uuid4(), subject=subject)
-                .on_conflict_do_nothing(index_elements=[UserRow.subject])
-                .returning(UserRow.id)
-            ).scalar_one_or_none()
-            user_id = created if created is not None else db.execute(by_subject).scalar_one()
+            inserted = insert(UserRow).values(id=uuid4(), subject=subject)
+            user_id = db.execute(
+                inserted.on_conflict_do_update(
+                    index_elements=[UserRow.subject],
+                    set_={"subject": inserted.excluded.subject},
+                ).returning(UserRow.id)
+            ).scalar_one()
             db.commit()
             return user_id

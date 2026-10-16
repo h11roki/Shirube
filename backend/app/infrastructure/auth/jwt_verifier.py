@@ -1,3 +1,5 @@
+import re
+
 import jwt
 from pydantic import SecretStr
 
@@ -8,9 +10,11 @@ ISSUER = "shirube-frontend"
 AUDIENCE = "shirube-backend"
 MIN_SECRET_LENGTH = 32
 MAX_LIFETIME_SECONDS = 300
+ROUNDING_SECONDS = 1
 LEEWAY_SECONDS = 30
 REQUIRED_CLAIMS = ["sub", "iss", "aud", "iat", "exp"]
 SUBJECT_PREFIX = "google:"
+SUBJECT = re.compile(r"[\x21-\x7e]{1,255}")
 
 
 class JwtVerifier:
@@ -28,17 +32,17 @@ class JwtVerifier:
                 audience=AUDIENCE,
                 issuer=ISSUER,
                 leeway=LEEWAY_SECONDS,
-                options={"require": REQUIRED_CLAIMS},
+                options={"require": REQUIRED_CLAIMS, "strict_aud": True},
             )
         except jwt.PyJWTError as error:
             raise InvalidTokenError(f"JWT を確かめられません: {error}") from error
         issued, expires, subject = claims["iat"], claims["exp"], claims["sub"]
         if not all(type(moment) is int for moment in (issued, expires)):
             raise InvalidTokenError("JWT の iat と exp は整数の秒にしてください")
-        if not 0 < expires - issued <= MAX_LIFETIME_SECONDS:
+        if not 0 < expires - issued <= MAX_LIFETIME_SECONDS + ROUNDING_SECONDS:
             raise InvalidTokenError(
                 f"JWT の有効期間は 0 秒より長く {MAX_LIFETIME_SECONDS} 秒以下にしてください"
             )
-        if not subject.strip():
-            raise InvalidTokenError("JWT の sub が空です")
+        if not SUBJECT.fullmatch(subject):
+            raise InvalidTokenError("JWT の sub は空白の無い ASCII の 255 文字までにしてください")
         return f"{SUBJECT_PREFIX}{subject}"

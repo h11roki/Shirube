@@ -19,7 +19,8 @@ from app.application.search_courses import NoCandidatesError
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
-from app.presentation.api.plans import MissingTokenError, plans_router
+from app.presentation.api.auth import MissingTokenError, current_user
+from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
@@ -78,7 +79,8 @@ def create_app(
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(
-        plans_router(create_plan, get_plan, identify, curriculum_year, today), prefix=API_PREFIX
+        plans_router(create_plan, get_plan, current_user(identify), curriculum_year, today),
+        prefix=API_PREFIX,
     )
     app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)

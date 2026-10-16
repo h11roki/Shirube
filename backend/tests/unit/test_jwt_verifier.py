@@ -34,6 +34,12 @@ def test_a_valid_token_gives_its_subject_in_the_google_namespace() -> None:
     assert verify(token()) == "google:google-a"
 
 
+def test_a_lifetime_one_second_over_from_rounding_is_tolerated() -> None:
+    rounded = token(exp=lambda now: now + timedelta(seconds=301))
+
+    assert verify(rounded) == "google:google-a"
+
+
 def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
     ahead = token(iat=lambda now: now + timedelta(seconds=10), exp=lambda now: now + 5 * MINUTE)
 
@@ -47,6 +53,7 @@ def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
         {"algorithm": "HS512"},
         {"iss": "someone-else"},
         {"aud": "someone-else"},
+        {"aud": [AUDIENCE, "someone-else"]},
         {"iat": lambda now: now - 10 * MINUTE, "exp": lambda now: now - 5 * MINUTE},
         {"iat": lambda now: now + 2 * MINUTE, "exp": lambda now: now + 6 * MINUTE},
         {
@@ -55,8 +62,11 @@ def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
         },
         {"sub": None},
         {"sub": " "},
+        {"sub": " 123 "},
+        {"sub": "12\x003"},
+        {"sub": "1" * 256},
         {"iat": None},
-        {"exp": lambda now: now + 6 * MINUTE},
+        {"exp": lambda now: now + timedelta(seconds=302)},
         {"iat": lambda now: str(int(now.timestamp()))},
         {"iat": True},
     ],
@@ -65,11 +75,15 @@ def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
         "other-algorithm",
         "other-issuer",
         "other-audience",
+        "audience-list",
         "expired",
         "issued-in-the-future",
         "expires-before-issued",
         "no-subject",
         "blank-subject",
+        "subject-with-spaces",
+        "subject-with-nul",
+        "subject-too-long",
         "no-issued-at",
         "lives-too-long",
         "issued-at-as-text",

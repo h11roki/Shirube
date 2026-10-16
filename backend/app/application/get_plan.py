@@ -8,5 +8,5 @@ class GetPlan:
     def __init__(self, plans: PlanRepository) -> None:
         self._plans = plans
 
-    def run(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
+    def run(self, *, owner_id: UUID, plan_id: UUID) -> Plan | None:
         return self._plans.get_owned_by(plan_id, owner_id)

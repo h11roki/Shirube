@@ -11,6 +11,6 @@ def test_a_plan_is_returned_only_to_its_owner() -> None:
     plan = sample_plan(uuid4(), owner)
     plans.add(plan)
 
-    assert GetPlan(plans).run(plan.id, owner) == plan
-    assert GetPlan(plans).run(plan.id, other) is None
-    assert GetPlan(plans).run(uuid4(), owner) is None
+    assert GetPlan(plans).run(owner_id=owner, plan_id=plan.id) == plan
+    assert GetPlan(plans).run(owner_id=other, plan_id=plan.id) is None
+    assert GetPlan(plans).run(owner_id=owner, plan_id=uuid4()) is None
