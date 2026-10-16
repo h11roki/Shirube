@@ -1,0 +1,176 @@
+import argparse
+import sys
+from datetime import date
+from uuid import UUID
+
+from openai import OpenAIError
+from sqlalchemy.exc import OperationalError, SQLAlchemyError
+
+from app.application.create_plan import CreatePlan
+from app.application.ports import (
+    CourseSelectionError,
+    OccupationAnalysisError,
+    PlanFormatError,
+)
+from app.application.recommend_courses import RecommendCourses
+from app.application.search_courses import SearchCourses, SearchError
+from app.domain.course import ALL_GRADES, Term, Weekday
+from app.domain.plan import Plan, PlanError
+from app.domain.recommendation import RecommendationError
+from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
+from app.infrastructure.db.chunks import SqlChunkRepository
+from app.infrastructure.db.courses import SqlCourseRepository
+from app.infrastructure.db.plans import SqlPlanRepository
+from app.presentation.cli.environment import (
+    database_engine,
+    load_settings,
+    openai_course_selector,
+    openai_embedder,
+    openai_occupation_analyzer,
+)
+from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
+from app.presentation.cli.options import add_year_option
+
+DEFAULT_DEPARTMENT = "情"
+TERM_LABELS = {Term.SPRING: "春学期", Term.AUTUMN: "秋学期"}
+WEEKDAY_LABELS = {
+    Weekday.MON: "月",
+    Weekday.TUE: "火",
+    Weekday.WED: "水",
+    Weekday.THU: "木",
+    Weekday.FRI: "金",
+    Weekday.SAT: "土",
+    Weekday.SUN: "日",
+}
+
+
+def _semester(semester: Semester) -> str:
+    return f"{semester.grade} 回生 {TERM_LABELS[semester.term]}"
+
+
+def _placed(label: str, placed: PlacedCourse) -> str:
+    course = placed.course
+    section = placed.section
+    where = [
+        "・".join(f"{WEEKDAY_LABELS[slot.weekday]}{slot.period}" for slot in section.slots)
+        or "コマなし",
+        *([section.class_code] if section.class_code else []),
+        *([] if placed.class_confirmed else ["クラス未確定"]),
+    ]
+    name = with_prerequisite(course.name, course.prerequisite_for)
+    return f"  {label} {name}({'、'.join(where)}): {course.reason}"
+
+
+def render(plan: Plan) -> str:
+    conditions = plan.conditions
+    profile = plan.recommendation.profile
+    lines = [
+        f"Plan {plan.id}",
+        f"職業: {profile.occupation} → {profile.interpretation}",
+        *([f"前提: {profile.assumption}"] if profile.assumption is not None else []),
+        f"スキル: {' / '.join(profile.skills)}",
+        f"条件: {conditions.department}、{conditions.year} 年度の時間割、"
+        f"{_semester(conditions.start)}から、1 学期 {conditions.credit_limit} 単位まで",
+    ]
+    for semester_plan in plan.roadmap.semesters:
+        lines.append(f"{_semester(semester_plan.semester)} {semester_plan.credits} 単位")
+        lines += [
+            _placed(RELEVANCE_LABELS[placed.course.relevance], placed)
+            for placed in semester_plan.courses
+        ]
+        lines += [_placed("続き", placed) for placed in semester_plan.continuing]
+    if plan.roadmap.unplaced:
+        names = "、".join(course.name for course in plan.roadmap.unplaced)
+        lines.append(f"置けなかった科目: {names}")
+    if plan.recommendation.unlinked:
+        unlinked = [
+            with_prerequisite(choice.name, choice.prerequisite_for)
+            for choice in plan.recommendation.unlinked
+        ]
+        lines.append(f"中心につながらず外した土台: {'、'.join(unlinked)}")
+    return "\n".join(lines)
+
+
+def _chosen_class(text: str) -> tuple[str, str]:
+    name, separator, class_code = text.partition("=")
+    if not separator or not name:
+        raise argparse.ArgumentTypeError(f"科目名=クラス記号 の形にしてください: {text}")
+    return name, class_code
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="道標を作って保存する、保存した道標を表示する")
+    commands = parser.add_subparsers(dest="command", required=True)
+    create = commands.add_parser("create", help="職業と回生から道標を作って保存する")
+    create.add_argument("occupation")
+    create.add_argument("--grade", type=int, choices=sorted(ALL_GRADES), required=True)
+    create.add_argument(
+        "--term",
+        choices=[term.value for term in Term],
+        default=term_on(date.today()).value,
+        help="始める学期(spring か autumn)。既定は今日の月から決める",
+    )
+    create.add_argument("--department", default=DEFAULT_DEPARTMENT)
+    add_year_option(create)
+    create.add_argument(
+        "--class",
+        dest="classes",
+        type=_chosen_class,
+        action="append",
+        default=[],
+        help="学科で分かれたクラスの選択。科目名=クラス記号 の形で、科目ごとに繰り返す",
+    )
+    show = commands.add_parser("show", help="保存した道標を表示する")
+    show.add_argument("plan_id", type=UUID)
+    args = parser.parse_args()
+
+    settings = load_settings()
+    engine = database_engine(settings)
+    plans = SqlPlanRepository(engine)
+    try:
+        if args.command == "show":
+            plan = plans.get(args.plan_id)
+            if plan is None:
+                sys.exit(f"Plan がありません: {args.plan_id}")
+        else:
+            courses = SqlCourseRepository(engine)
+            search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
+            recommend = RecommendCourses(
+                search,
+                courses,
+                openai_occupation_analyzer(settings),
+                openai_course_selector(settings),
+                settings.selection_candidate_limit,
+            )
+            plan = CreatePlan(recommend, courses, plans, settings.semester_credit_limit).run(
+                args.occupation,
+                args.department,
+                args.year,
+                Semester(args.grade, Term(args.term)),
+                dict(args.classes),
+            )
+        print(render(plan))
+    except (
+        SearchError,
+        OccupationAnalysisError,
+        CourseSelectionError,
+        RecommendationError,
+        RoadmapError,
+        PlanError,
+        PlanFormatError,
+    ) as error:
+        sys.exit(f"道標を止めました: {error}")
+    except OperationalError as error:
+        sys.exit(f"DB に接続できません: {error.orig}")
+    except SQLAlchemyError as error:
+        sys.exit(f"DB の操作に失敗しました: {error}")
+    except OpenAIError as error:
+        sys.exit(f"OpenAI の API 呼び出しに失敗しました: {error}")
+    except OSError as error:
+        sys.exit(f"ネットワークに失敗しました: {error}")
+    finally:
+        engine.dispose()
+
+
+if __name__ == "__main__":
+    main()
