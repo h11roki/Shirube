@@ -54,18 +54,25 @@ def openai_embedder(settings: Settings) -> OpenAIEmbedder:
         settings.embedding_dimensions,
         api_key,
         settings.openai_timeout_seconds,
+        settings.openai_max_retries,
     )
 
 
 def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
     return OpenAIOccupationAnalyzer.connect(
-        settings.chat_model, openai_api_key(settings), settings.openai_timeout_seconds
+        settings.chat_model,
+        openai_api_key(settings),
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
     )
 
 
 def openai_course_selector(settings: Settings) -> OpenAICourseSelector:
     return OpenAICourseSelector.connect(
-        settings.selection_model, openai_api_key(settings), settings.openai_timeout_seconds
+        settings.selection_model,
+        openai_api_key(settings),
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
     )
 
 

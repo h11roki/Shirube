@@ -1,14 +1,14 @@
 import argparse
 from pathlib import Path
 
-from app.settings import DEFAULT_CURRICULUM_YEAR
+from app.settings import CurriculumSettings
 
 DEFAULT_DEPARTMENT = "情"
 DEFAULT_ROOT = Path("data/raw")
 
 
 def add_year_option(parser: argparse.ArgumentParser) -> None:
-    parser.add_argument("--year", type=int, default=DEFAULT_CURRICULUM_YEAR)
+    parser.add_argument("--year", type=int, default=CurriculumSettings().curriculum_year)
 
 
 def add_department_option(parser: argparse.ArgumentParser) -> None:

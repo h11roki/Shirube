@@ -147,11 +147,16 @@ def test_a_request_of_the_wrong_shape_is_unprocessable_with_one_message() -> Non
         body(occupation="職業\n別の行"),
         body(term="summer"),
         body(chosenClasses={"科目A": "TA"}),
+        body(grade=True),
+        body(grade="3"),
+        body(department="情" * 101),
         {"occupation": "職業", "grade": 3},
     ):
         response = api.post("/api/v1/plans", json=wrong)
         assert response.status_code == 422
         assert response.json()["detail"].startswith("リクエストを確かめてください: ")
+    response = api.post("/api/v1/plans", content="{壊れた")
+    assert response.json()["detail"].startswith("リクエストを確かめてください: 本文: ")
     response = api.get("/api/v1/plans/not-a-uuid")
     assert response.status_code == 422
     assert response.json()["detail"].startswith("リクエストを確かめてください: plan_id: ")

@@ -39,8 +39,8 @@ class OpenAIOccupationAnalyzer:
         self._client = chat.with_structured_output(_Profile, method="json_schema", strict=True)
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout))
+    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
+        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def analyze(self, occupation: str) -> OccupationProfile:
         try:

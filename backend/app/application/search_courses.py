@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence, Set
 
-from app.application.ports import ChunkSearch, CourseRepository, Embedder
+from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
 from app.domain.ranking import CourseMatch, rank_courses
 from app.domain.roadmap import Semester, opens_in
 
@@ -36,7 +36,9 @@ class Candidates:
             return []
         vectors = self._embedder.embed(queries)
         if len(vectors) != len(queries):
-            raise SearchError(f"埋め込み {len(vectors)} 件がクエリ {len(queries)} 件と合いません")
+            raise EmbeddingError(
+                f"埋め込み {len(vectors)} 件がクエリ {len(queries)} 件と合いません"
+            )
         pages = set(self._names_of_page)
         return [
             rank_courses(

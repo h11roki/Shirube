@@ -1,8 +1,12 @@
+from collections.abc import Set
+
 import pytest
 
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses, SearchError
+from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
+from app.domain.ranking import ChunkHit
 from app.domain.recommendation import (
     CourseChoice,
     Recommendation,
@@ -11,6 +15,7 @@ from app.domain.recommendation import (
     Relevance,
 )
 from app.domain.roadmap import ALL_SEMESTERS
+from app.domain.syllabus import Syllabus
 from tests.builders import course_section, syllabus
 from tests.fakes import (
     FakeChunkSearch,
@@ -112,3 +117,21 @@ def test_selector_is_skipped_when_no_chunk_is_found() -> None:
 
     assert recommendation == Recommendation(PROFILE, (), ())
     assert selector.calls == []
+
+
+def test_a_ranked_course_whose_syllabus_is_missing_is_a_search_error() -> None:
+    class MissingSyllabi(FakeCourseRepository):
+        def syllabi_of(self, year: int, primary_codes: Set[str]) -> dict[str, Syllabus]:
+            return {}
+
+    repository, _ = courses_ranked_by({"科目A": 0.9})
+    missing = MissingSyllabi(tuple(repository.stored_sections), tuple(repository.stored_syllabi))
+    search = SearchCourses(
+        missing, FakeChunkSearch([ChunkHit("10000", ChunkSection.OVERVIEW, 0.9)]), FakeEmbedder()
+    )
+    recommend = RecommendCourses(
+        search, missing, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
+    )
+
+    with pytest.raises(SearchError, match="シラバスが DB にありません: 10000"):
+        recommend.run("職業", 2026, "情", ALL_SEMESTERS)

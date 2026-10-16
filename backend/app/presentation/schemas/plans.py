@@ -10,16 +10,22 @@ from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
 MAX_CHOSEN_CLASSES = 50
+MAX_NAME_LENGTH = 100
 
 
 class PlanIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    occupation: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
-    grade: int = Field(ge=min(ALL_GRADES), le=max(ALL_GRADES))
+    occupation: Annotated[str, StringConstraints(strip_whitespace=True, max_length=MAX_NAME_LENGTH)]
+    grade: int = Field(strict=True, ge=min(ALL_GRADES), le=max(ALL_GRADES))
     term: Term | None = None
-    department: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
-    chosen_classes: dict[str, str] = Field(default_factory=dict, max_length=MAX_CHOSEN_CLASSES)
+    department: Annotated[
+        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH)
+    ]
+    chosen_classes: dict[
+        Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
+        Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
+    ] = Field(default_factory=dict, max_length=MAX_CHOSEN_CLASSES)
 
     @field_validator("occupation")
     @classmethod
@@ -101,9 +107,14 @@ def _course_out(course: RecommendedCourse) -> CourseOut:
 
 
 def _placed_out(placed: PlacedCourse) -> PlacedCourseOut:
+    course = placed.course
     section = placed.section
     return PlacedCourseOut(
-        **_course_out(placed.course).model_dump(),
+        name=course.name,
+        relevance=course.relevance,
+        reason=course.reason,
+        prerequisite_for=course.prerequisite_for,
+        syllabus_code=course.syllabus_code,
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],

@@ -11,18 +11,17 @@ from app.application.ports import (
     CourseSelectionError,
     EmbeddingError,
     OccupationAnalysisError,
-    PlanFormatError,
     PlanRepository,
 )
-from app.application.search_courses import NoCandidatesError, SearchError
+from app.application.search_courses import NoCandidatesError
 from app.domain.recommendation import RecommendationError
-from app.domain.roadmap import ClassChoiceError, RoadmapError
+from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
 from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
-UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました。時間をおいて試してください"
+UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
 UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
     EmbeddingError,
@@ -30,26 +29,20 @@ UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
     CourseSelectionError,
     RecommendationError,
 )
-SERVER_ERRORS: tuple[type[Exception], ...] = (SearchError, RoadmapError, PlanFormatError)
 
 logger = logging.getLogger(__name__)
 
 
-def _input_error(request: Request, error: Exception) -> JSONResponse:
+async def _input_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(error)}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
 
-def _upstream_error(request: Request, error: Exception) -> JSONResponse:
+async def _upstream_error(request: Request, error: Exception) -> JSONResponse:
     logger.error("外部のサービスの呼び出しに失敗しました", exc_info=error)
     return JSONResponse({"detail": UPSTREAM_FAILURE}, status_code=status.HTTP_502_BAD_GATEWAY)
 
 
-def _server_error(request: Request, error: Exception) -> JSONResponse:
-    logger.error("道標を扱えませんでした", exc_info=error)
-    return _unexpected_error(request, error)
-
-
-def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
+async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse(
         {"detail": SERVER_FAILURE}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
@@ -68,14 +61,13 @@ def create_app(
         app.add_exception_handler(error, _input_error)
     for error in UPSTREAM_ERRORS:
         app.add_exception_handler(error, _upstream_error)
-    for error in SERVER_ERRORS:
-        app.add_exception_handler(error, _server_error)
     app.add_exception_handler(Exception, _unexpected_error)
 
     @app.exception_handler(RequestValidationError)
-    def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
+    async def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
         problems = "; ".join(
-            f"{'.'.join(str(part) for part in problem['loc'][1:])}: {problem['msg']}"
+            f"{'.'.join(part for part in problem['loc'][1:] if isinstance(part, str)) or '本文'}"
+            f": {problem['msg']}"
             for problem in error.errors()
         )
         return JSONResponse(

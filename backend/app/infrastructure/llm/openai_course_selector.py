@@ -126,8 +126,8 @@ class OpenAICourseSelector:
         self._chat = chat
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout))
+    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
+        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]

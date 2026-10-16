@@ -42,8 +42,8 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 - CLI と `main.py` が共有する組み立ての部品は、`presentation/cli/environment.py` から `presentation/composition.py` に移す。日本時間の今日もここに置く
 - 起動時に `OPENAI_API_KEY` が無ければ止める。`compose.yaml` は手元の環境変数を backend に渡す
 - OpenAI の呼び出しの失敗は、埋め込み・職業の解釈・選び直しのアダプタがポートのエラー(`EmbeddingError`、`OccupationAnalysisError`、`CourseSelectionError`)に包む。API も CLI も OpenAI のライブラリの例外を知らない
-- 年度の初期値は `DEFAULT_CURRICULUM_YEAR` の 1 か所に置き、設定と CLI の `--year` の既定値が使う
-- OpenAI の呼び出しには `OPENAI_TIMEOUT_SECONDS`(初期値 60 秒)のタイムアウトを付ける。health は非同期の関数にし、生成で埋まるスレッドを使わない
+- 年度は `CURRICULUM_YEAR` だけで決める。CLI の `--year` も省けばこの値を使う
+- OpenAI の呼び出しには `OPENAI_TIMEOUT_SECONDS`(初期値 60 秒)のタイムアウトと `OPENAI_MAX_RETRIES`(初期値 1 回)の再試行を付ける。1 回の呼び出しが待つのは長くて(1 + 再試行) × タイムアウト。health とエラーの応答は非同期の関数にし、生成で埋まるスレッドを待たない
 - `compose.yaml` は backend のポートを手元(127.0.0.1)だけに開ける
 
 エンドポイント
@@ -54,12 +54,12 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 エラー
 
-- 利用者が直せる誤りは 422 で、文に直し方が分かる中身を入れる。リクエストの形の誤り(「リクエストを確かめてください: 欄: 理由」の 1 文にまとめる)、選べないクラス(`ClassChoiceError`)、残りの学期に候補の無いとき(`NoCandidatesError`)
+- 利用者が直せる誤りは 422 で、文に直し方が分かる中身を入れる。リクエストの形の誤り(「リクエストを確かめてください: 欄: 理由」の 1 文にまとめる。本文そのものの誤りは欄を「本文」とし、理由は pydantic の英語のまま。回生は型を変換せず整数だけを受け付け、学科と科目名とクラス記号は 100 字まで)、選べないクラス(`ClassChoiceError`)、残りの学期に候補の無いとき(`NoCandidatesError`)
 - 無い Plan: 404
 - 埋め込みや LLM の呼び出しの失敗、LLM の答えを使えないとき: 502 で「推薦に使う外部のサービスの呼び出しに失敗しました」
 - サーバー側の問題(その年度の時間割やシラバスが無い・埋め込まれていない、配置の不変条件の破れ、保存した Plan を読めない、DB の接続など): 500 で「サーバーで道標を扱えませんでした」
-- 5xx の文には例外の中身を入れない(OpenAI の失敗の文には API キーの一部や組織の id が入りうる)。中身はサーバーのログに残す
-- どれも `{"detail": 文}` で、文は日本語
+- 5xx の文には例外の中身を入れない(OpenAI の失敗の文には API キーの一部や組織の id が入りうる)。502 はアプリのロガーに、500 は投げ直した例外として uvicorn のログに残す。500 は個別の一覧を持たず、422 と 502 に当たらないものを全てまとめる
+- どれも `{"detail": 文}`
 
 ## 理由
 
@@ -73,7 +73,8 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 - 起動時に OpenAI の部品を作るので、API キーが無いと backend が起動せず、`/api/v1/health` も返らない。手元の `docker compose up` でも `OPENAI_API_KEY` が要る
 - 生成は同期で 10〜30 秒かかり、その間 HTTP の接続を待たせる(ADR 0024)
-- `CURRICULUM_YEAR` を変えても、CLI の `--year` の既定値は変わらない(CLI は `--year` で年度を指定する)
+- 502 は、通信の一時的な失敗も、API キーやモデル名の誤りのような直らない失敗も同じ文になる。見分けるのはログ
+- 取り込みの途中でシラバスが一部しか無いと、正しい入力でも候補が無い 422 になりうる
 - 認証が入るまで、id を知っていれば誰でも Plan を読める(id は推測できない UUID、ADR 0024)
 - 認証と回数の制限が入るまで、backend に届く人は誰でも道標を作れて、そのたびに OpenAI の費用がかかる。手元ではポートを 127.0.0.1 に閉じ、本番はフェーズ 7 の認証より前に公開しない
 - 生成は同期の関数でスレッドプール(既定 40)を 10〜30 秒使うので、同時に多く来ると GET も待たされる。OpenAI のタイムアウトで止まり続けることは防ぐ

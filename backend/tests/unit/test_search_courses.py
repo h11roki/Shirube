@@ -2,6 +2,7 @@ from dataclasses import replace
 
 import pytest
 
+from app.application.ports import EmbeddingError
 from app.application.search_courses import NoCandidatesError, SearchCourses, SearchError
 from app.domain.chunk import ChunkSection
 from app.domain.course import Term
@@ -100,7 +101,7 @@ def test_vectors_that_do_not_match_the_queries_are_an_error() -> None:
         2026, "情", ALL_SEMESTERS
     )
 
-    with pytest.raises(SearchError, match="埋め込み 1 件がクエリ 2 件と合いません"):
+    with pytest.raises(EmbeddingError, match="埋め込み 1 件がクエリ 2 件と合いません"):
         candidates.rank(["回路", "論理"], 10)
 
 
