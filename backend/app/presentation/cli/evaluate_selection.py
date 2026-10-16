@@ -11,7 +11,6 @@ from app.application.evaluate_search import EvaluationError
 from app.application.evaluate_selection import (
     EvaluateSelection,
     Judgment,
-    Pick,
     SelectionReport,
     SelectionResult,
 )
@@ -33,7 +32,7 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.labels import RELEVANCE_LABELS
+from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
 
 JUDGMENT_LABELS = {
     Judgment.EXPECTED: "期待",
@@ -47,25 +46,23 @@ def _ratio(part: int, whole: int) -> str:
     return f"{part / whole:.0%}" if whole else "-"
 
 
-def _judged(label: str, picks: Sequence[Pick]) -> str:
-    counts = Counter(pick.judgment for pick in picks)
+def _judged(label: str, judged: Sequence[Judgment]) -> str:
+    counts = Counter(judged)
     parts = " / ".join(f"{JUDGMENT_LABELS[judgment]} {counts[judgment]}" for judgment in Judgment)
-    return f"  {label} {len(picks)} 科目、判定は {parts}"
+    return f"  {label} {len(judged)} 科目、判定は {parts}"
 
 
 def _summary(results: Sequence[SelectionResult]) -> list[str]:
     picks = [pick for result in results for pick in result.picks]
     lines = [
         _judged(
-            RELEVANCE_LABELS[relevance], [pick for pick in picks if pick.relevance is relevance]
+            RELEVANCE_LABELS[relevance],
+            [pick.judgment for pick in picks if pick.relevance is relevance],
         )
         for relevance in Relevance
     ]
-    lines.append(
-        _judged(
-            "中心につながらず外した土台", [pick for result in results for pick in result.unlinked]
-        )
-    )
+    unlinked = [pick.judgment for result in results for pick in result.unlinked]
+    lines.append(_judged("中心につながらず外した土台", unlinked))
     lines.append(
         f"  期待する科目 {sum(len(result.expected) for result in results)}: "
         f"中心 {sum(result.expected_as(Relevance.CORE) for result in results)} / "
@@ -86,8 +83,12 @@ def render(report: SelectionReport) -> str:
         if unrelated:
             lines.append(f"  関係なしを選んだ: {'、'.join(unrelated)}")
         if result.unlinked:
-            unlinked = [f"{pick.name}(→ {pick.prerequisite_for})" for pick in result.unlinked]
+            unlinked = [
+                with_prerequisite(pick.name, pick.prerequisite_for) for pick in result.unlinked
+            ]
             lines.append(f"  中心につながらず外した土台: {'、'.join(unlinked)}")
+        if result.expected_unlinked:
+            lines.append(f"  外した期待する科目: {'、'.join(result.expected_unlinked)}")
         if result.skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(result.skipped)}")
         if result.unsearched:

@@ -56,7 +56,13 @@ class Pick:
     name: str
     relevance: Relevance
     judgment: Judgment
-    prerequisite_for: str | None = None
+
+
+@dataclass(frozen=True)
+class UnlinkedPick:
+    name: str
+    prerequisite_for: str | None
+    judgment: Judgment
 
 
 @dataclass(frozen=True)
@@ -72,7 +78,7 @@ class SelectionResult:
     occupation: str
     picks: tuple[Pick, ...]
     expected: tuple[ExpectedCourse, ...]
-    unlinked: tuple[Pick, ...]
+    unlinked: tuple[UnlinkedPick, ...]
 
     def expected_as(self, relevance: Relevance) -> int:
         return sum(1 for course in self.expected if course.picked is relevance)
@@ -141,29 +147,23 @@ class EvaluateSelection:
             picked = {course.name: course.relevance for course in recommendation.courses}
             dropped = {choice.name for choice in recommendation.unlinked}
             picks = tuple(
-                Pick(
-                    course.name,
-                    course.relevance,
-                    judgments.of(case.occupation, course.name),
-                    course.prerequisite_for,
-                )
+                Pick(course.name, course.relevance, judgments.of(case.occupation, course.name))
                 for course in recommendation.courses
             )
             expected = tuple(
                 ExpectedCourse(
                     name,
-                    picked.get(name),
-                    name in recommendation.candidates,
-                    name in dropped,
+                    picked=picked.get(name),
+                    searched=name in recommendation.candidates,
+                    unlinked=name in dropped,
                 )
                 for name in case.expected
             )
             unlinked = tuple(
-                Pick(
+                UnlinkedPick(
                     choice.name,
-                    choice.relevance,
-                    judgments.of(case.occupation, choice.name),
                     choice.prerequisite_for,
+                    judgments.of(case.occupation, choice.name),
                 )
                 for choice in recommendation.unlinked
             )

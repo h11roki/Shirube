@@ -29,6 +29,12 @@ class CandidateCourse:
     syllabus: Syllabus
 
 
+def _require_known_prerequisites(pointed: Iterable[str | None], candidates: Iterable[str]) -> None:
+    unknown = sorted({name for name in pointed if name is not None} - set(candidates))
+    if unknown:
+        raise RecommendationError(f"候補に無い科目を前提にしています: {'、'.join(unknown)}")
+
+
 def _require_link(name: str, relevance: Relevance, prerequisite_for: str | None) -> None:
     if relevance is Relevance.CORE and prerequisite_for is not None:
         raise RecommendationError(f"{name}: 中心の科目が前提にする科目を指しています")
@@ -76,6 +82,9 @@ class Recommendation:
         if repeated:
             raise RecommendationError(f"同じ科目が 2 回入っています: {'、'.join(repeated)}")
         _require_candidates(counts, self.candidates)
+        _require_known_prerequisites(
+            (choice.prerequisite_for for choice in self.unlinked), self.candidates
+        )
         core = {course.name for course in self.courses if course.relevance is Relevance.CORE}
         without_core = sorted(
             course.name
@@ -86,6 +95,15 @@ class Recommendation:
             raise RecommendationError(
                 f"中心に選ばれていない科目を前提にする土台があります: {'、'.join(without_core)}"
             )
+        not_dropped = sorted(
+            choice.name
+            for choice in self.unlinked
+            if choice.relevance is not Relevance.FOUNDATION or choice.prerequisite_for in core
+        )
+        if not_dropped:
+            raise RecommendationError(
+                f"外した科目に、中心か中心につながる土台があります: {'、'.join(not_dropped)}"
+            )
 
 
 def arrange(
@@ -93,22 +111,18 @@ def arrange(
 ) -> Recommendation:
     codes = {match.name: match.syllabus_code for match in matches}
     _require_candidates((choice.name for choice in choices), codes)
-    pointed = {choice.prerequisite_for for choice in choices if choice.prerequisite_for is not None}
-    unknown = sorted(pointed - codes.keys())
-    if unknown:
-        raise RecommendationError(f"候補に無い科目を前提にしています: {'、'.join(unknown)}")
+    _require_known_prerequisites((choice.prerequisite_for for choice in choices), codes)
     core: dict[str, CourseChoice] = {}
     for choice in choices:
         if choice.relevance is Relevance.CORE:
             core.setdefault(choice.name, choice)
     linked: dict[str, CourseChoice] = {}
+    for choice in choices:
+        if choice.name not in core and choice.prerequisite_for in core:
+            linked.setdefault(choice.name, choice)
     unlinked: dict[str, CourseChoice] = {}
     for choice in choices:
-        if choice.name in core:
-            continue
-        if choice.prerequisite_for in core:
-            linked.setdefault(choice.name, choice)
-        else:
+        if choice.name not in core and choice.name not in linked:
             unlinked.setdefault(choice.name, choice)
     kept = [core[name] for name in codes if name in core] + [
         linked[name] for name in codes if name in linked
@@ -123,5 +137,5 @@ def arrange(
         )
         for choice in kept
     )
-    dropped = tuple(unlinked[name] for name in codes if name in unlinked and name not in linked)
+    dropped = tuple(unlinked[name] for name in codes if name in unlinked)
     return Recommendation(profile, courses, tuple(match.name for match in matches), dropped)

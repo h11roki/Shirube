@@ -22,7 +22,7 @@ from app.presentation.cli.environment import (
     openai_embedder,
     openai_occupation_analyzer,
 )
-from app.presentation.cli.labels import RELEVANCE_LABELS
+from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
 from app.presentation.cli.options import add_year_option
 
 DEFAULT_DEPARTMENT = "情"
@@ -37,12 +37,14 @@ def render(recommendation: Recommendation) -> str:
     for relevance in Relevance:
         courses = [course for course in recommendation.courses if course.relevance is relevance]
         lines.append(f"{RELEVANCE_LABELS[relevance]} {len(courses)} 科目")
-        for course in courses:
-            link = "" if course.prerequisite_for is None else f"(→ {course.prerequisite_for})"
-            lines.append(f"  {course.name}{link}: {course.reason}")
+        lines += [
+            f"  {with_prerequisite(course.name, course.prerequisite_for)}: {course.reason}"
+            for course in courses
+        ]
     if recommendation.unlinked:
         unlinked = [
-            f"{choice.name}(→ {choice.prerequisite_for})" for choice in recommendation.unlinked
+            with_prerequisite(choice.name, choice.prerequisite_for)
+            for choice in recommendation.unlinked
         ]
         lines.append(f"中心につながらず外した土台: {'、'.join(unlinked)}")
     lines.append(f"検索の上位 {len(recommendation.candidates)} 件から選んだ")

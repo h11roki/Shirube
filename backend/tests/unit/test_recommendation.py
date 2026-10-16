@@ -78,6 +78,30 @@ def test_recommendation_of_a_course_that_was_not_a_candidate_is_rejected(
         Recommendation(PROFILE, courses, ("科目A",), unlinked)
 
 
+@pytest.mark.parametrize(
+    ("dropped", "message"),
+    [
+        (CourseChoice("科目B", CORE, "理由"), "中心か中心につながる土台があります: 科目B"),
+        (
+            CourseChoice("科目B", FOUNDATION, "理由", "科目A"),
+            "中心か中心につながる土台があります: 科目B",
+        ),
+        (
+            CourseChoice("科目B", FOUNDATION, "理由", "科目Z"),
+            "候補に無い科目を前提にしています: 科目Z",
+        ),
+    ],
+    ids=["core", "linked-to-core", "pointing-outside"],
+)
+def test_recommendation_drops_only_foundations_that_point_at_a_candidate_outside_the_core(
+    dropped: CourseChoice, message: str
+) -> None:
+    core = RecommendedCourse("科目A", "10000", CORE, "理由")
+
+    with pytest.raises(RecommendationError, match=message):
+        Recommendation(PROFILE, (core,), ("科目A", "科目B"), (dropped,))
+
+
 def test_recommendation_with_a_foundation_for_a_course_that_is_not_core_is_rejected() -> None:
     courses = (
         RecommendedCourse("科目A", "10000", CORE, "理由A"),
