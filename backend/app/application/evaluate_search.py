@@ -1,6 +1,7 @@
 from collections import Counter
 from dataclasses import dataclass
 
+from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.course import ALL_GRADES
 
@@ -48,6 +49,7 @@ class EvaluationDataset:
 @dataclass(frozen=True)
 class CaseResult:
     occupation: str
+    query: str
     ranks: tuple[tuple[str, int | None], ...]
 
     def recall(self, cutoff: int) -> float:
@@ -64,8 +66,9 @@ class EvaluationReport:
 
 
 class EvaluateSearch:
-    def __init__(self, search: SearchCourses) -> None:
+    def __init__(self, search: SearchCourses, analyzer: OccupationAnalyzer | None = None) -> None:
         self._search = search
+        self._analyzer = analyzer
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
@@ -73,10 +76,14 @@ class EvaluateSearch:
         unknown = sorted(expected - candidates.names)
         if unknown:
             raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
-        rankings = candidates.rank([case.query for case in dataset.cases], max(RECALL_CUTOFFS))
+        queries = [
+            case.query if self._analyzer is None else self._analyzer.analyze(case.occupation).query
+            for case in dataset.cases
+        ]
+        rankings = candidates.rank(queries, max(RECALL_CUTOFFS))
         results = []
-        for case, matches in zip(dataset.cases, rankings, strict=True):
+        for case, query, matches in zip(dataset.cases, queries, rankings, strict=True):
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
             ranks = tuple((name, rank_of.get(name)) for name in case.expected)
-            results.append(CaseResult(case.occupation, ranks))
+            results.append(CaseResult(case.occupation, query, ranks))
         return EvaluationReport(tuple(results))

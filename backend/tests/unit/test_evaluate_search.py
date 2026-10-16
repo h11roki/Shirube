@@ -15,13 +15,21 @@ from app.application.evaluate_search import (
 )
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
+from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
 from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
 from tests.builders import course_section, syllabus
-from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
+from tests.fakes import (
+    FakeChunkSearch,
+    FakeCourseRepository,
+    FakeEmbedder,
+    FakeOccupationAnalyzer,
+)
 
 
-def search_over(similarities: dict[str, float]) -> SearchCourses:
+def search_over(
+    similarities: dict[str, float], embedder: FakeEmbedder | None = None
+) -> SearchCourses:
     codes = [f"{10000 + number}" for number in range(len(similarities))]
     names = list(similarities)
     repository = FakeCourseRepository(
@@ -35,7 +43,7 @@ def search_over(similarities: dict[str, float]) -> SearchCourses:
         ChunkHit(code, ChunkSection.OVERVIEW, similarities[name])
         for code, name in zip(codes, names, strict=True)
     ]
-    return SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+    return SearchCourses(repository, FakeChunkSearch(hits), embedder or FakeEmbedder())
 
 
 def test_recall_counts_expected_courses_within_each_cutoff() -> None:
@@ -45,17 +53,37 @@ def test_recall_counts_expected_courses_within_each_cutoff() -> None:
     report = EvaluateSearch(search_over(similarities)).run(EvaluationDataset(2026, "情", (case,)))
 
     [result] = report.results
+    assert result.query == case.query
     assert result.ranks == (("科目01", 1), ("科目10", 10), ("科目15", 15), ("科目25", None))
     assert result.recall(10) == 0.5
     assert result.recall(20) == 0.75
     assert report.mean_recall(10) == 0.5
 
 
-def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
+def test_expected_course_names_outside_the_candidates_are_an_error_before_calling_the_llm() -> None:
     case = EvaluationCase("職業", ("スキル",), ("科目01", "存在しない科目"))
+    analyzer = FakeOccupationAnalyzer({})
 
     with pytest.raises(EvaluationError, match="存在しない科目"):
-        EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
+        EvaluateSearch(search_over({"科目01": 0.9}), analyzer).run(
+            EvaluationDataset(2026, "情", (case,))
+        )
+    assert analyzer.calls == []
+
+
+def test_llm_skills_replace_the_handwritten_ones_in_the_query() -> None:
+    profile = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
+    analyzer = FakeOccupationAnalyzer({"職業": profile})
+    embedder = FakeEmbedder()
+    case = EvaluationCase("職業", ("手書きのスキル",), ("科目01",))
+
+    report = EvaluateSearch(search_over({"科目01": 0.9}, embedder), analyzer).run(
+        EvaluationDataset(2026, "情", (case,))
+    )
+
+    assert analyzer.calls == ["職業"]
+    assert embedder.calls == [["解釈した職業\n甲\n乙\n丙"]]
+    assert report.results[0].query == "解釈した職業\n甲\n乙\n丙"
 
 
 @pytest.mark.parametrize(
@@ -90,11 +118,14 @@ def test_query_joins_the_occupation_and_its_skills() -> None:
     assert case.query == "組込みエンジニア\nC 言語\nマイコン"
 
 
-def test_report_lists_recalls_and_ranks() -> None:
-    report = EvaluationReport((CaseResult("職業", (("甲", 3), ("乙", None))),))
+def test_report_lists_the_query_recalls_and_ranks() -> None:
+    report = EvaluationReport((CaseResult("職業", "職業\nスキル", (("甲", 3), ("乙", None))),))
 
-    assert (
-        render(report) == "職業  @10 0.50  @20 0.50\n  甲 3 位 / 乙 圏外\n平均  @10 0.50  @20 0.50"
+    assert render(report) == (
+        "職業  @10 0.50  @20 0.50\n"
+        "  検索文: 職業 / スキル\n"
+        "  甲 3 位 / 乙 圏外\n"
+        "平均  @10 0.50  @20 0.50"
     )
 
 
