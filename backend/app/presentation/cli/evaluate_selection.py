@@ -55,7 +55,7 @@ def _summary(results: Sequence[SelectionResult]) -> list[str]:
         parts = " / ".join(
             f"{JUDGMENT_LABELS[judgment]} {count}" for judgment, count in counts.items()
         )
-        lines.append(f"  {RELEVANCE_LABELS[relevance]} {sum(counts.values())} 科目: {parts}")
+        lines.append(f"  {RELEVANCE_LABELS[relevance]} {sum(counts.values())} 科目、判定は {parts}")
     lines.append(
         f"  期待する科目 {sum(len(result.expected) for result in results)}: "
         f"中心 {sum(result.expected_as(Relevance.CORE) for result in results)} / "
