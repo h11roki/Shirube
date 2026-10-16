@@ -4,7 +4,6 @@ from collections import Counter
 from collections.abc import Sequence
 from pathlib import Path
 
-from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.evaluate_search import EvaluationError
@@ -14,18 +13,12 @@ from app.application.evaluate_selection import (
     SelectionReport,
     SelectionResult,
 )
-from app.application.ports import CourseSelectionError
+from app.application.ports import CourseSelectionError, EmbeddingError
 from app.application.search_courses import SearchCourses, SearchError
 from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import RecommendationError, Relevance
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import (
-    database_engine,
-    load_settings,
-    openai_course_selector,
-    openai_embedder,
-)
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
@@ -33,6 +26,12 @@ from app.presentation.cli.evaluation_data import (
     load_judgments,
 )
 from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
+from app.presentation.composition import (
+    database_engine,
+    load_settings,
+    openai_course_selector,
+    openai_embedder,
+)
 
 JUDGMENT_LABELS = {
     Judgment.EXPECTED: "期待",
@@ -138,14 +137,13 @@ def main() -> None:
         OccupationProfileError,
         CourseSelectionError,
         RecommendationError,
+        EmbeddingError,
     ) as error:
         sys.exit(f"評価を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except OpenAIError as error:
-        sys.exit(f"OpenAI の API 呼び出しに失敗しました: {error}")
     except OSError as error:
         sys.exit(f"ネットワークに失敗しました: {error}")
     finally:

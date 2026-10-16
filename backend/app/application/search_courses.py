@@ -1,12 +1,16 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence, Set
 
-from app.application.ports import ChunkSearch, CourseRepository, Embedder
+from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
 from app.domain.ranking import CourseMatch, rank_courses
 from app.domain.roadmap import Semester, opens_in
 
 
 class SearchError(ValueError):
+    pass
+
+
+class NoCandidatesError(SearchError):
     pass
 
 
@@ -32,7 +36,9 @@ class Candidates:
             return []
         vectors = self._embedder.embed(queries)
         if len(vectors) != len(queries):
-            raise SearchError(f"埋め込み {len(vectors)} 件がクエリ {len(queries)} 件と合いません")
+            raise EmbeddingError(
+                f"埋め込み {len(vectors)} 件がクエリ {len(queries)} 件と合いません"
+            )
         pages = set(self._names_of_page)
         return [
             rank_courses(
@@ -52,13 +58,16 @@ class SearchCourses:
 
     def candidates(self, year: int, department: str, semesters: Sequence[Semester]) -> Candidates:
         page_of = self._courses.syllabus_codes(year)
+        sections = self._courses.sections(year)
+        if not page_of or not sections:
+            raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
         names_of_page: dict[str, set[str]] = defaultdict(set)
-        for section in self._courses.sections(year):
+        for section in sections:
             offered = any(opens_in(section, department, year, semester) for semester in semesters)
             if offered and section.code in page_of:
                 names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
-            raise SearchError(
+            raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
                 "候補の科目がありません"
             )

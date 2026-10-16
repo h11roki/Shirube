@@ -9,6 +9,7 @@ from app.application.embed_syllabi import (
     EmbedSyllabi,
     PruneRefusedError,
 )
+from app.application.ports import EmbeddingError
 from app.domain.chunk import SyllabusChunk, chunks_of
 from tests.builders import syllabus
 from tests.fakes import FAKE_MODEL as MODEL
@@ -77,7 +78,7 @@ def test_each_batch_is_saved_before_the_next_so_a_failure_keeps_earlier_ones() -
     pages = tuple(syllabus(f"{10000 + number}") for number in range(40))
     store = FakeChunkRepository()
 
-    with pytest.raises(ConnectionError):
+    with pytest.raises(EmbeddingError):
         EmbedSyllabi(FakeCourseRepository(syllabi=pages), store, FakeEmbedder(2)).run(2026)
 
     assert [len(vectors) for _, vectors in store.saved] == [EMBED_BATCH_SIZE]

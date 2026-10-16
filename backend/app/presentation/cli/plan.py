@@ -1,14 +1,13 @@
 import argparse
 import sys
-from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
-from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.create_plan import CreatePlan
 from app.application.ports import (
     CourseSelectionError,
+    EmbeddingError,
     OccupationAnalysisError,
     PlanFormatError,
 )
@@ -19,7 +18,6 @@ from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.plans import SqlPlanRepository
-from app.presentation.cli.environment import database_engine, load_settings, recommend_courses
 from app.presentation.cli.labels import (
     RELEVANCE_LABELS,
     profile_lines,
@@ -27,8 +25,13 @@ from app.presentation.cli.labels import (
     with_prerequisite,
 )
 from app.presentation.cli.options import add_department_option, add_year_option
+from app.presentation.composition import (
+    database_engine,
+    load_settings,
+    recommend_courses,
+    university_today,
+)
 
-UNIVERSITY_TIME = timezone(timedelta(hours=9))
 WEEKDAY_LABELS = {
     Weekday.MON: "月",
     Weekday.TUE: "火",
@@ -93,7 +96,7 @@ def main() -> None:
     create.add_argument(
         "--term",
         choices=[term.value for term in Term],
-        default=term_on(datetime.now(UNIVERSITY_TIME).date()).value,
+        default=term_on(university_today()).value,
         help="始める学期(spring か autumn)。既定は今日の月から決める",
     )
     add_department_option(create)
@@ -147,14 +150,13 @@ def main() -> None:
         RoadmapError,
         PlanError,
         PlanFormatError,
+        EmbeddingError,
     ) as error:
         sys.exit(f"道標を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except OpenAIError as error:
-        sys.exit(f"OpenAI の API 呼び出しに失敗しました: {error}")
     except OSError as error:
         sys.exit(f"ネットワークに失敗しました: {error}")
     finally:

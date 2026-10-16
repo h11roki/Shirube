@@ -1,14 +1,14 @@
 import argparse
 import sys
 
-from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.embed_syllabi import EmbedError, EmbedSyllabi, PruneRefusedError
+from app.application.ports import EmbeddingError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import database_engine, load_settings, openai_embedder
 from app.presentation.cli.options import add_year_option
+from app.presentation.composition import database_engine, load_settings, openai_embedder
 
 
 def main() -> None:
@@ -41,8 +41,8 @@ def main() -> None:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except OpenAIError as error:
-        sys.exit(f"埋め込みの API 呼び出しに失敗しました: {error}")
+    except EmbeddingError as error:
+        sys.exit(str(error))
     except OSError as error:
         sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
     finally:

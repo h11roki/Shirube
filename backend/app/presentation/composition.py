@@ -1,4 +1,5 @@
 import sys
+from datetime import date, datetime, timedelta, timezone
 
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
@@ -13,6 +14,8 @@ from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.settings import Settings
+
+UNIVERSITY_TIME = timezone(timedelta(hours=9))
 
 
 def load_settings() -> Settings:
@@ -46,15 +49,31 @@ def openai_embedder(settings: Settings) -> OpenAIEmbedder:
             f"EMBEDDING_DIMENSIONS {settings.embedding_dimensions} が DB の列の "
             f"{EMBEDDING_DIMENSIONS} と違います。列を変えるマイグレーションが要ります"
         )
-    return OpenAIEmbedder(settings.embedding_model, settings.embedding_dimensions, api_key)
+    return OpenAIEmbedder.connect(
+        settings.embedding_model,
+        settings.embedding_dimensions,
+        api_key,
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
+    )
 
 
 def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
-    return OpenAIOccupationAnalyzer.connect(settings.chat_model, openai_api_key(settings))
+    return OpenAIOccupationAnalyzer.connect(
+        settings.chat_model,
+        openai_api_key(settings),
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
+    )
 
 
 def openai_course_selector(settings: Settings) -> OpenAICourseSelector:
-    return OpenAICourseSelector.connect(settings.selection_model, openai_api_key(settings))
+    return OpenAICourseSelector.connect(
+        settings.selection_model,
+        openai_api_key(settings),
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
+    )
 
 
 def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
@@ -67,3 +86,7 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
         openai_course_selector(settings),
         settings.selection_candidate_limit,
     )
+
+
+def university_today() -> date:
+    return datetime.now(UNIVERSITY_TIME).date()

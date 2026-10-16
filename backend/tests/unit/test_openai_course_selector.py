@@ -10,7 +10,7 @@ from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
 from app.domain.syllabus import Session
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from tests.builders import syllabus
-from tests.fakes import chat_answering
+from tests.fakes import chat_answering, chat_failing
 
 PROFILE = OccupationProfile("職業", "解釈した職業", "前提の文", ("甲", "乙", "丙"))
 CANDIDATES = [
@@ -114,3 +114,17 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
 def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any]) -> None:
     with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):
         selector_answering(message).select(PROFILE, CANDIDATES)
+
+
+def test_an_answer_cut_off_by_the_length_limit_is_an_unusable_answer() -> None:
+    selector = OpenAICourseSelector(chat_answering(answer(), finish_reason="length"))
+
+    with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):
+        selector.select(PROFILE, CANDIDATES)
+
+
+def test_a_failed_api_call_is_a_selection_error() -> None:
+    selector = OpenAICourseSelector(chat_failing(400))
+
+    with pytest.raises(CourseSelectionError, match="職業: OpenAI の API 呼び出しに失敗しました"):
+        selector.select(PROFILE, CANDIDATES)

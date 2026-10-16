@@ -1,11 +1,10 @@
 from collections.abc import Sequence
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, SearchError
 from app.domain.recommendation import (
     CandidateCourse,
     Recommendation,
-    RecommendationError,
     arrange,
 )
 from app.domain.roadmap import Semester
@@ -38,6 +37,6 @@ class RecommendCourses:
         pages = self._courses.syllabi_of(year, codes)
         missing = sorted(codes - pages.keys())
         if missing:
-            raise RecommendationError(f"シラバスが DB にありません: {'、'.join(missing)}")
+            raise SearchError(f"シラバスが DB にありません: {'、'.join(missing)}")
         offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
         return arrange(profile, matches, self._selector.select(profile, offered))

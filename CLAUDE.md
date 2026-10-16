@@ -27,7 +27,8 @@ frontend(`frontend/` で実行)
 
 全体
 
-- `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える
+- `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える。backend は起動に `OPENAI_API_KEY` が要り、compose が手元の環境変数を渡す
+- API: `POST /api/v1/plans`(本文は occupation、grade、department、省ける term と chosen_classes。201 と Location を返す)と `GET /api/v1/plans/{id}`(ADR 0026)。年度は設定 `CURRICULUM_YEAR`(既定 2026)、OpenAI のタイムアウトは `OPENAI_TIMEOUT_SECONDS`(既定 60)、再試行は `OPENAI_MAX_RETRIES`(既定 1)。CLI の `--year` も省けば `CURRICULUM_YEAR`。5xx は決まった文だけを返し、中身はログに出す。OpenAPI は `/docs`
 - `OPENAI_API_KEY` は README の「起動」のとおりリポジトリ直下の `.envrc` から読む。worktree にこのファイルは無いが、`.claude/worktrees/` の下なら direnv が親をたどって読む。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値はコマンドにも出力にも書かない
 
 ## 構成と依存の向き
@@ -39,7 +40,7 @@ frontend(`frontend/` で実行)
 - infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`curriculum/<university>/`(時間割表の解析)、`scrapers/<university>/`(シラバスの取得と解析)、`auth/`
 - presentation: `api/`(FastAPI ルータ、接頭辞 `/api/v1`)、`schemas/`(Pydantic DTO)、`cli/`
 
-`main.py` と `presentation/cli/` は合成ルートで、infrastructure の実装を組み立てて application のポートの型として渡す。それ以外の presentation のコードは infrastructure を import しない。
+`main.py` と `presentation/cli/` は合成ルートで、infrastructure の実装を組み立てて application のポートの型として渡す。両者が共有する組み立ての部品は `presentation/composition.py` に置く。API は `presentation/api/app.py` の `create_app` が組み立て済みのユースケースを受け取り(ADR 0026)、テストはフェイクを渡す。それ以外の presentation のコードは infrastructure を import しない。
 
 frontend は API を呼んで表示するだけで、業務ロジックを置かない。バックエンドは Next.js の Route Handler 経由で呼ぶ。
 

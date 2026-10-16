@@ -2,7 +2,8 @@ from dataclasses import replace
 
 import pytest
 
-from app.application.search_courses import SearchCourses, SearchError
+from app.application.ports import EmbeddingError
+from app.application.search_courses import NoCandidatesError, SearchCourses, SearchError
 from app.domain.chunk import ChunkSection
 from app.domain.course import Term
 from app.domain.ranking import ChunkHit
@@ -100,5 +101,15 @@ def test_vectors_that_do_not_match_the_queries_are_an_error() -> None:
         2026, "情", ALL_SEMESTERS
     )
 
-    with pytest.raises(SearchError, match="埋め込み 1 件がクエリ 2 件と合いません"):
+    with pytest.raises(EmbeddingError, match="埋め込み 1 件がクエリ 2 件と合いません"):
         candidates.rank(["回路", "論理"], 10)
+
+
+def test_a_year_without_timetable_or_syllabi_is_a_search_error_not_a_lack_of_candidates() -> None:
+    search = SearchCourses(FakeCourseRepository(), FakeChunkSearch([]), FakeEmbedder())
+
+    with pytest.raises(
+        SearchError, match="2026 年度の時間割かシラバスが DB にありません"
+    ) as raised:
+        search.candidates(2026, "情", ALL_SEMESTERS)
+    assert not isinstance(raised.value, NoCandidatesError)
