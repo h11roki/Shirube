@@ -65,3 +65,4 @@
 | [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
 | [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
 | [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 承認 |
+| [0027](0027-auth-backend.md) | バックエンドは HS256 の短い JWT で利用者を確かめ、users 表には Google の sub だけを持ち、他人の Plan は 404 にする | 承認 |
