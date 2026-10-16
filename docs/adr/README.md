@@ -60,6 +60,7 @@
 | [0019](0019-course-selection.md) | 選び直しは、検索の上位 30 件から科目ごとに中心か土台かを付けて返す | 廃止(Superseded by 0020) |
 | [0020](0020-course-selection-evaluated.md) | 選び直しは gpt-5.4-nano で中心か土台かを付けて返し、重複は中心を優先して 1 つにまとめる | 廃止(Superseded by 0021) |
 | [0021](0021-foundation-tied-to-core.md) | 選び直しの土台は中心に選んだ授業の前提に限り、理由にどの中心の授業の前提かを書く | 廃止(Superseded by 0023) |
-| [0022](0022-roadmap-placement.md) | 道標は 1 回の推薦を学期ごとに貪欲法で置き、学科で分かれたクラスは利用者が選ぶ | 承認 |
+| [0022](0022-roadmap-placement.md) | 道標は 1 回の推薦を学期ごとに貪欲法で置き、学科で分かれたクラスは利用者が選ぶ | 廃止(Superseded by 0025) |
 | [0023](0023-foundation-links-core.md) | 選び直しは中心と土台を分けて返し、土台は前提にする中心の授業を 1 つ指す | 承認 |
 | [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
+| [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
