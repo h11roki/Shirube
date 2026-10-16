@@ -46,7 +46,7 @@
 | [0005](0005-section-chunking.md) | シラバスはセクション単位でチャンク分割する | 承認 |
 | [0006](0006-embedding-model.md) | 埋め込みモデルは text-embedding-3-small を使う | 承認 |
 | [0007](0007-greedy-timetable.md) | 時間割は学期ごとに関連度順の貪欲法で組む | 承認 |
-| [0008](0008-rest-api.md) | API は REST + OpenAPI 型生成、同期、Next.js Route Handler 経由とする | 承認 |
+| [0008](0008-rest-api.md) | API は REST + OpenAPI 型生成、同期、Next.js Route Handler 経由とする | 廃止(Superseded by 0024) |
 | [0009](0009-ec2-compose.md) | 本番は EC2 1台で docker compose を動かす | 承認 |
 | [0010](0010-graduation-roadmap.md) | 回生を入力し、卒業までの学期ごとの道標を生成する | 承認 |
 | [0011](0011-auth.md) | 認証は Auth.js の Google ログインとし、バックエンドへは署名付き JWT で本人性を渡す | 承認 |
@@ -62,3 +62,4 @@
 | [0021](0021-foundation-tied-to-core.md) | 選び直しの土台は中心に選んだ授業の前提に限り、理由にどの中心の授業の前提かを書く | 廃止(Superseded by 0023) |
 | [0022](0022-roadmap-placement.md) | 道標は 1 回の推薦を学期ごとに貪欲法で置き、学科で分かれたクラスは利用者が選ぶ | 承認 |
 | [0023](0023-foundation-links-core.md) | 選び直しは中心と土台を分けて返し、土台は前提にする中心の授業を 1 つ指す | 承認 |
+| [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
