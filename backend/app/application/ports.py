@@ -5,6 +5,7 @@ from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
+from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
 
 
@@ -45,6 +46,16 @@ class OccupationAnalysisError(ValueError):
 
 class OccupationAnalyzer(Protocol):
     def analyze(self, occupation: str) -> OccupationProfile: ...
+
+
+class CourseSelectionError(ValueError):
+    pass
+
+
+class CourseSelector(Protocol):
+    def select(
+        self, profile: OccupationProfile, candidates: list[CandidateCourse]
+    ) -> list[CourseChoice]: ...
 
 
 class ChunkRepository(Protocol):
