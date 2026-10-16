@@ -138,9 +138,8 @@ def test_classes_split_by_the_department_follow_the_users_choice() -> None:
     [
         ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: 選べるクラスは TA、TB です"),
         ({"情報科学Ⅱ": "TC"}, "情報科学Ⅱ: 選べるクラスは TA、TB です"),
-        ({"科目A": "6T"}, "科目A: 学科で分かれたクラスではない"),
     ],
-    ids=["unknown-class", "other-departments-class", "not-split"],
+    ids=["unknown-class", "other-departments-class"],
 )
 def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
     chosen: dict[str, str], message: str
@@ -196,8 +195,6 @@ def test_one_class_listed_in_two_rows_is_not_a_split_class() -> None:
 
     [placed] = roadmap.semesters[0].courses
     assert placed.class_confirmed
-    with pytest.raises(RoadmapError, match="学科で分かれたクラスではない"):
-        place(recommend("情報処理"), sections, "情", 2026, SPRING_1, 16, {"情報処理": "6T"})
 
 
 def test_a_roadmap_with_semesters_out_of_order_is_rejected() -> None:
@@ -211,10 +208,11 @@ def test_a_roadmap_with_semesters_out_of_order_is_rejected() -> None:
         Roadmap((SemesterPlan(Semester(5, Term.SPRING), ()),), ())
 
 
-def test_a_choice_for_a_course_that_was_not_recommended_this_time_is_ignored() -> None:
+def test_choices_that_no_longer_apply_are_ignored() -> None:
     sections = [section("10000", "科目A")]
+    stale = {"前回の科目": "TA", "科目A": "6T"}
 
-    roadmap = place(recommend("科目A"), sections, "情", 2026, SPRING_1, 16, {"前回の科目": "TA"})
+    roadmap = place(recommend("科目A"), sections, "情", 2026, SPRING_1, 16, stale)
 
     assert placed_names(roadmap.semesters[0]) == [("科目A", "6T")]
 
@@ -246,3 +244,58 @@ def test_an_unchosen_split_course_is_placed_only_in_a_class_of_the_users_departm
 
     assert placed_names(roadmap.semesters[0]) == [("科目A", "6T")]
     assert [course.name for course in roadmap.unplaced] == ["情報科学Ⅱ"]
+
+
+def test_classes_for_different_grades_are_not_split_classes() -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報科学Ⅱ", class_code="TA", departments=own, grades=frozenset({2})),
+        section("10001", "情報科学Ⅱ", class_code="TB", departments=own, grades=frozenset({3, 4})),
+    ]
+
+    roadmap = place(
+        recommend("情報科学Ⅱ"), sections, "情", 2026, remaining_semesters(2, Term.SPRING), 16, {}
+    )
+
+    [placed] = roadmap.semesters[0].courses
+    assert (placed.section.class_code, placed.class_confirmed) == ("TA", True)
+
+
+def test_the_departments_own_class_is_preferred_over_a_class_for_all_departments() -> None:
+    sections = [
+        section("10000", "数学演習", class_code="A1", slots=TUE_1),
+        section("10001", "数学演習", class_code="TA", departments=frozenset({"情"})),
+    ]
+
+    roadmap = place(recommend("数学演習"), sections, "情", 2026, SPRING_1, 16, {})
+
+    assert placed_names(roadmap.semesters[0]) == [("数学演習", "TA")]
+
+
+def test_a_class_without_a_code_can_be_chosen() -> None:
+    own = frozenset({"情"})
+    sections = [
+        replace(section("10000", "情報科学Ⅱ", departments=own), class_code=None),
+        section("10001", "情報科学Ⅱ", class_code="TA", departments=own, slots=TUE_1),
+    ]
+
+    roadmap = place(recommend("情報科学Ⅱ"), sections, "情", 2026, SPRING_1, 16, {"情報科学Ⅱ": ""})
+
+    [placed] = roadmap.semesters[0].courses
+    assert (placed.section.class_code, placed.class_confirmed) == (None, True)
+    with pytest.raises(RoadmapError, match="選べるクラスは 記号なし、TA です"):
+        place(recommend("情報科学Ⅱ"), sections, "情", 2026, SPRING_1, 16, {"情報科学Ⅱ": "TZ"})
+
+
+def test_a_roadmap_breaking_its_promises_is_rejected() -> None:
+    spring, autumn = remaining_semesters(1, Term.SPRING)[:2]
+    course = RecommendedCourse("通年の科目", "10000", Relevance.CORE, "理由")
+    year_long = PlacedCourse(course, section("10000", "通年の科目", term=None), True)
+    other = PlacedCourse(course, section("10000", "通年の科目"), True)
+
+    with pytest.raises(RoadmapError, match="続きの授業を持てるのは秋学期だけ"):
+        SemesterPlan(spring, (), (year_long,))
+    with pytest.raises(RoadmapError, match="春学期に置いていない続きの授業"):
+        Roadmap((SemesterPlan(spring, (other,)), SemesterPlan(autumn, (), (year_long,))), ())
+    with pytest.raises(RoadmapError, match="置けなかった科目にもあります: 通年の科目"):
+        Roadmap((SemesterPlan(spring, (year_long,)),), (course,))

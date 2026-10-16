@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from app.domain.course import ALL_GRADES, CourseSection, Term
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
+NO_CLASS_CODE = ""
+
 
 class RoadmapError(ValueError):
     pass
@@ -15,13 +17,17 @@ class Semester:
     grade: int
     term: Term
 
+    def __post_init__(self) -> None:
+        if self.grade not in ALL_GRADES:
+            raise RoadmapError(
+                f"回生は {min(ALL_GRADES)}〜{max(ALL_GRADES)} にしてください: {self.grade}"
+            )
+
 
 ALL_SEMESTERS = tuple(Semester(grade, term) for grade in sorted(ALL_GRADES) for term in Term)
 
 
 def remaining_semesters(grade: int, term: Term) -> tuple[Semester, ...]:
-    if grade not in ALL_GRADES:
-        raise RoadmapError(f"回生は {min(ALL_GRADES)}〜{max(ALL_GRADES)} にしてください: {grade}")
     return ALL_SEMESTERS[ALL_SEMESTERS.index(Semester(grade, term)) :]
 
 
@@ -39,6 +45,8 @@ class SemesterPlan:
     continuing: tuple[PlacedCourse, ...] = ()
 
     def __post_init__(self) -> None:
+        if self.continuing and self.semester.term is not Term.AUTUMN:
+            raise RoadmapError(f"{self.semester}: 続きの授業を持てるのは秋学期だけです")
         slots = Counter(
             slot for placed in self.courses + self.continuing for slot in placed.section.slots
         )
@@ -56,8 +64,6 @@ class Roadmap:
     unplaced: tuple[RecommendedCourse, ...]
 
     def __post_init__(self) -> None:
-        if any(plan.semester not in ALL_SEMESTERS for plan in self.semesters):
-            raise RoadmapError("回生は 1〜4、学期は春か秋にしてください")
         positions = [ALL_SEMESTERS.index(plan.semester) for plan in self.semesters]
         if positions != sorted(set(positions)):
             raise RoadmapError("学期は重ならずに古い順に並べてください")
@@ -65,6 +71,28 @@ class Roadmap:
         repeated = sorted(name for name, count in names.items() if count > 1)
         if repeated:
             raise RoadmapError(f"同じ科目が 2 つの学期にあります: {'、'.join(repeated)}")
+        both = sorted(names.keys() & {course.name for course in self.unplaced})
+        if both:
+            raise RoadmapError(f"置いた科目が置けなかった科目にもあります: {'、'.join(both)}")
+        year_long = {
+            (plan.semester.grade, placed)
+            for plan in self.semesters
+            if plan.semester.term is Term.SPRING
+            for placed in plan.courses
+            if placed.section.term is None
+        }
+        stray = [
+            placed.course.name
+            for plan in self.semesters
+            for placed in plan.continuing
+            if (plan.semester.grade, placed) not in year_long
+        ]
+        if stray:
+            raise RoadmapError(f"春学期に置いていない続きの授業があります: {'、'.join(stray)}")
+
+
+def _code(section: CourseSection) -> str:
+    return section.class_code or NO_CLASS_CODE
 
 
 def _classes(
@@ -75,24 +103,26 @@ def _classes(
     semesters: Sequence[Semester],
     chosen_classes: Mapping[str, str],
 ) -> tuple[list[CourseSection], bool]:
-    ordered = sorted(sections, key=lambda section: section.class_code or "")
-    own = [
-        section
-        for section in ordered
-        if department in (section.departments or ())
-        and any(section.offered_to(department, semester.grade, year) for semester in semesters)
+    ordered = sorted(sections, key=_code)
+    own = [section for section in ordered if department in (section.departments or ())]
+    open_together = [
+        {
+            _code(section)
+            for section in own
+            if section.offered_to(department, semester.grade, year)
+            and (section.term or Term.SPRING) is semester.term
+        }
+        for semester in semesters
     ]
-    codes = sorted({section.class_code or "" for section in own})
-    if len(codes) < 2:
-        if name in chosen_classes:
-            raise RoadmapError(f"{name}: 学科で分かれたクラスではないので、クラスを選べません")
-        return ordered, True
+    choosable = sorted(set().union(*(codes for codes in open_together if len(codes) >= 2)))
+    if not choosable:
+        return own or ordered, True
     if name not in chosen_classes:
         return own, False
-    chosen = [section for section in own if section.class_code == chosen_classes[name]]
-    if not chosen:
-        raise RoadmapError(f"{name}: 選べるクラスは {'、'.join(codes)} です")
-    return chosen, True
+    if chosen_classes[name] not in choosable:
+        listed = "、".join(code or "記号なし" for code in choosable)
+        raise RoadmapError(f"{name}: 選べるクラスは {listed} です")
+    return [section for section in own if _code(section) == chosen_classes[name]], True
 
 
 def place(
@@ -111,9 +141,9 @@ def place(
     for section in sections:
         if section.name in by_name:
             by_name[section.name].append(section)
-    chosen = {name: code for name, code in chosen_classes.items() if name in names}
     options = {
-        name: _classes(name, by_name[name], department, year, semesters, chosen) for name in names
+        name: _classes(name, by_name[name], department, year, semesters, chosen_classes)
+        for name in names
     }
     year_long: dict[int, list[PlacedCourse]] = defaultdict(list)
     placed: set[str] = set()
