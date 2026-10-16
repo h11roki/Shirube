@@ -1,7 +1,9 @@
+from datetime import datetime
 from typing import TypedDict
+from uuid import UUID
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import ForeignKeyConstraint, Index, Text
+from sqlalchemy import DateTime, ForeignKeyConstraint, Index, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -18,6 +20,84 @@ class AudienceJson(TypedDict):
     entry_year_to: int
     eligible_grades: list[int]
     category: str
+
+
+class SectionJson(TypedDict):
+    code: str
+    name: str
+    class_code: str | None
+    term: str | None
+    slots: list[SlotJson]
+    departments: list[str] | None
+    audiences: list[AudienceJson]
+    credits: int
+    instructors: list[str]
+    room: str | None
+    registration: str
+    note: str | None
+
+
+class SemesterJson(TypedDict):
+    grade: int
+    term: str
+
+
+class ConditionsJson(TypedDict):
+    occupation: str
+    department: str
+    year: int
+    start: SemesterJson
+    chosen_classes: dict[str, str]
+    credit_limit: int
+
+
+class ProfileJson(TypedDict):
+    occupation: str
+    interpretation: str
+    assumption: str | None
+    skills: list[str]
+
+
+class ChoiceJson(TypedDict):
+    name: str
+    relevance: str
+    reason: str
+    prerequisite_for: str | None
+
+
+class RecommendedJson(ChoiceJson):
+    syllabus_code: str
+
+
+class RecommendationJson(TypedDict):
+    profile: ProfileJson
+    courses: list[RecommendedJson]
+    candidates: list[str]
+    unlinked: list[ChoiceJson]
+
+
+class PlacedJson(TypedDict):
+    course: str
+    section: SectionJson
+    class_confirmed: bool
+
+
+class SemesterPlanJson(TypedDict):
+    semester: SemesterJson
+    courses: list[PlacedJson]
+    continuing: list[PlacedJson]
+
+
+class RoadmapJson(TypedDict):
+    semesters: list[SemesterPlanJson]
+    unplaced: list[str]
+
+
+class PlanJson(TypedDict):
+    version: int
+    conditions: ConditionsJson
+    recommendation: RecommendationJson
+    roadmap: RoadmapJson
 
 
 class SessionJson(TypedDict):
@@ -118,3 +198,11 @@ class EmbeddingRow(Base):
     model: Mapped[str] = mapped_column(primary_key=True)
     content_hash: Mapped[str] = mapped_column(primary_key=True)
     vector: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
+
+
+class PlanRow(Base):
+    __tablename__ = "plans"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    body: Mapped[PlanJson] = mapped_column(JSONB)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
