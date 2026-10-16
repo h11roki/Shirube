@@ -4,8 +4,8 @@ from dataclasses import dataclass, replace
 
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
-from app.domain.course import ALL_GRADES
 from app.domain.occupation import is_single_line, search_query
+from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_CUTOFFS = (10, 20)
 
@@ -90,7 +90,7 @@ class EvaluateSearch:
         self._search = search
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
-        candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
+        candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         dataset.require_courses_in(candidates.names)
         queries = [case.query for case in dataset.cases]
         rankings = candidates.rank(queries, max(RECALL_CUTOFFS))

@@ -4,6 +4,10 @@ from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import ArgumentError
 
+from app.application.recommend_courses import RecommendCourses
+from app.application.search_courses import SearchCourses
+from app.infrastructure.db.chunks import SqlChunkRepository
+from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
@@ -51,3 +55,15 @@ def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
 
 def openai_course_selector(settings: Settings) -> OpenAICourseSelector:
     return OpenAICourseSelector.connect(settings.selection_model, openai_api_key(settings))
+
+
+def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
+    courses = SqlCourseRepository(engine)
+    search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
+    return RecommendCourses(
+        search,
+        courses,
+        openai_occupation_analyzer(settings),
+        openai_course_selector(settings),
+        settings.selection_candidate_limit,
+    )

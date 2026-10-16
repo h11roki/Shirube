@@ -1,11 +1,14 @@
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from app.domain.course import ALL_GRADES, CourseSection, Term
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 NO_CLASS_CODE = ""
+SPRING_MONTHS = range(4, 9)
+TERM_NAMES = {Term.SPRING: "春学期", Term.AUTUMN: "秋学期"}
 
 
 class RoadmapError(ValueError):
@@ -23,12 +26,26 @@ class Semester:
                 f"回生は {min(ALL_GRADES)}〜{max(ALL_GRADES)} にしてください: {self.grade}"
             )
 
+    def __str__(self) -> str:
+        return f"{self.grade} 回生 {TERM_NAMES[self.term]}"
+
 
 ALL_SEMESTERS = tuple(Semester(grade, term) for grade in sorted(ALL_GRADES) for term in Term)
 
 
-def remaining_semesters(grade: int, term: Term) -> tuple[Semester, ...]:
-    return ALL_SEMESTERS[ALL_SEMESTERS.index(Semester(grade, term)) :]
+def remaining_semesters(start: Semester) -> tuple[Semester, ...]:
+    return ALL_SEMESTERS[ALL_SEMESTERS.index(start) :]
+
+
+def term_on(day: date) -> Term:
+    return Term.SPRING if day.month in SPRING_MONTHS else Term.AUTUMN
+
+
+def opens_in(section: CourseSection, department: str, year: int, semester: Semester) -> bool:
+    return (
+        section.offered_to(department, semester.grade, year)
+        and (section.term or Term.SPRING) is semester.term
+    )
 
 
 @dataclass(frozen=True)
@@ -95,6 +112,46 @@ def _code(section: CourseSection) -> str:
     return section.class_code or NO_CLASS_CODE
 
 
+def _split_classes(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+) -> tuple[list[CourseSection], list[str]]:
+    own = [
+        section
+        for section in sorted(sections, key=_code)
+        if department in (section.departments or ())
+        and any(opens_in(section, department, year, semester) for semester in semesters)
+    ]
+    open_together = [
+        {_code(section) for section in own if opens_in(section, department, year, semester)}
+        for semester in semesters
+    ]
+    choosable = sorted(set().union(*(codes for codes in open_together if len(codes) >= 2)))
+    return own, choosable
+
+
+def _require_choosable(name: str, chosen: str, choosable: Sequence[str]) -> None:
+    if chosen not in choosable:
+        listed = "、".join(code or "記号なし" for code in choosable)
+        raise RoadmapError(f"{name}: 選べるクラスは {listed} です")
+
+
+def require_class_choices(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    chosen_classes: Mapping[str, str],
+) -> None:
+    for name, chosen in chosen_classes.items():
+        named = [section for section in sections if section.name == name]
+        _, choosable = _split_classes(named, department, year, semesters)
+        if choosable:
+            _require_choosable(name, chosen, choosable)
+
+
 def _classes(
     name: str,
     sections: Sequence[CourseSection],
@@ -103,25 +160,12 @@ def _classes(
     semesters: Sequence[Semester],
     chosen_classes: Mapping[str, str],
 ) -> tuple[list[CourseSection], bool]:
-    ordered = sorted(sections, key=_code)
-    own = [section for section in ordered if department in (section.departments or ())]
-    open_together = [
-        {
-            _code(section)
-            for section in own
-            if section.offered_to(department, semester.grade, year)
-            and (section.term or Term.SPRING) is semester.term
-        }
-        for semester in semesters
-    ]
-    choosable = sorted(set().union(*(codes for codes in open_together if len(codes) >= 2)))
+    own, choosable = _split_classes(sections, department, year, semesters)
     if not choosable:
-        return own or ordered, True
+        return own or sorted(sections, key=_code), True
     if name not in chosen_classes:
         return own, False
-    if chosen_classes[name] not in choosable:
-        listed = "、".join(code or "記号なし" for code in choosable)
-        raise RoadmapError(f"{name}: 選べるクラスは {listed} です")
+    _require_choosable(name, chosen_classes[name], choosable)
     return [section for section in own if _code(section) == chosen_classes[name]], True
 
 
@@ -161,8 +205,7 @@ def place(
                 (
                     section
                     for section in classes
-                    if section.offered_to(department, semester.grade, year)
-                    and (section.term or Term.SPRING) is semester.term
+                    if opens_in(section, department, year, semester)
                     and credits + section.credits <= credit_limit
                     and occupied.isdisjoint(section.slots)
                 ),
@@ -175,7 +218,7 @@ def place(
             placed.add(course.name)
             credits += fitting.credits
             occupied.update(fitting.slots)
-            if fitting.term is None:
+            if fitting.term is None and fitting.slots:
                 year_long[semester.grade].append(placed_course)
         plans.append(SemesterPlan(semester, tuple(courses), continuing))
     unplaced = tuple(course for course in recommendation.courses if course.name not in placed)

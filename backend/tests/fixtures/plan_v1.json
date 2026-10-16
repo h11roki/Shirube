@@ -1,0 +1,261 @@
+{
+  "version": 1,
+  "conditions": {
+    "occupation": "職業",
+    "department": "情",
+    "year": 2026,
+    "start": {
+      "grade": 3,
+      "term": "spring"
+    },
+    "chosen_classes": {
+      "科目Z": "6B"
+    },
+    "credit_limit": 16
+  },
+  "recommendation": {
+    "profile": {
+      "occupation": "職業",
+      "interpretation": "解釈した職業",
+      "assumption": "前提の文",
+      "skills": [
+        "甲",
+        "乙",
+        "丙"
+      ]
+    },
+    "courses": [
+      {
+        "name": "科目A",
+        "syllabus_code": "10000",
+        "relevance": "core",
+        "reason": "理由A",
+        "prerequisite_for": null
+      },
+      {
+        "name": "科目B",
+        "syllabus_code": "10001",
+        "relevance": "core",
+        "reason": "理由B",
+        "prerequisite_for": null
+      },
+      {
+        "name": "科目C",
+        "syllabus_code": "10002",
+        "relevance": "foundation",
+        "reason": "理由C",
+        "prerequisite_for": "科目A"
+      },
+      {
+        "name": "科目D",
+        "syllabus_code": "10003",
+        "relevance": "foundation",
+        "reason": "理由D",
+        "prerequisite_for": "科目A"
+      }
+    ],
+    "candidates": [
+      "科目A",
+      "科目B",
+      "科目C",
+      "科目D",
+      "科目E",
+      "科目F"
+    ],
+    "unlinked": [
+      {
+        "name": "科目E",
+        "relevance": "foundation",
+        "reason": "理由E",
+        "prerequisite_for": "科目F"
+      }
+    ]
+  },
+  "roadmap": {
+    "semesters": [
+      {
+        "semester": {
+          "grade": 3,
+          "term": "spring"
+        },
+        "courses": [
+          {
+            "course": "科目A",
+            "section": {
+              "code": "10000",
+              "name": "科目A",
+              "class_code": "6T",
+              "term": "spring",
+              "slots": [
+                {
+                  "weekday": "mon",
+                  "period": 1
+                },
+                {
+                  "weekday": "mon",
+                  "period": 2
+                }
+              ],
+              "departments": [
+                "情",
+                "電"
+              ],
+              "audiences": [
+                {
+                  "entry_year_from": 2020,
+                  "entry_year_to": 2026,
+                  "eligible_grades": [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  "category": "専門"
+                },
+                {
+                  "entry_year_from": 2016,
+                  "entry_year_to": 2019,
+                  "eligible_grades": [
+                    2
+                  ],
+                  "category": "基礎専"
+                }
+              ],
+              "credits": 2,
+              "instructors": [
+                "教員 甲",
+                "教員 乙"
+              ],
+              "room": "F101",
+              "registration": "本",
+              "note": null
+            },
+            "class_confirmed": true
+          },
+          {
+            "course": "科目B",
+            "section": {
+              "code": "10001",
+              "name": "科目B",
+              "class_code": "6T",
+              "term": null,
+              "slots": [
+                {
+                  "weekday": "wed",
+                  "period": 3
+                }
+              ],
+              "departments": [
+                "情",
+                "電"
+              ],
+              "audiences": [
+                {
+                  "entry_year_from": 2020,
+                  "entry_year_to": 2026,
+                  "eligible_grades": [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  "category": "専門"
+                },
+                {
+                  "entry_year_from": 2016,
+                  "entry_year_to": 2019,
+                  "eligible_grades": [
+                    2
+                  ],
+                  "category": "基礎専"
+                }
+              ],
+              "credits": 2,
+              "instructors": [
+                "教員 甲",
+                "教員 乙"
+              ],
+              "room": "F101",
+              "registration": "本",
+              "note": null
+            },
+            "class_confirmed": true
+          },
+          {
+            "course": "科目C",
+            "section": {
+              "code": "10002",
+              "name": "科目C",
+              "class_code": "6A",
+              "term": "spring",
+              "slots": [],
+              "departments": [
+                "情"
+              ],
+              "audiences": [
+                {
+                  "entry_year_from": 2020,
+                  "entry_year_to": 2026,
+                  "eligible_grades": [
+                    1,
+                    2,
+                    3,
+                    4
+                  ],
+                  "category": "専門"
+                },
+                {
+                  "entry_year_from": 2016,
+                  "entry_year_to": 2019,
+                  "eligible_grades": [
+                    2
+                  ],
+                  "category": "基礎専"
+                }
+              ],
+              "credits": 2,
+              "instructors": [
+                "教員 甲",
+                "教員 乙"
+              ],
+              "room": "F101",
+              "registration": "本",
+              "note": null
+            },
+            "class_confirmed": false
+          }
+        ],
+        "continuing": []
+      },
+      {
+        "semester": {
+          "grade": 3,
+          "term": "autumn"
+        },
+        "courses": [],
+        "continuing": [
+          "科目B"
+        ]
+      },
+      {
+        "semester": {
+          "grade": 4,
+          "term": "spring"
+        },
+        "courses": [],
+        "continuing": []
+      },
+      {
+        "semester": {
+          "grade": 4,
+          "term": "autumn"
+        },
+        "courses": [],
+        "continuing": []
+      }
+    ],
+    "unplaced": [
+      "科目D"
+    ]
+  }
+}

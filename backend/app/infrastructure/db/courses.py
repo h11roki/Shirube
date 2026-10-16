@@ -10,6 +10,7 @@ from app.infrastructure.db.models import (
     AudienceJson,
     CourseSectionRow,
     GradingJson,
+    SectionJson,
     SessionJson,
     SlotJson,
     SyllabusCodeRow,
@@ -24,7 +25,7 @@ class SqlCourseRepository:
     def replace_sections(self, year: int, sections: list[CourseSection]) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(delete(CourseSectionRow).where(CourseSectionRow.year == year))
-            db.add_all(_section_row(year, section) for section in sections)
+            db.add_all(CourseSectionRow(year=year, **section_json(section)) for section in sections)
 
     def replace_syllabi(self, year: int, syllabi: list[Syllabus]) -> None:
         with DbSession(self._engine) as db, db.begin():
@@ -91,9 +92,8 @@ def _load_syllabi(
     ]
 
 
-def _section_row(year: int, section: CourseSection) -> CourseSectionRow:
-    return CourseSectionRow(
-        year=year,
+def section_json(section: CourseSection) -> SectionJson:
+    return SectionJson(
         code=section.code,
         name=section.name,
         class_code=section.class_code,
@@ -117,14 +117,14 @@ def _section_row(year: int, section: CourseSection) -> CourseSectionRow:
     )
 
 
-def _section(row: CourseSectionRow) -> CourseSection:
+def section_from_json(data: SectionJson) -> CourseSection:
     return CourseSection(
-        code=row.code,
-        name=row.name,
-        class_code=row.class_code,
-        term=Term(row.term) if row.term is not None else None,
-        slots=tuple(TimeSlot(Weekday(slot["weekday"]), slot["period"]) for slot in row.slots),
-        departments=frozenset(row.departments) if row.departments is not None else None,
+        code=data["code"],
+        name=data["name"],
+        class_code=data["class_code"],
+        term=Term(data["term"]) if data["term"] is not None else None,
+        slots=tuple(TimeSlot(Weekday(slot["weekday"]), slot["period"]) for slot in data["slots"]),
+        departments=frozenset(data["departments"]) if data["departments"] is not None else None,
         audiences=tuple(
             Audience(
                 audience["entry_year_from"],
@@ -132,13 +132,32 @@ def _section(row: CourseSectionRow) -> CourseSection:
                 frozenset(audience["eligible_grades"]),
                 audience["category"],
             )
-            for audience in row.audiences
+            for audience in data["audiences"]
         ),
-        credits=row.credits,
-        instructors=tuple(row.instructors),
-        room=row.room,
-        registration=row.registration,
-        note=row.note,
+        credits=data["credits"],
+        instructors=tuple(data["instructors"]),
+        room=data["room"],
+        registration=data["registration"],
+        note=data["note"],
+    )
+
+
+def _section(row: CourseSectionRow) -> CourseSection:
+    return section_from_json(
+        SectionJson(
+            code=row.code,
+            name=row.name,
+            class_code=row.class_code,
+            term=row.term,
+            slots=row.slots,
+            departments=row.departments,
+            audiences=row.audiences,
+            credits=row.credits,
+            instructors=row.instructors,
+            room=row.room,
+            registration=row.registration,
+            note=row.note,
+        )
     )
 
 

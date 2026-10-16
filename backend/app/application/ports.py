@@ -1,10 +1,12 @@
 from collections.abc import Set
 from dataclasses import dataclass
 from typing import Protocol
+from uuid import UUID
 
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
+from app.domain.plan import Plan
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -57,6 +59,16 @@ class CourseSelector(Protocol):
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
     ) -> list[CourseChoice]: ...
+
+
+class PlanFormatError(ValueError):
+    pass
+
+
+class PlanRepository(Protocol):
+    def add(self, plan: Plan) -> None: ...
+
+    def get(self, plan_id: UUID) -> Plan | None: ...
 
 
 class ChunkRepository(Protocol):

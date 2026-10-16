@@ -7,9 +7,9 @@ from app.application.evaluate_search import EvaluationDataset, EvaluationError
 from app.application.ports import CourseRepository, CourseSelector
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
-from app.domain.course import ALL_GRADES
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Relevance
+from app.domain.roadmap import ALL_SEMESTERS
 
 
 class Judgment(Enum):
@@ -120,7 +120,7 @@ class EvaluateSelection:
 
     def run(self, dataset: EvaluationDataset, judgments: Judgments) -> SelectionReport:
         profiles = HandwrittenProfiles(dataset)
-        candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
+        candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         dataset.require_courses_in(candidates.names)
         unjudged = sorted(candidates.names - judgments.courses)
         if unjudged:
@@ -142,7 +142,7 @@ class EvaluateSelection:
         results = []
         for case in dataset.cases:
             recommendation = recommend.run(
-                case.occupation, dataset.year, dataset.department, ALL_GRADES
+                case.occupation, dataset.year, dataset.department, ALL_SEMESTERS
             )
             picked = {course.name: course.relevance for course in recommendation.courses}
             dropped = {choice.name for choice in recommendation.unlinked}

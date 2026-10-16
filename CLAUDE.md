@@ -15,6 +15,7 @@ backend(`backend/` で実行)
 - `DATABASE_URL=... uv run python -m app.presentation.cli.evaluate`(`OPENAI_API_KEY` が要る)で、`eval/occupations.json` の職業ごとに検索の再現率@10 と @20 を出す(ADR 0017)。`--skills llm` で手書きのスキルの代わりに LLM が職業名から出したスキルを使う(ADR 0018、モデルは `CHAT_MODEL`)。`embed` の後に実行する。チャンクの切り方、モデル、クエリを変えたら測り直す。期待する科目は手で書き換えず、`eval/judgments.json` の判定の多数決と高橋さんの決定から作る(テストが一致を確かめる)
 - `DATABASE_URL=... uv run python -m app.presentation.cli.recommend 職業名`(`OPENAI_API_KEY` が要る)で、LLM が職業をスキルに直し(`CHAT_MODEL`)、検索の上位 30 件(`SELECTION_CANDIDATE_LIMIT`)から中心と土台の科目を理由つきで選ぶ(`SELECTION_MODEL`、ADR 0018、0023)。土台は前提にする中心の科目を 1 つ指し、中心に選ばれていなければ外して表示する。`--year`、`--department`(既定は情)、`--grades` で候補を絞る。土台は中心に選んだ授業の前提に限るので、低い回生だけに絞って候補に中心が無いと空になる。1 回に LLM を 2 回呼び、数円かかる
 - `DATABASE_URL=... uv run python -m app.presentation.cli.evaluate_selection`(`OPENAI_API_KEY` が要る)で、評価データの職業ごとに選び直しの結果を判定の票(期待・土台・少数・関係なし)と比べる(ADR 0023)。中心につながらず外した土台と、その判定の内訳も出す。スキルは評価データの手書きのものを使う。選び手は土台の意味が判定者より狭く、迷ったときの決め方も違うので、中心と土台の内訳は判定と同じ物差しではない。判定の関係なしを誤りの目安に見る。1 回 10 職業で約 15 円(nano)。指示文や `SELECTION_MODEL` を変えたら測り直す
+- `DATABASE_URL=... uv run python -m app.presentation.cli.plan create 職業名 --grade 3`(`OPENAI_API_KEY` が要る)で、推薦して始める学期から 4 回生の秋学期までの道標を作り、plans 表に保存して表示する(ADR 0024)。`--term`(spring / autumn、既定は今日の月から)、`--department`、`--year`、`--class 科目名=クラス記号`(学科で分かれたクラスの選択、繰り返せる。記号の無いクラスは `科目名=`)。1 学期の単位の上限は `SEMESTER_CREDIT_LIMIT`(既定 16)。`... plan show <id>` で保存した道標を表示する
 - `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
 - `uv run python -m app.presentation.cli.fetch_syllabus listings` で理工学部の検索結果(学期×曜日×時限)を `data/raw/ritsumeikan/<年度>/listings/` に保存。`... details --codes-from data/curriculum/timetable.jsonl` で授業コードごとの詳細ページを `details/<主コード>.html` に保存(合併科目は別名のコードでも主コードのページに当たる、ADR 0013)。どちらも保存済みは飛ばすので中断後に再実行できる
 - `uv run python -m app.presentation.cli.syllabus 32494` で保存済みの詳細ページを解析して JSON 表示。引数なしで保存済み全件の解析検査
@@ -33,7 +34,7 @@ frontend(`frontend/` で実行)
 
 `backend/app` は4層。依存は presentation → application → domain の一方向で、infrastructure は application のポート(Protocol)を実装する。
 
-- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Semester, Roadmap, SemesterPlan)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
+- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Semester, Roadmap, SemesterPlan, Plan)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
 - application: ユースケース(CreatePlan, IngestTimetable, IngestSyllabi, FetchSyllabus, EmbedSyllabi, SearchCourses, EvaluateSearch, RecommendCourses, EvaluateSelection)とポート(`ports.py`)。ポートは差し替え先が実在するものだけ(時間割表の取得元、シラバスの取得元、LLM、埋め込み、科目リポジトリ、チャンクの保存、チャンクの検索、Plan リポジトリ)
 - infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`curriculum/<university>/`(時間割表の解析)、`scrapers/<university>/`(シラバスの取得と解析)、`auth/`
 - presentation: `api/`(FastAPI ルータ、接頭辞 `/api/v1`)、`schemas/`(Pydantic DTO)、`cli/`

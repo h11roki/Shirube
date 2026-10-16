@@ -1,4 +1,4 @@
-from collections.abc import Set
+from collections.abc import Sequence
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses
@@ -8,6 +8,7 @@ from app.domain.recommendation import (
     RecommendationError,
     arrange,
 )
+from app.domain.roadmap import Semester
 
 
 class RecommendCourses:
@@ -25,8 +26,10 @@ class RecommendCourses:
         self._selector = selector
         self._candidate_limit = candidate_limit
 
-    def run(self, occupation: str, year: int, department: str, grades: Set[int]) -> Recommendation:
-        candidates = self._search.candidates(year, department, grades)
+    def run(
+        self, occupation: str, year: int, department: str, semesters: Sequence[Semester]
+    ) -> Recommendation:
+        candidates = self._search.candidates(year, department, semesters)
         profile = self._analyzer.analyze(occupation)
         [matches] = candidates.rank([profile.query], self._candidate_limit)
         if not matches:

@@ -1,6 +1,6 @@
 # 0008. API は REST + OpenAPI 型生成、同期、Next.js Route Handler 経由とする
 
-- ステータス: 承認
+- ステータス: 廃止(Superseded by 0024)
 - 日付: 2026-10-14
 
 ## 文脈
