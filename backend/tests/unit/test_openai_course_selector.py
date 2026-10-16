@@ -95,3 +95,13 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
 def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any]) -> None:
     with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):
         selector_answering(message).select(PROFILE, CANDIDATES)
+
+
+def test_instructions_tie_each_foundation_to_a_chosen_core_course() -> None:
+    requests: list[dict[str, Any]] = []
+    selector_answering(answer(), requests).select(PROFILE, CANDIDATES)
+
+    instructions = requests[0]["messages"][0]["content"]
+    assert "中心に選んだ授業の内容を学ぶ前提として必要な基礎" in instructions
+    assert "土台の理由には、中心に選んだどの授業のどの内容の前提になるかを書きます" in instructions
+    assert "一部の回" not in instructions
