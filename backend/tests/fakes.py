@@ -1,6 +1,7 @@
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
+from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
 
 FAKE_MODEL = "fake-embedding"
@@ -28,6 +29,18 @@ class FakeOccupationAnalyzer:
     def analyze(self, occupation: str) -> OccupationProfile:
         self.calls.append(occupation)
         return self._profiles[occupation]
+
+
+class FakeCourseSelector:
+    def __init__(self, choices: list[CourseChoice]) -> None:
+        self._choices = choices
+        self.calls: list[tuple[OccupationProfile, list[CandidateCourse]]] = []
+
+    def select(
+        self, profile: OccupationProfile, candidates: list[CandidateCourse]
+    ) -> list[CourseChoice]:
+        self.calls.append((profile, candidates))
+        return self._choices
 
 
 class FakeChunkSearch:
