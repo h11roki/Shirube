@@ -41,7 +41,10 @@ def render(recommendation: Recommendation) -> str:
             link = "" if course.prerequisite_for is None else f"(→ {course.prerequisite_for})"
             lines.append(f"  {course.name}{link}: {course.reason}")
     if recommendation.unlinked:
-        lines.append(f"中心につながらず外した土台: {'、'.join(recommendation.unlinked)}")
+        unlinked = [
+            f"{choice.name}(→ {choice.prerequisite_for})" for choice in recommendation.unlinked
+        ]
+        lines.append(f"中心につながらず外した土台: {'、'.join(unlinked)}")
     lines.append(f"検索の上位 {len(recommendation.candidates)} 件から選んだ")
     return "\n".join(lines)
 

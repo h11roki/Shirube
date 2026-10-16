@@ -82,13 +82,13 @@ def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills()
                 "職業",
                 (
                     Pick("科目A", Relevance.CORE, Judgment.EXPECTED),
-                    Pick("科目C", Relevance.FOUNDATION, Judgment.UNRELATED),
+                    Pick("科目C", Relevance.FOUNDATION, Judgment.UNRELATED, "科目A"),
                 ),
                 (
                     ExpectedCourse("科目A", Relevance.CORE, searched=True, unlinked=False),
                     ExpectedCourse("科目D", None, searched=False, unlinked=False),
                 ),
-                (Pick("科目B", Relevance.FOUNDATION, Judgment.FOUNDATION),),
+                (Pick("科目B", Relevance.FOUNDATION, Judgment.FOUNDATION, "科目C"),),
             ),
         )
     )
@@ -107,7 +107,7 @@ def test_an_expected_course_dropped_as_unlinked_is_not_counted_as_skipped() -> N
     [result] = EvaluateSelection(search, repository, selector, 3).run(DATASET, JUDGMENTS).results
 
     assert result.expected[0] == ExpectedCourse("科目A", None, searched=True, unlinked=True)
-    assert result.unlinked == (Pick("科目A", Relevance.FOUNDATION, Judgment.EXPECTED),)
+    assert result.unlinked == (Pick("科目A", Relevance.FOUNDATION, Judgment.EXPECTED, "科目C"),)
     assert (result.expected_unlinked, result.skipped) == (("科目A",), ())
 
 
@@ -241,8 +241,8 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
                     ExpectedCourse("科目D", None, searched=False, unlinked=False),
                 ),
                 (
-                    Pick("科目F", Relevance.FOUNDATION, Judgment.UNRELATED),
-                    Pick("科目G", Relevance.FOUNDATION, Judgment.EXPECTED),
+                    Pick("科目F", Relevance.FOUNDATION, Judgment.UNRELATED, "科目B"),
+                    Pick("科目G", Relevance.FOUNDATION, Judgment.EXPECTED, "科目C"),
                 ),
             ),
         )
@@ -256,7 +256,7 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
     )
     assert render(report) == (
         "職業\n" + summary + "  関係なしを選んだ: 科目C\n"
-        "  中心につながらず外した土台: 科目F、科目G\n"
+        "  中心につながらず外した土台: 科目F(→ 科目B)、科目G(→ 科目C)\n"
         "  選ばなかった期待する科目: 科目E\n"
         "  検索の上位に無かった期待する科目: 科目D\n"
         "合計\n"

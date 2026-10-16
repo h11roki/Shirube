@@ -86,7 +86,7 @@ def render(report: SelectionReport) -> str:
         if unrelated:
             lines.append(f"  関係なしを選んだ: {'、'.join(unrelated)}")
         if result.unlinked:
-            unlinked = [pick.name for pick in result.unlinked]
+            unlinked = [f"{pick.name}(→ {pick.prerequisite_for})" for pick in result.unlinked]
             lines.append(f"  中心につながらず外した土台: {'、'.join(unlinked)}")
         if result.skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(result.skipped)}")

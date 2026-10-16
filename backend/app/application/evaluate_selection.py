@@ -56,6 +56,7 @@ class Pick:
     name: str
     relevance: Relevance
     judgment: Judgment
+    prerequisite_for: str | None = None
 
 
 @dataclass(frozen=True)
@@ -138,8 +139,14 @@ class EvaluateSelection:
                 case.occupation, dataset.year, dataset.department, ALL_GRADES
             )
             picked = {course.name: course.relevance for course in recommendation.courses}
+            dropped = {choice.name for choice in recommendation.unlinked}
             picks = tuple(
-                Pick(course.name, course.relevance, judgments.of(case.occupation, course.name))
+                Pick(
+                    course.name,
+                    course.relevance,
+                    judgments.of(case.occupation, course.name),
+                    course.prerequisite_for,
+                )
                 for course in recommendation.courses
             )
             expected = tuple(
@@ -147,13 +154,18 @@ class EvaluateSelection:
                     name,
                     picked.get(name),
                     name in recommendation.candidates,
-                    name in recommendation.unlinked,
+                    name in dropped,
                 )
                 for name in case.expected
             )
             unlinked = tuple(
-                Pick(name, Relevance.FOUNDATION, judgments.of(case.occupation, name))
-                for name in recommendation.unlinked
+                Pick(
+                    choice.name,
+                    choice.relevance,
+                    judgments.of(case.occupation, choice.name),
+                    choice.prerequisite_for,
+                )
+                for choice in recommendation.unlinked
             )
             results.append(SelectionResult(case.occupation, picks, expected, unlinked))
         return SelectionReport(tuple(results))

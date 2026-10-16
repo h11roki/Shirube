@@ -41,8 +41,10 @@ def section(
     )
 
 
-def recommend(*names: str, relevance: Relevance = Relevance.CORE) -> Recommendation:
-    courses = tuple(RecommendedCourse(name, "10000", relevance, f"{name}の理由") for name in names)
+def recommend(*names: str) -> Recommendation:
+    courses = tuple(
+        RecommendedCourse(name, "10000", Relevance.CORE, f"{name}の理由") for name in names
+    )
     return Recommendation(PROFILE, courses, names)
 
 

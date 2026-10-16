@@ -70,6 +70,16 @@ def test_answer_becomes_choices_and_names_are_limited_to_the_candidates() -> Non
     )
 
 
+def test_foundations_for_courses_not_chosen_as_core_are_left_to_arrange() -> None:
+    selector = selector_answering(
+        answer(foundation=[{"name": "科目A", "prerequisite_for": "科目B", "reason": "理由A"}])
+    )
+
+    assert selector.select(PROFILE, CANDIDATES) == [
+        CourseChoice("科目A", Relevance.FOUNDATION, "理由A", "科目B")
+    ]
+
+
 def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
     requests: list[dict[str, Any]] = []
     selector_answering(answer(), requests).select(PROFILE, CANDIDATES)
@@ -96,7 +106,7 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
         "refusal",
         "broken-json",
         "no-content",
-        "foundation-without-core",
+        "foundation-without-prerequisite",
         "blank-reason",
         "old-shape",
     ],
