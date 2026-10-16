@@ -13,6 +13,7 @@ from app.domain.recommendation import (
     RecommendationError,
     Relevance,
 )
+from app.domain.roadmap import ALL_SEMESTERS
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.presentation.cli.environment import (
@@ -72,8 +73,8 @@ def main() -> None:
         search, courses, analyzer, selector, settings.selection_candidate_limit
     )
     try:
-        grades = set(args.grades)
-        print(render(recommend.run(args.occupation, args.year, args.department, grades)))
+        semesters = [semester for semester in ALL_SEMESTERS if semester.grade in args.grades]
+        print(render(recommend.run(args.occupation, args.year, args.department, semesters)))
     except (
         SearchError,
         OccupationAnalysisError,

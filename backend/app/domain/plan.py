@@ -1,4 +1,3 @@
-from collections.abc import Mapping
 from dataclasses import dataclass
 from uuid import UUID
 
@@ -16,7 +15,7 @@ class PlanConditions:
     department: str
     year: int
     start: Semester
-    chosen_classes: Mapping[str, str]
+    chosen_classes: tuple[tuple[str, str], ...]
     credit_limit: int
 
 

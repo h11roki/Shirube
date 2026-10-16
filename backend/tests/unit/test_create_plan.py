@@ -46,7 +46,7 @@ def test_plan_recommends_from_the_start_grade_places_from_the_start_term_and_is_
 
     [(_, candidates)] = selector.calls
     assert [candidate.name for candidate in candidates] == ["科目A", "科目B", "科目C"]
-    assert plan.conditions == PlanConditions("職業", "情", 2026, START, {"科目A": "6T"}, 2)
+    assert plan.conditions == PlanConditions("職業", "情", 2026, START, (("科目A", "6T"),), 2)
     placed = [
         (semester_plan.semester, placed.course.name)
         for semester_plan in plan.roadmap.semesters
@@ -56,3 +56,24 @@ def test_plan_recommends_from_the_start_grade_places_from_the_start_term_and_is_
     assert placed == [(START, "科目A"), (Semester(4, Term.SPRING), "科目B")]
     assert [course.name for course in plan.roadmap.unplaced] == ["科目C"]
     assert plans.plans == {plan.id: plan}
+
+
+def test_courses_of_the_start_grade_that_only_open_before_the_start_term_are_not_candidates() -> (
+    None
+):
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    third_grade_only = (Audience(2020, 2026, frozenset({3}), "専門"),)
+    a, b = repository.stored_sections
+    repository.stored_sections = [replace(a, audiences=third_grade_only), b]
+    selector = FakeCourseSelector([CourseChoice("科目B", Relevance.CORE, "理由B")])
+    recommend = RecommendCourses(
+        search, repository, FakeOccupationAnalyzer({"職業": PROFILE}), selector, 30
+    )
+
+    plan = CreatePlan(recommend, repository, FakePlanRepository(), 16).run(
+        "職業", "情", 2026, Semester(3, Term.AUTUMN), {}
+    )
+
+    [(_, candidates)] = selector.calls
+    assert [candidate.name for candidate in candidates] == ["科目B"]
+    assert plan.roadmap.semesters[0].semester == Semester(3, Term.AUTUMN)

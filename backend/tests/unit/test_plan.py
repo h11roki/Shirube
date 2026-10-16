@@ -11,7 +11,7 @@ from app.domain.roadmap import Roadmap, Semester, SemesterPlan, term_on
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
 START = Semester(3, Term.SPRING)
-CONDITIONS = PlanConditions("職業", "情", 2026, START, {}, 16)
+CONDITIONS = PlanConditions("職業", "情", 2026, START, (), 16)
 
 
 @pytest.mark.parametrize(

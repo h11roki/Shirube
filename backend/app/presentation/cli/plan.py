@@ -123,6 +123,11 @@ def main() -> None:
     show = commands.add_parser("show", help="保存した道標を表示する")
     show.add_argument("plan_id", type=UUID)
     args = parser.parse_args()
+    if args.command == "create":
+        chosen = [name for name, _ in args.classes]
+        repeated = sorted({name for name in chosen if chosen.count(name) > 1})
+        if repeated:
+            parser.error(f"同じ科目のクラスを 2 回選んでいます: {'、'.join(repeated)}")
 
     settings = load_settings()
     engine = database_engine(settings)

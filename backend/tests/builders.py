@@ -111,5 +111,7 @@ def sample_plan(plan_id: UUID) -> Plan:
         ),
         (foundation_d,),
     )
-    conditions = PlanConditions("職業", "情", 2026, Semester(3, Term.SPRING), {"科目C": "6A"}, 16)
+    conditions = PlanConditions(
+        "職業", "情", 2026, Semester(3, Term.SPRING), (("科目C", "6A"),), 16
+    )
     return Plan(plan_id, conditions, recommendation, roadmap)

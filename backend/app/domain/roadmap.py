@@ -37,6 +37,13 @@ def term_on(day: date) -> Term:
     return Term.SPRING if day.month in SPRING_MONTHS else Term.AUTUMN
 
 
+def opens_in(section: CourseSection, department: str, year: int, semester: Semester) -> bool:
+    return (
+        section.offered_to(department, semester.grade, year)
+        and (section.term or Term.SPRING) is semester.term
+    )
+
+
 @dataclass(frozen=True)
 class PlacedCourse:
     course: RecommendedCourse
@@ -112,12 +119,7 @@ def _classes(
     ordered = sorted(sections, key=_code)
     own = [section for section in ordered if department in (section.departments or ())]
     open_together = [
-        {
-            _code(section)
-            for section in own
-            if section.offered_to(department, semester.grade, year)
-            and (section.term or Term.SPRING) is semester.term
-        }
+        {_code(section) for section in own if opens_in(section, department, year, semester)}
         for semester in semesters
     ]
     choosable = sorted(set().union(*(codes for codes in open_together if len(codes) >= 2)))
@@ -167,8 +169,7 @@ def place(
                 (
                     section
                     for section in classes
-                    if section.offered_to(department, semester.grade, year)
-                    and (section.term or Term.SPRING) is semester.term
+                    if opens_in(section, department, year, semester)
                     and credits + section.credits <= credit_limit
                     and occupied.isdisjoint(section.slots)
                 ),

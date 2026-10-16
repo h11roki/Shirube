@@ -35,12 +35,13 @@ def test_an_unknown_plan_is_none(repository: SqlPlanRepository) -> None:
     [
         ({"version": 2}, "読めない版の Plan です: 2"),
         ({"conditions": {}}, "読めない版の Plan です: None"),
+        (["配列"], "読めない版の Plan です: None"),
         ({"version": 1, "conditions": {}}, "保存した Plan を読めません"),
     ],
-    ids=["newer-version", "no-version", "broken-body"],
+    ids=["newer-version", "no-version", "not-an-object", "broken-body"],
 )
 def test_a_plan_stored_in_an_unknown_shape_is_a_format_error(
-    engine: Engine, repository: SqlPlanRepository, body: dict[str, Any], message: str
+    engine: Engine, repository: SqlPlanRepository, body: Any, message: str
 ) -> None:
     plan_id = uuid4()
     with engine.begin() as connection:

@@ -3,7 +3,6 @@ from uuid import uuid4
 
 from app.application.ports import CourseRepository, PlanRepository
 from app.application.recommend_courses import RecommendCourses
-from app.domain.course import ALL_GRADES
 from app.domain.plan import Plan, PlanConditions
 from app.domain.roadmap import Semester, place, remaining_semesters
 
@@ -29,19 +28,24 @@ class CreatePlan:
         start: Semester,
         chosen_classes: Mapping[str, str],
     ) -> Plan:
-        grades = {grade for grade in ALL_GRADES if grade >= start.grade}
-        recommendation = self._recommend.run(occupation, year, department, grades)
+        semesters = remaining_semesters(start.grade, start.term)
+        recommendation = self._recommend.run(occupation, year, department, semesters)
         roadmap = place(
             recommendation,
             self._courses.sections(year),
             department,
             year,
-            remaining_semesters(start.grade, start.term),
+            semesters,
             self._credit_limit,
             chosen_classes,
         )
         conditions = PlanConditions(
-            occupation, department, year, start, dict(chosen_classes), self._credit_limit
+            occupation,
+            department,
+            year,
+            start,
+            tuple(sorted(chosen_classes.items())),
+            self._credit_limit,
         )
         plan = Plan(uuid4(), conditions, recommendation, roadmap)
         self._plans.add(plan)

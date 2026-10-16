@@ -41,11 +41,12 @@ class SqlPlanRepository:
             row = db.get(PlanRow, plan_id)
         if row is None:
             return None
-        if row.body.get("version") != PLAN_JSON_VERSION:
-            raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {row.body.get('version')}")
+        version = row.body.get("version") if isinstance(row.body, dict) else None
+        if version != PLAN_JSON_VERSION:
+            raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {version}")
         try:
             return _plan(plan_id, row.body)
-        except (KeyError, TypeError, ValueError) as error:
+        except (AttributeError, KeyError, TypeError, ValueError) as error:
             raise PlanFormatError(f"{plan_id}: 保存した Plan を読めません: {error!r}") from error
 
 
@@ -178,7 +179,7 @@ def _plan(plan_id: UUID, data: PlanJson) -> Plan:
             conditions["department"],
             conditions["year"],
             _semester(conditions["start"]),
-            dict(conditions["chosen_classes"]),
+            tuple(sorted(conditions["chosen_classes"].items())),
             conditions["credit_limit"],
         ),
         recommendation,

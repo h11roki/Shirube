@@ -1,8 +1,9 @@
 from collections import defaultdict
-from collections.abc import Mapping, Set
+from collections.abc import Mapping, Sequence, Set
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder
 from app.domain.ranking import CourseMatch, rank_courses
+from app.domain.roadmap import Semester, opens_in
 
 
 class SearchError(ValueError):
@@ -49,11 +50,11 @@ class SearchCourses:
         self._chunks = chunks
         self._embedder = embedder
 
-    def candidates(self, year: int, department: str, grades: Set[int]) -> Candidates:
+    def candidates(self, year: int, department: str, semesters: Sequence[Semester]) -> Candidates:
         page_of = self._courses.syllabus_codes(year)
         names_of_page: dict[str, set[str]] = defaultdict(set)
         for section in self._courses.sections(year):
-            offered = any(section.offered_to(department, grade, year) for grade in grades)
+            offered = any(opens_in(section, department, year, semester) for semester in semesters)
             if offered and section.code in page_of:
                 names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
