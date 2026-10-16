@@ -1,8 +1,8 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 
-from app.domain.course import ALL_GRADES, CourseSection, Term
+from app.domain.course import ALL_GRADES, CourseSection, Term, TimeSlot
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 
@@ -16,16 +16,13 @@ class Semester:
     term: Term
 
 
+ALL_SEMESTERS = tuple(Semester(grade, term) for grade in sorted(ALL_GRADES) for term in Term)
+
+
 def remaining_semesters(grade: int, term: Term) -> tuple[Semester, ...]:
     if grade not in ALL_GRADES:
         raise RoadmapError(f"回生は {min(ALL_GRADES)}〜{max(ALL_GRADES)} にしてください: {grade}")
-    order = list(Term)
-    return tuple(
-        Semester(semester_grade, semester_term)
-        for semester_grade in sorted(ALL_GRADES)
-        for semester_term in order
-        if (semester_grade, order.index(semester_term)) >= (grade, order.index(term))
-    )
+    return ALL_SEMESTERS[ALL_SEMESTERS.index(Semester(grade, term)) :]
 
 
 @dataclass(frozen=True)
@@ -56,6 +53,9 @@ class Roadmap:
     unplaced: tuple[RecommendedCourse, ...]
 
     def __post_init__(self) -> None:
+        positions = [ALL_SEMESTERS.index(plan.semester) for plan in self.semesters]
+        if positions != sorted(set(positions)):
+            raise RoadmapError("学期は重ならずに古い順に並べてください")
         names = Counter(placed.course.name for plan in self.semesters for placed in plan.courses)
         repeated = sorted(name for name, count in names.items() if count > 1)
         if repeated:
@@ -68,17 +68,17 @@ def _classes(
     department: str,
     chosen_classes: Mapping[str, str],
 ) -> tuple[list[CourseSection], bool]:
-    own = [section for section in sections if department in (section.departments or ())]
     ordered = sorted(sections, key=lambda section: section.class_code or "")
-    if len(own) < 2:
+    own = [section for section in ordered if department in (section.departments or ())]
+    if len({section.class_code for section in own}) < 2:
         if name in chosen_classes:
             raise RoadmapError(f"{name}: 学科で分かれたクラスではないので、クラスを選べません")
         return ordered, True
     if name not in chosen_classes:
         return ordered, False
-    chosen = [section for section in ordered if section.class_code == chosen_classes[name]]
+    chosen = [section for section in own if section.class_code == chosen_classes[name]]
     if not chosen:
-        raise RoadmapError(f"{name}: クラス {chosen_classes[name]} はありません")
+        raise RoadmapError(f"{name}: {department} のクラス {chosen_classes[name]} はありません")
     return chosen, True
 
 
@@ -102,16 +102,17 @@ def place(
         if section.name in by_name:
             by_name[section.name].append(section)
     options = {name: _classes(name, by_name[name], department, chosen_classes) for name in names}
+    year_long: dict[int, set[TimeSlot]] = defaultdict(set)
     placed: set[str] = set()
     plans = []
     for semester in semesters:
         courses: list[PlacedCourse] = []
+        credits = 0
+        occupied = set(year_long[semester.grade]) if semester.term is Term.AUTUMN else set()
         for course in recommendation.courses:
             if course.name in placed:
                 continue
             classes, confirmed = options[course.name]
-            credits = sum(placed_course.section.credits for placed_course in courses)
-            occupied = {slot for placed_course in courses for slot in placed_course.section.slots}
             fitting = next(
                 (
                     section
@@ -123,9 +124,14 @@ def place(
                 ),
                 None,
             )
-            if fitting is not None:
-                courses.append(PlacedCourse(course, fitting, confirmed))
-                placed.add(course.name)
+            if fitting is None:
+                continue
+            courses.append(PlacedCourse(course, fitting, confirmed))
+            placed.add(course.name)
+            credits += fitting.credits
+            occupied.update(fitting.slots)
+            if fitting.term is None:
+                year_long[semester.grade].update(fitting.slots)
         plans.append(SemesterPlan(semester, tuple(courses)))
     unplaced = tuple(course for course in recommendation.courses if course.name not in placed)
     return Roadmap(tuple(plans), unplaced)

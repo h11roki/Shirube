@@ -7,6 +7,7 @@ from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import (
     PlacedCourse,
+    Roadmap,
     RoadmapError,
     Semester,
     SemesterPlan,
@@ -135,11 +136,12 @@ def test_classes_split_by_the_department_follow_the_users_choice() -> None:
 @pytest.mark.parametrize(
     ("chosen", "message"),
     [
-        ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: クラス TZ はありません"),
+        ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: 情 のクラス TZ はありません"),
+        ({"情報科学Ⅱ": "TC"}, "情報科学Ⅱ: 情 のクラス TC はありません"),
         ({"科目A": "6T"}, "科目A: 学科で分かれたクラスではない"),
         ({"推薦に無い科目": "TA"}, "推薦に無い科目のクラスが選ばれています"),
     ],
-    ids=["unknown-class", "not-split", "not-recommended"],
+    ids=["unknown-class", "other-departments-class", "not-split", "not-recommended"],
 )
 def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
     chosen: dict[str, str], message: str
@@ -148,6 +150,7 @@ def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
     sections = [
         section("10000", "情報科学Ⅱ", class_code="TA", departments=own),
         section("10001", "情報科学Ⅱ", class_code="TB", departments=own, slots=TUE_1),
+        section("10003", "情報科学Ⅱ", class_code="TC", departments=frozenset({"電"})),
         section("10002", "科目A"),
     ]
 
@@ -161,3 +164,44 @@ def test_a_semester_with_two_courses_in_one_slot_is_rejected() -> None:
 
     with pytest.raises(RoadmapError, match="同じコマに 2 つの授業があります"):
         SemesterPlan(SPRING_1[0], (placed, placed))
+
+
+def test_a_year_long_course_keeps_its_slot_in_the_autumn_of_the_same_grade() -> None:
+    sections = [
+        section("10000", "通年の科目", term=None),
+        section("10001", "秋の科目", term=Term.AUTUMN),
+    ]
+    semesters = remaining_semesters(1, Term.SPRING)[:4]
+
+    roadmap = place(recommend("通年の科目", "秋の科目"), sections, "情", 2026, semesters, 16, {})
+
+    assert [[name for name, _ in placed_names(plan)] for plan in roadmap.semesters] == [
+        ["通年の科目"],
+        [],
+        [],
+        ["秋の科目"],
+    ]
+
+
+def test_one_class_listed_in_two_rows_is_not_a_split_class() -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報処理", class_code="6T", departments=own),
+        section("10001", "情報処理", class_code="6T", departments=own, term=Term.AUTUMN),
+    ]
+
+    roadmap = place(recommend("情報処理"), sections, "情", 2026, SPRING_1, 16, {})
+
+    [placed] = roadmap.semesters[0].courses
+    assert placed.class_confirmed
+    with pytest.raises(RoadmapError, match="学科で分かれたクラスではない"):
+        place(recommend("情報処理"), sections, "情", 2026, SPRING_1, 16, {"情報処理": "6T"})
+
+
+def test_a_roadmap_with_semesters_out_of_order_is_rejected() -> None:
+    spring, autumn = remaining_semesters(1, Term.SPRING)[:2]
+
+    with pytest.raises(RoadmapError, match="古い順に並べてください"):
+        Roadmap((SemesterPlan(autumn, ()), SemesterPlan(spring, ())), ())
+    with pytest.raises(RoadmapError, match="古い順に並べてください"):
+        Roadmap((SemesterPlan(spring, ()), SemesterPlan(spring, ())), ())
