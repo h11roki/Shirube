@@ -64,3 +64,4 @@
 | [0023](0023-foundation-links-core.md) | 選び直しは中心と土台を分けて返し、土台は前提にする中心の授業を 1 つ指す | 承認 |
 | [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
 | [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
+| [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 承認 |

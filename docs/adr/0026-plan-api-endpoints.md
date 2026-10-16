@@ -1,0 +1,78 @@
+# 0026. Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す
+
+- ステータス: 承認
+- 日付: 2026-10-16
+
+## 文脈
+
+ADR 0024 で、`POST /api/v1/plans` が道標を作って保存し、`GET /api/v1/plans/{id}` で再表示すると決めた。作る処理(CreatePlan)と保存(PlanRepository)は CLI で動いている。API にするために、ルータへのユースケースの渡し方、エラーの返し方、入力の既定値の決め方を決める。
+
+presentation のうち infrastructure を import してよいのは、合成ルートの `main.py` と `presentation/cli/` だけ(ADR 0002)。CLI の組み立ての部品は `presentation/cli/environment.py` にある。生成は LLM を 2 回呼ぶので 10〜30 秒かかり、OpenAI の失敗もありうる。認証はフェーズ 7 で入れる。
+
+## 検討した選択肢
+
+ルータへの渡し方
+
+1. presentation/api に `create_app(create_plan, plans, today)` を置き、`main.py` が DB と OpenAI を組み立てて渡す
+2. FastAPI の Depends で依存の関数を引き、テストでは `dependency_overrides` で差し替える
+
+エラーの返し方
+
+1. FastAPI 標準の `{"detail": 文}` と状態コード
+2. problem+json(RFC 9457)
+
+始める学期を省いたとき
+
+1. サーバーが日本時間の今日の月から決める
+2. 必須にする
+
+時間割とシラバスの年度
+
+1. サーバーの設定値 `CURRICULUM_YEAR`(初期値 2026)で、リクエストには入れない
+2. リクエストで受け取る
+
+## 決定
+
+高橋さんがどれも 1 を選んだ。
+
+組み立て
+
+- `presentation/api/app.py` の `create_app(create_plan, plans, today)` が、ルータとエラーの対応を持つ FastAPI を返す。ルータは受け取ったユースケースだけを使い、infrastructure を import しない
+- `main.py` が設定を読み、DB と OpenAI を組み立てて `create_app` に渡す。テストはフェイクを渡し、DB も API キーも要らない
+- CLI と `main.py` が共有する組み立ての部品は、`presentation/cli/environment.py` から `presentation/composition.py` に移す。日本時間の今日もここに置く
+- 起動時に `OPENAI_API_KEY` が無ければ止める。`compose.yaml` は手元の環境変数を backend に渡す
+
+エンドポイント
+
+- `POST /api/v1/plans`: 本文は職業名(空でない 1 行)、回生(1〜4)、始める学期(`spring` / `autumn`、省けば今日から)、学科(省けば情)、学科で分かれたクラスの選択(科目名 → クラス記号、省けば空)。道標を作って保存し、201 と `Location: /api/v1/plans/{id}` と Plan を返す
+- `GET /api/v1/plans/{id}`: 保存した Plan を返す
+- 返す Plan は domain の Plan と同じ入れ子で、id、作った条件、職業の解釈とスキル、学期ごとの置いた科目(科目名、中心か土台か、理由、前提にする中心、シラバスの主コード、授業コード、クラス記号、コマ、単位、クラスが確定しているか)と続きの授業、学期の単位、置けなかった科目、中心につながらず外した土台を持つ。画面の週の時間割は、コマからフロントが並べる
+
+エラー
+
+- 本文の形の誤り(FastAPI の検査)と、選べないクラス、残りの学期に候補の無いとき: 422
+- 無い Plan: 404
+- LLM の答えを使えない、OpenAI の呼び出しの失敗: 502
+- 保存した Plan を読めない: 500
+- どれも `{"detail": 文}` で、文は CLI と同じ日本語
+
+## 理由
+
+- create_app に渡すと、ルータはユースケースの型だけに依存し、presentation から infrastructure への依存が生まれない。テストはフェイクを渡すだけで済み、DB や OpenAI の無い CI でも API を確かめられる
+- Depends と `dependency_overrides` は、本番の組み立てとテストの差し替えが別の仕組みになり、差し替え忘れに気づきにくい
+- FastAPI の本文の検査は 422 と `detail` を返すので、ほかのエラーも同じ形にするとフロントの扱いが 1 つで済む。problem+json にするには、その検査の返し方まで変える必要があり、今の規模には重い
+- 学期の既定値をサーバーが決めると、業務の決まり(ADR 0024 の境目)がフロントに漏れない
+- どの年度の時間割を取り込んだかは運用の事柄で、利用者には意味が無い。新年度の取り込み後に設定を変えるだけで切り替わる
+
+## 受け入れたトレードオフ
+
+- 起動時に OpenAI の部品を作るので、API キーが無いと backend が起動せず、`/api/v1/health` も返らない。手元の `docker compose up` でも `OPENAI_API_KEY` が要る
+- 生成は同期で 10〜30 秒かかり、その間 HTTP の接続を待たせる(ADR 0024)
+- 残りの学期に候補の無いときと、その年度のシラバスが埋め込まれていないときが、同じ 422 になる(文で区別する)
+- 認証が入るまで、id を知っていれば誰でも Plan を読める(id は推測できない UUID、ADR 0024)
+
+## 再検討する条件
+
+- フロントがエラーの種類で分岐したくなったとき(エラーの種類を表す欄を足すか、problem+json にする)
+- 生成を非同期にするとき(ADR 0024)
+- API キーが無くても backend を起動したい場面が増えたとき(OpenAI の部品を最初の生成のときに作る)
