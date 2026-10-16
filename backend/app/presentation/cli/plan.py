@@ -1,6 +1,6 @@
 import argparse
 import sys
-from datetime import date
+from datetime import datetime, timedelta, timezone
 from uuid import UUID
 
 from openai import OpenAIError
@@ -12,22 +12,14 @@ from app.application.ports import (
     OccupationAnalysisError,
     PlanFormatError,
 )
-from app.application.recommend_courses import RecommendCourses
-from app.application.search_courses import SearchCourses, SearchError
+from app.application.search_courses import SearchError
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.plan import Plan, PlanError
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
-from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.plans import SqlPlanRepository
-from app.presentation.cli.environment import (
-    database_engine,
-    load_settings,
-    openai_course_selector,
-    openai_embedder,
-    openai_occupation_analyzer,
-)
+from app.presentation.cli.environment import database_engine, load_settings, recommend_courses
 from app.presentation.cli.labels import (
     RELEVANCE_LABELS,
     profile_lines,
@@ -36,7 +28,7 @@ from app.presentation.cli.labels import (
 )
 from app.presentation.cli.options import add_department_option, add_year_option
 
-TERM_LABELS = {Term.SPRING: "春学期", Term.AUTUMN: "秋学期"}
+UNIVERSITY_TIME = timezone(timedelta(hours=9))
 WEEKDAY_LABELS = {
     Weekday.MON: "月",
     Weekday.TUE: "火",
@@ -46,10 +38,6 @@ WEEKDAY_LABELS = {
     Weekday.SAT: "土",
     Weekday.SUN: "日",
 }
-
-
-def _semester(semester: Semester) -> str:
-    return f"{semester.grade} 回生 {TERM_LABELS[semester.term]}"
 
 
 def _placed(label: str, placed: PlacedCourse) -> str:
@@ -67,14 +55,16 @@ def _placed(label: str, placed: PlacedCourse) -> str:
 
 def render(plan: Plan) -> str:
     conditions = plan.conditions
+    chosen = "、".join(f"{name}={code}" for name, code in conditions.chosen_classes)
     lines = [
         f"Plan {plan.id}",
         *profile_lines(plan.recommendation.profile),
         f"条件: {conditions.department}、{conditions.year} 年度の時間割、"
-        f"{_semester(conditions.start)}から、1 学期 {conditions.credit_limit} 単位まで",
+        f"{conditions.start}から、1 学期 {conditions.credit_limit} 単位まで",
+        *([f"クラスの選択: {chosen}"] if chosen else []),
     ]
     for semester_plan in plan.roadmap.semesters:
-        lines.append(f"{_semester(semester_plan.semester)} {semester_plan.credits} 単位")
+        lines.append(f"{semester_plan.semester} {semester_plan.credits} 単位")
         lines += [
             _placed(RELEVANCE_LABELS[placed.course.relevance], placed)
             for placed in semester_plan.courses
@@ -103,7 +93,7 @@ def main() -> None:
     create.add_argument(
         "--term",
         choices=[term.value for term in Term],
-        default=term_on(date.today()).value,
+        default=term_on(datetime.now(UNIVERSITY_TIME).date()).value,
         help="始める学期(spring か autumn)。既定は今日の月から決める",
     )
     add_department_option(create)
@@ -135,16 +125,13 @@ def main() -> None:
             if plan is None:
                 sys.exit(f"Plan がありません: {args.plan_id}")
         else:
-            courses = SqlCourseRepository(engine)
-            search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
-            recommend = RecommendCourses(
-                search,
-                courses,
-                openai_occupation_analyzer(settings),
-                openai_course_selector(settings),
-                settings.selection_candidate_limit,
+            create_plan = CreatePlan(
+                recommend_courses(settings, engine),
+                SqlCourseRepository(engine),
+                plans,
+                settings.semester_credit_limit,
             )
-            plan = CreatePlan(recommend, courses, plans, settings.semester_credit_limit).run(
+            plan = create_plan.run(
                 args.occupation,
                 args.department,
                 args.year,

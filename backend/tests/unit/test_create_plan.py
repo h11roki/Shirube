@@ -1,12 +1,14 @@
 from dataclasses import replace
 
+import pytest
+
 from app.application.create_plan import CreatePlan
 from app.application.recommend_courses import RecommendCourses
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import PlanConditions
 from app.domain.recommendation import CourseChoice, Relevance
-from app.domain.roadmap import Semester
+from app.domain.roadmap import RoadmapError, Semester
 from tests.fakes import (
     FakeCourseSelector,
     FakeOccupationAnalyzer,
@@ -77,3 +79,25 @@ def test_courses_of_the_start_grade_that_only_open_before_the_start_term_are_not
     [(_, candidates)] = selector.calls
     assert [candidate.name for candidate in candidates] == ["科目B"]
     assert plan.roadmap.semesters[0].semester == Semester(3, Term.AUTUMN)
+
+
+def test_a_class_that_cannot_be_chosen_stops_before_the_llm_is_called() -> None:
+    repository, search = courses_ranked_by({"情報科学Ⅱ": 0.9, "科目B": 0.8})
+    a, b = repository.stored_sections
+    own = frozenset({"情"})
+    repository.stored_sections = [
+        replace(a, class_code="TA", departments=own),
+        replace(
+            a, code="10002", class_code="TB", departments=own, slots=(TimeSlot(Weekday.TUE, 1),)
+        ),
+        b,
+    ]
+    analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
+    selector = FakeCourseSelector([])
+    recommend = RecommendCourses(search, repository, analyzer, selector, 30)
+
+    with pytest.raises(RoadmapError, match="情報科学Ⅱ: 選べるクラスは TA、TB です"):
+        CreatePlan(recommend, repository, FakePlanRepository(), 16).run(
+            "職業", "情", 2026, START, {"情報科学Ⅱ": "TZ"}
+        )
+    assert (analyzer.calls, selector.calls) == ([], [])

@@ -9,7 +9,7 @@
       "term": "spring"
     },
     "chosen_classes": {
-      "科目C": "6A"
+      "科目Z": "6B"
     },
     "credit_limit": 16
   },
@@ -189,7 +189,9 @@
               "class_code": "6A",
               "term": "spring",
               "slots": [],
-              "departments": null,
+              "departments": [
+                "情"
+              ],
               "audiences": [
                 {
                   "entry_year_from": 2020,
@@ -232,55 +234,7 @@
         },
         "courses": [],
         "continuing": [
-          {
-            "course": "科目B",
-            "section": {
-              "code": "10001",
-              "name": "科目B",
-              "class_code": "6T",
-              "term": null,
-              "slots": [
-                {
-                  "weekday": "wed",
-                  "period": 3
-                }
-              ],
-              "departments": [
-                "情",
-                "電"
-              ],
-              "audiences": [
-                {
-                  "entry_year_from": 2020,
-                  "entry_year_to": 2026,
-                  "eligible_grades": [
-                    1,
-                    2,
-                    3,
-                    4
-                  ],
-                  "category": "専門"
-                },
-                {
-                  "entry_year_from": 2016,
-                  "entry_year_to": 2019,
-                  "eligible_grades": [
-                    2
-                  ],
-                  "category": "基礎専"
-                }
-              ],
-              "credits": 2,
-              "instructors": [
-                "教員 甲",
-                "教員 乙"
-              ],
-              "room": "F101",
-              "registration": "本",
-              "note": null
-            },
-            "class_confirmed": true
-          }
+          "科目B"
         ]
       },
       {

@@ -13,6 +13,7 @@ from app.domain.roadmap import (
     SemesterPlan,
     place,
     remaining_semesters,
+    require_class_choices,
 )
 from tests.builders import course_section
 
@@ -156,6 +157,14 @@ def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
 
     with pytest.raises(RoadmapError, match=message):
         place(recommend("情報科学Ⅱ", "科目A"), sections, "情", 2026, SPRING_1, 16, chosen)
+    with pytest.raises(RoadmapError, match=message):
+        require_class_choices(sections, "情", 2026, SPRING_1, chosen)
+
+
+def test_choices_for_courses_that_are_not_split_are_accepted_before_placing() -> None:
+    sections = [section("10000", "科目A")]
+
+    require_class_choices(sections, "情", 2026, SPRING_1, {"科目A": "X", "無い科目": "Y"})
 
 
 def test_a_semester_with_two_courses_in_one_slot_is_rejected() -> None:
@@ -164,6 +173,17 @@ def test_a_semester_with_two_courses_in_one_slot_is_rejected() -> None:
 
     with pytest.raises(RoadmapError, match="同じコマに 2 つの授業があります"):
         SemesterPlan(SPRING_1[0], (placed, placed))
+
+
+def test_a_year_long_course_without_slots_does_not_continue_into_autumn() -> None:
+    sections = [section("10000", "通年の科目", term=None, slots=())]
+    semesters = remaining_semesters(Semester(1, Term.SPRING))[:2]
+
+    roadmap = place(recommend("通年の科目"), sections, "情", 2026, semesters, 16, {})
+
+    spring, autumn = roadmap.semesters
+    assert [placed.course.name for placed in spring.courses] == ["通年の科目"]
+    assert autumn.continuing == ()
 
 
 def test_a_year_long_course_keeps_its_slot_in_the_autumn_of_the_same_grade() -> None:

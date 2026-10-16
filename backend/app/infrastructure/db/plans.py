@@ -48,7 +48,7 @@ class SqlPlanRepository:
             raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {version}")
         try:
             return plan_from_json(plan_id, PLAN_JSON.validate_python(row.body, strict=True))
-        except (AttributeError, KeyError, TypeError, ValueError) as error:
+        except (KeyError, ValueError) as error:
             raise PlanFormatError(f"{plan_id}: 保存した Plan を読めません: {error!r}") from error
 
 
@@ -121,7 +121,7 @@ def plan_json(plan: Plan) -> PlanJson:
                 SemesterPlanJson(
                     semester=_semester_json(semester_plan.semester),
                     courses=[_placed_json(placed) for placed in semester_plan.courses],
-                    continuing=[_placed_json(placed) for placed in semester_plan.continuing],
+                    continuing=[placed.course.name for placed in semester_plan.continuing],
                 )
                 for semester_plan in plan.roadmap.semesters
             ],
@@ -163,16 +163,18 @@ def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
         ),
     )
     courses = {course.name: course for course in recommendation.courses}
+    placed_by_grade: dict[tuple[int, str], PlacedCourse] = {}
+    semester_plans = []
+    for stored_plan in data["roadmap"]["semesters"]:
+        semester = _semester(stored_plan["semester"])
+        placed = tuple(_placed(item, courses) for item in stored_plan["courses"])
+        placed_by_grade.update(((semester.grade, item.course.name), item) for item in placed)
+        continuing = tuple(
+            placed_by_grade[(semester.grade, name)] for name in stored_plan["continuing"]
+        )
+        semester_plans.append(SemesterPlan(semester, placed, continuing))
     roadmap = Roadmap(
-        tuple(
-            SemesterPlan(
-                _semester(semester_plan["semester"]),
-                tuple(_placed(placed, courses) for placed in semester_plan["courses"]),
-                tuple(_placed(placed, courses) for placed in semester_plan["continuing"]),
-            )
-            for semester_plan in data["roadmap"]["semesters"]
-        ),
-        tuple(courses[name] for name in data["roadmap"]["unplaced"]),
+        tuple(semester_plans), tuple(courses[name] for name in data["roadmap"]["unplaced"])
     )
     return Plan(
         plan_id,

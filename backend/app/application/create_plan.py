@@ -4,7 +4,7 @@ from uuid import uuid4
 from app.application.ports import CourseRepository, PlanRepository
 from app.application.recommend_courses import RecommendCourses
 from app.domain.plan import Plan, PlanConditions
-from app.domain.roadmap import Semester, place, remaining_semesters
+from app.domain.roadmap import Semester, place, remaining_semesters, require_class_choices
 
 
 class CreatePlan:
@@ -29,10 +29,12 @@ class CreatePlan:
         chosen_classes: Mapping[str, str],
     ) -> Plan:
         semesters = remaining_semesters(start)
+        sections = self._courses.sections(year)
+        require_class_choices(sections, department, year, semesters, chosen_classes)
         recommendation = self._recommend.run(occupation, year, department, semesters)
         roadmap = place(
             recommendation,
-            self._courses.sections(year),
+            sections,
             department,
             year,
             semesters,

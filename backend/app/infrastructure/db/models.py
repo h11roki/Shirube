@@ -85,7 +85,7 @@ class PlacedJson(TypedDict):
 class SemesterPlanJson(TypedDict):
     semester: SemesterJson
     courses: list[PlacedJson]
-    continuing: list[PlacedJson]
+    continuing: list[str]
 
 
 class RoadmapJson(TypedDict):

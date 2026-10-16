@@ -5,8 +5,7 @@ from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ports import CourseSelectionError, OccupationAnalysisError
-from app.application.recommend_courses import RecommendCourses
-from app.application.search_courses import SearchCourses, SearchError
+from app.application.search_courses import SearchError
 from app.domain.course import ALL_GRADES
 from app.domain.recommendation import (
     Recommendation,
@@ -14,15 +13,7 @@ from app.domain.recommendation import (
     Relevance,
 )
 from app.domain.roadmap import ALL_SEMESTERS
-from app.infrastructure.db.chunks import SqlChunkRepository
-from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import (
-    database_engine,
-    load_settings,
-    openai_course_selector,
-    openai_embedder,
-    openai_occupation_analyzer,
-)
+from app.presentation.cli.environment import database_engine, load_settings, recommend_courses
 from app.presentation.cli.labels import (
     RELEVANCE_LABELS,
     profile_lines,
@@ -57,15 +48,8 @@ def main() -> None:
     args = parser.parse_args()
 
     settings = load_settings()
-    embedder = openai_embedder(settings)
-    analyzer = openai_occupation_analyzer(settings)
-    selector = openai_course_selector(settings)
     engine = database_engine(settings)
-    courses = SqlCourseRepository(engine)
-    search = SearchCourses(courses, SqlChunkRepository(engine), embedder)
-    recommend = RecommendCourses(
-        search, courses, analyzer, selector, settings.selection_candidate_limit
-    )
+    recommend = recommend_courses(settings, engine)
     try:
         semesters = [semester for semester in ALL_SEMESTERS if semester.grade in args.grades]
         print(render(recommend.run(args.occupation, args.year, args.department, semesters)))

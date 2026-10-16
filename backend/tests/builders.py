@@ -93,7 +93,7 @@ def sample_plan(plan_id: UUID) -> Plan:
             PlacedCourse(
                 foundation_c,
                 replace(
-                    course_section("10002", departments=None),
+                    course_section("10002", departments=frozenset({"情"})),
                     name="科目C",
                     class_code="6A",
                     slots=(),
@@ -112,6 +112,6 @@ def sample_plan(plan_id: UUID) -> Plan:
         (foundation_d,),
     )
     conditions = PlanConditions(
-        "職業", "情", 2026, Semester(3, Term.SPRING), (("科目C", "6A"),), 16
+        "職業", "情", 2026, Semester(3, Term.SPRING), (("科目Z", "6B"),), 16
     )
     return Plan(plan_id, conditions, recommendation, roadmap)
