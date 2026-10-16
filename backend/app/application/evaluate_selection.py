@@ -63,6 +63,7 @@ class ExpectedCourse:
     name: str
     picked: Relevance | None
     searched: bool
+    unlinked: bool
 
 
 @dataclass(frozen=True)
@@ -70,20 +71,21 @@ class SelectionResult:
     occupation: str
     picks: tuple[Pick, ...]
     expected: tuple[ExpectedCourse, ...]
-    unlinked: tuple[str, ...]
-
-    def count(self, relevance: Relevance, judgment: Judgment) -> int:
-        return sum(
-            1 for pick in self.picks if pick.relevance is relevance and pick.judgment is judgment
-        )
+    unlinked: tuple[Pick, ...]
 
     def expected_as(self, relevance: Relevance) -> int:
         return sum(1 for course in self.expected if course.picked is relevance)
 
     @property
+    def expected_unlinked(self) -> tuple[str, ...]:
+        return tuple(course.name for course in self.expected if course.unlinked)
+
+    @property
     def skipped(self) -> tuple[str, ...]:
         return tuple(
-            course.name for course in self.expected if course.searched and course.picked is None
+            course.name
+            for course in self.expected
+            if course.searched and course.picked is None and not course.unlinked
         )
 
     @property
@@ -141,10 +143,17 @@ class EvaluateSelection:
                 for course in recommendation.courses
             )
             expected = tuple(
-                ExpectedCourse(name, picked.get(name), name in recommendation.candidates)
+                ExpectedCourse(
+                    name,
+                    picked.get(name),
+                    name in recommendation.candidates,
+                    name in recommendation.unlinked,
+                )
                 for name in case.expected
             )
-            results.append(
-                SelectionResult(case.occupation, picks, expected, recommendation.unlinked)
+            unlinked = tuple(
+                Pick(name, Relevance.FOUNDATION, judgments.of(case.occupation, name))
+                for name in recommendation.unlinked
             )
+            results.append(SelectionResult(case.occupation, picks, expected, unlinked))
         return SelectionReport(tuple(results))

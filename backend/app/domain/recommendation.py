@@ -69,11 +69,11 @@ class Recommendation:
     unlinked: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
-        counts = Counter(course.name for course in self.courses)
+        counts = Counter([*(course.name for course in self.courses), *self.unlinked])
         repeated = sorted(name for name, count in counts.items() if count > 1)
         if repeated:
-            raise RecommendationError(f"同じ科目が 2 回選ばれています: {'、'.join(repeated)}")
-        _require_candidates([*counts, *self.unlinked], self.candidates)
+            raise RecommendationError(f"同じ科目が 2 回入っています: {'、'.join(repeated)}")
+        _require_candidates(counts, self.candidates)
         core = {course.name for course in self.courses if course.relevance is Relevance.CORE}
         detached = sorted(
             course.name
@@ -84,27 +84,32 @@ class Recommendation:
             raise RecommendationError(
                 f"中心に選ばれていない科目を前提にする土台があります: {'、'.join(detached)}"
             )
-        recommended_and_unlinked = sorted(counts.keys() & set(self.unlinked))
-        if recommended_and_unlinked:
-            raise RecommendationError(
-                f"外した土台が推薦に入っています: {'、'.join(recommended_and_unlinked)}"
-            )
 
 
 def arrange(
     profile: OccupationProfile, matches: Sequence[CourseMatch], choices: Sequence[CourseChoice]
 ) -> Recommendation:
     ranked = {match.name: (rank, match) for rank, match in enumerate(matches)}
-    _require_candidates((choice.name for choice in choices), ranked)
+    named = (
+        name
+        for choice in choices
+        for name in (choice.name, choice.prerequisite_for)
+        if name is not None
+    )
+    _require_candidates(named, ranked)
     core: dict[str, CourseChoice] = {}
     for choice in choices:
         if choice.relevance is Relevance.CORE:
             core.setdefault(choice.name, choice)
     linked: dict[str, CourseChoice] = {}
+    detached: set[str] = set()
     for choice in choices:
-        if choice.name not in core and choice.prerequisite_for in core:
+        if choice.name in core:
+            continue
+        if choice.prerequisite_for in core:
             linked.setdefault(choice.name, choice)
-    chosen = {choice.name for choice in choices}
+        else:
+            detached.add(choice.name)
     group = {relevance: index for index, relevance in enumerate(Relevance)}
     ordered = sorted(
         [*core.values(), *linked.values()],
@@ -120,7 +125,5 @@ def arrange(
         )
         for choice in ordered
     )
-    unlinked = tuple(
-        name for name in ranked if name in chosen and name not in core and name not in linked
-    )
+    unlinked = tuple(name for name in ranked if name in detached - linked.keys())
     return Recommendation(profile, courses, tuple(match.name for match in matches), unlinked)
