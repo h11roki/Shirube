@@ -3,6 +3,7 @@ from typing import Any
 
 import httpx
 import pytest
+from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.ports import OccupationAnalysisError
@@ -35,7 +36,9 @@ def analyzer_answering(
         )
 
     client = httpx.Client(transport=httpx.MockTransport(respond))
-    return OpenAIOccupationAnalyzer("test-model", SecretStr("test-key"), client)
+    return OpenAIOccupationAnalyzer(
+        ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
+    )
 
 
 def answer(**fields: Any) -> dict[str, Any]:
@@ -87,9 +90,10 @@ def test_null_assumption_means_the_name_was_not_ambiguous() -> None:
         {"content": None, "refusal": "答えられません"},
         answer(interpretation="職業", assumption=None, skills=list("甲乙丙丁戊己庚")),
         {"content": "{not json", "refusal": None},
+        answer(interpretation="職業", assumption=None, skills=["甲", "乙", "甲"]),
     ],
-    ids=["refusal", "seven-skills", "broken-json"],
+    ids=["refusal", "seven-skills", "broken-json", "duplicated-skill"],
 )
-def test_refused_or_unreadable_answers_are_analysis_errors(message: dict[str, Any]) -> None:
-    with pytest.raises(OccupationAnalysisError, match="職業: LLM の答えを読めません"):
+def test_refused_or_unusable_answers_are_analysis_errors(message: dict[str, Any]) -> None:
+    with pytest.raises(OccupationAnalysisError, match="職業: LLM の答えを使えません"):
         analyzer_answering(message).analyze("職業")

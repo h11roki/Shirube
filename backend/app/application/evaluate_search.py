@@ -1,5 +1,5 @@
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
@@ -24,6 +24,8 @@ class EvaluationCase:
             raise EvaluationError("職業名が空です")
         if not self.skills or not all(skill.strip() for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが空です")
+        if any("\n" in skill for skill in self.skills):
+            raise EvaluationError(f"{self.occupation}: スキルに改行があります")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
 
@@ -47,6 +49,15 @@ class EvaluationDataset:
             raise EvaluationError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
 
 
+def with_analyzed_skills(
+    dataset: EvaluationDataset, analyzer: OccupationAnalyzer
+) -> EvaluationDataset:
+    cases = tuple(
+        replace(case, skills=analyzer.analyze(case.occupation).skills) for case in dataset.cases
+    )
+    return replace(dataset, cases=cases)
+
+
 @dataclass(frozen=True)
 class CaseResult:
     occupation: str
@@ -67,9 +78,8 @@ class EvaluationReport:
 
 
 class EvaluateSearch:
-    def __init__(self, search: SearchCourses, analyzer: OccupationAnalyzer | None = None) -> None:
+    def __init__(self, search: SearchCourses) -> None:
         self._search = search
-        self._analyzer = analyzer
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
@@ -77,10 +87,7 @@ class EvaluateSearch:
         unknown = sorted(expected - candidates.names)
         if unknown:
             raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
-        queries = [
-            case.query if self._analyzer is None else self._analyzer.analyze(case.occupation).query
-            for case in dataset.cases
-        ]
+        queries = [case.query for case in dataset.cases]
         rankings = candidates.rank(queries, max(RECALL_CUTOFFS))
         results = []
         for case, query, matches in zip(dataset.cases, queries, rankings, strict=True):

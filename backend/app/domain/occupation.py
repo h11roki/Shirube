@@ -22,17 +22,21 @@ class OccupationProfile:
     def __post_init__(self) -> None:
         if not self.occupation.strip():
             raise OccupationProfileError("職業名が空です")
-        if not self.interpretation.strip() or "\n" in self.interpretation:
-            raise OccupationProfileError(f"{self.occupation}: 解釈した職業名は 1 行にしてください")
+        if not self.interpretation.strip():
+            raise OccupationProfileError(f"{self.occupation}: 解釈した職業名が空です")
+        if "\n" in self.interpretation:
+            raise OccupationProfileError(f"{self.occupation}: 解釈した職業名に改行があります")
         if self.assumption is not None and not self.assumption.strip():
             raise OccupationProfileError(f"{self.occupation}: 前提が空です")
-        if len(self.skills) not in SKILL_COUNT or not all(
-            skill.strip() and "\n" not in skill for skill in self.skills
-        ):
+        if len(self.skills) not in SKILL_COUNT:
             raise OccupationProfileError(
-                f"{self.occupation}: スキルは 1 行のものを {SKILL_COUNT.start}〜"
-                f"{SKILL_COUNT.stop - 1} 個にしてください"
+                f"{self.occupation}: スキルは "
+                f"{SKILL_COUNT.start}〜{SKILL_COUNT.stop - 1} 個にしてください"
             )
+        if not all(skill.strip() and "\n" not in skill for skill in self.skills):
+            raise OccupationProfileError(f"{self.occupation}: スキルは空でない 1 行にしてください")
+        if len(set(self.skills)) != len(self.skills):
+            raise OccupationProfileError(f"{self.occupation}: スキルが重複しています")
 
     @property
     def query(self) -> str:

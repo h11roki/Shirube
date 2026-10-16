@@ -1,11 +1,12 @@
-import httpx
+from typing import Self
+
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
-from pydantic import BaseModel, Field, SecretStr
+from pydantic import BaseModel, Field, SecretStr, ValidationError
 
 from app.application.ports import OccupationAnalysisError
-from app.domain.occupation import SKILL_COUNT, OccupationProfile
+from app.domain.occupation import SKILL_COUNT, OccupationProfile, OccupationProfileError
 
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
@@ -16,7 +17,7 @@ INSTRUCTIONS = f"""\
 電子情報工学科の学生が目指すことの多い解釈を 1 つ選び、\
 そう解釈したという前提を 1 文で書く。解釈が割れないときは null
 - skills: その職業の仕事で直接使う知識・技能を、\
-重要なものから順に {SKILL_COUNT.start}〜{SKILL_COUNT.stop - 1} 個。\
+重要なものから順に {SKILL_COUNT.start}〜{SKILL_COUNT.stop - 1} 個。重複させない。\
 大学の授業で学べる知識・技能の名前として、20 字以内の名詞句で書く
 
 入力が職業名でないときも、最も近い職業として解釈して答えてください。"""
@@ -33,20 +34,21 @@ class _Profile(BaseModel):
 
 
 class OpenAIOccupationAnalyzer:
-    def __init__(
-        self, model: str, api_key: SecretStr, http_client: httpx.Client | None = None
-    ) -> None:
-        chat = ChatOpenAI(model=model, api_key=api_key, http_client=http_client)
+    def __init__(self, chat: ChatOpenAI) -> None:
         self._client = chat.with_structured_output(_Profile, method="json_schema", strict=True)
+
+    @classmethod
+    def connect(cls, model: str, api_key: SecretStr) -> Self:
+        return cls(ChatOpenAI(model=model, api_key=api_key))
 
     def analyze(self, occupation: str) -> OccupationProfile:
         try:
             output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
-        except (OpenAIRefusalError, ValueError) as error:
-            message = f"{occupation}: LLM の答えを読めません: {error}"
+            if not isinstance(output, _Profile):
+                raise OccupationAnalysisError(f"{occupation}: LLM の答えの形が違います: {output!r}")
+            return OccupationProfile(
+                occupation, output.interpretation, output.assumption, tuple(output.skills)
+            )
+        except (OpenAIRefusalError, ValidationError, OccupationProfileError) as error:
+            message = f"{occupation}: LLM の答えを使えません: {error}"
             raise OccupationAnalysisError(message) from error
-        if not isinstance(output, _Profile):
-            raise OccupationAnalysisError(f"{occupation}: LLM の答えの形が違います: {output!r}")
-        return OccupationProfile(
-            occupation, output.interpretation, output.assumption, tuple(output.skills)
-        )

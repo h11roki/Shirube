@@ -12,6 +12,7 @@ from app.application.evaluate_search import (
     EvaluationDataset,
     EvaluationError,
     EvaluationReport,
+    with_analyzed_skills,
 )
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
@@ -27,9 +28,7 @@ from tests.fakes import (
 )
 
 
-def search_over(
-    similarities: dict[str, float], embedder: FakeEmbedder | None = None
-) -> SearchCourses:
+def search_over(similarities: dict[str, float]) -> SearchCourses:
     codes = [f"{10000 + number}" for number in range(len(similarities))]
     names = list(similarities)
     repository = FakeCourseRepository(
@@ -43,7 +42,7 @@ def search_over(
         ChunkHit(code, ChunkSection.OVERVIEW, similarities[name])
         for code, name in zip(codes, names, strict=True)
     ]
-    return SearchCourses(repository, FakeChunkSearch(hits), embedder or FakeEmbedder())
+    return SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
 
 
 def test_recall_counts_expected_courses_within_each_cutoff() -> None:
@@ -60,30 +59,27 @@ def test_recall_counts_expected_courses_within_each_cutoff() -> None:
     assert report.mean_recall(10) == 0.5
 
 
-def test_expected_course_names_outside_the_candidates_are_an_error_before_calling_the_llm() -> None:
+def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
     case = EvaluationCase("職業", ("スキル",), ("科目01", "存在しない科目"))
-    analyzer = FakeOccupationAnalyzer({})
 
     with pytest.raises(EvaluationError, match="存在しない科目"):
-        EvaluateSearch(search_over({"科目01": 0.9}), analyzer).run(
-            EvaluationDataset(2026, "情", (case,))
-        )
-    assert analyzer.calls == []
+        EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
 
 
-def test_llm_skills_replace_the_handwritten_ones_in_the_query() -> None:
-    profile = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
+def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
+    profile = OccupationProfile("職業", "別の名前の職業", None, ("甲", "乙", "丙"))
     analyzer = FakeOccupationAnalyzer({"職業": profile})
-    embedder = FakeEmbedder()
-    case = EvaluationCase("職業", ("手書きのスキル",), ("科目01",))
-
-    report = EvaluateSearch(search_over({"科目01": 0.9}, embedder), analyzer).run(
-        EvaluationDataset(2026, "情", (case,))
+    dataset = EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("手書きのスキル",), ("科目01",)),)
     )
 
+    analyzed = with_analyzed_skills(dataset, analyzer)
+
     assert analyzer.calls == ["職業"]
-    assert embedder.calls == [["解釈した職業\n甲\n乙\n丙"]]
-    assert report.results[0].query == "解釈した職業\n甲\n乙\n丙"
+    assert analyzed == EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",)),)
+    )
+    assert analyzed.cases[0].query == "職業\n甲\n乙\n丙"
 
 
 @pytest.mark.parametrize(
@@ -92,9 +88,16 @@ def test_llm_skills_replace_the_handwritten_ones_in_the_query() -> None:
         ("  ", ("スキル",), ("甲",), "職業名が空です"),
         ("職業", (), ("甲",), "職業: スキルが空です"),
         ("職業", ("",), ("甲",), "職業: スキルが空です"),
+        ("職業", ("C 言語\nマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
     ],
-    ids=["blank-occupation", "no-skills", "blank-skill", "no-expected-courses"],
+    ids=[
+        "blank-occupation",
+        "no-skills",
+        "blank-skill",
+        "multiline-skill",
+        "no-expected-courses",
+    ],
 )
 def test_case_without_a_name_skills_or_expected_courses_is_rejected(
     occupation: str, skills: tuple[str, ...], expected: tuple[str, ...], message: str

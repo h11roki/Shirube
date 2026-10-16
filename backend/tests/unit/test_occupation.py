@@ -18,13 +18,14 @@ def test_query_joins_the_interpretation_and_the_skills() -> None:
     ("occupation", "interpretation", "assumption", "skills", "message"),
     [
         (" ", "職業", None, ("甲", "乙", "丙"), "職業名が空です"),
-        ("職業", "  ", None, ("甲", "乙", "丙"), "解釈した職業名は 1 行に"),
-        ("職業", "職業\n補足", None, ("甲", "乙", "丙"), "解釈した職業名は 1 行に"),
+        ("職業", "  ", None, ("甲", "乙", "丙"), "解釈した職業名が空です"),
+        ("職業", "職業\n補足", None, ("甲", "乙", "丙"), "解釈した職業名に改行があります"),
         ("職業", "職業", " ", ("甲", "乙", "丙"), "前提が空です"),
-        ("職業", "職業", None, ("甲", "乙"), "スキルは 1 行のものを 3〜6 個"),
-        ("職業", "職業", None, tuple("甲乙丙丁戊己庚"), "スキルは 1 行のものを 3〜6 個"),
-        ("職業", "職業", None, ("甲", "乙", ""), "スキルは 1 行のものを 3〜6 個"),
-        ("職業", "職業", None, ("甲", "乙", "丙\n丁"), "スキルは 1 行のものを 3〜6 個"),
+        ("職業", "職業", None, ("甲", "乙"), "スキルは 3〜6 個に"),
+        ("職業", "職業", None, tuple("甲乙丙丁戊己庚"), "スキルは 3〜6 個に"),
+        ("職業", "職業", None, ("甲", "乙", ""), "スキルは空でない 1 行に"),
+        ("職業", "職業", None, ("甲", "乙", "丙\n丁"), "スキルは空でない 1 行に"),
+        ("職業", "職業", None, ("甲", "乙", "甲"), "スキルが重複しています"),
     ],
     ids=[
         "blank-occupation",
@@ -35,6 +36,7 @@ def test_query_joins_the_interpretation_and_the_skills() -> None:
         "seven-skills",
         "blank-skill",
         "multiline-skill",
+        "duplicated-skill",
     ],
 )
 def test_profile_that_would_break_the_query_is_rejected(
