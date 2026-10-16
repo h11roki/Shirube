@@ -116,6 +116,13 @@ def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any
         selector_answering(message).select(PROFILE, CANDIDATES)
 
 
+def test_an_answer_cut_off_by_the_length_limit_is_an_unusable_answer() -> None:
+    selector = OpenAICourseSelector(chat_answering(answer(), finish_reason="length"))
+
+    with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):
+        selector.select(PROFILE, CANDIDATES)
+
+
 def test_a_failed_api_call_is_a_selection_error() -> None:
     selector = OpenAICourseSelector(chat_failing(400))
 

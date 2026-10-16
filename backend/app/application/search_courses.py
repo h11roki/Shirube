@@ -56,8 +56,11 @@ class SearchCourses:
 
     def candidates(self, year: int, department: str, semesters: Sequence[Semester]) -> Candidates:
         page_of = self._courses.syllabus_codes(year)
+        sections = self._courses.sections(year)
+        if not page_of or not sections:
+            raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
         names_of_page: dict[str, set[str]] = defaultdict(set)
-        for section in self._courses.sections(year):
+        for section in sections:
             offered = any(opens_in(section, department, year, semester) for semester in semesters)
             if offered and section.code in page_of:
                 names_of_page[page_of[section.code]].add(section.name)

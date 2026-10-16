@@ -1,7 +1,9 @@
+import logging
 from collections.abc import Callable
 from datetime import date
 
 from fastapi import FastAPI, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.application.create_plan import CreatePlan
@@ -14,37 +16,43 @@ from app.application.ports import (
 )
 from app.application.search_courses import NoCandidatesError, SearchError
 from app.domain.recommendation import RecommendationError
-from app.domain.roadmap import RoadmapError
+from app.domain.roadmap import ClassChoiceError, RoadmapError
 from app.presentation.api import health
 from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
-UNEXPECTED_FAILURE = "サーバーで道標を扱えませんでした"
+SERVER_FAILURE = "サーバーで道標を扱えませんでした"
+UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました。時間をおいて試してください"
+INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
+UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
+    EmbeddingError,
+    OccupationAnalysisError,
+    CourseSelectionError,
+    RecommendationError,
+)
+SERVER_ERRORS: tuple[type[Exception], ...] = (SearchError, RoadmapError, PlanFormatError)
+
+logger = logging.getLogger(__name__)
 
 
-def _respond_with(status_code: int) -> Callable[[Request, Exception], JSONResponse]:
-    def respond(request: Request, error: Exception) -> JSONResponse:
-        return JSONResponse({"detail": str(error)}, status_code=status_code)
-
-    return respond
+def _input_error(request: Request, error: Exception) -> JSONResponse:
+    return JSONResponse({"detail": str(error)}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
 
-def _unexpected(request: Request, error: Exception) -> JSONResponse:
+def _upstream_error(request: Request, error: Exception) -> JSONResponse:
+    logger.error("外部のサービスの呼び出しに失敗しました", exc_info=error)
+    return JSONResponse({"detail": UPSTREAM_FAILURE}, status_code=status.HTTP_502_BAD_GATEWAY)
+
+
+def _server_error(request: Request, error: Exception) -> JSONResponse:
+    logger.error("道標を扱えませんでした", exc_info=error)
+    return _unexpected_error(request, error)
+
+
+def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse(
-        {"detail": UNEXPECTED_FAILURE}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
+        {"detail": SERVER_FAILURE}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
     )
-
-
-ERROR_STATUS: dict[type[Exception], int] = {
-    RoadmapError: status.HTTP_422_UNPROCESSABLE_CONTENT,
-    NoCandidatesError: status.HTTP_422_UNPROCESSABLE_CONTENT,
-    SearchError: status.HTTP_500_INTERNAL_SERVER_ERROR,
-    EmbeddingError: status.HTTP_502_BAD_GATEWAY,
-    OccupationAnalysisError: status.HTTP_502_BAD_GATEWAY,
-    CourseSelectionError: status.HTTP_502_BAD_GATEWAY,
-    RecommendationError: status.HTTP_502_BAD_GATEWAY,
-    PlanFormatError: status.HTTP_500_INTERNAL_SERVER_ERROR,
-}
 
 
 def create_app(
@@ -56,7 +64,23 @@ def create_app(
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(plans_router(create_plan, plans, curriculum_year, today), prefix=API_PREFIX)
-    for error, status_code in ERROR_STATUS.items():
-        app.add_exception_handler(error, _respond_with(status_code))
-    app.add_exception_handler(Exception, _unexpected)
+    for error in INPUT_ERRORS:
+        app.add_exception_handler(error, _input_error)
+    for error in UPSTREAM_ERRORS:
+        app.add_exception_handler(error, _upstream_error)
+    for error in SERVER_ERRORS:
+        app.add_exception_handler(error, _server_error)
+    app.add_exception_handler(Exception, _unexpected_error)
+
+    @app.exception_handler(RequestValidationError)
+    def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:
+        problems = "; ".join(
+            f"{'.'.join(str(part) for part in problem['loc'][1:])}: {problem['msg']}"
+            for problem in error.errors()
+        )
+        return JSONResponse(
+            {"detail": f"リクエストを確かめてください: {problems}"},
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
+        )
+
     return app

@@ -150,14 +150,13 @@ def main() -> None:
         RoadmapError,
         PlanError,
         PlanFormatError,
+        EmbeddingError,
     ) as error:
         sys.exit(f"道標を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except EmbeddingError as error:
-        sys.exit(str(error))
     except OSError as error:
         sys.exit(f"ネットワークに失敗しました: {error}")
     finally:

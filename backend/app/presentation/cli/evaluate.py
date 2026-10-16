@@ -69,14 +69,13 @@ def main() -> None:
         EvaluationError,
         SearchError,
         OccupationAnalysisError,
+        EmbeddingError,
     ) as error:
         sys.exit(f"評価を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except EmbeddingError as error:
-        sys.exit(str(error))
     except OSError as error:
         sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
     finally:

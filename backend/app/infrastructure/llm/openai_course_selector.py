@@ -3,7 +3,7 @@ from typing import Any, Self
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
-from openai import OpenAIError
+from openai import ContentFilterFinishReasonError, LengthFinishReasonError, OpenAIError
 from pydantic import BaseModel, SecretStr
 
 from app.application.ports import CourseSelectionError
@@ -126,8 +126,8 @@ class OpenAICourseSelector:
         self._chat = chat
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key))
+    def connect(cls, model: str, api_key: SecretStr, timeout: float) -> Self:
+        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout))
 
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
@@ -150,9 +150,14 @@ class OpenAICourseSelector:
                 )
                 for choice in selection.foundation
             ]
+        except (
+            OpenAIRefusalError,
+            ContentFilterFinishReasonError,
+            LengthFinishReasonError,
+            ValueError,
+        ) as error:
+            message = f"{profile.occupation}: LLM の答えを使えません: {error}"
+            raise CourseSelectionError(message) from error
         except OpenAIError as error:
             message = f"{profile.occupation}: OpenAI の API 呼び出しに失敗しました: {error}"
-            raise CourseSelectionError(message) from error
-        except (OpenAIRefusalError, ValueError) as error:
-            message = f"{profile.occupation}: LLM の答えを使えません: {error}"
             raise CourseSelectionError(message) from error

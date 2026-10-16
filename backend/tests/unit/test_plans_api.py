@@ -11,6 +11,8 @@ from app.domain.course import TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan
 from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
+from app.domain.roadmap import RoadmapError
+from app.presentation.api.app import SERVER_FAILURE, UPSTREAM_FAILURE
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
@@ -42,18 +44,24 @@ class UnreadablePlans(FakePlanRepository):
 
 
 class BrokenPlans(FakePlanRepository):
+    def __init__(self, error: Exception) -> None:
+        super().__init__()
+        self._error = error
+
     def add(self, plan: Plan) -> None:
-        raise RuntimeError("接続文字列 postgresql://secret")
+        raise self._error
 
 
 def client(
-    repository: FakeCourseRepository | None = None,
+    courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     selector: FakeCourseSelector | FailingSelector | None = None,
     plans: FakePlanRepository | None = None,
 ) -> TestClient:
-    ranked, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
-    courses = repository or ranked
-    return plan_api((courses, search), selector or FakeCourseSelector(CHOICES), plans)
+    return plan_api(
+        courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8}),
+        selector or FakeCourseSelector(CHOICES),
+        plans,
+    )
 
 
 def body(**fields: Any) -> dict[str, Any]:
@@ -131,20 +139,26 @@ def test_an_unknown_plan_is_not_found() -> None:
     )
 
 
-def test_a_body_of_the_wrong_shape_is_unprocessable() -> None:
+def test_a_request_of_the_wrong_shape_is_unprocessable_with_one_message() -> None:
     api = client()
 
     for wrong in (
         body(grade=5),
         body(occupation="職業\n別の行"),
         body(term="summer"),
+        body(chosenClasses={"科目A": "TA"}),
         {"occupation": "職業", "grade": 3},
     ):
-        assert api.post("/api/v1/plans", json=wrong).status_code == 422
+        response = api.post("/api/v1/plans", json=wrong)
+        assert response.status_code == 422
+        assert response.json()["detail"].startswith("リクエストを確かめてください: ")
+    response = api.get("/api/v1/plans/not-a-uuid")
+    assert response.status_code == 422
+    assert response.json()["detail"].startswith("リクエストを確かめてください: plan_id: ")
 
 
 def test_a_class_that_cannot_be_chosen_is_unprocessable() -> None:
-    repository, _ = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     a, b = repository.stored_sections
     own = frozenset({"情"})
     repository.stored_sections = [
@@ -155,7 +169,7 @@ def test_a_class_that_cannot_be_chosen_is_unprocessable() -> None:
         b,
     ]
 
-    response = client(repository=repository).post(
+    response = client((repository, search)).post(
         "/api/v1/plans", json=body(chosen_classes={"科目A": "TZ"})
     )
 
@@ -172,50 +186,34 @@ def test_a_department_without_candidates_is_unprocessable() -> None:
     assert "候補の科目がありません" in response.json()["detail"]
 
 
-def test_an_unusable_llm_answer_is_a_bad_gateway() -> None:
-    response = client(selector=FailingSelector()).post("/api/v1/plans", json=body())
+def test_failures_of_outside_services_are_a_bad_gateway_without_their_details() -> None:
+    courses, _ = courses_ranked_by({"科目A": 0.9})
+    failing_embedding = SearchCourses(courses, FakeChunkSearch([]), FakeEmbedder(failing_call=1))
 
-    assert (response.status_code, response.json()) == (
-        502,
-        {"detail": "職業: LLM の答えを使えません"},
-    )
+    for api in (client(selector=FailingSelector()), client((courses, failing_embedding))):
+        response = api.post("/api/v1/plans", json=body())
+        assert (response.status_code, response.json()) == (502, {"detail": UPSTREAM_FAILURE})
+
+
+def test_problems_on_the_server_are_server_errors_without_their_details() -> None:
+    courses, _ = courses_ranked_by({"科目A": 0.9})
+    not_embedded = SearchCourses(courses, FakeChunkSearch([], embedded=False), FakeEmbedder())
+    empty = FakeCourseRepository()
+    no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder())
+    broken_roadmap = BrokenPlans(RoadmapError("3 回生 秋学期: 同じコマに 2 つの授業があります"))
+    broken_connection = BrokenPlans(RuntimeError("接続文字列 postgresql://secret"))
+
+    for api in (
+        client((courses, not_embedded)),
+        client((empty, no_data)),
+        client(plans=broken_roadmap),
+        client(plans=broken_connection),
+    ):
+        response = api.post("/api/v1/plans", json=body())
+        assert (response.status_code, response.json()) == (500, {"detail": SERVER_FAILURE})
 
 
 def test_a_stored_plan_that_cannot_be_read_is_a_server_error() -> None:
-    plan_id = uuid4()
+    response = client(plans=UnreadablePlans()).get(f"/api/v1/plans/{uuid4()}")
 
-    response = client(plans=UnreadablePlans()).get(f"/api/v1/plans/{plan_id}")
-
-    assert (response.status_code, response.json()) == (
-        500,
-        {"detail": f"{plan_id}: 読めない版の Plan です: 2"},
-    )
-
-
-def test_search_problems_on_the_server_are_server_errors() -> None:
-    courses, _ = courses_ranked_by({"科目A": 0.9})
-    search = SearchCourses(courses, FakeChunkSearch([], embedded=False), FakeEmbedder())
-
-    response = plan_api((courses, search)).post("/api/v1/plans", json=body())
-
-    assert response.status_code == 500
-    assert "埋め込まれていません" in response.json()["detail"]
-
-
-def test_an_embedding_failure_is_a_bad_gateway() -> None:
-    courses, _ = courses_ranked_by({"科目A": 0.9})
-    search = SearchCourses(courses, FakeChunkSearch([]), FakeEmbedder(failing_call=1))
-
-    response = plan_api((courses, search)).post("/api/v1/plans", json=body())
-
-    assert response.status_code == 502
-    assert "埋め込みの API 呼び出しに失敗しました" in response.json()["detail"]
-
-
-def test_an_unexpected_failure_is_a_server_error_without_its_details() -> None:
-    response = client(plans=BrokenPlans()).post("/api/v1/plans", json=body())
-
-    assert (response.status_code, response.json()) == (
-        500,
-        {"detail": "サーバーで道標を扱えませんでした"},
-    )
+    assert (response.status_code, response.json()) == (500, {"detail": SERVER_FAILURE})

@@ -15,6 +15,10 @@ class RoadmapError(ValueError):
     pass
 
 
+class ClassChoiceError(RoadmapError):
+    pass
+
+
 @dataclass(frozen=True)
 class Semester:
     grade: int
@@ -135,7 +139,7 @@ def _split_classes(
 def _require_choosable(name: str, chosen: str, choosable: Sequence[str]) -> None:
     if chosen not in choosable:
         listed = "、".join(code or "記号なし" for code in choosable)
-        raise RoadmapError(f"{name}: 選べるクラスは {listed} です")
+        raise ClassChoiceError(f"{name}: 選べるクラスは {listed} です")
 
 
 def require_class_choices(

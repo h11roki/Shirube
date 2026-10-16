@@ -43,7 +43,7 @@ docker compose up
 - フロント: http://localhost:3000
 - バックエンド: http://localhost:8000 (OpenAPI: http://localhost:8000/docs)
 
-ポートが使用中のときは `FRONTEND_PORT` / `BACKEND_PORT` / `DB_PORT` で手元側のポートを変えられる。バックエンドは道標を作るときに OpenAI を呼ぶので、起動に `OPENAI_API_KEY` が要る(無ければ起動を止める)。`docker compose up` は手元の環境変数の `OPENAI_API_KEY` を backend に渡す。シラバスの埋め込み(`embed` コマンド)と検索の評価(`evaluate` コマンド)は手元で実行し、同じく `OPENAI_API_KEY` を環境変数で渡す。リポジトリ直下の `.envrc`(direnv、git 管理外)に `export OPENAI_API_KEY=...` を書き、`direnv allow` で有効にする。direnv は一番近い `.envrc` だけを読む。親ディレクトリの `.envrc` で渡している変数があるなら、先頭に `source_up` を書かないとリポジトリの中ではそれが消える。
+ポートが使用中のときは `FRONTEND_PORT` / `BACKEND_PORT` / `DB_PORT` で手元側のポートを変えられる。バックエンドは道標を作るときに OpenAI を呼ぶので、起動に `OPENAI_API_KEY` が要る(無ければ backend のログに理由が出て、API は応答しない)。認証が入るまで道標の生成は誰でも呼べて OpenAI の費用がかかるので、backend のポートは手元(127.0.0.1)だけに開ける。`docker compose up` は手元の環境変数の `OPENAI_API_KEY` を backend に渡す。シラバスの埋め込み(`embed` コマンド)と検索の評価(`evaluate` コマンド)は手元で実行し、同じく `OPENAI_API_KEY` を環境変数で渡す。リポジトリ直下の `.envrc`(direnv、git 管理外)に `export OPENAI_API_KEY=...` を書き、`direnv allow` で有効にする。direnv は一番近い `.envrc` だけを読む。親ディレクトリの `.envrc` で渡している変数があるなら、先頭に `source_up` を書かないとリポジトリの中ではそれが消える。
 
 DB のスキーマは Alembic で管理する。初回と、`backend/migrations/versions/` が増えたときに適用する。
 

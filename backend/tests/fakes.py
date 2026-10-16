@@ -130,7 +130,9 @@ class FakePlanRepository:
 
 
 def chat_answering(
-    message: dict[str, Any], requests: list[dict[str, Any]] | None = None
+    message: dict[str, Any],
+    requests: list[dict[str, Any]] | None = None,
+    finish_reason: str = "stop",
 ) -> ChatOpenAI:
     def respond(request: httpx.Request) -> httpx.Response:
         if requests is not None:
@@ -145,7 +147,7 @@ def chat_answering(
                 "choices": [
                     {
                         "index": 0,
-                        "finish_reason": "stop",
+                        "finish_reason": finish_reason,
                         "message": {"role": "assistant", **message},
                     }
                 ],
@@ -175,14 +177,19 @@ def courses_ranked_by(
     return repository, SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
 
 
-def chat_failing(status: int) -> ChatOpenAI:
+def failing_http_client(status: int) -> httpx.Client:
     def respond(request: httpx.Request) -> httpx.Response:
         return httpx.Response(
             status, json={"error": {"message": "失敗", "type": "invalid_request_error"}}
         )
 
-    client = httpx.Client(transport=httpx.MockTransport(respond))
-    return ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
+    return httpx.Client(transport=httpx.MockTransport(respond))
+
+
+def chat_failing(status: int) -> ChatOpenAI:
+    return ChatOpenAI(
+        model="test-model", api_key=SecretStr("test-key"), http_client=failing_http_client(status)
+    )
 
 
 def plan_api(

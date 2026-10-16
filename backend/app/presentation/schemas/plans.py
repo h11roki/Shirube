@@ -1,6 +1,7 @@
+from typing import Annotated
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
@@ -8,20 +9,24 @@ from app.domain.plan import Plan
 from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
+MAX_CHOSEN_CLASSES = 50
+
 
 class PlanIn(BaseModel):
-    occupation: str = Field(max_length=100)
+    model_config = ConfigDict(extra="forbid")
+
+    occupation: Annotated[str, StringConstraints(strip_whitespace=True, max_length=100)]
     grade: int = Field(ge=min(ALL_GRADES), le=max(ALL_GRADES))
     term: Term | None = None
-    department: str = Field(min_length=1)
-    chosen_classes: dict[str, str] = Field(default_factory=dict)
+    department: Annotated[str, StringConstraints(strip_whitespace=True, min_length=1)]
+    chosen_classes: dict[str, str] = Field(default_factory=dict, max_length=MAX_CHOSEN_CLASSES)
 
     @field_validator("occupation")
     @classmethod
     def occupation_is_one_line(cls, occupation: str) -> str:
         if not is_single_line(occupation):
             raise ValueError("職業名は空でない 1 行にしてください")
-        return occupation.strip()
+        return occupation
 
 
 class SlotOut(BaseModel):

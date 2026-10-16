@@ -18,3 +18,4 @@ class Settings(BaseSettings):
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 30
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
     curriculum_year: int = DEFAULT_CURRICULUM_YEAR
+    openai_timeout_seconds: Annotated[float, Field(gt=0)] = 60

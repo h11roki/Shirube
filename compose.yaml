@@ -24,7 +24,7 @@ services:
       DATABASE_URL: postgresql+psycopg://shirube:shirube@db:5432/shirube
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     ports:
-      - "${BACKEND_PORT:-8000}:8000"
+      - "127.0.0.1:${BACKEND_PORT:-8000}:8000"
     volumes:
       - ./backend:/app
     depends_on:
