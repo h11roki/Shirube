@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Set
 
 from sqlalchemy import Engine, delete, select
 from sqlalchemy.orm import Session as DbSession
@@ -57,16 +58,9 @@ class SqlCourseRepository:
         with DbSession(self._engine) as db:
             return _load_syllabi(db, year)
 
-    def syllabus(self, year: int, code: str) -> Syllabus | None:
+    def syllabi_of(self, year: int, primary_codes: Set[str]) -> dict[str, Syllabus]:
         with DbSession(self._engine) as db:
-            primary_code = db.scalar(
-                select(SyllabusCodeRow.syllabus_code).where(
-                    SyllabusCodeRow.year == year, SyllabusCodeRow.code == code
-                )
-            )
-            if primary_code is None:
-                return None
-            return _load_syllabi(db, year, primary_code)[0]
+            return {page.code: page for page in _load_syllabi(db, year, primary_codes)}
 
     def syllabus_codes(self, year: int) -> dict[str, str]:
         with DbSession(self._engine) as db:
@@ -78,14 +72,16 @@ class SqlCourseRepository:
             return {code: syllabus_code for code, syllabus_code in rows}
 
 
-def _load_syllabi(db: DbSession, year: int, primary_code: str | None = None) -> list[Syllabus]:
+def _load_syllabi(
+    db: DbSession, year: int, primary_codes: Set[str] | None = None
+) -> list[Syllabus]:
     names = select(SyllabusCodeRow).where(
         SyllabusCodeRow.year == year, SyllabusCodeRow.position > 0
     )
     rows = select(SyllabusRow).where(SyllabusRow.year == year)
-    if primary_code is not None:
-        names = names.where(SyllabusCodeRow.syllabus_code == primary_code)
-        rows = rows.where(SyllabusRow.code == primary_code)
+    if primary_codes is not None:
+        names = names.where(SyllabusCodeRow.syllabus_code.in_(primary_codes))
+        rows = rows.where(SyllabusRow.code.in_(primary_codes))
     aliases: dict[str, list[CourseName]] = defaultdict(list)
     for name in db.scalars(names.order_by(SyllabusCodeRow.syllabus_code, SyllabusCodeRow.position)):
         aliases[name.syllabus_code].append(CourseName(name.code, name.title))

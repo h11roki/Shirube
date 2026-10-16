@@ -20,12 +20,11 @@ from app.application.ports import OccupationAnalysisError
 from app.application.search_courses import SearchCourses, SearchError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.presentation.cli.environment import (
     database_engine,
     load_settings,
-    openai_api_key,
     openai_embedder,
+    openai_occupation_analyzer,
 )
 
 DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
@@ -94,11 +93,7 @@ def main() -> None:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     settings = load_settings()
     embedder = openai_embedder(settings)
-    analyzer = (
-        OpenAIOccupationAnalyzer.connect(settings.chat_model, openai_api_key(settings))
-        if args.skills == LLM
-        else None
-    )
+    analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
     engine = database_engine(settings)
     search = SearchCourses(SqlCourseRepository(engine), SqlChunkRepository(engine), embedder)
     try:

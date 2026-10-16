@@ -6,6 +6,7 @@ from sqlalchemy.exc import ArgumentError
 
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
+from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.settings import Settings
 
 
@@ -41,3 +42,7 @@ def openai_embedder(settings: Settings) -> OpenAIEmbedder:
             f"{EMBEDDING_DIMENSIONS} と違います。列を変えるマイグレーションが要ります"
         )
     return OpenAIEmbedder(settings.embedding_model, settings.embedding_dimensions, api_key)
+
+
+def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
+    return OpenAIOccupationAnalyzer.connect(settings.chat_model, openai_api_key(settings))
