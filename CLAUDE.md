@@ -33,7 +33,7 @@ frontend(`frontend/` で実行)
 
 `backend/app` は4層。依存は presentation → application → domain の一方向で、infrastructure は application のポート(Protocol)を実装する。
 
-- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Plan, SemesterPlan)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
+- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Roadmap, SemesterPlan, Plan)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
 - application: ユースケース(CreatePlan, IngestTimetable, IngestSyllabi, FetchSyllabus, EmbedSyllabi, SearchCourses, EvaluateSearch, RecommendCourses, EvaluateSelection)とポート(`ports.py`)。ポートは差し替え先が実在するものだけ(時間割表の取得元、シラバスの取得元、LLM、埋め込み、科目リポジトリ、チャンクの保存、チャンクの検索、Plan リポジトリ)
 - infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`curriculum/<university>/`(時間割表の解析)、`scrapers/<university>/`(シラバスの取得と解析)、`auth/`
 - presentation: `api/`(FastAPI ルータ、接頭辞 `/api/v1`)、`schemas/`(Pydantic DTO)、`cli/`

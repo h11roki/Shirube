@@ -1,0 +1,163 @@
+from dataclasses import replace
+
+import pytest
+
+from app.domain.course import Audience, CourseSection, Term, TimeSlot, Weekday
+from app.domain.occupation import OccupationProfile
+from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
+from app.domain.roadmap import (
+    PlacedCourse,
+    RoadmapError,
+    Semester,
+    SemesterPlan,
+    place,
+    remaining_semesters,
+)
+from tests.builders import course_section
+
+PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
+SPRING_1 = (Semester(1, Term.SPRING),)
+MON_1 = (TimeSlot(Weekday.MON, 1),)
+TUE_1 = (TimeSlot(Weekday.TUE, 1),)
+
+
+def section(
+    code: str,
+    name: str,
+    term: Term | None = Term.SPRING,
+    slots: tuple[TimeSlot, ...] = MON_1,
+    class_code: str = "6T",
+    departments: frozenset[str] | None = None,
+    grades: frozenset[int] = frozenset({1, 2, 3, 4}),
+    credits: int = 2,
+) -> CourseSection:
+    return replace(
+        course_section(code, term, slots, departments),
+        name=name,
+        class_code=class_code,
+        audiences=(Audience(2020, 2026, grades, "専門"),),
+        credits=credits,
+    )
+
+
+def recommend(*names: str, relevance: Relevance = Relevance.CORE) -> Recommendation:
+    courses = tuple(RecommendedCourse(name, "10000", relevance, f"{name}の理由") for name in names)
+    return Recommendation(PROFILE, courses, names)
+
+
+def placed_names(plan: SemesterPlan) -> list[tuple[str, str | None]]:
+    return [(placed.course.name, placed.section.class_code) for placed in plan.courses]
+
+
+def test_remaining_semesters_run_from_now_to_the_autumn_of_the_fourth_grade() -> None:
+    assert remaining_semesters(3, Term.AUTUMN) == (
+        Semester(3, Term.AUTUMN),
+        Semester(4, Term.SPRING),
+        Semester(4, Term.AUTUMN),
+    )
+    assert len(remaining_semesters(1, Term.SPRING)) == 8
+    assert remaining_semesters(4, Term.AUTUMN) == (Semester(4, Term.AUTUMN),)
+
+
+def test_grade_outside_one_to_four_is_rejected() -> None:
+    with pytest.raises(RoadmapError, match="回生は 1〜4"):
+        remaining_semesters(5, Term.SPRING)
+
+
+def test_earlier_courses_take_the_slot_and_later_ones_move_to_another_class_or_term() -> None:
+    sections = [
+        section("10000", "科目A"),
+        section("10001", "科目B", class_code="X1"),
+        section("10002", "科目B", class_code="X2", slots=TUE_1),
+        section("10003", "科目C", term=Term.AUTUMN),
+        section("10004", "科目D", class_code="Y1"),
+        section("10005", "科目D", term=Term.AUTUMN, class_code="Y2", slots=TUE_1),
+    ]
+    semesters = (Semester(1, Term.SPRING), Semester(1, Term.AUTUMN))
+
+    roadmap = place(
+        recommend("科目A", "科目B", "科目C", "科目D"), sections, "情", 2026, semesters, 16, {}
+    )
+
+    spring, autumn = roadmap.semesters
+    assert placed_names(spring) == [("科目A", "6T"), ("科目B", "X2")]
+    assert placed_names(autumn) == [("科目C", "6T"), ("科目D", "Y2")]
+    assert roadmap.unplaced == ()
+
+
+def test_the_credit_limit_and_the_grade_keep_courses_out() -> None:
+    sections = [
+        section("10000", "科目A", credits=2),
+        section("10001", "科目B", slots=TUE_1, credits=2),
+        section("10002", "科目C", slots=(), grades=frozenset({2})),
+    ]
+
+    roadmap = place(recommend("科目A", "科目B", "科目C"), sections, "情", 2026, SPRING_1, 3, {})
+
+    assert placed_names(roadmap.semesters[0]) == [("科目A", "6T")]
+    assert [course.name for course in roadmap.unplaced] == ["科目B", "科目C"]
+
+
+def test_courses_without_a_term_go_to_spring_and_without_slots_never_collide() -> None:
+    sections = [
+        section("10000", "通年の科目", term=None, slots=()),
+        section("10001", "オンデマンドの科目", slots=()),
+        section("10002", "科目A"),
+    ]
+
+    recommendation = recommend("通年の科目", "オンデマンドの科目", "科目A")
+
+    roadmap = place(recommendation, sections, "情", 2026, SPRING_1, 16, {})
+
+    assert [name for name, _ in placed_names(roadmap.semesters[0])] == [
+        "通年の科目",
+        "オンデマンドの科目",
+        "科目A",
+    ]
+
+
+def test_classes_split_by_the_department_follow_the_users_choice() -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報科学Ⅱ", class_code="TA", departments=own),
+        section("10001", "情報科学Ⅱ", class_code="TB", departments=own, slots=TUE_1),
+    ]
+
+    chosen = place(recommend("情報科学Ⅱ"), sections, "情", 2026, SPRING_1, 16, {"情報科学Ⅱ": "TB"})
+    guessed = place(recommend("情報科学Ⅱ"), sections, "情", 2026, SPRING_1, 16, {})
+
+    [chosen_class] = chosen.semesters[0].courses
+    [guessed_class] = guessed.semesters[0].courses
+    assert (chosen_class.section.class_code, chosen_class.class_confirmed) == ("TB", True)
+    assert (guessed_class.section.class_code, guessed_class.class_confirmed) == ("TA", False)
+
+
+@pytest.mark.parametrize(
+    ("chosen", "message"),
+    [
+        ({"情報科学Ⅱ": "TZ"}, "情報科学Ⅱ: クラス TZ はありません"),
+        ({"科目A": "6T"}, "科目A: 学科で分かれたクラスではない"),
+        ({"推薦に無い科目": "TA"}, "推薦に無い科目のクラスが選ばれています"),
+    ],
+    ids=["unknown-class", "not-split", "not-recommended"],
+)
+def test_choosing_a_class_that_cannot_be_chosen_is_rejected(
+    chosen: dict[str, str], message: str
+) -> None:
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報科学Ⅱ", class_code="TA", departments=own),
+        section("10001", "情報科学Ⅱ", class_code="TB", departments=own, slots=TUE_1),
+        section("10002", "科目A"),
+    ]
+
+    with pytest.raises(RoadmapError, match=message):
+        place(recommend("情報科学Ⅱ", "科目A"), sections, "情", 2026, SPRING_1, 16, chosen)
+
+
+def test_a_semester_with_two_courses_in_one_slot_is_rejected() -> None:
+    course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
+    placed = PlacedCourse(course, section("10000", "科目A"), class_confirmed=True)
+
+    with pytest.raises(RoadmapError, match="同じコマに 2 つの授業があります"):
+        SemesterPlan(SPRING_1[0], (placed, placed))
