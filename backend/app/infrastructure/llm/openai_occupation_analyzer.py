@@ -3,6 +3,7 @@ from typing import Self
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
+from openai import OpenAIError
 from pydantic import BaseModel, Field, SecretStr
 
 from app.application.ports import OccupationAnalysisError
@@ -53,6 +54,9 @@ class OpenAIOccupationAnalyzer:
                 assumption or None,
                 tuple(skill.strip() for skill in output.skills),
             )
+        except OpenAIError as error:
+            message = f"{occupation}: OpenAI の API 呼び出しに失敗しました: {error}"
+            raise OccupationAnalysisError(message) from error
         except (OpenAIRefusalError, ValueError, TypeError) as error:
             message = f"{occupation}: LLM の答えを使えません: {error}"
             raise OccupationAnalysisError(message) from error

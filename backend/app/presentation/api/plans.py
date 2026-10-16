@@ -6,7 +6,6 @@ from fastapi import APIRouter, HTTPException, Request, Response, status
 
 from app.application.create_plan import CreatePlan
 from app.application.ports import PlanRepository
-from app.domain.course import Term
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
 
@@ -21,7 +20,7 @@ def plans_router(
 
     @router.post("/plans", status_code=status.HTTP_201_CREATED)
     def create(body: PlanIn, request: Request, response: Response) -> PlanOut:
-        term = Term(body.term) if body.term is not None else term_on(today())
+        term = body.term or term_on(today())
         plan = create_plan.run(
             body.occupation,
             body.department,

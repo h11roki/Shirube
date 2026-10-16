@@ -2,7 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.evaluate_search import (
@@ -12,7 +11,7 @@ from app.application.evaluate_search import (
     EvaluationReport,
     with_analyzed_skills,
 )
-from app.application.ports import OccupationAnalysisError
+from app.application.ports import EmbeddingError, OccupationAnalysisError
 from app.application.search_courses import SearchCourses, SearchError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
@@ -76,8 +75,8 @@ def main() -> None:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
-    except OpenAIError as error:
-        sys.exit(f"OpenAI の API 呼び出しに失敗しました: {error}")
+    except EmbeddingError as error:
+        sys.exit(str(error))
     except OSError as error:
         sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
     finally:

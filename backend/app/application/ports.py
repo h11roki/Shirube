@@ -43,6 +43,10 @@ class Embedder(Protocol):
     def embed(self, texts: list[str]) -> list[list[float]]: ...
 
 
+class EmbeddingError(ValueError):
+    pass
+
+
 class OccupationAnalysisError(ValueError):
     pass
 

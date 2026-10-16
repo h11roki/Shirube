@@ -13,7 +13,7 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 ルータへの渡し方
 
-1. presentation/api に `create_app(create_plan, plans, today)` を置き、`main.py` が DB と OpenAI を組み立てて渡す
+1. presentation/api に `create_app(create_plan, plans, curriculum_year, today)` を置き、`main.py` が DB と OpenAI を組み立てて渡す
 2. FastAPI の Depends で依存の関数を引き、テストでは `dependency_overrides` で差し替える
 
 エラーの返し方
@@ -37,10 +37,12 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 組み立て
 
-- `presentation/api/app.py` の `create_app(create_plan, plans, today)` が、ルータとエラーの対応を持つ FastAPI を返す。ルータは受け取ったユースケースだけを使い、infrastructure を import しない
+- `presentation/api/app.py` の `create_app(create_plan, plans, curriculum_year, today)` が、ルータとエラーの対応を持つ FastAPI を返す。ルータは受け取ったユースケースだけを使い、infrastructure を import しない
 - `main.py` が設定を読み、DB と OpenAI を組み立てて `create_app` に渡す。テストはフェイクを渡し、DB も API キーも要らない
 - CLI と `main.py` が共有する組み立ての部品は、`presentation/cli/environment.py` から `presentation/composition.py` に移す。日本時間の今日もここに置く
 - 起動時に `OPENAI_API_KEY` が無ければ止める。`compose.yaml` は手元の環境変数を backend に渡す
+- OpenAI の呼び出しの失敗は、埋め込み・職業の解釈・選び直しのアダプタがポートのエラー(`EmbeddingError`、`OccupationAnalysisError`、`CourseSelectionError`)に包む。API も CLI も OpenAI のライブラリの例外を知らない
+- 年度の初期値は `DEFAULT_CURRICULUM_YEAR` の 1 か所に置き、設定と CLI の `--year` の既定値が使う
 
 エンドポイント
 
@@ -52,8 +54,9 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 - 本文の形の誤り(FastAPI の検査)と、選べないクラス、残りの学期に候補の無いとき: 422
 - 無い Plan: 404
-- LLM の答えを使えない、OpenAI の呼び出しの失敗: 502
-- 保存した Plan を読めない: 500
+- 埋め込みや LLM の呼び出しの失敗、LLM の答えを使えないとき: 502
+- その年度のシラバスが埋め込まれていない、DB にシラバスが無いなど、サーバー側のデータの問題と、保存した Plan を読めないとき: 500
+- それ以外の想定していない失敗(DB の接続など): 500 で、中身は出さず「サーバーで道標を扱えませんでした」
 - どれも `{"detail": 文}` で、文は CLI と同じ日本語
 
 ## 理由
@@ -68,7 +71,7 @@ presentation のうち infrastructure を import してよいのは、合成ル�
 
 - 起動時に OpenAI の部品を作るので、API キーが無いと backend が起動せず、`/api/v1/health` も返らない。手元の `docker compose up` でも `OPENAI_API_KEY` が要る
 - 生成は同期で 10〜30 秒かかり、その間 HTTP の接続を待たせる(ADR 0024)
-- 残りの学期に候補の無いときと、その年度のシラバスが埋め込まれていないときが、同じ 422 になる(文で区別する)
+- `CURRICULUM_YEAR` を変えても、CLI の `--year` の既定値は変わらない(CLI は `--year` で年度を指定する)
 - 認証が入るまで、id を知っていれば誰でも Plan を読める(id は推測できない UUID、ADR 0024)
 
 ## 再検討する条件

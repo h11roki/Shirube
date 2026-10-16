@@ -1,22 +1,18 @@
-from typing import Literal
 from uuid import UUID
 
 from pydantic import BaseModel, Field, field_validator
 
-from app.domain.course import ALL_GRADES
+from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
 from app.domain.plan import Plan
-from app.domain.recommendation import RecommendedCourse
+from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
-
-TermName = Literal["spring", "autumn"]
-RelevanceName = Literal["core", "foundation"]
 
 
 class PlanIn(BaseModel):
     occupation: str = Field(max_length=100)
     grade: int = Field(ge=min(ALL_GRADES), le=max(ALL_GRADES))
-    term: TermName | None = None
+    term: Term | None = None
     department: str = Field(min_length=1)
     chosen_classes: dict[str, str] = Field(default_factory=dict)
 
@@ -29,13 +25,13 @@ class PlanIn(BaseModel):
 
 
 class SlotOut(BaseModel):
-    weekday: str
+    weekday: Weekday
     period: int
 
 
 class CourseOut(BaseModel):
     name: str
-    relevance: RelevanceName
+    relevance: Relevance
     reason: str
     prerequisite_for: str | None
     syllabus_code: str
@@ -51,7 +47,7 @@ class PlacedCourseOut(CourseOut):
 
 class SemesterPlanOut(BaseModel):
     grade: int
-    term: TermName
+    term: Term
     credits: int
     courses: list[PlacedCourseOut]
     continuing: list[PlacedCourseOut]
@@ -75,7 +71,7 @@ class ConditionsOut(BaseModel):
     department: str
     year: int
     grade: int
-    term: TermName
+    term: Term
     chosen_classes: dict[str, str]
     credit_limit: int
 
@@ -92,7 +88,7 @@ class PlanOut(BaseModel):
 def _course_out(course: RecommendedCourse) -> CourseOut:
     return CourseOut(
         name=course.name,
-        relevance=course.relevance.value,
+        relevance=course.relevance,
         reason=course.reason,
         prerequisite_for=course.prerequisite_for,
         syllabus_code=course.syllabus_code,
@@ -105,7 +101,7 @@ def _placed_out(placed: PlacedCourse) -> PlacedCourseOut:
         **_course_out(placed.course).model_dump(),
         section_code=section.code,
         class_code=section.class_code,
-        slots=[SlotOut(weekday=slot.weekday.value, period=slot.period) for slot in section.slots],
+        slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
         credits=section.credits,
         class_confirmed=placed.class_confirmed,
     )
@@ -121,7 +117,7 @@ def plan_out(plan: Plan) -> PlanOut:
             department=conditions.department,
             year=conditions.year,
             grade=conditions.start.grade,
-            term=conditions.start.term.value,
+            term=conditions.start.term,
             chosen_classes=dict(conditions.chosen_classes),
             credit_limit=conditions.credit_limit,
         ),
@@ -134,7 +130,7 @@ def plan_out(plan: Plan) -> PlanOut:
         semesters=[
             SemesterPlanOut(
                 grade=semester_plan.semester.grade,
-                term=semester_plan.semester.term.value,
+                term=semester_plan.semester.term,
                 credits=semester_plan.credits,
                 courses=[_placed_out(placed) for placed in semester_plan.courses],
                 continuing=[_placed_out(placed) for placed in semester_plan.continuing],

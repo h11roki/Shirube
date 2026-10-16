@@ -10,6 +10,10 @@ class SearchError(ValueError):
     pass
 
 
+class NoCandidatesError(SearchError):
+    pass
+
+
 class Candidates:
     def __init__(
         self,
@@ -58,7 +62,7 @@ class SearchCourses:
             if offered and section.code in page_of:
                 names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
-            raise SearchError(
+            raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
                 "候補の科目がありません"
             )

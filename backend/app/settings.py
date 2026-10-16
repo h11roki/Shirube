@@ -3,6 +3,8 @@ from typing import Annotated
 from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+DEFAULT_CURRICULUM_YEAR = 2026
+
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_ignore_empty=True)
@@ -15,4 +17,4 @@ class Settings(BaseSettings):
     selection_model: str = "gpt-5.4-nano"
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 30
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
-    curriculum_year: int = 2026
+    curriculum_year: int = DEFAULT_CURRICULUM_YEAR

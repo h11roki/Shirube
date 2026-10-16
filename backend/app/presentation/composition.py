@@ -49,7 +49,7 @@ def openai_embedder(settings: Settings) -> OpenAIEmbedder:
             f"EMBEDDING_DIMENSIONS {settings.embedding_dimensions} が DB の列の "
             f"{EMBEDDING_DIMENSIONS} と違います。列を変えるマイグレーションが要ります"
         )
-    return OpenAIEmbedder(settings.embedding_model, settings.embedding_dimensions, api_key)
+    return OpenAIEmbedder.connect(settings.embedding_model, settings.embedding_dimensions, api_key)
 
 
 def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:

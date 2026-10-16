@@ -5,20 +5,20 @@ from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
-from app.application.create_plan import CreatePlan
 from app.application.ports import CourseSelectionError, PlanFormatError
-from app.application.recommend_courses import RecommendCourses
+from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan
 from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
-from app.presentation.api.app import create_app
 from tests.fakes import (
+    FakeChunkSearch,
     FakeCourseRepository,
     FakeCourseSelector,
-    FakeOccupationAnalyzer,
+    FakeEmbedder,
     FakePlanRepository,
     courses_ranked_by,
+    plan_api,
 )
 
 PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
@@ -41,6 +41,11 @@ class UnreadablePlans(FakePlanRepository):
         raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: 2")
 
 
+class BrokenPlans(FakePlanRepository):
+    def add(self, plan: Plan) -> None:
+        raise RuntimeError("接続文字列 postgresql://secret")
+
+
 def client(
     repository: FakeCourseRepository | None = None,
     selector: FakeCourseSelector | FailingSelector | None = None,
@@ -48,17 +53,7 @@ def client(
 ) -> TestClient:
     ranked, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     courses = repository or ranked
-    recommend = RecommendCourses(
-        search,
-        courses,
-        FakeOccupationAnalyzer({"職業": PROFILE}),
-        selector or FakeCourseSelector(CHOICES),
-        30,
-    )
-    stored = plans or FakePlanRepository()
-    return TestClient(
-        create_app(CreatePlan(recommend, courses, stored, 16), stored, 2026, lambda: TODAY)
-    )
+    return plan_api((courses, search), selector or FakeCourseSelector(CHOICES), plans)
 
 
 def body(**fields: Any) -> dict[str, Any]:
@@ -194,4 +189,33 @@ def test_a_stored_plan_that_cannot_be_read_is_a_server_error() -> None:
     assert (response.status_code, response.json()) == (
         500,
         {"detail": f"{plan_id}: 読めない版の Plan です: 2"},
+    )
+
+
+def test_search_problems_on_the_server_are_server_errors() -> None:
+    courses, _ = courses_ranked_by({"科目A": 0.9})
+    search = SearchCourses(courses, FakeChunkSearch([], embedded=False), FakeEmbedder())
+
+    response = plan_api((courses, search)).post("/api/v1/plans", json=body())
+
+    assert response.status_code == 500
+    assert "埋め込まれていません" in response.json()["detail"]
+
+
+def test_an_embedding_failure_is_a_bad_gateway() -> None:
+    courses, _ = courses_ranked_by({"科目A": 0.9})
+    search = SearchCourses(courses, FakeChunkSearch([]), FakeEmbedder(failing_call=1))
+
+    response = plan_api((courses, search)).post("/api/v1/plans", json=body())
+
+    assert response.status_code == 502
+    assert "埋め込みの API 呼び出しに失敗しました" in response.json()["detail"]
+
+
+def test_an_unexpected_failure_is_a_server_error_without_its_details() -> None:
+    response = client(plans=BrokenPlans()).post("/api/v1/plans", json=body())
+
+    assert (response.status_code, response.json()) == (
+        500,
+        {"detail": "サーバーで道標を扱えませんでした"},
     )

@@ -1,13 +1,18 @@
 import json
 from collections.abc import Set
 from dataclasses import replace
+from datetime import date
 from typing import Any
 from uuid import UUID
 
 import httpx
+from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from app.application.create_plan import CreatePlan
+from app.application.ports import CourseSelector, EmbeddingError
+from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
@@ -16,6 +21,7 @@ from app.domain.plan import Plan
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
+from app.presentation.api.app import create_app
 from tests.builders import course_section, syllabus
 
 FAKE_MODEL = "fake-embedding"
@@ -31,7 +37,7 @@ class FakeEmbedder:
     def embed(self, texts: list[str]) -> list[list[float]]:
         self.calls.append(texts)
         if len(self.calls) == self._failing_call:
-            raise ConnectionError("API が応答しない")
+            raise EmbeddingError("埋め込みの API 呼び出しに失敗しました: 応答が無い")
         return [[float(len(text))] for text in texts]
 
 
@@ -167,3 +173,33 @@ def courses_ranked_by(
         for code, similarity in zip(codes, similarities.values(), strict=True)
     ]
     return repository, SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+
+
+def chat_failing(status: int) -> ChatOpenAI:
+    def respond(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            status, json={"error": {"message": "失敗", "type": "invalid_request_error"}}
+        )
+
+    client = httpx.Client(transport=httpx.MockTransport(respond))
+    return ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
+
+
+def plan_api(
+    courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
+    selector: CourseSelector | None = None,
+    plans: FakePlanRepository | None = None,
+    today: date = date(2026, 10, 16),
+) -> TestClient:
+    courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    profile = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
+    recommend = RecommendCourses(
+        search,
+        courses,
+        FakeOccupationAnalyzer({"職業": profile}),
+        selector or FakeCourseSelector([]),
+        30,
+    )
+    stored = plans or FakePlanRepository()
+    app = create_app(CreatePlan(recommend, courses, stored, 16), stored, 2026, lambda: today)
+    return TestClient(app, raise_server_exceptions=False)

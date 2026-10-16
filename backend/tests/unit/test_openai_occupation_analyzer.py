@@ -6,7 +6,7 @@ import pytest
 from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import OccupationProfile
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
-from tests.fakes import chat_answering
+from tests.fakes import chat_answering, chat_failing
 
 
 def analyzer_answering(
@@ -86,3 +86,10 @@ def test_surrounding_spaces_in_the_answer_are_trimmed() -> None:
 def test_refused_or_unusable_answers_are_analysis_errors(message: dict[str, Any]) -> None:
     with pytest.raises(OccupationAnalysisError, match="職業: LLM の答えを使えません"):
         analyzer_answering(message).analyze("職業")
+
+
+def test_a_failed_api_call_is_an_analysis_error() -> None:
+    analyzer = OpenAIOccupationAnalyzer(chat_failing(400))
+
+    with pytest.raises(OccupationAnalysisError, match="職業: OpenAI の API 呼び出しに失敗しました"):
+        analyzer.analyze("職業")
