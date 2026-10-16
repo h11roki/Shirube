@@ -7,6 +7,7 @@ from app.application.evaluate_selection import (
     EvaluateSelection,
     ExpectedCourse,
     Judgment,
+    Judgments,
     Pick,
     SelectionReport,
     SelectionResult,
@@ -14,29 +15,34 @@ from app.application.evaluate_selection import (
 )
 from app.domain.occupation import OccupationProfile, OccupationProfileError
 from app.domain.recommendation import CourseChoice, Relevance
-from app.presentation.cli.evaluate_selection import load_judgments, render
+from app.presentation.cli.evaluate_selection import render
+from app.presentation.cli.evaluation_data import load_judgments
 from tests.fakes import FakeCourseSelector, courses_ranked_by
 
 DATASET = EvaluationDataset(
     2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A", "科目D")),)
 )
 SIMILARITIES = {"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6}
-JUDGMENTS = {
-    ("職業", "科目A"): Judgment.EXPECTED,
-    ("職業", "科目B"): Judgment.FOUNDATION,
-    ("職業", "科目D"): Judgment.EXPECTED,
-}
+JUDGMENTS = Judgments(
+    frozenset(SIMILARITIES),
+    {
+        ("職業", "科目A"): Judgment.EXPECTED,
+        ("職業", "科目B"): Judgment.FOUNDATION,
+        ("職業", "科目D"): Judgment.EXPECTED,
+    },
+)
+CORE, FOUNDATION = Relevance.CORE, Relevance.FOUNDATION
 
 
 @pytest.mark.parametrize(
-    ("labels", "decision", "judgment"),
+    ("votes", "decision", "judgment"),
     [
-        (["core", "core", "foundation"], None, Judgment.EXPECTED),
-        (["core", "foundation", "foundation"], "core", Judgment.EXPECTED),
-        (["core", "foundation", "foundation"], "foundation", Judgment.FOUNDATION),
-        (["core"], "foundation", Judgment.FOUNDATION),
-        (["foundation", "foundation"], None, Judgment.FOUNDATION),
-        (["foundation"], None, Judgment.MINORITY),
+        ([CORE, CORE, FOUNDATION], None, Judgment.EXPECTED),
+        ([CORE, FOUNDATION, FOUNDATION], CORE, Judgment.EXPECTED),
+        ([CORE, FOUNDATION, FOUNDATION], FOUNDATION, Judgment.FOUNDATION),
+        ([CORE], FOUNDATION, Judgment.FOUNDATION),
+        ([FOUNDATION, FOUNDATION], None, Judgment.FOUNDATION),
+        ([FOUNDATION], None, Judgment.MINORITY),
         ([], None, Judgment.UNRELATED),
     ],
     ids=[
@@ -50,9 +56,9 @@ JUDGMENTS = {
     ],
 )
 def test_judgment_follows_the_majority_and_the_decision(
-    labels: list[str], decision: str | None, judgment: Judgment
+    votes: list[Relevance], decision: Relevance | None, judgment: Judgment
 ) -> None:
-    assert judgment_of(labels, decision) is judgment
+    assert judgment_of(votes, decision) is judgment
 
 
 def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills() -> None:
@@ -90,11 +96,21 @@ def test_selection_is_compared_with_the_judgments_using_the_handwritten_skills()
 
 def test_expected_courses_that_disagree_with_the_judgments_stop_the_evaluation() -> None:
     repository, search = courses_ranked_by(SIMILARITIES)
-    judgments = {("職業", "科目A"): Judgment.EXPECTED}
+    judgments = Judgments(frozenset(SIMILARITIES), {("職業", "科目A"): Judgment.EXPECTED})
 
     selector = FakeCourseSelector([])
 
     with pytest.raises(EvaluationError, match="期待する科目が判定と合いません: 職業"):
+        EvaluateSelection(search, repository, selector, 3).run(DATASET, judgments)
+    assert selector.calls == []
+
+
+def test_a_candidate_the_judges_did_not_read_stops_before_calling_the_llm() -> None:
+    repository, search = courses_ranked_by(SIMILARITIES)
+    selector = FakeCourseSelector([])
+    judgments = Judgments(frozenset({"科目A", "科目B", "科目D"}), JUDGMENTS.by_course)
+
+    with pytest.raises(EvaluationError, match="判定していない候補があります: 科目C"):
         EvaluateSelection(search, repository, selector, 3).run(DATASET, judgments)
     assert selector.calls == []
 
@@ -130,17 +146,21 @@ def write_judgments(tmp_path: Path, body: str) -> Path:
 def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> None:
     path = write_judgments(
         tmp_path,
-        '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
+        '{"year": 2026, "department": "情", "parts": [["科目A"], ["科目B"]],'
+        ' "occupations": [{"name": "職業", "courses": ['
         '{"name": "科目A", "votes": {"a": {"label": "core"}, "b": {"label": "core"}}},'
         '{"name": "科目B", "votes": {"a": {"label": "core"}, "b": {"label": "foundation"}},'
         ' "decision": "foundation"}'
         "]}]}",
     )
 
-    assert load_judgments(path, DATASET) == {
-        ("職業", "科目A"): Judgment.EXPECTED,
-        ("職業", "科目B"): Judgment.FOUNDATION,
-    }
+    assert load_judgments(path, DATASET) == Judgments(
+        frozenset({"科目A", "科目B"}),
+        {
+            ("職業", "科目A"): Judgment.EXPECTED,
+            ("職業", "科目B"): Judgment.FOUNDATION,
+        },
+    )
 
 
 @pytest.mark.parametrize(
@@ -158,15 +178,27 @@ def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> No
         (
             '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
             '{"name": "科目A", "votes": {"a": {"label": "unrelated"}}}]}]}',
-            "票か決定の値が違います",
+            "is not a valid Relevance",
         ),
         (
             '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
-            '{"name": "科目A", "votes": {}, "decision": "Core"}]}]}',
-            "票か決定の値が違います",
+            '{"name": "科目A", "votes": {"a": {"label": "core"}}, "decision": "Core"}]}]}',
+            "is not a valid Relevance",
+        ),
+        (
+            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
+            '{"name": "科目A", "votes": {"a": {"label": "core"}, "b": {"label": "core"}},'
+            ' "decision": "foundation"}]}]}',
+            "決定は中心の票が 1 つだけの科目にだけ付けます",
         ),
     ],
-    ids=["other-year", "same-course-twice", "unknown-label", "unknown-decision"],
+    ids=[
+        "other-year",
+        "same-course-twice",
+        "unknown-label",
+        "unknown-decision",
+        "decision-without-a-split",
+    ],
 )
 def test_judgments_for_another_year_or_with_wrong_entries_are_rejected(
     tmp_path: Path, body: str, message: str

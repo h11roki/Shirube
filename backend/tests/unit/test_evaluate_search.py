@@ -16,11 +16,12 @@ from app.application.evaluate_search import (
 from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
-from app.presentation.cli.evaluate import (
+from app.domain.recommendation import Relevance
+from app.presentation.cli.evaluate import render
+from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     load_dataset,
     reject_duplicate_keys,
-    render,
 )
 from tests.fakes import (
     FakeOccupationAnalyzer,
@@ -177,8 +178,10 @@ def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregat
                 assert course.get("decision") in LABELS, where
             else:
                 assert "decision" not in course, where
-            labels = [vote["label"] for vote in votes.values()]
-            if judgment_of(labels, course.get("decision")) is Judgment.EXPECTED:
+            relevances = [Relevance(vote["label"]) for vote in votes.values()]
+            decision = course.get("decision")
+            decided = None if decision is None else Relevance(decision)
+            if judgment_of(relevances, decided) is Judgment.EXPECTED:
                 ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
         majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
 

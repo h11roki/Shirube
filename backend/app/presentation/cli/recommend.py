@@ -22,10 +22,10 @@ from app.presentation.cli.environment import (
     openai_embedder,
     openai_occupation_analyzer,
 )
+from app.presentation.cli.labels import RELEVANCE_LABELS
 from app.presentation.cli.options import add_year_option
 
 DEFAULT_DEPARTMENT = "情"
-RELEVANCE_LABELS = {Relevance.CORE: "中心", Relevance.FOUNDATION: "土台"}
 
 
 def render(recommendation: Recommendation) -> str:
