@@ -13,8 +13,8 @@ from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-from app.presentation.cli.environment import database_engine, load_settings
 from app.presentation.cli.options import add_raw_store_options, add_year_option
+from app.presentation.composition import database_engine, load_settings
 
 
 def main() -> None:

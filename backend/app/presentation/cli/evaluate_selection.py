@@ -20,12 +20,6 @@ from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import RecommendationError, Relevance
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import (
-    database_engine,
-    load_settings,
-    openai_course_selector,
-    openai_embedder,
-)
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
@@ -33,6 +27,12 @@ from app.presentation.cli.evaluation_data import (
     load_judgments,
 )
 from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
+from app.presentation.composition import (
+    database_engine,
+    load_settings,
+    openai_course_selector,
+    openai_embedder,
+)
 
 JUDGMENT_LABELS = {
     Judgment.EXPECTED: "期待",

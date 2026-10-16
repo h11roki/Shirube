@@ -7,8 +7,8 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 from app.application.embed_syllabi import EmbedError, EmbedSyllabi, PruneRefusedError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import database_engine, load_settings, openai_embedder
 from app.presentation.cli.options import add_year_option
+from app.presentation.composition import database_engine, load_settings, openai_embedder
 
 
 def main() -> None:

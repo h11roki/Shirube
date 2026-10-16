@@ -16,13 +16,13 @@ from app.application.ports import OccupationAnalysisError
 from app.application.search_courses import SearchCourses, SearchError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import (
+from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
+from app.presentation.composition import (
     database_engine,
     load_settings,
     openai_embedder,
     openai_occupation_analyzer,
 )
-from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
 
 HANDWRITTEN, LLM = "handwritten", "llm"
 

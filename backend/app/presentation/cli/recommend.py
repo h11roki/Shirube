@@ -13,7 +13,6 @@ from app.domain.recommendation import (
     Relevance,
 )
 from app.domain.roadmap import ALL_SEMESTERS
-from app.presentation.cli.environment import database_engine, load_settings, recommend_courses
 from app.presentation.cli.labels import (
     RELEVANCE_LABELS,
     profile_lines,
@@ -21,6 +20,7 @@ from app.presentation.cli.labels import (
     with_prerequisite,
 )
 from app.presentation.cli.options import add_department_option, add_year_option
+from app.presentation.composition import database_engine, load_settings, recommend_courses
 
 
 def render(recommendation: Recommendation) -> str:

@@ -1,4 +1,5 @@
 import sys
+from datetime import date, datetime, timedelta, timezone
 
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
@@ -13,6 +14,8 @@ from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.settings import Settings
+
+UNIVERSITY_TIME = timezone(timedelta(hours=9))
 
 
 def load_settings() -> Settings:
@@ -67,3 +70,7 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
         openai_course_selector(settings),
         settings.selection_candidate_limit,
     )
+
+
+def university_today() -> date:
+    return datetime.now(UNIVERSITY_TIME).date()
