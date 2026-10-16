@@ -27,7 +27,7 @@ frontend(`frontend/` で実行)
 
 全体
 
-- `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える。backend は起動に `OPENAI_API_KEY` が要り、compose が手元の環境変数を渡す
+- `docker compose up` で db(pgvector、5432)/ backend(8000)/ frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える。backend は起動に `OPENAI_API_KEY` と `AUTH_JWT_SECRET`(32 文字以上)が要り、compose が手元の環境変数を渡す(リポジトリ直下の `.envrc` に書く)
 - API: `POST /api/v1/plans`(本文は occupation、grade、department、省ける term と chosen_classes。201 と Location を返す)と `GET /api/v1/plans/{id}`(ADR 0026)。どちらも `Authorization: Bearer <JWT>` が要り(HS256、鍵は `AUTH_JWT_SECRET`、iss は shirube-frontend、aud は shirube-backend、5 分まで、ADR 0027)、無ければ 401、他人の Plan は 404。年度は設定 `CURRICULUM_YEAR`(既定 2026)、OpenAI のタイムアウトは `OPENAI_TIMEOUT_SECONDS`(既定 60)、再試行は `OPENAI_MAX_RETRIES`(既定 1)。CLI の `--year` も省けば `CURRICULUM_YEAR`。5xx は決まった文だけを返し、中身はログに出す。OpenAPI は `/docs`
 - `OPENAI_API_KEY` は README の「起動」のとおりリポジトリ直下の `.envrc` から読む。worktree にこのファイルは無いが、`.claude/worktrees/` の下なら direnv が親をたどって読む。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値はコマンドにも出力にも書かない
 

@@ -9,7 +9,4 @@ class GetPlan:
         self._plans = plans
 
     def run(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
-        plan = self._plans.get(plan_id)
-        if plan is None or plan.owner_id != owner_id:
-            return None
-        return plan
+        return self._plans.get_owned_by(plan_id, owner_id)

@@ -39,7 +39,7 @@ JWT の署名
 JWT
 
 - Route Handler は、利用者ごとのリクエストのたびに HS256 の JWT を作り、`Authorization: Bearer` で渡す。鍵は環境変数 `AUTH_JWT_SECRET`(32 文字以上)で、フロントとバックエンドが同じ値を持つ
-- 欄は `sub`(Google の sub)、`iss`(`shirube-frontend`)、`aud`(`shirube-backend`)、`iat`、`exp`。バックエンドはアルゴリズムを HS256 に限り、署名、`iss`、`aud`、`exp`、`iat` が先の時刻でないことを確かめ(時計のずれに 30 秒の余裕を持つ)、`iat` と `exp` が整数の秒でないもの、`exp - iat` が 5 分を超えるもの、`sub` が空のものも受け付けない
+- 欄は `sub`(Google の sub)、`iss`(`shirube-frontend`)、`aud`(`shirube-backend`)、`iat`、`exp`。バックエンドはアルゴリズムを HS256 に限り、署名、`iss`、`aud`、`exp`、`iat` が先の時刻でないことを確かめ(時計のずれに 30 秒の余裕を持つ)、`iat` と `exp` が整数の秒でないもの、`exp - iat` が 0 以下か 5 分を超えるもの、`sub` が空のものも受け付けない
 - 確かめる部品はポート(`TokenVerifier`)の後ろに置き、PyJWT で実装する(ADR 0011 の再検討の条件の Cognito に替えるとき差し替える)
 
 利用者
@@ -52,8 +52,9 @@ JWT
 
 API
 
-- `POST /api/v1/plans` と `GET /api/v1/plans/{id}` は JWT が要る。無い、または確かめられないときは 401 と `WWW-Authenticate: Bearer`。`/api/v1/health` は要らない
-- `GET` は持ち主が本人でない Plan を、無い Plan と同じ 404 にする。持ち主の確認はユースケース(GetPlan)で行う
+- `POST /api/v1/plans` と `GET /api/v1/plans/{id}` は JWT が要る。無いときは 401 と `WWW-Authenticate: Bearer`、確かめられないときは 401 と `WWW-Authenticate: Bearer error="invalid_token"`(RFC 6750)。本文はどちらも「ログインしてください」で、断った理由はサーバーのログに出す。`/api/v1/health` は要らない
+- `GET` は持ち主が本人でない Plan を、無い Plan と同じ 404 にする。GetPlan は Plan のリポジトリに id と持ち主の id の両方で引かせ、他人の Plan は読み込みもしない(本文が壊れていても 500 にならず、存在が分からない)
+- JWT の鍵の長さは JwtVerifier が作るときに確かめる
 
 移行
 

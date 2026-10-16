@@ -19,7 +19,7 @@ from app.application.search_courses import NoCandidatesError
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
-from app.presentation.api.plans import plans_router
+from app.presentation.api.plans import MissingTokenError, plans_router
 
 API_PREFIX = "/api/v1"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
@@ -45,12 +45,21 @@ async def _upstream_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": UPSTREAM_FAILURE}, status_code=status.HTTP_502_BAD_GATEWAY)
 
 
-async def _invalid_token(request: Request, error: Exception) -> JSONResponse:
+def _unauthorized(challenge: str) -> JSONResponse:
     return JSONResponse(
         {"detail": LOGIN_REQUIRED},
         status_code=status.HTTP_401_UNAUTHORIZED,
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"WWW-Authenticate": challenge},
     )
+
+
+async def _missing_token(request: Request, error: Exception) -> JSONResponse:
+    return _unauthorized("Bearer")
+
+
+async def _invalid_token(request: Request, error: Exception) -> JSONResponse:
+    logger.warning("JWT を断りました: %s", error)
+    return _unauthorized('Bearer error="invalid_token"')
 
 
 async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
@@ -71,6 +80,7 @@ def create_app(
     app.include_router(
         plans_router(create_plan, get_plan, identify, curriculum_year, today), prefix=API_PREFIX
     )
+    app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)
     for error in INPUT_ERRORS:
         app.add_exception_handler(error, _input_error)

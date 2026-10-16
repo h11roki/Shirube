@@ -16,7 +16,6 @@ from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAn
 from app.settings import Settings
 
 UNIVERSITY_TIME = timezone(timedelta(hours=9))
-MIN_JWT_SECRET_LENGTH = 32
 
 
 def load_settings() -> Settings:
@@ -35,16 +34,6 @@ def database_engine(settings: Settings) -> Engine:
         return create_engine(settings.database_url)
     except ArgumentError as error:
         sys.exit(f"DATABASE_URL を読めません: {error}")
-
-
-def auth_jwt_secret(settings: Settings) -> SecretStr:
-    secret = settings.auth_jwt_secret
-    if secret is None or len(secret.get_secret_value()) < MIN_JWT_SECRET_LENGTH:
-        sys.exit(
-            "環境変数を確かめてください: "
-            f"AUTH_JWT_SECRET を {MIN_JWT_SECRET_LENGTH} 文字以上にしてください"
-        )
-    return secret
 
 
 def openai_api_key(settings: Settings) -> SecretStr:

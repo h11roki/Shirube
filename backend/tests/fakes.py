@@ -130,6 +130,10 @@ class FakePlanRepository:
     def get(self, plan_id: UUID) -> Plan | None:
         return self.plans.get(plan_id)
 
+    def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
+        plan = self.plans.get(plan_id)
+        return plan if plan is not None and plan.owner_id == owner_id else None
+
 
 TOKENS = {"token-a": "google-a", "token-b": "google-b"}
 

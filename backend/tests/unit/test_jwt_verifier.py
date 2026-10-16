@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from app.application.ports import InvalidTokenError
 from app.infrastructure.auth.jwt_verifier import AUDIENCE, ISSUER, JwtVerifier
 
-SECRET = "s" * 32
+SECRET = "s" * 64
 MINUTE = timedelta(minutes=1)
 
 
@@ -43,12 +43,16 @@ def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
 @pytest.mark.parametrize(
     "overrides",
     [
-        {"secret": "t" * 32},
-        {"secret": "s" * 64, "algorithm": "HS512"},
+        {"secret": "t" * 64},
+        {"algorithm": "HS512"},
         {"iss": "someone-else"},
         {"aud": "someone-else"},
         {"iat": lambda now: now - 10 * MINUTE, "exp": lambda now: now - 5 * MINUTE},
         {"iat": lambda now: now + 2 * MINUTE, "exp": lambda now: now + 6 * MINUTE},
+        {
+            "iat": lambda now: now + timedelta(seconds=20),
+            "exp": lambda now: now - timedelta(seconds=10),
+        },
         {"sub": None},
         {"sub": " "},
         {"iat": None},
@@ -63,6 +67,7 @@ def test_a_frontend_clock_a_little_ahead_is_tolerated() -> None:
         "other-audience",
         "expired",
         "issued-in-the-future",
+        "expires-before-issued",
         "no-subject",
         "blank-subject",
         "no-issued-at",
@@ -88,3 +93,13 @@ def test_an_unsigned_token_is_rejected() -> None:
 
     with pytest.raises(InvalidTokenError):
         verify(jwt.encode(claims, key="", algorithm="none"))
+
+
+def test_only_hs256_is_accepted_even_with_the_right_key() -> None:
+    with pytest.raises(InvalidTokenError, match="alg"):
+        verify(token(algorithm="HS512"))
+
+
+def test_a_short_secret_is_refused() -> None:
+    with pytest.raises(ValueError, match="32 文字以上"):
+        JwtVerifier(SecretStr("s" * 31))

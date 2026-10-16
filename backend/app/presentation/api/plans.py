@@ -9,9 +9,12 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from app.application.create_plan import CreatePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
-from app.application.ports import InvalidTokenError
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
+
+
+class MissingTokenError(Exception):
+    pass
 
 
 def plans_router(
@@ -28,7 +31,7 @@ def plans_router(
         credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(bearer)],
     ) -> UUID:
         if credentials is None:
-            raise InvalidTokenError("Authorization に Bearer の JWT がありません")
+            raise MissingTokenError("Authorization に Bearer の JWT がありません")
         return identify.run(credentials.credentials)
 
     @router.post("/plans", status_code=status.HTTP_201_CREATED)

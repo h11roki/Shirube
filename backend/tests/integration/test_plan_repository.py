@@ -75,3 +75,23 @@ def test_a_version_1_body_with_a_value_of_the_wrong_type_is_a_format_error(
 
     with pytest.raises(PlanFormatError, match="保存した Plan を読めません"):
         repository.get(plan_id)
+
+
+def test_another_owners_plan_is_none_even_when_its_body_cannot_be_read(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(insert(PlanRow).values(id=plan_id, user_id=owner, body={"version": 2}))
+    other = SqlUserRepository(engine).id_of("google-b")
+
+    assert repository.get_owned_by(plan_id, other) is None
+    with pytest.raises(PlanFormatError):
+        repository.get_owned_by(plan_id, owner)
+
+
+def test_a_plan_is_returned_to_its_owner(repository: SqlPlanRepository, owner: UUID) -> None:
+    plan = sample_plan(uuid4(), owner)
+    repository.add(plan)
+
+    assert repository.get_owned_by(plan.id, owner) == plan

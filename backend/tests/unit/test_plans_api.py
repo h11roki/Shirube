@@ -40,7 +40,7 @@ class FailingSelector:
 
 
 class UnreadablePlans(FakePlanRepository):
-    def get(self, plan_id: UUID) -> Plan | None:
+    def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
         raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: 2")
 
 
@@ -243,7 +243,7 @@ def test_a_token_that_cannot_be_verified_is_unauthorized_without_its_reason() ->
     response = client(token="token-z").post("/api/v1/plans", json=body())
 
     assert (response.status_code, response.json()) == (401, {"detail": "ログインしてください"})
-    assert response.headers["www-authenticate"] == "Bearer"
+    assert response.headers["www-authenticate"] == 'Bearer error="invalid_token"'
 
 
 def test_another_users_plan_is_not_found() -> None:
