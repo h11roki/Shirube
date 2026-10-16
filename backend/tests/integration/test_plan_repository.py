@@ -1,4 +1,6 @@
+import json
 from collections.abc import Iterator
+from pathlib import Path
 from typing import Any
 from uuid import uuid4
 
@@ -9,6 +11,8 @@ from app.application.ports import PlanFormatError
 from app.infrastructure.db.models import PlanRow
 from app.infrastructure.db.plans import SqlPlanRepository
 from tests.builders import sample_plan
+
+VERSION_1 = Path(__file__).parents[1] / "fixtures" / "plan_v1.json"
 
 
 @pytest.fixture
@@ -48,4 +52,17 @@ def test_a_plan_stored_in_an_unknown_shape_is_a_format_error(
         connection.execute(insert(PlanRow).values(id=plan_id, body=body))
 
     with pytest.raises(PlanFormatError, match=message):
+        repository.get(plan_id)
+
+
+def test_a_version_1_body_with_a_value_of_the_wrong_type_is_a_format_error(
+    engine: Engine, repository: SqlPlanRepository
+) -> None:
+    plan_id = uuid4()
+    body = json.loads(VERSION_1.read_text(encoding="utf-8"))
+    body["roadmap"]["semesters"][0]["courses"][0]["section"]["credits"] = "2"
+    with engine.begin() as connection:
+        connection.execute(insert(PlanRow).values(id=plan_id, body=body))
+
+    with pytest.raises(PlanFormatError, match="保存した Plan を読めません"):
         repository.get(plan_id)

@@ -53,18 +53,18 @@ def placed_names(plan: SemesterPlan) -> list[tuple[str, str | None]]:
 
 
 def test_remaining_semesters_run_from_now_to_the_autumn_of_the_fourth_grade() -> None:
-    assert remaining_semesters(3, Term.AUTUMN) == (
+    assert remaining_semesters(Semester(3, Term.AUTUMN)) == (
         Semester(3, Term.AUTUMN),
         Semester(4, Term.SPRING),
         Semester(4, Term.AUTUMN),
     )
-    assert len(remaining_semesters(1, Term.SPRING)) == 8
-    assert remaining_semesters(4, Term.AUTUMN) == (Semester(4, Term.AUTUMN),)
+    assert len(remaining_semesters(Semester(1, Term.SPRING))) == 8
+    assert remaining_semesters(Semester(4, Term.AUTUMN)) == (Semester(4, Term.AUTUMN),)
 
 
 def test_grade_outside_one_to_four_is_rejected() -> None:
     with pytest.raises(RoadmapError, match="回生は 1〜4"):
-        remaining_semesters(5, Term.SPRING)
+        remaining_semesters(Semester(5, Term.SPRING))
 
 
 def test_earlier_courses_take_the_slot_and_later_ones_move_to_another_class_or_term() -> None:
@@ -171,7 +171,7 @@ def test_a_year_long_course_keeps_its_slot_in_the_autumn_of_the_same_grade() -> 
         section("10000", "通年の科目", term=None),
         section("10001", "秋の科目", term=Term.AUTUMN),
     ]
-    semesters = remaining_semesters(1, Term.SPRING)[:4]
+    semesters = remaining_semesters(Semester(1, Term.SPRING))[:4]
 
     roadmap = place(recommend("通年の科目", "秋の科目"), sections, "情", 2026, semesters, 16, {})
 
@@ -200,7 +200,7 @@ def test_one_class_listed_in_two_rows_is_not_a_split_class() -> None:
 
 
 def test_a_roadmap_with_semesters_out_of_order_is_rejected() -> None:
-    spring, autumn = remaining_semesters(1, Term.SPRING)[:2]
+    spring, autumn = remaining_semesters(Semester(1, Term.SPRING))[:2]
 
     with pytest.raises(RoadmapError, match="古い順に並べてください"):
         Roadmap((SemesterPlan(autumn, ()), SemesterPlan(spring, ())), ())
@@ -225,7 +225,7 @@ def test_only_classes_open_to_the_users_remaining_grades_count_as_split() -> Non
         section("10000", "情報科学Ⅱ", class_code="TA", departments=own, grades=frozenset({1})),
         section("10001", "情報科学Ⅱ", class_code="TB", departments=own, grades=frozenset({2})),
     ]
-    semesters = remaining_semesters(2, Term.SPRING)
+    semesters = remaining_semesters(Semester(2, Term.SPRING))
 
     roadmap = place(recommend("情報科学Ⅱ"), sections, "情", 2026, semesters, 16, {})
 
@@ -256,11 +256,30 @@ def test_classes_for_different_grades_are_not_split_classes() -> None:
     ]
 
     roadmap = place(
-        recommend("情報科学Ⅱ"), sections, "情", 2026, remaining_semesters(2, Term.SPRING), 16, {}
+        recommend("情報科学Ⅱ"),
+        sections,
+        "情",
+        2026,
+        remaining_semesters(Semester(2, Term.SPRING)),
+        16,
+        {},
     )
 
     [placed] = roadmap.semesters[0].courses
     assert (placed.section.class_code, placed.class_confirmed) == ("TA", True)
+
+
+def test_a_departments_own_class_that_never_opens_leaves_the_course_to_other_classes() -> None:
+    sections = [
+        section(
+            "10000", "数学基礎", class_code="X", departments=frozenset({"情"}), grades=frozenset()
+        ),
+        section("10001", "数学基礎", class_code="TA"),
+    ]
+
+    roadmap = place(recommend("数学基礎"), sections, "情", 2026, SPRING_1, 16, {})
+
+    assert placed_names(roadmap.semesters[0]) == [("数学基礎", "TA")]
 
 
 def test_the_departments_own_class_is_preferred_over_a_class_for_all_departments() -> None:
@@ -290,7 +309,7 @@ def test_a_class_without_a_code_can_be_chosen() -> None:
 
 
 def test_a_roadmap_breaking_its_promises_is_rejected() -> None:
-    spring, autumn = remaining_semesters(1, Term.SPRING)[:2]
+    spring, autumn = remaining_semesters(Semester(1, Term.SPRING))[:2]
     course = RecommendedCourse("通年の科目", "10000", Relevance.CORE, "理由")
     year_long = PlacedCourse(course, section("10000", "通年の科目", term=None), True)
     other = PlacedCourse(course, section("10000", "通年の科目"), True)

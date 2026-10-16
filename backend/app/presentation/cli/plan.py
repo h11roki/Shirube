@@ -28,10 +28,14 @@ from app.presentation.cli.environment import (
     openai_embedder,
     openai_occupation_analyzer,
 )
-from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
-from app.presentation.cli.options import add_year_option
+from app.presentation.cli.labels import (
+    RELEVANCE_LABELS,
+    profile_lines,
+    unlinked_lines,
+    with_prerequisite,
+)
+from app.presentation.cli.options import add_department_option, add_year_option
 
-DEFAULT_DEPARTMENT = "情"
 TERM_LABELS = {Term.SPRING: "春学期", Term.AUTUMN: "秋学期"}
 WEEKDAY_LABELS = {
     Weekday.MON: "月",
@@ -63,12 +67,9 @@ def _placed(label: str, placed: PlacedCourse) -> str:
 
 def render(plan: Plan) -> str:
     conditions = plan.conditions
-    profile = plan.recommendation.profile
     lines = [
         f"Plan {plan.id}",
-        f"職業: {profile.occupation} → {profile.interpretation}",
-        *([f"前提: {profile.assumption}"] if profile.assumption is not None else []),
-        f"スキル: {' / '.join(profile.skills)}",
+        *profile_lines(plan.recommendation.profile),
         f"条件: {conditions.department}、{conditions.year} 年度の時間割、"
         f"{_semester(conditions.start)}から、1 学期 {conditions.credit_limit} 単位まで",
     ]
@@ -82,17 +83,12 @@ def render(plan: Plan) -> str:
     if plan.roadmap.unplaced:
         names = "、".join(course.name for course in plan.roadmap.unplaced)
         lines.append(f"置けなかった科目: {names}")
-    if plan.recommendation.unlinked:
-        unlinked = [
-            with_prerequisite(choice.name, choice.prerequisite_for)
-            for choice in plan.recommendation.unlinked
-        ]
-        lines.append(f"中心につながらず外した土台: {'、'.join(unlinked)}")
+    lines += unlinked_lines(plan.recommendation.unlinked)
     return "\n".join(lines)
 
 
 def _chosen_class(text: str) -> tuple[str, str]:
-    name, separator, class_code = text.partition("=")
+    name, separator, class_code = (part.strip() for part in text.partition("="))
     if not separator or not name:
         raise argparse.ArgumentTypeError(f"科目名=クラス記号 の形にしてください: {text}")
     return name, class_code
@@ -110,7 +106,7 @@ def main() -> None:
         default=term_on(date.today()).value,
         help="始める学期(spring か autumn)。既定は今日の月から決める",
     )
-    create.add_argument("--department", default=DEFAULT_DEPARTMENT)
+    add_department_option(create)
     add_year_option(create)
     create.add_argument(
         "--class",
@@ -118,7 +114,8 @@ def main() -> None:
         type=_chosen_class,
         action="append",
         default=[],
-        help="学科で分かれたクラスの選択。科目名=クラス記号 の形で、科目ごとに繰り返す",
+        help="学科で分かれたクラスの選択。科目名=クラス記号 の形で、科目ごとに繰り返す。"
+        "記号の無いクラスは 科目名= と書く",
     )
     show = commands.add_parser("show", help="保存した道標を表示する")
     show.add_argument("plan_id", type=UUID)

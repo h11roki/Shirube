@@ -18,6 +18,11 @@ class PlanConditions:
     chosen_classes: tuple[tuple[str, str], ...]
     credit_limit: int
 
+    def __post_init__(self) -> None:
+        names = [name for name, _ in self.chosen_classes]
+        if names != sorted(set(names)):
+            raise PlanError("クラスの選択は科目名の順に、科目ごとに 1 つにしてください")
+
 
 @dataclass(frozen=True)
 class Plan:

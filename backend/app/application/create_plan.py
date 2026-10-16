@@ -28,7 +28,7 @@ class CreatePlan:
         start: Semester,
         chosen_classes: Mapping[str, str],
     ) -> Plan:
-        semesters = remaining_semesters(start.grade, start.term)
+        semesters = remaining_semesters(start)
         recommendation = self._recommend.run(occupation, year, department, semesters)
         roadmap = place(
             recommendation,

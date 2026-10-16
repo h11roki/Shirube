@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from uuid import UUID
 
+from pydantic import TypeAdapter
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session as DbSession
 
@@ -26,6 +27,7 @@ from app.infrastructure.db.models import (
 )
 
 PLAN_JSON_VERSION = 1
+PLAN_JSON = TypeAdapter(PlanJson)
 
 
 class SqlPlanRepository:
@@ -34,7 +36,7 @@ class SqlPlanRepository:
 
     def add(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
-            db.add(PlanRow(id=plan.id, body=_plan_json(plan)))
+            db.add(PlanRow(id=plan.id, body=plan_json(plan)))
 
     def get(self, plan_id: UUID) -> Plan | None:
         with DbSession(self._engine) as db:
@@ -45,7 +47,7 @@ class SqlPlanRepository:
         if version != PLAN_JSON_VERSION:
             raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {version}")
         try:
-            return _plan(plan_id, row.body)
+            return plan_from_json(plan_id, PLAN_JSON.validate_python(row.body, strict=True))
         except (AttributeError, KeyError, TypeError, ValueError) as error:
             raise PlanFormatError(f"{plan_id}: 保存した Plan を読めません: {error!r}") from error
 
@@ -72,7 +74,7 @@ def _placed(data: PlacedJson, courses: Mapping[str, RecommendedCourse]) -> Place
     )
 
 
-def _plan_json(plan: Plan) -> PlanJson:
+def plan_json(plan: Plan) -> PlanJson:
     conditions = plan.conditions
     recommendation = plan.recommendation
     profile = recommendation.profile
@@ -128,7 +130,7 @@ def _plan_json(plan: Plan) -> PlanJson:
     )
 
 
-def _plan(plan_id: UUID, data: PlanJson) -> Plan:
+def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
     conditions = data["conditions"]
     stored = data["recommendation"]
     profile = stored["profile"]

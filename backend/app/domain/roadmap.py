@@ -29,8 +29,8 @@ class Semester:
 ALL_SEMESTERS = tuple(Semester(grade, term) for grade in sorted(ALL_GRADES) for term in Term)
 
 
-def remaining_semesters(grade: int, term: Term) -> tuple[Semester, ...]:
-    return ALL_SEMESTERS[ALL_SEMESTERS.index(Semester(grade, term)) :]
+def remaining_semesters(start: Semester) -> tuple[Semester, ...]:
+    return ALL_SEMESTERS[ALL_SEMESTERS.index(start) :]
 
 
 def term_on(day: date) -> Term:
@@ -117,7 +117,12 @@ def _classes(
     chosen_classes: Mapping[str, str],
 ) -> tuple[list[CourseSection], bool]:
     ordered = sorted(sections, key=_code)
-    own = [section for section in ordered if department in (section.departments or ())]
+    own = [
+        section
+        for section in ordered
+        if department in (section.departments or ())
+        and any(opens_in(section, department, year, semester) for semester in semesters)
+    ]
     open_together = [
         {_code(section) for section in own if opens_in(section, department, year, semester)}
         for semester in semesters

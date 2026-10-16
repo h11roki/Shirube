@@ -52,3 +52,15 @@ def test_plan_whose_roadmap_starts_elsewhere_is_rejected() -> None:
 
     with pytest.raises(PlanError, match="道標が始める学期から始まっていません"):
         Plan(uuid4(), CONDITIONS, Recommendation(PROFILE, (), ()), roadmap_from(later))
+
+
+@pytest.mark.parametrize(
+    "chosen",
+    [(("科目B", "6T"), ("科目A", "6A")), (("科目A", "6A"), ("科目A", "6T"))],
+    ids=["unsorted", "repeated"],
+)
+def test_class_choices_are_sorted_by_course_and_one_per_course(
+    chosen: tuple[tuple[str, str], ...],
+) -> None:
+    with pytest.raises(PlanError, match="クラスの選択は科目名の順に"):
+        PlanConditions("職業", "情", 2026, START, chosen, 16)

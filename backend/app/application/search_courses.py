@@ -58,7 +58,10 @@ class SearchCourses:
             if offered and section.code in page_of:
                 names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
-            raise SearchError(f"{year} 年度の {department} にシラバスのある候補の科目がありません")
+            raise SearchError(
+                f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
+                "候補の科目がありません"
+            )
         model = self._embedder.model
         if not self._chunks.is_embedded(year, model):
             raise SearchError(f"{year} 年度のシラバスがモデル {model} で埋め込まれていません")
