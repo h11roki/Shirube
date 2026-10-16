@@ -7,7 +7,7 @@ from pathlib import Path
 from openai import OpenAIError
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from app.application.evaluate_search import EvaluationError
+from app.application.evaluate_search import EvaluationDataset, EvaluationError
 from app.application.evaluate_selection import (
     EvaluateSelection,
     Judgement,
@@ -27,21 +27,26 @@ from app.presentation.cli.environment import (
     openai_course_selector,
     openai_embedder,
 )
-from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset
+from app.presentation.cli.evaluate import DEFAULT_DATASET, load_dataset, reject_duplicate_keys
 from app.presentation.cli.recommend import RELEVANCE_LABELS
 
 DEFAULT_JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
 
 
-def load_judgements(path: Path) -> dict[tuple[str, str], Judgement]:
-    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
-    return {
-        (occupation["name"], course["name"]): judgement_of(
-            [vote["label"] for vote in course["votes"].values()], course.get("decision")
-        )
-        for occupation in document["occupations"]
-        for course in occupation["courses"]
-    }
+def load_judgements(path: Path, dataset: EvaluationDataset) -> dict[tuple[str, str], Judgement]:
+    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+    if (document["year"], document["department"]) != (dataset.year, dataset.department):
+        raise ValueError("判定の年度と学科が評価データと違います")
+    judgements: dict[tuple[str, str], Judgement] = {}
+    for occupation in document["occupations"]:
+        for course in occupation["courses"]:
+            key = (occupation["name"], course["name"])
+            if key in judgements:
+                raise ValueError(f"同じ科目の判定が 2 回あります: {key}")
+            judgements[key] = judgement_of(
+                [vote["label"] for vote in course["votes"].values()], course.get("decision")
+            )
+    return judgements
 
 
 def _summary(results: Sequence[SelectionResult]) -> list[str]:
@@ -72,9 +77,15 @@ def render(report: SelectionReport) -> str:
         unrelated = [name for name, _, judged in result.picks if judged is Judgement.UNRELATED]
         if unrelated:
             lines.append(f"  関係なしを選んだ: {'、'.join(unrelated)}")
-        skipped = [name for name, picked in result.expected if picked is None]
+        skipped = [
+            name
+            for name, picked in result.expected
+            if picked is None and name not in result.unsearched
+        ]
         if skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(skipped)}")
+        if result.unsearched:
+            lines.append(f"  検索の上位に無かった期待する科目: {'、'.join(result.unsearched)}")
     lines.append("合計")
     lines += _summary(report.results)
     picks = [judged for result in report.results for _, _, judged in result.picks]
@@ -102,8 +113,8 @@ def main() -> None:
 
     try:
         dataset = load_dataset(args.dataset)
-        judgements = load_judgements(args.judgments)
-    except (OSError, ValueError, KeyError, TypeError) as error:
+        judgements = load_judgements(args.judgments, dataset)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         sys.exit(f"評価データを読めません: {error!r}")
     settings = load_settings()
     embedder = openai_embedder(settings)

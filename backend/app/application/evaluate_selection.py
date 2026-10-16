@@ -19,7 +19,9 @@ class Judgement(Enum):
 
 
 def judgement_of(labels: Sequence[str], decision: str | None) -> Judgement:
-    if labels.count("core") >= 2 or decision == "core":
+    if decision is not None:
+        return Judgement.EXPECTED if decision == "core" else Judgement.FOUNDATION
+    if labels.count("core") >= 2:
         return Judgement.EXPECTED
     if len(labels) >= 2:
         return Judgement.FOUNDATION
@@ -30,10 +32,13 @@ def judgement_of(labels: Sequence[str], decision: str | None) -> Judgement:
 
 class HandwrittenProfiles:
     def __init__(self, dataset: EvaluationDataset) -> None:
-        self._skills = {case.occupation: case.skills for case in dataset.cases}
+        self._profiles = {
+            case.occupation: OccupationProfile(case.occupation, case.occupation, None, case.skills)
+            for case in dataset.cases
+        }
 
     def analyze(self, occupation: str) -> OccupationProfile:
-        return OccupationProfile(occupation, occupation, None, self._skills[occupation])
+        return self._profiles[occupation]
 
 
 @dataclass(frozen=True)
@@ -73,22 +78,29 @@ class EvaluateSelection:
     def run(
         self, dataset: EvaluationDataset, judgements: Mapping[tuple[str, str], Judgement]
     ) -> SelectionReport:
-        recommend = RecommendCourses(
-            self._search,
-            self._courses,
-            HandwrittenProfiles(dataset),
-            self._selector,
-            self._candidate_limit,
-        )
-        results = []
-        for case in dataset.cases:
-            expected = {
+        profiles = HandwrittenProfiles(dataset)
+        candidates = self._search.candidates(dataset.year, dataset.department, ALL_GRADES)
+        expected = {name for case in dataset.cases for name in case.expected}
+        unknown = sorted(expected - candidates.names)
+        if unknown:
+            raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
+        disagreeing = [
+            case.occupation
+            for case in dataset.cases
+            if set(case.expected)
+            != {
                 course
                 for (occupation, course), judged in judgements.items()
                 if occupation == case.occupation and judged is Judgement.EXPECTED
             }
-            if expected != set(case.expected):
-                raise EvaluationError(f"{case.occupation}: 期待する科目が判定と合いません")
+        ]
+        if disagreeing:
+            raise EvaluationError(f"期待する科目が判定と合いません: {'、'.join(disagreeing)}")
+        recommend = RecommendCourses(
+            self._search, self._courses, profiles, self._selector, self._candidate_limit
+        )
+        results = []
+        for case in dataset.cases:
             recommendation = recommend.run(
                 case.occupation, dataset.year, dataset.department, ALL_GRADES
             )

@@ -13,9 +13,15 @@ from app.application.evaluate_search import (
     EvaluationReport,
     with_analyzed_skills,
 )
+from app.application.evaluate_selection import Judgement, judgement_of
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
-from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
+from app.presentation.cli.evaluate import (
+    DEFAULT_DATASET,
+    load_dataset,
+    reject_duplicate_keys,
+    render,
+)
 from tests.fakes import (
     FakeOccupationAnalyzer,
     courses_ranked_by,
@@ -131,7 +137,7 @@ REASON_ORDER = ("professor", "student", "engineer")
 
 
 def strict_json(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
 
 
 def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
@@ -171,7 +177,8 @@ def test_expected_courses_follow_the_judges_majority_and_the_documented_aggregat
                 assert course.get("decision") in LABELS, where
             else:
                 assert "decision" not in course, where
-            if len(cores) >= 2 or course.get("decision") == "core":
+            labels = [vote["label"] for vote in votes.values()]
+            if judgement_of(labels, course.get("decision")) is Judgement.EXPECTED:
                 ranked.append((-len(cores), course["name"], votes[cores[0]]["evidence"]))
         majority[occupation["name"]] = [(name, why) for _, name, why in sorted(ranked)]
 

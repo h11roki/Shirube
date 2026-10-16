@@ -32,7 +32,7 @@ HANDWRITTEN, LLM = "handwritten", "llm"
 
 
 def load_dataset(path: Path) -> EvaluationDataset:
-    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_unique_keys)
+    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
     year, department = document["year"], document["department"]
     if isinstance(year, bool) or not isinstance(year, int) or not isinstance(department, str):
         raise ValueError("year は整数、department は文字列にしてください")
@@ -53,7 +53,7 @@ def load_dataset(path: Path) -> EvaluationDataset:
     return EvaluationDataset(year, department, tuple(cases))
 
 
-def _unique_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
+def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     counts = Counter(key for key, _ in pairs)
     duplicated = sorted(key for key, count in counts.items() if count > 1)
     if duplicated:
