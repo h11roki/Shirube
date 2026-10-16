@@ -3,6 +3,7 @@ from typing import Protocol
 
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
+from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
 from app.domain.syllabus import Syllabus
 
@@ -36,6 +37,10 @@ class Embedder(Protocol):
     def model(self) -> str: ...
 
     def embed(self, texts: list[str]) -> list[list[float]]: ...
+
+
+class OccupationAnalyzer(Protocol):
+    def analyze(self, occupation: str) -> OccupationProfile: ...
 
 
 class ChunkRepository(Protocol):
