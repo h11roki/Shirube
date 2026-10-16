@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.course import ALL_GRADES
+from app.domain.occupation import search_query
 
 RECALL_CUTOFFS = (10, 20)
 
@@ -28,7 +29,7 @@ class EvaluationCase:
 
     @property
     def query(self) -> str:
-        return "\n".join((self.occupation, *self.skills))
+        return search_query(self.occupation, self.skills)
 
 
 @dataclass(frozen=True)

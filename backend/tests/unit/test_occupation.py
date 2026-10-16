@@ -1,6 +1,6 @@
 import pytest
 
-from app.domain.occupation import OccupationProfile, OccupationProfileError
+from app.domain.occupation import OccupationProfile, OccupationProfileError, search_query
 
 
 def test_query_joins_the_interpretation_and_the_skills() -> None:
@@ -15,21 +15,41 @@ def test_query_joins_the_interpretation_and_the_skills() -> None:
 
 
 @pytest.mark.parametrize(
-    ("interpretation", "assumption", "skills", "message"),
+    ("occupation", "interpretation", "assumption", "skills", "message"),
     [
-        ("  ", None, ("甲", "乙", "丙"), "解釈した職業名が空です"),
-        ("職業", " ", ("甲", "乙", "丙"), "前提が空です"),
-        ("職業", None, ("甲", "乙"), "スキルは空でないものを 3〜6 個"),
-        ("職業", None, tuple("甲乙丙丁戊己庚"), "スキルは空でないものを 3〜6 個"),
-        ("職業", None, ("甲", "乙", ""), "スキルは空でないものを 3〜6 個"),
+        (" ", "職業", None, ("甲", "乙", "丙"), "職業名が空です"),
+        ("職業", "  ", None, ("甲", "乙", "丙"), "解釈した職業名は 1 行に"),
+        ("職業", "職業\n補足", None, ("甲", "乙", "丙"), "解釈した職業名は 1 行に"),
+        ("職業", "職業", " ", ("甲", "乙", "丙"), "前提が空です"),
+        ("職業", "職業", None, ("甲", "乙"), "スキルは 1 行のものを 3〜6 個"),
+        ("職業", "職業", None, tuple("甲乙丙丁戊己庚"), "スキルは 1 行のものを 3〜6 個"),
+        ("職業", "職業", None, ("甲", "乙", ""), "スキルは 1 行のものを 3〜6 個"),
+        ("職業", "職業", None, ("甲", "乙", "丙\n丁"), "スキルは 1 行のものを 3〜6 個"),
     ],
-    ids=["blank-interpretation", "blank-assumption", "two-skills", "seven-skills", "blank-skill"],
+    ids=[
+        "blank-occupation",
+        "blank-interpretation",
+        "multiline-interpretation",
+        "blank-assumption",
+        "two-skills",
+        "seven-skills",
+        "blank-skill",
+        "multiline-skill",
+    ],
 )
-def test_profile_without_an_interpretation_or_with_wrong_skills_is_rejected(
-    interpretation: str, assumption: str | None, skills: tuple[str, ...], message: str
+def test_profile_that_would_break_the_query_is_rejected(
+    occupation: str,
+    interpretation: str,
+    assumption: str | None,
+    skills: tuple[str, ...],
+    message: str,
 ) -> None:
     with pytest.raises(OccupationProfileError, match=message):
-        OccupationProfile("職業", interpretation, assumption, skills)
+        OccupationProfile(occupation, interpretation, assumption, skills)
+
+
+def test_search_query_puts_the_occupation_and_each_skill_on_its_own_line() -> None:
+    assert search_query("職業", ["甲", "乙"]) == "職業\n甲\n乙"
 
 
 def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:
