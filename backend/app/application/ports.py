@@ -65,6 +65,18 @@ class CourseSelector(Protocol):
     ) -> list[CourseChoice]: ...
 
 
+class InvalidTokenError(ValueError):
+    pass
+
+
+class TokenVerifier(Protocol):
+    def subject_of(self, token: str) -> str: ...
+
+
+class UserRepository(Protocol):
+    def id_of(self, subject: str) -> UUID: ...
+
+
 class PlanFormatError(ValueError):
     pass
 

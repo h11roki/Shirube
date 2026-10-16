@@ -1,4 +1,5 @@
 from dataclasses import replace
+from uuid import UUID
 
 import pytest
 
@@ -18,6 +19,7 @@ from tests.fakes import (
 
 PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
 START = Semester(3, Term.SPRING)
+OWNER = UUID("6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b")
 
 
 def test_plan_recommends_from_the_start_grade_places_from_the_start_term_and_is_saved() -> None:
@@ -43,7 +45,7 @@ def test_plan_recommends_from_the_start_grade_places_from_the_start_term_and_is_
     plans = FakePlanRepository()
 
     plan = CreatePlan(recommend, repository, plans, 2).run(
-        "職業", "情", 2026, START, {"科目A": "6T"}
+        OWNER, "職業", "情", 2026, START, {"科目A": "6T"}
     )
 
     [(_, candidates)] = selector.calls
@@ -58,6 +60,7 @@ def test_plan_recommends_from_the_start_grade_places_from_the_start_term_and_is_
     assert placed == [(START, "科目A"), (Semester(4, Term.SPRING), "科目B")]
     assert [course.name for course in plan.roadmap.unplaced] == ["科目C"]
     assert plans.plans == {plan.id: plan}
+    assert plan.owner_id == OWNER
 
 
 def test_courses_of_the_start_grade_that_only_open_before_the_start_term_are_not_candidates() -> (
@@ -73,7 +76,7 @@ def test_courses_of_the_start_grade_that_only_open_before_the_start_term_are_not
     )
 
     plan = CreatePlan(recommend, repository, FakePlanRepository(), 16).run(
-        "職業", "情", 2026, Semester(3, Term.AUTUMN), {}
+        OWNER, "職業", "情", 2026, Semester(3, Term.AUTUMN), {}
     )
 
     [(_, candidates)] = selector.calls
@@ -98,6 +101,6 @@ def test_a_class_that_cannot_be_chosen_stops_before_the_llm_is_called() -> None:
 
     with pytest.raises(RoadmapError, match="情報科学Ⅱ: 選べるクラスは TA、TB です"):
         CreatePlan(recommend, repository, FakePlanRepository(), 16).run(
-            "職業", "情", 2026, START, {"情報科学Ⅱ": "TZ"}
+            OWNER, "職業", "情", 2026, START, {"情報科学Ⅱ": "TZ"}
         )
     assert (analyzer.calls, selector.calls) == ([], [])

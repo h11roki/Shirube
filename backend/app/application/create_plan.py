@@ -1,5 +1,5 @@
 from collections.abc import Mapping
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 from app.application.ports import CourseRepository, PlanRepository
 from app.application.recommend_courses import RecommendCourses
@@ -22,6 +22,7 @@ class CreatePlan:
 
     def run(
         self,
+        owner_id: UUID,
         occupation: str,
         department: str,
         year: int,
@@ -49,6 +50,6 @@ class CreatePlan:
             tuple(sorted(chosen_classes.items())),
             self._credit_limit,
         )
-        plan = Plan(uuid4(), conditions, recommendation, roadmap)
+        plan = Plan(uuid4(), owner_id, conditions, recommendation, roadmap)
         self._plans.add(plan)
         return plan

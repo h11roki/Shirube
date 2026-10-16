@@ -18,6 +18,7 @@ from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.plans import SqlPlanRepository
+from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.cli.labels import (
     RELEVANCE_LABELS,
     profile_lines,
@@ -32,6 +33,7 @@ from app.presentation.composition import (
     university_today,
 )
 
+CLI_SUBJECT = "cli"
 WEEKDAY_LABELS = {
     Weekday.MON: "月",
     Weekday.TUE: "火",
@@ -135,6 +137,7 @@ def main() -> None:
                 settings.semester_credit_limit,
             )
             plan = create_plan.run(
+                SqlUserRepository(engine).id_of(CLI_SUBJECT),
                 args.occupation,
                 args.department,
                 args.year,

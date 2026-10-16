@@ -66,7 +66,10 @@ def syllabus(code: str, aliases: tuple[CourseName, ...] = (), year: int = 2026) 
     )
 
 
-def sample_plan(plan_id: UUID) -> Plan:
+SAMPLE_OWNER = UUID("0b7d5a8e-1c1f-4c2a-9a55-3d6f0e1b2c3d")
+
+
+def sample_plan(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     profile = OccupationProfile("職業", "解釈した職業", "前提の文", ("甲", "乙", "丙"))
     core_a = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由A")
     core_b = RecommendedCourse("科目B", "10001", Relevance.CORE, "理由B")
@@ -114,4 +117,4 @@ def sample_plan(plan_id: UUID) -> Plan:
     conditions = PlanConditions(
         "職業", "情", 2026, Semester(3, Term.SPRING), (("科目Z", "6B"),), 16
     )
-    return Plan(plan_id, conditions, recommendation, roadmap)
+    return Plan(plan_id, owner_id, conditions, recommendation, roadmap)

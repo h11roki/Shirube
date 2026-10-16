@@ -19,6 +19,7 @@ from tests.fakes import (
     FakeCourseSelector,
     FakeEmbedder,
     FakePlanRepository,
+    FakeUserRepository,
     courses_ranked_by,
     plan_api,
 )
@@ -56,11 +57,15 @@ def client(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     selector: FakeCourseSelector | FailingSelector | None = None,
     plans: FakePlanRepository | None = None,
+    users: FakeUserRepository | None = None,
+    token: str | None = "token-a",
 ) -> TestClient:
     return plan_api(
         courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8}),
         selector or FakeCourseSelector(CHOICES),
         plans,
+        users,
+        token,
     )
 
 
@@ -68,15 +73,17 @@ def body(**fields: Any) -> dict[str, Any]:
     return {"occupation": "職業", "grade": 3, "department": "情", **fields}
 
 
-def test_creating_a_plan_saves_it_and_returns_it_with_its_location() -> None:
+def test_creating_a_plan_saves_it_for_the_user_and_returns_it_with_its_location() -> None:
     plans = FakePlanRepository()
+    users = FakeUserRepository()
 
-    response = client(plans=plans).post("/api/v1/plans", json=body())
+    response = client(plans=plans, users=users).post("/api/v1/plans", json=body())
 
     assert response.status_code == 201
     created = response.json()
     [plan_id] = plans.plans
     assert created["id"] == str(plan_id)
+    assert plans.plans[plan_id].owner_id == users.users["google-a"]
     assert response.headers["location"] == f"/api/v1/plans/{plan_id}"
     assert created["conditions"] == {
         "occupation": "職業",
@@ -222,3 +229,33 @@ def test_a_stored_plan_that_cannot_be_read_is_a_server_error() -> None:
     response = client(plans=UnreadablePlans()).get(f"/api/v1/plans/{uuid4()}")
 
     assert (response.status_code, response.json()) == (500, {"detail": SERVER_FAILURE})
+
+
+def test_plans_need_a_login() -> None:
+    api = client(token=None)
+
+    for response in (api.post("/api/v1/plans", json=body()), api.get(f"/api/v1/plans/{uuid4()}")):
+        assert (response.status_code, response.json()) == (401, {"detail": "ログインしてください"})
+        assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_a_token_that_cannot_be_verified_is_unauthorized_without_its_reason() -> None:
+    response = client(token="token-z").post("/api/v1/plans", json=body())
+
+    assert (response.status_code, response.json()) == (401, {"detail": "ログインしてください"})
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_another_users_plan_is_not_found() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    created = client(plans=plans, users=users).post("/api/v1/plans", json=body()).json()
+
+    response = client(plans=plans, users=users, token="token-b").get(
+        f"/api/v1/plans/{created['id']}"
+    )
+
+    assert (response.status_code, response.json()) == (
+        404,
+        {"detail": f"Plan がありません: {created['id']}"},
+    )

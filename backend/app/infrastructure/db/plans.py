@@ -36,7 +36,7 @@ class SqlPlanRepository:
 
     def add(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
-            db.add(PlanRow(id=plan.id, body=plan_json(plan)))
+            db.add(PlanRow(id=plan.id, user_id=plan.owner_id, body=plan_json(plan)))
 
     def get(self, plan_id: UUID) -> Plan | None:
         with DbSession(self._engine) as db:
@@ -47,7 +47,8 @@ class SqlPlanRepository:
         if version != PLAN_JSON_VERSION:
             raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {version}")
         try:
-            return plan_from_json(plan_id, PLAN_JSON.validate_python(row.body, strict=True))
+            body = PLAN_JSON.validate_python(row.body, strict=True)
+            return plan_from_json(plan_id, row.user_id, body)
         except (KeyError, ValueError) as error:
             raise PlanFormatError(f"{plan_id}: 保存した Plan を読めません: {error!r}") from error
 
@@ -130,7 +131,7 @@ def plan_json(plan: Plan) -> PlanJson:
     )
 
 
-def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
+def plan_from_json(plan_id: UUID, owner_id: UUID, data: PlanJson) -> Plan:
     conditions = data["conditions"]
     stored = data["recommendation"]
     profile = stored["profile"]
@@ -178,6 +179,7 @@ def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
     )
     return Plan(
         plan_id,
+        owner_id,
         PlanConditions(
             conditions["occupation"],
             conditions["department"],

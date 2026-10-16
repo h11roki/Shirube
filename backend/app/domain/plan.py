@@ -27,6 +27,7 @@ class PlanConditions:
 @dataclass(frozen=True)
 class Plan:
     id: UUID
+    owner_id: UUID
     conditions: PlanConditions
     recommendation: Recommendation
     roadmap: Roadmap

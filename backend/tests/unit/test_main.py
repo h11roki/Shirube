@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 def test_the_app_is_composed_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
     monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+    monkeypatch.setenv("AUTH_JWT_SECRET", "s" * 32)
     monkeypatch.setenv("CURRICULUM_YEAR", "2031")
     sys.modules.pop("app.main", None)
 
