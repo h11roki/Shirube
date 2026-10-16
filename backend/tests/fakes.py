@@ -2,6 +2,7 @@ import json
 from collections.abc import Set
 from dataclasses import replace
 from typing import Any
+from uuid import UUID
 
 import httpx
 from langchain_openai import ChatOpenAI
@@ -11,6 +12,7 @@ from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
+from app.domain.plan import Plan
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -108,6 +110,17 @@ class FakeCourseRepository:
             for page in self.stored_syllabi
             for code in (page.code, *(alias.code for alias in page.aliases))
         }
+
+
+class FakePlanRepository:
+    def __init__(self) -> None:
+        self.plans: dict[UUID, Plan] = {}
+
+    def add(self, plan: Plan) -> None:
+        self.plans[plan.id] = plan
+
+    def get(self, plan_id: UUID) -> Plan | None:
+        return self.plans.get(plan_id)
 
 
 def chat_answering(

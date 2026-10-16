@@ -1,11 +1,13 @@
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from datetime import date
 
 from app.domain.course import ALL_GRADES, CourseSection, Term
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 NO_CLASS_CODE = ""
+SPRING_MONTHS = range(4, 9)
 
 
 class RoadmapError(ValueError):
@@ -29,6 +31,10 @@ ALL_SEMESTERS = tuple(Semester(grade, term) for grade in sorted(ALL_GRADES) for 
 
 def remaining_semesters(grade: int, term: Term) -> tuple[Semester, ...]:
     return ALL_SEMESTERS[ALL_SEMESTERS.index(Semester(grade, term)) :]
+
+
+def term_on(day: date) -> Term:
+    return Term.SPRING if day.month in SPRING_MONTHS else Term.AUTUMN
 
 
 @dataclass(frozen=True)
