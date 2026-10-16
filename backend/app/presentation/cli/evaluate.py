@@ -14,13 +14,22 @@ from app.application.evaluate_search import (
     EvaluationDataset,
     EvaluationError,
     EvaluationReport,
+    with_analyzed_skills,
 )
+from app.application.ports import OccupationAnalysisError
 from app.application.search_courses import SearchCourses, SearchError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.presentation.cli.environment import database_engine, load_settings, openai_embedder
+from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
+from app.presentation.cli.environment import (
+    database_engine,
+    load_settings,
+    openai_api_key,
+    openai_embedder,
+)
 
 DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
+HANDWRITTEN, LLM = "handwritten", "llm"
 
 
 def load_dataset(path: Path) -> EvaluationDataset:
@@ -58,6 +67,7 @@ def render(report: EvaluationReport) -> str:
     for result in report.results:
         recalls = "  ".join(f"@{cutoff} {result.recall(cutoff):.2f}" for cutoff in RECALL_CUTOFFS)
         lines.append(f"{result.occupation}  {recalls}")
+        lines.append(f"  検索文: {' / '.join(result.query.splitlines())}")
         ranks = " / ".join(
             f"{name} {f'{rank} 位' if rank is not None else '圏外'}" for name, rank in result.ranks
         )
@@ -70,6 +80,12 @@ def render(report: EvaluationReport) -> str:
 def main() -> None:
     parser = argparse.ArgumentParser(description="職業ごとの期待する科目で検索の再現率を測る")
     parser.add_argument("dataset", type=Path, nargs="?", default=DEFAULT_DATASET)
+    parser.add_argument(
+        "--skills",
+        choices=(HANDWRITTEN, LLM),
+        default=HANDWRITTEN,
+        help="検索文のスキルを評価データの手書きにするか、職業名から LLM に出させるか",
+    )
     args = parser.parse_args()
 
     try:
@@ -78,18 +94,29 @@ def main() -> None:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     settings = load_settings()
     embedder = openai_embedder(settings)
+    analyzer = (
+        OpenAIOccupationAnalyzer.connect(settings.chat_model, openai_api_key(settings))
+        if args.skills == LLM
+        else None
+    )
     engine = database_engine(settings)
     search = SearchCourses(SqlCourseRepository(engine), SqlChunkRepository(engine), embedder)
     try:
+        if analyzer is not None:
+            dataset = with_analyzed_skills(dataset, analyzer)
         print(render(EvaluateSearch(search).run(dataset)))
-    except (EvaluationError, SearchError) as error:
+    except (
+        EvaluationError,
+        SearchError,
+        OccupationAnalysisError,
+    ) as error:
         sys.exit(f"評価を止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
     except OpenAIError as error:
-        sys.exit(f"埋め込みの API 呼び出しに失敗しました: {error}")
+        sys.exit(f"OpenAI の API 呼び出しに失敗しました: {error}")
     except OSError as error:
         sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
     finally:

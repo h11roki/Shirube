@@ -1,4 +1,5 @@
 from app.domain.course import CourseSection
+from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
 from app.domain.syllabus import Syllabus
 
@@ -17,6 +18,16 @@ class FakeEmbedder:
         if len(self.calls) == self._failing_call:
             raise ConnectionError("API が応答しない")
         return [[float(len(text))] for text in texts]
+
+
+class FakeOccupationAnalyzer:
+    def __init__(self, profiles: dict[str, OccupationProfile]) -> None:
+        self._profiles = profiles
+        self.calls: list[str] = []
+
+    def analyze(self, occupation: str) -> OccupationProfile:
+        self.calls.append(occupation)
+        return self._profiles[occupation]
 
 
 class FakeChunkSearch:

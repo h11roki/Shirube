@@ -12,13 +12,20 @@ from app.application.evaluate_search import (
     EvaluationDataset,
     EvaluationError,
     EvaluationReport,
+    with_analyzed_skills,
 )
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
+from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
 from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
 from tests.builders import course_section, syllabus
-from tests.fakes import FakeChunkSearch, FakeCourseRepository, FakeEmbedder
+from tests.fakes import (
+    FakeChunkSearch,
+    FakeCourseRepository,
+    FakeEmbedder,
+    FakeOccupationAnalyzer,
+)
 
 
 def search_over(similarities: dict[str, float]) -> SearchCourses:
@@ -45,6 +52,7 @@ def test_recall_counts_expected_courses_within_each_cutoff() -> None:
     report = EvaluateSearch(search_over(similarities)).run(EvaluationDataset(2026, "情", (case,)))
 
     [result] = report.results
+    assert result.query == case.query
     assert result.ranks == (("科目01", 1), ("科目10", 10), ("科目15", 15), ("科目25", None))
     assert result.recall(10) == 0.5
     assert result.recall(20) == 0.75
@@ -58,15 +66,42 @@ def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
         EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
 
 
+def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
+    profile = OccupationProfile("職業", "別の名前の職業", None, ("甲", "乙", "丙"))
+    analyzer = FakeOccupationAnalyzer({"職業": profile})
+    dataset = EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("手書きのスキル",), ("科目01",)),)
+    )
+
+    analyzed = with_analyzed_skills(dataset, analyzer)
+
+    assert analyzer.calls == ["職業"]
+    assert analyzed == EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",)),)
+    )
+    assert analyzed.cases[0].query == "職業\n甲\n乙\n丙"
+
+
 @pytest.mark.parametrize(
     ("occupation", "skills", "expected", "message"),
     [
         ("  ", ("スキル",), ("甲",), "職業名が空です"),
         ("職業", (), ("甲",), "職業: スキルが空です"),
         ("職業", ("",), ("甲",), "職業: スキルが空です"),
+        ("組込み\nエンジニア", ("スキル",), ("甲",), "職業名に改行があります"),
+        ("職業", ("C 言語\nマイコン",), ("甲",), "職業: スキルに改行があります"),
+        ("職業", ("C 言語\rマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
     ],
-    ids=["blank-occupation", "no-skills", "blank-skill", "no-expected-courses"],
+    ids=[
+        "blank-occupation",
+        "no-skills",
+        "blank-skill",
+        "multiline-occupation",
+        "multiline-skill",
+        "carriage-return-in-skill",
+        "no-expected-courses",
+    ],
 )
 def test_case_without_a_name_skills_or_expected_courses_is_rejected(
     occupation: str, skills: tuple[str, ...], expected: tuple[str, ...], message: str
@@ -90,11 +125,14 @@ def test_query_joins_the_occupation_and_its_skills() -> None:
     assert case.query == "組込みエンジニア\nC 言語\nマイコン"
 
 
-def test_report_lists_recalls_and_ranks() -> None:
-    report = EvaluationReport((CaseResult("職業", (("甲", 3), ("乙", None))),))
+def test_report_lists_the_query_recalls_and_ranks() -> None:
+    report = EvaluationReport((CaseResult("職業", "職業\nスキル", (("甲", 3), ("乙", None))),))
 
-    assert (
-        render(report) == "職業  @10 0.50  @20 0.50\n  甲 3 位 / 乙 圏外\n平均  @10 0.50  @20 0.50"
+    assert render(report) == (
+        "職業  @10 0.50  @20 0.50\n"
+        "  検索文: 職業 / スキル\n"
+        "  甲 3 位 / 乙 圏外\n"
+        "平均  @10 0.50  @20 0.50"
     )
 
 

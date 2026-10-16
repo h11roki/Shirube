@@ -1,8 +1,10 @@
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
+from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.course import ALL_GRADES
+from app.domain.occupation import is_single_line, search_query
 
 RECALL_CUTOFFS = (10, 20)
 
@@ -20,14 +22,18 @@ class EvaluationCase:
     def __post_init__(self) -> None:
         if not self.occupation.strip():
             raise EvaluationError("職業名が空です")
+        if not is_single_line(self.occupation):
+            raise EvaluationError(f"{self.occupation!r}: 職業名に改行があります")
         if not self.skills or not all(skill.strip() for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが空です")
+        if not all(is_single_line(skill) for skill in self.skills):
+            raise EvaluationError(f"{self.occupation}: スキルに改行があります")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
 
     @property
     def query(self) -> str:
-        return "\n".join((self.occupation, *self.skills))
+        return search_query(self.occupation, self.skills)
 
 
 @dataclass(frozen=True)
@@ -45,9 +51,19 @@ class EvaluationDataset:
             raise EvaluationError(f"同じ職業が 2 回あります: {'、'.join(duplicated)}")
 
 
+def with_analyzed_skills(
+    dataset: EvaluationDataset, analyzer: OccupationAnalyzer
+) -> EvaluationDataset:
+    cases = tuple(
+        replace(case, skills=analyzer.analyze(case.occupation).skills) for case in dataset.cases
+    )
+    return replace(dataset, cases=cases)
+
+
 @dataclass(frozen=True)
 class CaseResult:
     occupation: str
+    query: str
     ranks: tuple[tuple[str, int | None], ...]
 
     def recall(self, cutoff: int) -> float:
@@ -73,10 +89,11 @@ class EvaluateSearch:
         unknown = sorted(expected - candidates.names)
         if unknown:
             raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
-        rankings = candidates.rank([case.query for case in dataset.cases], max(RECALL_CUTOFFS))
+        queries = [case.query for case in dataset.cases]
+        rankings = candidates.rank(queries, max(RECALL_CUTOFFS))
         results = []
-        for case, matches in zip(dataset.cases, rankings, strict=True):
+        for case, query, matches in zip(dataset.cases, queries, rankings, strict=True):
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
             ranks = tuple((name, rank_of.get(name)) for name in case.expected)
-            results.append(CaseResult(case.occupation, ranks))
+            results.append(CaseResult(case.occupation, query, ranks))
         return EvaluationReport(tuple(results))
