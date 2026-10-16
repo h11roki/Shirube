@@ -1,5 +1,4 @@
 import json
-from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -15,34 +14,16 @@ from app.application.evaluate_search import (
     with_analyzed_skills,
 )
 from app.application.search_courses import SearchCourses
-from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
-from app.domain.ranking import ChunkHit
 from app.presentation.cli.evaluate import DEFAULT_DATASET, _unique_keys, load_dataset, render
-from tests.builders import course_section, syllabus
 from tests.fakes import (
-    FakeChunkSearch,
-    FakeCourseRepository,
-    FakeEmbedder,
     FakeOccupationAnalyzer,
+    courses_ranked_by,
 )
 
 
 def search_over(similarities: dict[str, float]) -> SearchCourses:
-    codes = [f"{10000 + number}" for number in range(len(similarities))]
-    names = list(similarities)
-    repository = FakeCourseRepository(
-        sections=tuple(
-            replace(course_section(code), name=name)
-            for code, name in zip(codes, names, strict=True)
-        ),
-        syllabi=tuple(syllabus(code) for code in codes),
-    )
-    hits = [
-        ChunkHit(code, ChunkSection.OVERVIEW, similarities[name])
-        for code, name in zip(codes, names, strict=True)
-    ]
-    return SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+    return courses_ranked_by(similarities)[1]
 
 
 def test_recall_counts_expected_courses_within_each_cutoff() -> None:

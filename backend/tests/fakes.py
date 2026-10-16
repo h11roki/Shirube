@@ -1,16 +1,20 @@
 import json
 from collections.abc import Set
+from dataclasses import replace
 from typing import Any
 
 import httpx
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from app.application.search_courses import SearchCourses
+from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
+from tests.builders import course_section, syllabus
 
 FAKE_MODEL = "fake-embedding"
 
@@ -132,3 +136,21 @@ def chat_answering(
 
     client = httpx.Client(transport=httpx.MockTransport(respond))
     return ChatOpenAI(model="test-model", api_key=SecretStr("test-key"), http_client=client)
+
+
+def courses_ranked_by(
+    similarities: dict[str, float],
+) -> tuple[FakeCourseRepository, SearchCourses]:
+    codes = [f"{10000 + number}" for number in range(len(similarities))]
+    repository = FakeCourseRepository(
+        sections=tuple(
+            replace(course_section(code), name=name)
+            for code, name in zip(codes, similarities, strict=True)
+        ),
+        syllabi=tuple(syllabus(code) for code in codes),
+    )
+    hits = [
+        ChunkHit(code, ChunkSection.OVERVIEW, similarity)
+        for code, similarity in zip(codes, similarities.values(), strict=True)
+    ]
+    return repository, SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())

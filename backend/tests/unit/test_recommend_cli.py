@@ -13,7 +13,7 @@ def test_render_lists_the_profile_and_the_courses_by_relevance() -> None:
             RecommendedCourse("科目B", "10001", Relevance.CORE, "理由B"),
             RecommendedCourse("科目A", "10000", Relevance.FOUNDATION, "理由A"),
         ),
-        30,
+        ("科目A", "科目B", *(f"科目{number}" for number in range(28))),
     )
 
     assert render(recommendation) == (

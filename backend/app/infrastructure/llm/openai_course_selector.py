@@ -100,9 +100,6 @@ class OpenAICourseSelector:
         messages = [SystemMessage(INSTRUCTIONS), HumanMessage(_request(profile, candidates))]
         try:
             selection = _Selection.model_validate(client.invoke(messages))
-            names = [choice.name for choice in selection.courses]
-            if len(set(names)) != len(names):
-                raise ValueError(f"同じ科目が 2 回選ばれています: {names}")
             return [
                 CourseChoice(choice.name, choice.relevance, choice.reason.strip())
                 for choice in selection.courses

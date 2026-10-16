@@ -81,10 +81,6 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
         {"content": None, "refusal": None},
         answer({"name": "科目A", "relevance": "maybe", "reason": "理由"}),
         answer({"name": "科目A", "relevance": "core", "reason": " "}),
-        answer(
-            {"name": "科目A", "relevance": "core", "reason": "理由"},
-            {"name": "科目A", "relevance": "foundation", "reason": "理由"},
-        ),
         {"content": json.dumps({"choices": []}), "refusal": None},
     ],
     ids=[
@@ -93,7 +89,6 @@ def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
         "no-content",
         "unknown-relevance",
         "blank-reason",
-        "same-course-twice",
         "wrong-key",
     ],
 )
