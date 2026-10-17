@@ -3,7 +3,7 @@ from collections.abc import Set
 from dataclasses import replace
 from datetime import date
 from typing import Any
-from uuid import UUID
+from uuid import UUID, uuid4
 
 import httpx
 from fastapi.testclient import TestClient
@@ -11,7 +11,9 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.create_plan import CreatePlan
-from app.application.ports import CourseSelector, EmbeddingError
+from app.application.get_plan import GetPlan
+from app.application.identify_user import IdentifyUser
+from app.application.ports import CourseSelector, EmbeddingError, InvalidTokenError
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
@@ -128,6 +130,31 @@ class FakePlanRepository:
     def get(self, plan_id: UUID) -> Plan | None:
         return self.plans.get(plan_id)
 
+    def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
+        plan = self.plans.get(plan_id)
+        return plan if plan is not None and plan.owner_id == owner_id else None
+
+
+TOKENS = {"token-a": "google-a", "token-b": "google-b"}
+
+
+class FakeTokenVerifier:
+    def __init__(self, subjects: dict[str, str]) -> None:
+        self._subjects = subjects
+
+    def subject_of(self, token: str) -> str:
+        if token not in self._subjects:
+            raise InvalidTokenError(f"知らない JWT です: {token}")
+        return self._subjects[token]
+
+
+class FakeUserRepository:
+    def __init__(self) -> None:
+        self.users: dict[str, UUID] = {}
+
+    def id_of(self, subject: str) -> UUID:
+        return self.users.setdefault(subject, uuid4())
+
 
 def chat_answering(
     message: dict[str, Any],
@@ -196,6 +223,8 @@ def plan_api(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     selector: CourseSelector | None = None,
     plans: FakePlanRepository | None = None,
+    users: FakeUserRepository | None = None,
+    token: str | None = "token-a",
     today: date = date(2026, 10, 16),
 ) -> TestClient:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
@@ -208,5 +237,9 @@ def plan_api(
         30,
     )
     stored = plans or FakePlanRepository()
-    app = create_app(CreatePlan(recommend, courses, stored, 16), stored, 2026, lambda: today)
-    return TestClient(app, raise_server_exceptions=False)
+    identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
+    app = create_app(
+        CreatePlan(recommend, courses, stored, 16), GetPlan(stored), identify, 2026, lambda: today
+    )
+    headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
+    return TestClient(app, raise_server_exceptions=False, headers=headers)

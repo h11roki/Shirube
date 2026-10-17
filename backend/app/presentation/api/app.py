@@ -7,20 +7,24 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.application.create_plan import CreatePlan
+from app.application.get_plan import GetPlan
+from app.application.identify_user import IdentifyUser
 from app.application.ports import (
     CourseSelectionError,
     EmbeddingError,
+    InvalidTokenError,
     OccupationAnalysisError,
-    PlanRepository,
 )
 from app.application.search_courses import NoCandidatesError
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
+from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
+LOGIN_REQUIRED = "ログインしてください"
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
 UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
@@ -42,6 +46,23 @@ async def _upstream_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": UPSTREAM_FAILURE}, status_code=status.HTTP_502_BAD_GATEWAY)
 
 
+def _unauthorized(challenge: str) -> JSONResponse:
+    return JSONResponse(
+        {"detail": LOGIN_REQUIRED},
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        headers={"WWW-Authenticate": challenge},
+    )
+
+
+async def _missing_token(request: Request, error: Exception) -> JSONResponse:
+    return _unauthorized("Bearer")
+
+
+async def _invalid_token(request: Request, error: Exception) -> JSONResponse:
+    logger.warning("JWT を断りました: %s", error)
+    return _unauthorized('Bearer error="invalid_token"')
+
+
 async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse(
         {"detail": SERVER_FAILURE}, status_code=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -50,13 +71,19 @@ async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
 
 def create_app(
     create_plan: CreatePlan,
-    plans: PlanRepository,
+    get_plan: GetPlan,
+    identify: IdentifyUser,
     curriculum_year: int,
     today: Callable[[], date],
 ) -> FastAPI:
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
-    app.include_router(plans_router(create_plan, plans, curriculum_year, today), prefix=API_PREFIX)
+    app.include_router(
+        plans_router(create_plan, get_plan, current_user(identify), curriculum_year, today),
+        prefix=API_PREFIX,
+    )
+    app.add_exception_handler(MissingTokenError, _missing_token)
+    app.add_exception_handler(InvalidTokenError, _invalid_token)
     for error in INPUT_ERRORS:
         app.add_exception_handler(error, _input_error)
     for error in UPSTREAM_ERRORS:

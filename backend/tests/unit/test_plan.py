@@ -55,7 +55,7 @@ def roadmap_from(
 
 
 def test_plan_keeps_its_conditions_with_the_matching_recommendation_and_roadmap() -> None:
-    plan = Plan(uuid4(), CONDITIONS, Recommendation(PROFILE, (), ()), roadmap_from(START))
+    plan = Plan(uuid4(), uuid4(), CONDITIONS, Recommendation(PROFILE, (), ()), roadmap_from(START))
 
     assert [semester_plan.semester for semester_plan in plan.roadmap.semesters] == [
         START,
@@ -69,7 +69,7 @@ def test_plan_for_another_occupation_is_rejected() -> None:
     other = OccupationProfile("別の職業", "別の職業", None, ("甲", "乙", "丙"))
 
     with pytest.raises(PlanError, match="推薦の職業が条件と違います: 別の職業"):
-        Plan(uuid4(), CONDITIONS, Recommendation(other, (), ()), roadmap_from(START))
+        Plan(uuid4(), uuid4(), CONDITIONS, Recommendation(other, (), ()), roadmap_from(START))
 
 
 def test_plan_whose_roadmap_does_not_run_from_the_start_to_the_last_semester_is_rejected() -> None:
@@ -78,7 +78,7 @@ def test_plan_whose_roadmap_does_not_run_from_the_start_to_the_last_semester_is_
 
     for roadmap in (later, shortened):
         with pytest.raises(PlanError, match="道標の学期が 3 回生 春学期から 4 回生 秋学期まで"):
-            Plan(uuid4(), CONDITIONS, Recommendation(PROFILE, (), ()), roadmap)
+            Plan(uuid4(), uuid4(), CONDITIONS, Recommendation(PROFILE, (), ()), roadmap)
 
 
 def test_plan_needs_every_recommended_course_placed_or_unplaced_once() -> None:
@@ -86,7 +86,7 @@ def test_plan_needs_every_recommended_course_placed_or_unplaced_once() -> None:
     recommendation = Recommendation(PROFILE, (course,), ("科目A",))
 
     with pytest.raises(PlanError, match="推薦の科目が、置いた科目か置けなかった科目に"):
-        Plan(uuid4(), CONDITIONS, recommendation, roadmap_from(START))
+        Plan(uuid4(), uuid4(), CONDITIONS, recommendation, roadmap_from(START))
 
 
 def test_plan_with_a_semester_over_the_credit_limit_is_rejected() -> None:
@@ -96,7 +96,7 @@ def test_plan_with_a_semester_over_the_credit_limit_is_rejected() -> None:
     conditions = replace(CONDITIONS, credit_limit=1)
 
     with pytest.raises(PlanError, match="単位の上限を超えた学期があります: 3 回生 春学期"):
-        Plan(uuid4(), conditions, recommendation, roadmap_from(START, (placed,)))
+        Plan(uuid4(), uuid4(), conditions, recommendation, roadmap_from(START, (placed,)))
 
 
 @pytest.mark.parametrize(

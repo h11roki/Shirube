@@ -2,7 +2,7 @@ from collections.abc import Mapping
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import Engine
+from sqlalchemy import Engine, Select, select
 from sqlalchemy.orm import Session as DbSession
 
 from app.application.ports import PlanFormatError
@@ -36,20 +36,29 @@ class SqlPlanRepository:
 
     def add(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
-            db.add(PlanRow(id=plan.id, body=plan_json(plan)))
+            db.add(PlanRow(id=plan.id, user_id=plan.owner_id, body=plan_json(plan)))
 
     def get(self, plan_id: UUID) -> Plan | None:
+        return self._first(select(PlanRow).where(PlanRow.id == plan_id))
+
+    def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
+        return self._first(
+            select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
+        )
+
+    def _first(self, query: Select[PlanRow]) -> Plan | None:
         with DbSession(self._engine) as db:
-            row = db.get(PlanRow, plan_id)
+            row = db.scalars(query).one_or_none()
         if row is None:
             return None
         version = row.body.get("version") if isinstance(row.body, dict) else None
         if version != PLAN_JSON_VERSION:
-            raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: {version}")
+            raise PlanFormatError(f"{row.id}: 読めない版の Plan です: {version}")
         try:
-            return plan_from_json(plan_id, PLAN_JSON.validate_python(row.body, strict=True))
+            body = PLAN_JSON.validate_python(row.body, strict=True)
+            return plan_from_json(row.id, row.user_id, body)
         except (KeyError, ValueError) as error:
-            raise PlanFormatError(f"{plan_id}: 保存した Plan を読めません: {error!r}") from error
+            raise PlanFormatError(f"{row.id}: 保存した Plan を読めません: {error!r}") from error
 
 
 def _semester_json(semester: Semester) -> SemesterJson:
@@ -130,7 +139,7 @@ def plan_json(plan: Plan) -> PlanJson:
     )
 
 
-def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
+def plan_from_json(plan_id: UUID, owner_id: UUID, data: PlanJson) -> Plan:
     conditions = data["conditions"]
     stored = data["recommendation"]
     profile = stored["profile"]
@@ -178,6 +187,7 @@ def plan_from_json(plan_id: UUID, data: PlanJson) -> Plan:
     )
     return Plan(
         plan_id,
+        owner_id,
         PlanConditions(
             conditions["occupation"],
             conditions["department"],

@@ -3,7 +3,7 @@ from typing import TypedDict
 from uuid import UUID
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKeyConstraint, Index, Text, func
+from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, Index, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -200,9 +200,20 @@ class EmbeddingRow(Base):
     vector: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIMENSIONS))
 
 
+class UserRow(Base):
+    __tablename__ = "users"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    subject: Mapped[str] = mapped_column(unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class PlanRow(Base):
     __tablename__ = "plans"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", name="fk_plans_user_id_users"), index=True
+    )
     body: Mapped[PlanJson] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

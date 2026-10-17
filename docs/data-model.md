@@ -79,7 +79,7 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 
 ## Plan(domain/plan.py、ADR 0024)
 
-保存した道標。id(UUID)、作った条件(PlanConditions: 入力した職業名、学科、時間割とシラバスの年度、始める学期、学科で分かれたクラスの選択、1 学期の単位の上限)、Recommendation、Roadmap を持つ。推薦の職業名は条件の職業名と同じで、道標は始める学期から始まる。作ったあとは変えない。`CreatePlan` が、始める学期から 4 回生の秋学期までの残りの学期のどれかに開講される科目を候補に推薦し(ADR 0025)、その年度の時間割に置いて保存する。クラスの選択は科目名の順に、科目ごとに 1 つ持ち、選べないクラスは LLM を呼ぶ前に `require_class_choices` で止める。Plan は、道標の学期が始める学期から 4 回生の秋学期までそろい、推薦の科目が置いた科目か置けなかった科目に 1 回ずつ入り、どの学期も単位の上限を超えないことを確かめる。始める学期の既定値は `term_on` が日付から決める(4〜8 月は春学期、9〜3 月は秋学期)。
+保存した道標。id(UUID)、持ち主の利用者の id(ADR 0027)、作った条件(PlanConditions: 入力した職業名、学科、時間割とシラバスの年度、始める学期、学科で分かれたクラスの選択、1 学期の単位の上限)、Recommendation、Roadmap を持つ。推薦の職業名は条件の職業名と同じで、道標は始める学期から始まる。作ったあとは変えない。`CreatePlan` が、始める学期から 4 回生の秋学期までの残りの学期のどれかに開講される科目を候補に推薦し(ADR 0025)、その年度の時間割に置いて保存する。クラスの選択は科目名の順に、科目ごとに 1 つ持ち、選べないクラスは LLM を呼ぶ前に `require_class_choices` で止める。Plan は、道標の学期が始める学期から 4 回生の秋学期までそろい、推薦の科目が置いた科目か置けなかった科目に 1 回ずつ入り、どの学期も単位の上限を超えないことを確かめる。始める学期の既定値は `term_on` が日付から決める(4〜8 月は春学期、9〜3 月は秋学期)。
 
 ## テーブル(infrastructure/db/models.py、ADR 0014)
 
@@ -91,7 +91,8 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 | syllabi | (year, code) | Syllabus の1件。code は主コード。faculties・instructors・sessions・grading は JSONB |
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
 | syllabus_chunks | (year, syllabus_code, section) | SyllabusChunk の1件と content_hash。syllabi を指し、シラバスを入れ替えると消える(ADR 0015) |
-| plans | id | Plan の1件。body は版番号つきの JSONB で、置いたクラスは時間割の行を写して持ち、推薦の科目と秋学期に続く通年の授業は科目名で指す。読むときは値の型まで確かめる。版 1 の形は `tests/fixtures/plan_v1.json` と比べるテストで守る。created_at は作った時刻(ADR 0024) |
+| users | id | 利用者の1件。内部の id(UUID)と提供元つきの sub(一意、Google は `google:<sub>`、CLI は `cli:local`)と作った時刻だけを持ち、メールや名前は持たない。初めて確かめた JWT の sub で作る(ADR 0027) |
+| plans | id | Plan の1件。body は版番号つきの JSONB で、置いたクラスは時間割の行を写して持ち、推薦の科目と秋学期に続く通年の授業は科目名で指す。読むときは値の型まで確かめる。版 1 の形は `tests/fixtures/plan_v1.json` と比べるテストで守る。created_at は作った時刻(ADR 0024)。user_id は持ち主で users を指す(必須、索引つき、ADR 0027) |
 | embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。今のモデル以外の行と、どのチャンクからも引かれなくなった行は `embed --prune` で消す |
 
 時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。チャンクの埋め込みは、チャンクの content_hash と設定のモデル名で embeddings を引く。`EmbedSyllabi` はまだ埋め込みの無いハッシュだけを API に送る。

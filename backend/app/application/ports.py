@@ -65,6 +65,18 @@ class CourseSelector(Protocol):
     ) -> list[CourseChoice]: ...
 
 
+class InvalidTokenError(ValueError):
+    pass
+
+
+class TokenVerifier(Protocol):
+    def subject_of(self, token: str) -> str: ...
+
+
+class UserRepository(Protocol):
+    def id_of(self, subject: str) -> UUID: ...
+
+
 class PlanFormatError(ValueError):
     pass
 
@@ -73,6 +85,8 @@ class PlanRepository(Protocol):
     def add(self, plan: Plan) -> None: ...
 
     def get(self, plan_id: UUID) -> Plan | None: ...
+
+    def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None: ...
 
 
 class ChunkRepository(Protocol):

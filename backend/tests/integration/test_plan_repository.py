@@ -2,14 +2,15 @@ import json
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy import Engine, delete, insert
 
 from app.application.ports import PlanFormatError
-from app.infrastructure.db.models import PlanRow
+from app.infrastructure.db.models import PlanRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
+from app.infrastructure.db.users import SqlUserRepository
 from tests.builders import sample_plan
 
 VERSION_1 = Path(__file__).parents[1] / "fixtures" / "plan_v1.json"
@@ -20,10 +21,18 @@ def repository(engine: Engine) -> Iterator[SqlPlanRepository]:
     yield SqlPlanRepository(engine)
     with engine.begin() as connection:
         connection.execute(delete(PlanRow))
+        connection.execute(delete(UserRow))
 
 
-def test_a_saved_plan_comes_back_unchanged(repository: SqlPlanRepository) -> None:
-    plan = sample_plan(uuid4())
+@pytest.fixture
+def owner(engine: Engine, repository: SqlPlanRepository) -> UUID:
+    return SqlUserRepository(engine).id_of("google-a")
+
+
+def test_a_saved_plan_comes_back_unchanged_with_its_owner(
+    repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = sample_plan(uuid4(), owner)
 
     repository.add(plan)
 
@@ -45,24 +54,44 @@ def test_an_unknown_plan_is_none(repository: SqlPlanRepository) -> None:
     ids=["newer-version", "no-version", "not-an-object", "broken-body"],
 )
 def test_a_plan_stored_in_an_unknown_shape_is_a_format_error(
-    engine: Engine, repository: SqlPlanRepository, body: Any, message: str
+    engine: Engine, repository: SqlPlanRepository, owner: UUID, body: Any, message: str
 ) -> None:
     plan_id = uuid4()
     with engine.begin() as connection:
-        connection.execute(insert(PlanRow).values(id=plan_id, body=body))
+        connection.execute(insert(PlanRow).values(id=plan_id, user_id=owner, body=body))
 
     with pytest.raises(PlanFormatError, match=message):
         repository.get(plan_id)
 
 
 def test_a_version_1_body_with_a_value_of_the_wrong_type_is_a_format_error(
-    engine: Engine, repository: SqlPlanRepository
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan_id = uuid4()
     body = json.loads(VERSION_1.read_text(encoding="utf-8"))
     body["roadmap"]["semesters"][0]["courses"][0]["section"]["credits"] = "2"
     with engine.begin() as connection:
-        connection.execute(insert(PlanRow).values(id=plan_id, body=body))
+        connection.execute(insert(PlanRow).values(id=plan_id, user_id=owner, body=body))
 
     with pytest.raises(PlanFormatError, match="保存した Plan を読めません"):
         repository.get(plan_id)
+
+
+def test_another_owners_plan_is_none_even_when_its_body_cannot_be_read(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(insert(PlanRow).values(id=plan_id, user_id=owner, body={"version": 2}))
+    other = SqlUserRepository(engine).id_of("google-b")
+
+    assert repository.get_owned_by(plan_id, other) is None
+    with pytest.raises(PlanFormatError):
+        repository.get_owned_by(plan_id, owner)
+
+
+def test_a_plan_is_returned_to_its_owner(repository: SqlPlanRepository, owner: UUID) -> None:
+    plan = sample_plan(uuid4(), owner)
+    repository.add(plan)
+
+    assert repository.get_owned_by(plan.id, owner) == plan

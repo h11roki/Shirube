@@ -13,6 +13,7 @@ class CurriculumSettings(BaseSettings):
 class Settings(CurriculumSettings):
     database_url: str
     openai_api_key: SecretStr | None = None
+    auth_jwt_secret: SecretStr | None = None
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
     chat_model: str = "gpt-5.4-mini"

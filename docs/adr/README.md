@@ -49,7 +49,7 @@
 | [0008](0008-rest-api.md) | API は REST + OpenAPI 型生成、同期、Next.js Route Handler 経由とする | 廃止(Superseded by 0024) |
 | [0009](0009-ec2-compose.md) | 本番は EC2 1台で docker compose を動かす | 承認 |
 | [0010](0010-graduation-roadmap.md) | 回生を入力し、卒業までの学期ごとの道標を生成する | 承認 |
-| [0011](0011-auth.md) | 認証は Auth.js の Google ログインとし、バックエンドへは署名付き JWT で本人性を渡す | 承認 |
+| [0011](0011-auth.md) | 認証は Auth.js の Google ログインとし、バックエンドへは署名付き JWT で本人性を渡す | 廃止(Superseded by 0027) |
 | [0012](0012-timetable-source.md) | 学科・配当回生・コマは授業時間割表から取り、授業コードでシラバスと結合する | 承認 |
 | [0013](0013-cross-listed-courses.md) | 合併科目は1ページ = 1つの Syllabus とし、主コードと別名で持つ | 承認 |
 | [0014](0014-course-tables.md) | 科目は取り込み元ごとの表に年度単位で入れ替え、入れ子は JSONB で持つ | 承認 |
@@ -65,3 +65,4 @@
 | [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
 | [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
 | [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 承認 |
+| [0027](0027-auth-backend.md) | バックエンドは HS256 の短い JWT で利用者を確かめ、users 表には Google の sub だけを持ち、他人の Plan は 404 にする | 承認 |
