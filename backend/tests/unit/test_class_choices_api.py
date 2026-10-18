@@ -18,14 +18,20 @@ def test_courses_split_into_department_classes_in_the_remaining_semesters_are_li
         other,
     ]
 
-    response = plan_api((courses, search)).get(
+    api = plan_api((courses, search))
+
+    response = api.get(
         "/api/v1/class-choices", params={"department": "情", "grade": 3, "term": "spring"}
+    )
+    padded = api.get(
+        "/api/v1/class-choices", params={"department": " 情 ", "grade": 3, "term": "spring"}
     )
 
     assert (response.status_code, response.json()) == (
         200,
-        {"courses": [{"name": "情報科学Ⅱ", "class_codes": ["TA", "TB"]}]},
+        {"term": "spring", "courses": [{"name": "情報科学Ⅱ", "class_codes": ["TA", "TB"]}]},
     )
+    assert padded.json() == response.json()
 
 
 def test_the_start_term_defaults_to_today_and_limits_the_semesters() -> None:
@@ -47,9 +53,13 @@ def test_the_start_term_defaults_to_today_and_limits_the_semesters() -> None:
     in_spring = plan_api((courses, search), today=date(2026, 4, 10))
 
     params: dict[str, str | int] = {"department": "情", "grade": 3}
-    assert in_autumn.get("/api/v1/class-choices", params=params).json() == {"courses": []}
+    assert in_autumn.get("/api/v1/class-choices", params=params).json() == {
+        "term": "autumn",
+        "courses": [],
+    }
     assert in_spring.get("/api/v1/class-choices", params=params).json() == {
-        "courses": [{"name": "情報科学Ⅱ", "class_codes": ["TA", "TB"]}]
+        "term": "spring",
+        "courses": [{"name": "情報科学Ⅱ", "class_codes": ["TA", "TB"]}],
     }
 
 
@@ -59,6 +69,7 @@ def test_a_query_of_the_wrong_shape_is_unprocessable() -> None:
     wrong: list[dict[str, str | int]] = [
         {"department": "情", "grade": 5},
         {"department": "", "grade": 3},
+        {"department": "  ", "grade": 3},
         {"grade": 3},
         {"department": "情", "grade": 3, "term": "summer"},
     ]

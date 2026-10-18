@@ -19,6 +19,7 @@ from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.class_choices import class_choices_router
 from app.presentation.api.plans import plans_router
+from app.presentation.schemas.errors import ERROR_RESPONSES
 
 API_PREFIX = "/api/v1"
 LOGIN_REQUIRED = "ログインしてください"
@@ -69,10 +70,12 @@ def create_app(
     app.include_router(
         plans_router(request_plan, get_plan, list_plans, user, curriculum_year, today),
         prefix=API_PREFIX,
+        responses=ERROR_RESPONSES,
     )
     app.include_router(
         class_choices_router(list_class_choices, user, curriculum_year, today),
         prefix=API_PREFIX,
+        responses=ERROR_RESPONSES,
     )
     app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)

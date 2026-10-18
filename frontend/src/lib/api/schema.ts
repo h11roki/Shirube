@@ -86,6 +86,7 @@ export interface components {
         };
         /** ClassChoicesOut */
         ClassChoicesOut: {
+            term: components["schemas"]["Term"];
             /** Courses */
             courses: components["schemas"]["ClassChoiceOut"][];
         };
@@ -119,10 +120,10 @@ export interface components {
             /** Syllabus Code */
             syllabus_code: string;
         };
-        /** HTTPValidationError */
-        HTTPValidationError: {
+        /** ErrorOut */
+        ErrorOut: {
             /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+            detail: string;
         };
         /** PlacedCourseOut */
         PlacedCourseOut: {
@@ -260,19 +261,6 @@ export interface components {
             /** Prerequisite For */
             prerequisite_for: string | null;
         };
-        /** ValidationError */
-        ValidationError: {
-            /** Location */
-            loc: (string | number)[];
-            /** Message */
-            msg: string;
-            /** Error Type */
-            type: string;
-            /** Input */
-            input?: unknown;
-            /** Context */
-            ctx?: Record<string, never>;
-        };
         /**
          * Weekday
          * @enum {string}
@@ -327,6 +315,33 @@ export interface operations {
                     "application/json": components["schemas"]["PlanListOut"];
                 };
             };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
         };
     };
     create_api_v1_plans_post: {
@@ -351,13 +366,31 @@ export interface operations {
                     "application/json": components["schemas"]["PlanOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
@@ -382,13 +415,40 @@ export interface operations {
                     "application/json": components["schemas"]["PlanOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 無いか、ほかの利用者の道標 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
@@ -415,13 +475,31 @@ export interface operations {
                     "application/json": components["schemas"]["ClassChoicesOut"];
                 };
             };
-            /** @description Validation Error */
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
             422: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
                 };
             };
         };
