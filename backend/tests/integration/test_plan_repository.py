@@ -141,6 +141,26 @@ def test_a_plan_is_returned_to_its_owner(repository: SqlPlanRepository, owner: U
     assert repository.get_owned_by(plan.id, owner) == plan
 
 
+def test_the_owners_plans_are_listed_newest_first_up_to_the_limit(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    oldest = waiting(repository, owner)
+    middle = sample_plan(uuid4(), owner)
+    repository.add(middle)
+    newest = waiting(repository, owner)
+    waiting(repository, SqlUserRepository(engine).id_of("google-b"))
+
+    listed = repository.list_owned_by(owner, 2)
+
+    assert [summary.id for summary in listed] == [newest.id, middle.id]
+    assert [summary.status for summary in listed] == [PlanStatus.PENDING, PlanStatus.SUCCEEDED]
+    assert {(summary.occupation, summary.start) for summary in listed} == {
+        ("職業", sample_conditions().start)
+    }
+    assert listed[0].created_at > listed[1].created_at
+    assert oldest.id not in {summary.id for summary in repository.list_owned_by(owner, 2)}
+
+
 def test_the_oldest_waiting_plan_is_claimed_once_as_running(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:

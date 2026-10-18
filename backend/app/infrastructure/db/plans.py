@@ -10,7 +10,7 @@ from sqlalchemy.orm import aliased
 from app.application.ports import PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus
+from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus, PlanSummary
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
@@ -106,6 +106,33 @@ class SqlPlanRepository:
         return self._first(
             select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
         )
+
+    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(PlanRow.id, PlanRow.status, PlanRow.conditions, PlanRow.created_at)
+                .where(PlanRow.user_id == owner_id)
+                .order_by(PlanRow.created_at.desc(), PlanRow.id.desc())
+                .limit(limit)
+            ).all()
+        summaries = []
+        for plan_id, status, stored, created_at in rows:
+            try:
+                conditions = conditions_from_json(
+                    CONDITIONS_JSON.validate_python(stored, strict=True)
+                )
+                summaries.append(
+                    PlanSummary(
+                        plan_id,
+                        PlanStatus(status),
+                        conditions.occupation,
+                        conditions.start,
+                        created_at,
+                    )
+                )
+            except (KeyError, ValueError) as error:
+                raise PlanFormatError(f"{plan_id}: 保存した道標を読めません: {error!r}") from error
+        return summaries
 
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
         with DbSession(self._engine, expire_on_commit=False) as db, db.begin():

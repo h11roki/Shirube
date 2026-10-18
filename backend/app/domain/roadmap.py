@@ -156,6 +156,29 @@ def require_class_choices(
             _require_choosable(name, chosen, choosable)
 
 
+@dataclass(frozen=True)
+class ClassChoice:
+    name: str
+    class_codes: tuple[str, ...]
+
+
+def class_choices(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+) -> list[ClassChoice]:
+    by_name: dict[str, list[CourseSection]] = defaultdict(list)
+    for section in sections:
+        by_name[section.name].append(section)
+    choices = []
+    for name in sorted(by_name):
+        _, choosable = _split_classes(by_name[name], department, year, semesters)
+        if choosable:
+            choices.append(ClassChoice(name, tuple(choosable)))
+    return choices
+
+
 def _classes(
     name: str,
     sections: Sequence[CourseSection],

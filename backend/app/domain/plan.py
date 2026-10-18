@@ -1,4 +1,5 @@
 from dataclasses import dataclass, replace
+from datetime import datetime
 from enum import StrEnum
 from typing import Self
 from uuid import UUID
@@ -86,3 +87,12 @@ class Plan:
         if self.status is not PlanStatus.RUNNING:
             raise PlanError(f"作成中でない道標は失敗にできません: {self.status}")
         return replace(self, status=PlanStatus.FAILED, failure=failure)
+
+
+@dataclass(frozen=True)
+class PlanSummary:
+    id: UUID
+    status: PlanStatus
+    occupation: str
+    start: Semester
+    created_at: datetime

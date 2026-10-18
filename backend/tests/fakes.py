@@ -1,24 +1,27 @@
 import json
 from collections.abc import Set
 from dataclasses import replace
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
 import httpx
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
+from app.application.list_class_choices import ListClassChoices
+from app.application.list_plans import ListPlans
 from app.application.ports import EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanStatus
+from app.domain.plan import Plan, PlanStatus, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -26,6 +29,7 @@ from app.presentation.api.app import create_app
 from tests.builders import course_section, syllabus
 
 FAKE_MODEL = "fake-embedding"
+FIRST_CREATED_AT = datetime(2026, 10, 19, 9, 0, tzinfo=UTC)
 
 
 class FakeEmbedder:
@@ -122,10 +126,29 @@ class FakeCourseRepository:
 class FakePlanRepository:
     def __init__(self) -> None:
         self.plans: dict[UUID, Plan] = {}
+        self.created_at: dict[UUID, datetime] = {}
         self.stall_limits: list[timedelta] = []
 
     def add(self, plan: Plan) -> None:
         self.plans[plan.id] = plan
+        self.created_at[plan.id] = FIRST_CREATED_AT + timedelta(minutes=len(self.created_at))
+
+    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
+        owned = sorted(
+            (plan for plan in self.plans.values() if plan.owner_id == owner_id),
+            key=lambda plan: self.created_at[plan.id],
+            reverse=True,
+        )
+        return [
+            PlanSummary(
+                plan.id,
+                plan.status,
+                plan.conditions.occupation,
+                plan.conditions.start,
+                self.created_at[plan.id],
+            )
+            for plan in owned[:limit]
+        ]
 
     def claim_next(self) -> Plan | None:
         pending = [plan for plan in self.plans.values() if plan.status is PlanStatus.PENDING]
@@ -243,6 +266,26 @@ def chat_failing(status: int) -> ChatOpenAI:
     )
 
 
+def plan_app(
+    courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
+    plans: FakePlanRepository | None = None,
+    users: FakeUserRepository | None = None,
+    today: date = date(2026, 10, 16),
+) -> FastAPI:
+    courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    stored = plans or FakePlanRepository()
+    identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
+    return create_app(
+        RequestPlan(search, courses, stored, 16),
+        GetPlan(stored),
+        ListPlans(stored),
+        ListClassChoices(courses),
+        identify,
+        2026,
+        lambda: today,
+    )
+
+
 def plan_api(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     plans: FakePlanRepository | None = None,
@@ -250,11 +293,9 @@ def plan_api(
     token: str | None = "token-a",
     today: date = date(2026, 10, 16),
 ) -> TestClient:
-    courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
-    stored = plans or FakePlanRepository()
-    identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
-    app = create_app(
-        RequestPlan(search, courses, stored, 16), GetPlan(stored), identify, 2026, lambda: today
-    )
     headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
-    return TestClient(app, raise_server_exceptions=False, headers=headers)
+    return TestClient(
+        plan_app(courses_and_search, plans, users, today),
+        raise_server_exceptions=False,
+        headers=headers,
+    )

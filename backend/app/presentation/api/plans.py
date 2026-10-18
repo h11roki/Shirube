@@ -6,14 +6,16 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.application.get_plan import GetPlan
+from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
 from app.domain.roadmap import Semester, term_on
-from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
+from app.presentation.schemas.plans import PlanIn, PlanListOut, PlanOut, plan_list_out, plan_out
 
 
 def plans_router(
     request_plan: RequestPlan,
     get_plan: GetPlan,
+    list_plans: ListPlans,
     current_user: Callable[..., UUID],
     curriculum_year: int,
     today: Callable[[], date],
@@ -38,6 +40,10 @@ def plans_router(
         )
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))
         return plan_out(plan)
+
+    @router.get("/plans")
+    def index(user_id: Annotated[UUID, Depends(current_user)]) -> PlanListOut:
+        return plan_list_out(list_plans.run(user_id))
 
     @router.get("/plans/{plan_id}", name="show_plan")
     def show(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> PlanOut:
