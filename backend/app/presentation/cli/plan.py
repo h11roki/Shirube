@@ -136,6 +136,7 @@ def main() -> None:
             plan = SqlPlanRepository(engine).get(args.plan_id)
             if plan is None:
                 sys.exit(f"Plan がありません: {args.plan_id}")
+            print(render(plan))
         else:
             builder = build_plans(settings, engine)
             builder.fail_stalled(timedelta(minutes=settings.plan_stall_minutes))
@@ -149,10 +150,13 @@ def main() -> None:
             )
             plan = builder.build(requested.id)
             if plan is None:
-                sys.exit(f"ほかの worker が先に作り始めました: {requested.id}")
-        print(render(plan))
-        if plan.status is PlanStatus.FAILED:
-            sys.exit(1)
+                sys.exit(
+                    "ほかの worker が先に作り始めました。"
+                    f"plan show {requested.id} で結果を見てください"
+                )
+            print(render(plan))
+            if plan.status is PlanStatus.FAILED:
+                sys.exit(1)
     except (SearchError, RoadmapError, PlanError, PlanFormatError) as error:
         sys.exit(f"道標を止めました: {error}")
     except OperationalError as error:
