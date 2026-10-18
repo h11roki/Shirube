@@ -5,14 +5,14 @@ from pathlib import Path
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Engine, create_engine, make_url, text
+from sqlalchemy import URL, Engine, create_engine, make_url, text
 
 ALEMBIC_INI = Path(__file__).parents[2] / "alembic.ini"
 TEST_DATABASE_SUFFIX = "_test"
 
 
 @pytest.fixture(scope="session")
-def engine() -> Iterator[Engine]:
+def test_url() -> URL:
     url = os.environ.get("DATABASE_URL")
     if url is None:
         pytest.skip("DATABASE_URL が無い")
@@ -23,10 +23,20 @@ def engine() -> Iterator[Engine]:
         connection.execute(text(f'DROP DATABASE IF EXISTS "{test_url.database}" WITH (FORCE)'))
         connection.execute(text(f'CREATE DATABASE "{test_url.database}"'))
     admin.dispose()
+    return test_url
+
+
+@pytest.fixture(scope="session")
+def alembic_config(test_url: URL) -> Config:
     config = Config(str(ALEMBIC_INI))
     rendered = test_url.render_as_string(hide_password=False)
     config.set_main_option("sqlalchemy.url", rendered.replace("%", "%%"))
-    command.upgrade(config, "head")
+    return config
+
+
+@pytest.fixture(scope="session")
+def engine(test_url: URL, alembic_config: Config) -> Iterator[Engine]:
+    command.upgrade(alembic_config, "head")
     engine = create_engine(test_url)
     yield engine
     engine.dispose()

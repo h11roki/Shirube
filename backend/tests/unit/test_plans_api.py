@@ -1,22 +1,18 @@
 from dataclasses import replace
-from datetime import date
 from typing import Any
 from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
-from app.application.ports import CourseSelectionError, PlanFormatError
+from app.application.build_plans import SERVER_FAILURE
+from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
-from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan
-from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
-from app.domain.roadmap import RoadmapError
-from app.presentation.api.app import SERVER_FAILURE, UPSTREAM_FAILURE
+from app.domain.plan import Plan, PlanStatus
+from tests.builders import sample_conditions, sample_plan
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
-    FakeCourseSelector,
     FakeEmbedder,
     FakePlanRepository,
     FakeUserRepository,
@@ -24,115 +20,125 @@ from tests.fakes import (
     plan_api,
 )
 
-PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
-TODAY = date(2026, 10, 16)
-CHOICES = [
-    CourseChoice("科目A", Relevance.CORE, "理由A"),
-    CourseChoice("科目B", Relevance.FOUNDATION, "理由B", "科目A"),
-]
-
-
-class FailingSelector:
-    def select(
-        self, profile: OccupationProfile, candidates: list[CandidateCourse]
-    ) -> list[CourseChoice]:
-        raise CourseSelectionError(f"{profile.occupation}: LLM の答えを使えません")
-
 
 class UnreadablePlans(FakePlanRepository):
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
-        raise PlanFormatError(f"{plan_id}: 読めない版の Plan です: 2")
+        raise PlanFormatError(f"{plan_id}: 読めない版の道標の結果です: 3")
 
 
 class BrokenPlans(FakePlanRepository):
-    def __init__(self, error: Exception) -> None:
-        super().__init__()
-        self._error = error
-
     def add(self, plan: Plan) -> None:
-        raise self._error
+        raise RuntimeError("接続文字列 postgresql://secret")
 
 
 def client(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
-    selector: FakeCourseSelector | FailingSelector | None = None,
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
     token: str | None = "token-a",
 ) -> TestClient:
-    return plan_api(
-        courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8}),
-        selector or FakeCourseSelector(CHOICES),
-        plans,
-        users,
-        token,
-    )
+    return plan_api(courses_and_search, plans, users, token)
 
 
 def body(**fields: Any) -> dict[str, Any]:
     return {"occupation": "職業", "grade": 3, "department": "情", **fields}
 
 
-def test_creating_a_plan_saves_it_for_the_user_and_returns_it_with_its_location() -> None:
+def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_location() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
 
     response = client(plans=plans, users=users).post("/api/v1/plans", json=body())
 
-    assert response.status_code == 201
-    created = response.json()
+    assert response.status_code == 202
     [plan_id] = plans.plans
-    assert created["id"] == str(plan_id)
     assert plans.plans[plan_id].owner_id == users.users["google-a"]
     assert response.headers["location"] == f"/api/v1/plans/{plan_id}"
-    assert created["conditions"] == {
-        "occupation": "職業",
-        "department": "情",
-        "year": 2026,
-        "grade": 3,
-        "term": "autumn",
-        "chosen_classes": {},
-        "credit_limit": 16,
+    assert response.json() == {
+        "id": str(plan_id),
+        "status": "pending",
+        "conditions": {
+            "occupation": "職業",
+            "department": "情",
+            "year": 2026,
+            "grade": 3,
+            "term": "autumn",
+            "chosen_classes": {},
+            "credit_limit": 16,
+        },
+        "result": None,
+        "failure": None,
     }
-    assert created["profile"]["interpretation"] == "解釈した職業"
-    assert [(semester["grade"], semester["term"]) for semester in created["semesters"]] == [
-        (3, "autumn"),
-        (4, "spring"),
-        (4, "autumn"),
-    ]
-    assert created["semesters"][1]["courses"] == [
-        {
-            "name": "科目A",
-            "relevance": "core",
-            "reason": "理由A",
-            "prerequisite_for": None,
-            "syllabus_code": "10000",
-            "section_code": "10000",
-            "class_code": "6T",
-            "slots": [{"weekday": "mon", "period": 1}, {"weekday": "mon", "period": 2}],
-            "credits": 2,
-            "class_confirmed": True,
-        }
-    ]
-    assert [course["name"] for course in created["unplaced"]] == ["科目B"]
-    assert created["unlinked"] == []
 
 
 def test_a_given_term_overrides_the_term_of_today() -> None:
     response = client().post("/api/v1/plans", json=body(term="spring"))
 
-    first = response.json()["semesters"][0]
     assert response.json()["conditions"]["term"] == "spring"
-    assert (first["grade"], first["term"]) == (3, "spring")
 
 
-def test_a_saved_plan_is_shown_as_it_was_created() -> None:
+def test_a_waiting_plan_is_shown_as_it_was_accepted() -> None:
     api = client()
-    created = api.post("/api/v1/plans", json=body()).json()
+    accepted = api.post("/api/v1/plans", json=body()).json()
 
-    response = api.get(f"/api/v1/plans/{created['id']}")
+    response = api.get(f"/api/v1/plans/{accepted['id']}")
 
-    assert (response.status_code, response.json()) == (200, created)
+    assert (response.status_code, response.json()) == (200, accepted)
+
+
+def test_a_succeeded_plan_is_shown_with_its_result() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = sample_plan(uuid4(), users.id_of("google-a"))
+    plans.add(plan)
+
+    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+
+    assert (shown["status"], shown["failure"]) == ("succeeded", None)
+    result = shown["result"]
+    assert result["profile"]["interpretation"] == "解釈した職業"
+    assert [(semester["grade"], semester["term"]) for semester in result["semesters"]] == [
+        (3, "spring"),
+        (3, "autumn"),
+        (4, "spring"),
+        (4, "autumn"),
+    ]
+    assert result["semesters"][0]["courses"][0] == {
+        "name": "科目A",
+        "relevance": "core",
+        "reason": "理由A",
+        "prerequisite_for": None,
+        "syllabus_code": "10000",
+        "section_code": "10000",
+        "class_code": "6T",
+        "slots": [{"weekday": "mon", "period": 1}, {"weekday": "mon", "period": 2}],
+        "credits": 2,
+        "class_confirmed": True,
+    }
+    assert [course["name"] for course in result["semesters"][1]["continuing"]] == ["科目B"]
+    assert [course["name"] for course in result["unplaced"]] == ["科目D"]
+    assert result["unlinked"] == [{"name": "科目E", "reason": "理由E", "prerequisite_for": "科目F"}]
+
+
+def test_a_failed_plan_is_shown_with_its_fixed_message() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = Plan(
+        uuid4(),
+        users.id_of("google-a"),
+        sample_conditions(),
+        PlanStatus.FAILED,
+        failure="道標を作る途中で止まりました",
+    )
+    plans.add(plan)
+
+    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+
+    assert (shown["status"], shown["result"], shown["failure"]) == (
+        "failed",
+        None,
+        "道標を作る途中で止まりました",
+    )
 
 
 def test_an_unknown_plan_is_not_found() -> None:
@@ -198,28 +204,16 @@ def test_a_department_without_candidates_is_unprocessable() -> None:
     assert "候補の科目がありません" in response.json()["detail"]
 
 
-def test_failures_of_outside_services_are_a_bad_gateway_without_their_details() -> None:
-    courses, _ = courses_ranked_by({"科目A": 0.9})
-    failing_embedding = SearchCourses(courses, FakeChunkSearch([]), FakeEmbedder(failing_call=1))
-
-    for api in (client(selector=FailingSelector()), client((courses, failing_embedding))):
-        response = api.post("/api/v1/plans", json=body())
-        assert (response.status_code, response.json()) == (502, {"detail": UPSTREAM_FAILURE})
-
-
 def test_problems_on_the_server_are_server_errors_without_their_details() -> None:
     courses, _ = courses_ranked_by({"科目A": 0.9})
     not_embedded = SearchCourses(courses, FakeChunkSearch([], embedded=False), FakeEmbedder())
     empty = FakeCourseRepository()
     no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder())
-    broken_roadmap = BrokenPlans(RoadmapError("3 回生 秋学期: 同じコマに 2 つの授業があります"))
-    broken_connection = BrokenPlans(RuntimeError("接続文字列 postgresql://secret"))
 
     for api in (
         client((courses, not_embedded)),
         client((empty, no_data)),
-        client(plans=broken_roadmap),
-        client(plans=broken_connection),
+        client(plans=BrokenPlans()),
     ):
         response = api.post("/api/v1/plans", json=body())
         assert (response.status_code, response.json()) == (500, {"detail": SERVER_FAILURE})
@@ -249,13 +243,13 @@ def test_a_token_that_cannot_be_verified_is_unauthorized_without_its_reason() ->
 def test_another_users_plan_is_not_found() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
-    created = client(plans=plans, users=users).post("/api/v1/plans", json=body()).json()
+    accepted = client(plans=plans, users=users).post("/api/v1/plans", json=body()).json()
 
     response = client(plans=plans, users=users, token="token-b").get(
-        f"/api/v1/plans/{created['id']}"
+        f"/api/v1/plans/{accepted['id']}"
     )
 
     assert (response.status_code, response.json()) == (
         404,
-        {"detail": f"Plan がありません: {created['id']}"},
+        {"detail": f"Plan がありません: {accepted['id']}"},
     )

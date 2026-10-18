@@ -5,11 +5,14 @@ from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import ArgumentError
 
+from app.application.build_plans import BuildPlans
 from app.application.recommend_courses import RecommendCourses
+from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
+from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
@@ -76,15 +79,34 @@ def openai_course_selector(settings: Settings) -> OpenAICourseSelector:
     )
 
 
+def search_courses(settings: Settings, engine: Engine) -> SearchCourses:
+    return SearchCourses(
+        SqlCourseRepository(engine), SqlChunkRepository(engine), openai_embedder(settings)
+    )
+
+
 def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
-    courses = SqlCourseRepository(engine)
-    search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
     return RecommendCourses(
-        search,
-        courses,
+        search_courses(settings, engine),
+        SqlCourseRepository(engine),
         openai_occupation_analyzer(settings),
         openai_course_selector(settings),
         settings.selection_candidate_limit,
+    )
+
+
+def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
+    return RequestPlan(
+        search_courses(settings, engine),
+        SqlCourseRepository(engine),
+        SqlPlanRepository(engine),
+        settings.semester_credit_limit,
+    )
+
+
+def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
+    return BuildPlans(
+        recommend_courses(settings, engine), SqlCourseRepository(engine), SqlPlanRepository(engine)
     )
 
 

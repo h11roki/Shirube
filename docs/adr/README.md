@@ -62,8 +62,9 @@
 | [0021](0021-foundation-tied-to-core.md) | 選び直しの土台は中心に選んだ授業の前提に限り、理由にどの中心の授業の前提かを書く | 廃止(Superseded by 0023) |
 | [0022](0022-roadmap-placement.md) | 道標は 1 回の推薦を学期ごとに貪欲法で置き、学科で分かれたクラスは利用者が選ぶ | 廃止(Superseded by 0025) |
 | [0023](0023-foundation-links-core.md) | 選び直しは中心と土台を分けて返し、土台は前提にする中心の授業を 1 つ指す | 承認 |
-| [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 承認 |
+| [0024](0024-plan-api-and-storage.md) | Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する | 廃止(Superseded by 0029) |
 | [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
-| [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 承認 |
+| [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 廃止(Superseded by 0029) |
 | [0027](0027-auth-backend.md) | バックエンドは HS256 の短い JWT で利用者を確かめ、users 表には Google の sub だけを持ち、他人の Plan は 404 にする | 承認 |
 | [0028](0028-auth-frontend.md) | フロントは Auth.js v5 の Google ログインを暗号化したクッキーで持ち、エンドポイントごとの Route Handler が JWT を作ってバックエンドへ転送する | 承認 |
+| [0029](0029-plan-jobs.md) | 道標は DB をキューにした worker が非同期に作り、API は状態を持つ Plan を 202 で受け付けてポーリングで返す | 承認 |

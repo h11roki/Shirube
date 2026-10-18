@@ -1,5 +1,6 @@
 from collections.abc import Set
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Protocol
 from uuid import UUID
 
@@ -83,6 +84,14 @@ class PlanFormatError(ValueError):
 
 class PlanRepository(Protocol):
     def add(self, plan: Plan) -> None: ...
+
+    def claim_next(self) -> Plan | None: ...
+
+    def claim(self, plan_id: UUID) -> Plan | None: ...
+
+    def finish(self, plan: Plan) -> bool: ...
+
+    def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]: ...
 
     def get(self, plan_id: UUID) -> Plan | None: ...
 

@@ -32,6 +32,19 @@ services:
       db:
         condition: service_healthy
 
+  worker:
+    build: ./backend
+    command: uv run --no-sync watchfiles --filter python --sigint-timeout 660 "python -m app.presentation.worker" app
+    environment:
+      DATABASE_URL: postgresql+psycopg://shirube:shirube@db:5432/shirube
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      - ./backend:/app
+    stop_grace_period: 11m
+    depends_on:
+      db:
+        condition: service_healthy
+
   frontend:
     build: ./frontend
     command: sh -c "pnpm install --frozen-lockfile && pnpm dev"

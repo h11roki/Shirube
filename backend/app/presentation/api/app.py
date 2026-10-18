@@ -6,44 +6,26 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from app.application.create_plan import CreatePlan
+from app.application.build_plans import SERVER_FAILURE
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
-from app.application.ports import (
-    CourseSelectionError,
-    EmbeddingError,
-    InvalidTokenError,
-    OccupationAnalysisError,
-)
+from app.application.ports import InvalidTokenError
+from app.application.request_plan import RequestPlan
 from app.application.search_courses import NoCandidatesError
-from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
-SERVER_FAILURE = "サーバーで道標を扱えませんでした"
 LOGIN_REQUIRED = "ログインしてください"
-UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
-UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
-    EmbeddingError,
-    OccupationAnalysisError,
-    CourseSelectionError,
-    RecommendationError,
-)
 
 logger = logging.getLogger(__name__)
 
 
 async def _input_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(error)}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
-
-
-async def _upstream_error(request: Request, error: Exception) -> JSONResponse:
-    logger.error("外部のサービスの呼び出しに失敗しました", exc_info=error)
-    return JSONResponse({"detail": UPSTREAM_FAILURE}, status_code=status.HTTP_502_BAD_GATEWAY)
 
 
 def _unauthorized(challenge: str) -> JSONResponse:
@@ -70,7 +52,7 @@ async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
 
 
 def create_app(
-    create_plan: CreatePlan,
+    request_plan: RequestPlan,
     get_plan: GetPlan,
     identify: IdentifyUser,
     curriculum_year: int,
@@ -79,15 +61,13 @@ def create_app(
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(
-        plans_router(create_plan, get_plan, current_user(identify), curriculum_year, today),
+        plans_router(request_plan, get_plan, current_user(identify), curriculum_year, today),
         prefix=API_PREFIX,
     )
     app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)
     for error in INPUT_ERRORS:
         app.add_exception_handler(error, _input_error)
-    for error in UPSTREAM_ERRORS:
-        app.add_exception_handler(error, _upstream_error)
     app.add_exception_handler(Exception, _unexpected_error)
 
     @app.exception_handler(RequestValidationError)

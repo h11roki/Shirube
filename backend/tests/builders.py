@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.domain.course import Audience, CourseSection, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions
+from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus
 from app.domain.recommendation import (
     CourseChoice,
     Recommendation,
@@ -114,7 +114,14 @@ def sample_plan(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
         ),
         (foundation_d,),
     )
-    conditions = PlanConditions(
-        "職業", "情", 2026, Semester(3, Term.SPRING), (("科目Z", "6B"),), 16
+    return Plan(
+        plan_id,
+        owner_id,
+        sample_conditions(),
+        PlanStatus.SUCCEEDED,
+        PlanResult(recommendation, roadmap),
     )
-    return Plan(plan_id, owner_id, conditions, recommendation, roadmap)
+
+
+def sample_conditions() -> PlanConditions:
+    return PlanConditions("職業", "情", 2026, Semester(3, Term.SPRING), (("科目Z", "6B"),), 16)
