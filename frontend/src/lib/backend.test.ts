@@ -199,6 +199,21 @@ describe("forwardToBackend", () => {
     });
   });
 
+  it("answers 504 instead of a cut-off body when time runs out while reading the answer", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const stalledBody = new ReadableStream({
+      start(controller) {
+        controller.error(new DOMException("timed out", "TimeoutError"));
+      },
+    });
+    backendReturns(new Response(stalledBody, { status: 201 }));
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await forwardToBackend("/plans", postRequest("{}"));
+
+    expect(response.status).toBe(504);
+  });
+
   it.each(["AUTH_JWT_SECRET", "BACKEND_URL"])(
     "fails loudly without calling the backend when %s is not configured",
     async (name) => {

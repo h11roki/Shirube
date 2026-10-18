@@ -39,6 +39,7 @@ export async function forwardToBackend(
   }
   const body = incoming.body ? await incoming.arrayBuffer() : undefined;
   let backend: Response;
+  let backendBody: ArrayBuffer | null;
   try {
     backend = await fetch(url, {
       method: incoming.method,
@@ -48,6 +49,7 @@ export async function forwardToBackend(
       redirect: "manual",
       signal: AbortSignal.timeout(BACKEND_TIMEOUT_MS),
     });
+    backendBody = backend.body ? await backend.arrayBuffer() : null;
   } catch (error) {
     console.error("バックエンドへの転送に失敗しました", error);
     if (error instanceof DOMException && error.name === "TimeoutError") {
@@ -67,7 +69,7 @@ export async function forwardToBackend(
       `${FRONTEND_PREFIX}${location.slice(BACKEND_PREFIX.length)}`,
     );
   }
-  return new Response(backend.body, {
+  return new Response(backendBody, {
     status: backend.status,
     headers: forwarded,
   });
