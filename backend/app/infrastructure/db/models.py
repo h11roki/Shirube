@@ -225,6 +225,7 @@ class PlanRow(Base):
         CheckConstraint("(status = 'succeeded') = (result IS NOT NULL)", name="ck_plans_result"),
         CheckConstraint("(status = 'failed') = (failure IS NOT NULL)", name="ck_plans_failure"),
         Index("ix_plans_pending", "created_at", postgresql_where=text("status = 'pending'")),
+        Index("ix_plans_running", "claimed_at", postgresql_where=text("status = 'running'")),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True)

@@ -2,6 +2,7 @@ import logging
 import signal
 import threading
 from datetime import timedelta
+from types import FrameType
 
 from app.application.build_plans import BuildPlans
 from app.application.ports import PlanFormatError
@@ -34,8 +35,13 @@ def main() -> None:
     settings = load_settings()
     engine = database_engine(settings)
     stop = threading.Event()
-    signal.signal(signal.SIGTERM, lambda signum, frame: stop.set())
-    signal.signal(signal.SIGINT, lambda signum, frame: stop.set())
+
+    def stop_after_this_plan(signum: int, frame: FrameType | None) -> None:
+        stop.set()
+        signal.signal(signal.SIGINT, signal.default_int_handler)
+
+    signal.signal(signal.SIGTERM, stop_after_this_plan)
+    signal.signal(signal.SIGINT, stop_after_this_plan)
     logger.info("道標の worker を始めます")
     try:
         work(

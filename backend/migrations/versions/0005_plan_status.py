@@ -52,9 +52,17 @@ def upgrade() -> None:
         unique=False,
         postgresql_where=sa.text("status = 'pending'"),
     )
+    op.create_index(
+        "ix_plans_running",
+        "plans",
+        ["claimed_at"],
+        unique=False,
+        postgresql_where=sa.text("status = 'running'"),
+    )
 
 
 def downgrade() -> None:
+    op.drop_index("ix_plans_running", table_name="plans")
     op.drop_index("ix_plans_pending", table_name="plans")
     op.drop_constraint("ck_plans_failure", "plans", type_="check")
     op.drop_constraint("ck_plans_result", "plans", type_="check")
