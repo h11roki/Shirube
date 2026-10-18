@@ -77,9 +77,11 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 
 卒業までの道標の時間割。学期(Semester: 回生と春秋)ごとの SemesterPlan と、どの学期にも置けなかった推薦の科目を持つ。SemesterPlan は置いた科目(PlacedCourse: 推薦の科目、選んだクラスの CourseSection、クラスが確定しているか)と、春学期から続く通年の授業を持ち、同じコマに 2 つの授業は入らない。単位は置いた科目だけで数える。同じ科目は 2 つの学期に入らない。`remaining_semesters` が今の回生と学期から 4 回生の秋学期までを並べ、`place` が推薦の並びの順に、その学期の回生に開講され、学期が合い(学期の無い授業は春学期)、コマが重ならず、単位の上限を超えない最初のクラスを置く。残りの学期のどれかで学科向けのクラスが同じ学期に 2 種類以上開講される科目は、利用者が選んだクラスを使い、選ばれていなければ学科向けのクラスからクラス未確定として置く。ほかの科目は、学科向けのクラスがあればそれを優先する。
 
-## Plan(domain/plan.py、ADR 0024)
+## Plan(domain/plan.py、ADR 0029)
 
-保存した道標。id(UUID)、持ち主の利用者の id(ADR 0027)、作った条件(PlanConditions: 入力した職業名、学科、時間割とシラバスの年度、始める学期、学科で分かれたクラスの選択、1 学期の単位の上限)、Recommendation、Roadmap を持つ。推薦の職業名は条件の職業名と同じで、道標は始める学期から始まる。作ったあとは変えない。`CreatePlan` が、始める学期から 4 回生の秋学期までの残りの学期のどれかに開講される科目を候補に推薦し(ADR 0025)、その年度の時間割に置いて保存する。クラスの選択は科目名の順に、科目ごとに 1 つ持ち、選べないクラスは LLM を呼ぶ前に `require_class_choices` で止める。Plan は、道標の学期が始める学期から 4 回生の秋学期までそろい、推薦の科目が置いた科目か置けなかった科目に 1 回ずつ入り、どの学期も単位の上限を超えないことを確かめる。始める学期の既定値は `term_on` が日付から決める(4〜8 月は春学期、9〜3 月は秋学期)。
+保存した道標。id(UUID)、持ち主の利用者の id(ADR 0027)、作った条件(PlanConditions: 入力した職業名、学科、時間割とシラバスの年度、始める学期、学科で分かれたクラスの選択、1 学期の単位の上限)、状態(PlanStatus: 待ち・作成中・完了・失敗)を持ち、完了したときだけ結果(PlanResult: Recommendation と Roadmap)を、失敗したときだけ決まった失敗の文を持つ。状態は待ち → 作成中 → 完了か失敗の順にだけ進み、作成中の道標だけが `succeeded` と `failed` で終わる。終わったあとは変えない。
+
+`RequestPlan` が、選べないクラス(`require_class_choices`)と残りの学期の候補の有無を LLM を呼ぶ前に確かめ、待ちで保存する。`BuildPlans` が待ちの道標を取り、始める学期から 4 回生の秋学期までの残りの学期のどれかに開講される科目を候補に推薦し(ADR 0025)、その年度の時間割に置いて完了にする。クラスの選択は科目名の順に、科目ごとに 1 つ持つ。結果は、推薦の職業名が条件の職業名と同じで、道標の学期が始める学期から 4 回生の秋学期までそろい、推薦の科目が置いた科目か置けなかった科目に 1 回ずつ入り、どの学期も単位の上限を超えないことを確かめる。始める学期の既定値は `term_on` が日付から決める(4〜8 月は春学期、9〜3 月は秋学期)。
 
 ## テーブル(infrastructure/db/models.py、ADR 0014)
 
@@ -92,7 +94,7 @@ Syllabus 1 件から、授業の概要と方法 / 受講生の到達目標 / 授
 | syllabus_codes | (year, code) | ページに載る全てのコード(主コードと別名)と科目名。syllabus_code で syllabi を指し、position 0 が主コード |
 | syllabus_chunks | (year, syllabus_code, section) | SyllabusChunk の1件と content_hash。syllabi を指し、シラバスを入れ替えると消える(ADR 0015) |
 | users | id | 利用者の1件。内部の id(UUID)と提供元つきの sub(一意、Google は `google:<sub>`、CLI は `cli:local`)と作った時刻だけを持ち、メールや名前は持たない。初めて確かめた JWT の sub で作る(ADR 0027) |
-| plans | id | Plan の1件。body は版番号つきの JSONB で、置いたクラスは時間割の行を写して持ち、推薦の科目と秋学期に続く通年の授業は科目名で指す。読むときは値の型まで確かめる。版 1 の形は `tests/fixtures/plan_v1.json` と比べるテストで守る。created_at は作った時刻(ADR 0024)。user_id は持ち主で users を指す(必須、索引つき、ADR 0027) |
+| plans | id | Plan の1件。status は pending / running / succeeded / failed。conditions は作った条件の JSONB。result は版番号つきの JSONB で、完了したときだけ持ち、置いたクラスは時間割の行を写して持ち、推薦の科目と秋学期に続く通年の授業は科目名で指す。failure は失敗したときだけ持つ。読むときは値の型まで確かめ、状態と result と failure の組は検査制約で守る。版 2 の形は `tests/fixtures/plan_v2.json` と比べるテストで守る。claimed_at は worker が取った時刻、finished_at は終えた時刻、created_at は作った時刻で、待ちの道標を古い順に取る部分索引を持つ(ADR 0029)。user_id は持ち主で users を指す(必須、索引つき、ADR 0027) |
 | embeddings | (model, content_hash) | 埋め込みのベクトル(vector(1536))。今のモデル以外の行と、どのチャンクからも引かれなくなった行は `embed --prune` で消す |
 
 時間割表の授業コードからシラバスを引くときは syllabus_codes を経由する。`Syllabus.aliases` は position が 1 以上の行から組み立てる。チャンクの埋め込みは、チャンクの content_hash と設定のモデル名で embeddings を引く。`EmbedSyllabi` はまだ埋め込みの無いハッシュだけを API に送る。
