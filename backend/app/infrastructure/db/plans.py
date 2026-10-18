@@ -108,7 +108,7 @@ class SqlPlanRepository:
         )
 
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
-        with DbSession(self._engine) as db, db.begin():
+        with DbSession(self._engine, expire_on_commit=False) as db, db.begin():
             row = db.scalars(
                 update(PlanRow)
                 .where(which, PlanRow.status == PlanStatus.PENDING)
@@ -116,7 +116,7 @@ class SqlPlanRepository:
                 .returning(PlanRow)
                 .execution_options(synchronize_session=False)
             ).one_or_none()
-            return None if row is None else _plan(row)
+        return None if row is None else _plan(row)
 
     def _first(self, query: Select[PlanRow]) -> Plan | None:
         with DbSession(self._engine) as db:

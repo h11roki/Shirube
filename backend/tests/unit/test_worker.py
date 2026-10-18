@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy.exc import OperationalError
 
 from app.application.build_plans import BuildPlans
+from app.application.ports import PlanFormatError
 from app.application.recommend_courses import RecommendCourses
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
@@ -25,10 +26,13 @@ STALL_LIMIT = timedelta(minutes=15)
 
 
 class StopWhenIdle(FakePlanRepository):
-    def __init__(self, stop: threading.Event, failing_calls: int = 0) -> None:
+    def __init__(
+        self, stop: threading.Event, failing_calls: int = 0, unreadable_claims: int = 0
+    ) -> None:
         super().__init__()
         self._stop = stop
         self._failing_calls = failing_calls
+        self._unreadable_claims = unreadable_claims
 
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
         if self._failing_calls:
@@ -37,6 +41,9 @@ class StopWhenIdle(FakePlanRepository):
         return super().fail_stalled(after, failure)
 
     def claim_next(self) -> Plan | None:
+        if self._unreadable_claims:
+            self._unreadable_claims -= 1
+            raise PlanFormatError("読めない道標です")
         claimed = super().claim_next()
         if claimed is None:
             self._stop.set()
@@ -72,7 +79,7 @@ def test_the_worker_builds_every_waiting_plan_until_it_is_told_to_stop() -> None
     assert plans.stall_limits == [STALL_LIMIT] * 3
 
 
-def test_the_worker_logs_a_failed_db_call_and_tries_again(
+def test_the_worker_logs_a_failed_round_and_tries_again(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     stop = threading.Event()
@@ -83,13 +90,43 @@ def test_the_worker_logs_a_failed_db_call_and_tries_again(
         work(builder(plans), STALL_LIMIT, 0.01, stop)
 
     assert plans.plans[plan.id].status is PlanStatus.SUCCEEDED
-    assert "道標の DB の操作に失敗しました" in caplog.text
+    assert "道標の worker の繰り返しに失敗しました" in caplog.text
 
 
 def test_the_worker_does_not_start_once_it_is_told_to_stop() -> None:
     stop = threading.Event()
     stop.set()
     plans = StopWhenIdle(stop)
+    plan = waiting(plans)
+
+    work(builder(plans), STALL_LIMIT, 0.01, stop)
+
+    assert plans.plans[plan.id].status is PlanStatus.PENDING
+
+
+def test_the_worker_logs_a_plan_it_cannot_read_and_goes_on(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    stop = threading.Event()
+    plans = StopWhenIdle(stop, unreadable_claims=1)
+    plan = waiting(plans)
+
+    with caplog.at_level(logging.ERROR):
+        work(builder(plans), STALL_LIMIT, 0.01, stop)
+
+    assert plans.plans[plan.id].status is PlanStatus.SUCCEEDED
+    assert "取った道標を読めない" in caplog.text
+
+
+def test_the_worker_takes_no_new_plan_once_told_to_stop_while_failing_stalled_plans() -> None:
+    stop = threading.Event()
+
+    class StopWhileFailingStalled(StopWhenIdle):
+        def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
+            stop.set()
+            return super().fail_stalled(after, failure)
+
+    plans = StopWhileFailingStalled(stop)
     plan = waiting(plans)
 
     work(builder(plans), STALL_LIMIT, 0.01, stop)

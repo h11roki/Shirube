@@ -178,6 +178,31 @@ def test_a_waiting_plan_locked_by_another_worker_is_skipped(
     assert claimed.id == free.id
 
 
+def test_a_waiting_plan_that_cannot_be_read_is_claimed_and_does_not_block_the_next(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    broken_id = uuid4()
+    with engine.begin() as connection:
+        connection.execute(
+            insert(PlanRow).values(
+                id=broken_id, user_id=owner, status="pending", conditions={"year": "2026"}
+            )
+        )
+    readable = waiting(repository, owner)
+
+    with pytest.raises(PlanFormatError, match="保存した道標を読めません"):
+        repository.claim_next()
+    claimed = repository.claim_next()
+
+    assert claimed is not None
+    assert claimed.id == readable.id
+    with engine.connect() as connection:
+        status = connection.execute(
+            select(PlanRow.status).where(PlanRow.id == broken_id)
+        ).scalar_one()
+    assert status == "running"
+
+
 def test_only_a_waiting_plan_is_claimed_by_its_id(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:

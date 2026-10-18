@@ -3,9 +3,8 @@ import signal
 import threading
 from datetime import timedelta
 
-from sqlalchemy.exc import SQLAlchemyError
-
 from app.application.build_plans import BuildPlans
+from app.application.ports import PlanFormatError
 from app.presentation.composition import build_plans, database_engine, load_settings
 
 logger = logging.getLogger(__name__)
@@ -17,9 +16,12 @@ def work(
     while not stop.is_set():
         try:
             builder.fail_stalled(stall_limit)
-            built = builder.build_next()
-        except SQLAlchemyError:
-            logger.exception("道標の DB の操作に失敗しました")
+            built = None if stop.is_set() else builder.build_next()
+        except PlanFormatError:
+            logger.exception("取った道標を読めないので、止まった道標として失敗になるまで残します")
+            built = None
+        except Exception:
+            logger.exception("道標の worker の繰り返しに失敗しました。次の回にやり直します")
             built = None
         if built is None:
             stop.wait(poll_seconds)
