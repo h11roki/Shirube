@@ -66,3 +66,4 @@
 | [0025](0025-roadmap-candidates-by-semester.md) | 道標は残りの学期に開講される科目から 1 回推薦し、学期ごとに貪欲法で置く | 承認 |
 | [0026](0026-plan-api-endpoints.md) | Plan の API は組み立て済みのユースケースを create_app に渡し、エラーは detail と状態コードで返す | 承認 |
 | [0027](0027-auth-backend.md) | バックエンドは HS256 の短い JWT で利用者を確かめ、users 表には Google の sub だけを持ち、他人の Plan は 404 にする | 承認 |
+| [0028](0028-auth-frontend.md) | フロントは Auth.js v5 の Google ログインを暗号化したクッキーで持ち、エンドポイントごとの Route Handler が JWT を作ってバックエンドへ転送する | 承認 |
