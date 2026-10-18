@@ -117,21 +117,12 @@ class SqlPlanRepository:
             ).all()
         summaries = []
         for plan_id, status, stored, created_at in rows:
-            try:
-                conditions = conditions_from_json(
-                    CONDITIONS_JSON.validate_python(stored, strict=True)
+            conditions = _conditions(plan_id, stored)
+            summaries.append(
+                PlanSummary(
+                    plan_id, PlanStatus(status), conditions.occupation, conditions.start, created_at
                 )
-                summaries.append(
-                    PlanSummary(
-                        plan_id,
-                        PlanStatus(status),
-                        conditions.occupation,
-                        conditions.start,
-                        created_at,
-                    )
-                )
-            except (KeyError, ValueError) as error:
-                raise PlanFormatError(f"{plan_id}: 保存した道標を読めません: {error!r}") from error
+            )
         return summaries
 
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
@@ -156,10 +147,8 @@ def _plan(row: PlanRow) -> Plan:
     version = stored.get("version") if isinstance(stored, dict) else None
     if stored is not None and version != RESULT_JSON_VERSION:
         raise PlanFormatError(f"{row.id}: 読めない版の道標の結果です: {version}")
+    conditions = _conditions(row.id, row.conditions)
     try:
-        conditions = conditions_from_json(
-            CONDITIONS_JSON.validate_python(row.conditions, strict=True)
-        )
         result = (
             None
             if stored is None
@@ -168,6 +157,13 @@ def _plan(row: PlanRow) -> Plan:
         return Plan(row.id, row.user_id, conditions, PlanStatus(row.status), result, row.failure)
     except (KeyError, ValueError) as error:
         raise PlanFormatError(f"{row.id}: 保存した道標を読めません: {error!r}") from error
+
+
+def _conditions(plan_id: UUID, stored: object) -> PlanConditions:
+    try:
+        return conditions_from_json(CONDITIONS_JSON.validate_python(stored, strict=True))
+    except (KeyError, ValueError) as error:
+        raise PlanFormatError(f"{plan_id}: 保存した道標を読めません: {error!r}") from error
 
 
 def _semester_json(semester: Semester) -> SemesterJson:
