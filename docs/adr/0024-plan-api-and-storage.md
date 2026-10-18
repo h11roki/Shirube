@@ -1,6 +1,6 @@
 # 0024. Plan は同期の REST で作り、UUID の id で plans 表に JSONB で丸ごと保存する
 
-- ステータス: 承認
+- ステータス: 廃止(Superseded by 0029)
 - 日付: 2026-10-16
 
 ## 文脈
