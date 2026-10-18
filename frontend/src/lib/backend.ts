@@ -3,7 +3,7 @@ import { backendToken } from "@/lib/backend-token";
 
 const LOGIN_REQUIRED = { detail: "ログインしてください" };
 const BACKEND_UNREACHABLE = { detail: "道標のサーバーに届きませんでした" };
-const BACKEND_TIMEOUT_MS = 120_000;
+const BACKEND_TIMEOUT_MS = 300_000;
 const BACKEND_PREFIX = "/api/v1";
 const FRONTEND_PREFIX = "/api";
 
