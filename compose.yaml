@@ -37,6 +37,10 @@ services:
     command: sh -c "pnpm install --frozen-lockfile && pnpm dev"
     environment:
       BACKEND_URL: http://backend:8000
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:-}
+      AUTH_SECRET: ${AUTH_SECRET:-}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:-}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:-}
     ports:
       - "${FRONTEND_PORT:-3000}:3000"
     volumes:
