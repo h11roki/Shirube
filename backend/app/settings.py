@@ -22,3 +22,5 @@ class Settings(CurriculumSettings):
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
     openai_timeout_seconds: Annotated[float, Field(gt=0)] = 45
     openai_max_retries: Annotated[int, Field(ge=0)] = 1
+    worker_poll_seconds: Annotated[float, Field(gt=0)] = 1
+    plan_stall_minutes: Annotated[int, Field(gt=0)] = 15
