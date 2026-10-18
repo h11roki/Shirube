@@ -181,6 +181,24 @@ describe("forwardToBackend", () => {
     expect(logError).toHaveBeenCalledWith(expect.any(String), cause);
   });
 
+  it("answers 504 instead of 502 when the backend does not answer in time", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn<typeof fetch>()
+        .mockRejectedValue(new DOMException("timed out", "TimeoutError")),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const response = await forwardToBackend("/plans", postRequest("{}"));
+
+    expect(response.status).toBe(504);
+    expect(await response.json()).toEqual({
+      detail: "道標のサーバーが時間内に返りませんでした",
+    });
+  });
+
   it.each(["AUTH_JWT_SECRET", "BACKEND_URL"])(
     "fails loudly without calling the backend when %s is not configured",
     async (name) => {

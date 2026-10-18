@@ -3,7 +3,10 @@ import { backendToken } from "@/lib/backend-token";
 
 const LOGIN_REQUIRED = { detail: "ログインしてください" };
 const BACKEND_UNREACHABLE = { detail: "道標のサーバーに届きませんでした" };
-const BACKEND_TIMEOUT_MS = 300_000;
+const BACKEND_TIMED_OUT = {
+  detail: "道標のサーバーが時間内に返りませんでした",
+};
+const BACKEND_TIMEOUT_MS = 290_000;
 const BACKEND_PREFIX = "/api/v1";
 const FRONTEND_PREFIX = "/api";
 
@@ -47,6 +50,9 @@ export async function forwardToBackend(
     });
   } catch (error) {
     console.error("バックエンドへの転送に失敗しました", error);
+    if (error instanceof DOMException && error.name === "TimeoutError") {
+      return Response.json(BACKEND_TIMED_OUT, { status: 504 });
+    }
     return Response.json(BACKEND_UNREACHABLE, { status: 502 });
   }
   const forwarded = new Headers();
