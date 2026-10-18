@@ -1,1 +1,3 @@
 pnpm-lock.yaml
+src/lib/api/openapi.json
+src/lib/api/schema.ts
