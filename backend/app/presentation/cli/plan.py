@@ -1,5 +1,6 @@
 import argparse
 import sys
+from datetime import timedelta
 from uuid import UUID
 
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
@@ -136,6 +137,8 @@ def main() -> None:
             if plan is None:
                 sys.exit(f"Plan がありません: {args.plan_id}")
         else:
+            builder = build_plans(settings, engine)
+            builder.fail_stalled(timedelta(minutes=settings.plan_stall_minutes))
             requested = request_plan(settings, engine).run(
                 SqlUserRepository(engine).id_of(CLI_SUBJECT),
                 args.occupation,
@@ -144,7 +147,7 @@ def main() -> None:
                 Semester(args.grade, Term(args.term)),
                 dict(args.classes),
             )
-            plan = build_plans(settings, engine).build(requested.id)
+            plan = builder.build(requested.id)
             if plan is None:
                 sys.exit(f"ほかの worker が先に作り始めました: {requested.id}")
         print(render(plan))

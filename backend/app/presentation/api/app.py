@@ -6,6 +6,7 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.application.build_plans import SERVER_FAILURE
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.ports import InvalidTokenError
@@ -17,7 +18,6 @@ from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.plans import plans_router
 
 API_PREFIX = "/api/v1"
-SERVER_FAILURE = "サーバーで道標を扱えませんでした"
 LOGIN_REQUIRED = "ログインしてください"
 INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
 

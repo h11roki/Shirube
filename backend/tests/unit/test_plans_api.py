@@ -4,11 +4,11 @@ from uuid import UUID, uuid4
 
 from fastapi.testclient import TestClient
 
+from app.application.build_plans import SERVER_FAILURE
 from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStatus
-from app.presentation.api.app import SERVER_FAILURE
 from tests.builders import sample_conditions, sample_plan
 from tests.fakes import (
     FakeChunkSearch,
