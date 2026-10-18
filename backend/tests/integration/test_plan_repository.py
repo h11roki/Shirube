@@ -158,7 +158,7 @@ def test_the_owners_plans_are_listed_newest_first_up_to_the_limit(
         ("職業", sample_conditions().start)
     }
     assert listed[0].created_at > listed[1].created_at
-    assert oldest.id not in {summary.id for summary in repository.list_owned_by(owner, 2)}
+    assert oldest.id not in {summary.id for summary in listed}
 
 
 def test_the_oldest_waiting_plan_is_claimed_once_as_running(

@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
-from app.domain.plan import Plan, PlanResult, PlanStatus, PlanSummary
+from app.domain.plan import Plan, PlanResult, PlanStatus
 from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
@@ -190,20 +190,4 @@ def _result_out(result: PlanResult) -> ResultOut:
             )
             for choice in result.recommendation.unlinked
         ],
-    )
-
-
-def plan_list_out(summaries: list[PlanSummary]) -> PlanListOut:
-    return PlanListOut(
-        plans=[
-            PlanSummaryOut(
-                id=summary.id,
-                status=summary.status,
-                occupation=summary.occupation,
-                grade=summary.start.grade,
-                term=summary.start.term,
-                created_at=summary.created_at,
-            )
-            for summary in summaries
-        ]
     )

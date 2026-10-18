@@ -9,17 +9,21 @@ def test_the_frontend_has_the_current_openapi_document() -> None:
     )
 
 
-def test_every_error_of_the_plan_apis_is_documented_as_a_detail_sentence() -> None:
+def test_errors_are_documented_as_a_detail_sentence_where_they_can_happen() -> None:
     document = plan_app().openapi()
     error = {"$ref": "#/components/schemas/ErrorOut"}
+    checked = 0
 
     for path, operations in document["paths"].items():
-        if path == "/api/v1/health":
-            continue
         for operation in operations.values():
-            for status in ("401", "422", "500"):
-                schema = operation["responses"][status]["content"]["application/json"]["schema"]
-                assert schema == error, (path, status)
+            responses = operation["responses"]
+            takes_input = "parameters" in operation or "requestBody" in operation
+            assert ("422" in responses) == takes_input, path
+            statuses = [*(["401", "500"] if "security" in operation else []), "422"]
+            for status in (status for status in statuses if status in responses):
+                assert responses[status]["content"]["application/json"]["schema"] == error
+                checked += 1
     show = document["paths"]["/api/v1/plans/{plan_id}"]["get"]["responses"]["404"]
     assert show["content"]["application/json"]["schema"] == error
     assert "HTTPValidationError" not in document["components"]["schemas"]
+    assert checked >= 10

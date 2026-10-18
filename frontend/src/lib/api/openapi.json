@@ -52,16 +52,6 @@
               }
             }
           },
-          "422": {
-            "description": "リクエストを直せば通る誤り",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorOut"
-                }
-              }
-            }
-          },
           "500": {
             "description": "サーバー側の問題",
             "content": {
@@ -113,8 +103,8 @@
               }
             }
           },
-          "422": {
-            "description": "リクエストを直せば通る誤り",
+          "500": {
+            "description": "サーバー側の問題",
             "content": {
               "application/json": {
                 "schema": {
@@ -123,8 +113,8 @@
               }
             }
           },
-          "500": {
-            "description": "サーバー側の問題",
+          "422": {
+            "description": "リクエストを直せば通る誤り",
             "content": {
               "application/json": {
                 "schema": {
@@ -183,8 +173,8 @@
               }
             }
           },
-          "422": {
-            "description": "リクエストを直せば通る誤り",
+          "500": {
+            "description": "サーバー側の問題",
             "content": {
               "application/json": {
                 "schema": {
@@ -193,8 +183,8 @@
               }
             }
           },
-          "500": {
-            "description": "サーバー側の問題",
+          "422": {
+            "description": "リクエストを直せば通る誤り",
             "content": {
               "application/json": {
                 "schema": {
@@ -286,8 +276,8 @@
               }
             }
           },
-          "422": {
-            "description": "リクエストを直せば通る誤り",
+          "500": {
+            "description": "サーバー側の問題",
             "content": {
               "application/json": {
                 "schema": {
@@ -296,8 +286,8 @@
               }
             }
           },
-          "500": {
-            "description": "サーバー側の問題",
+          "422": {
+            "description": "リクエストを直せば通る誤り",
             "content": {
               "application/json": {
                 "schema": {
