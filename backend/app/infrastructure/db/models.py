@@ -3,7 +3,16 @@ from typing import TypedDict
 from uuid import UUID
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import DateTime, ForeignKey, ForeignKeyConstraint, Index, Text, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    ForeignKeyConstraint,
+    Index,
+    Text,
+    func,
+    text,
+)
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -93,9 +102,8 @@ class RoadmapJson(TypedDict):
     unplaced: list[str]
 
 
-class PlanJson(TypedDict):
+class ResultJson(TypedDict):
     version: int
-    conditions: ConditionsJson
     recommendation: RecommendationJson
     roadmap: RoadmapJson
 
@@ -210,10 +218,23 @@ class UserRow(Base):
 
 class PlanRow(Base):
     __tablename__ = "plans"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('pending', 'running', 'succeeded', 'failed')", name="ck_plans_status"
+        ),
+        CheckConstraint("(status = 'succeeded') = (result IS NOT NULL)", name="ck_plans_result"),
+        CheckConstraint("(status = 'failed') = (failure IS NOT NULL)", name="ck_plans_failure"),
+        Index("ix_plans_pending", "created_at", postgresql_where=text("status = 'pending'")),
+    )
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     user_id: Mapped[UUID] = mapped_column(
         ForeignKey("users.id", name="fk_plans_user_id_users"), index=True
     )
-    body: Mapped[PlanJson] = mapped_column(JSONB)
+    status: Mapped[str]
+    conditions: Mapped[ConditionsJson] = mapped_column(JSONB)
+    result: Mapped[ResultJson | None] = mapped_column(JSONB(none_as_null=True))
+    failure: Mapped[str | None]
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

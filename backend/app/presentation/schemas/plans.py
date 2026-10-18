@@ -5,7 +5,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
-from app.domain.plan import Plan
+from app.domain.plan import Plan, PlanResult, PlanStatus
 from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
@@ -87,13 +87,19 @@ class ConditionsOut(BaseModel):
     credit_limit: int
 
 
-class PlanOut(BaseModel):
-    id: UUID
-    conditions: ConditionsOut
+class ResultOut(BaseModel):
     profile: ProfileOut
     semesters: list[SemesterPlanOut]
     unplaced: list[CourseOut]
     unlinked: list[UnlinkedOut]
+
+
+class PlanOut(BaseModel):
+    id: UUID
+    status: PlanStatus
+    conditions: ConditionsOut
+    result: ResultOut | None
+    failure: str | None
 
 
 def _course_out(course: RecommendedCourse) -> CourseOut:
@@ -125,9 +131,9 @@ def _placed_out(placed: PlacedCourse) -> PlacedCourseOut:
 
 def plan_out(plan: Plan) -> PlanOut:
     conditions = plan.conditions
-    profile = plan.recommendation.profile
     return PlanOut(
         id=plan.id,
+        status=plan.status,
         conditions=ConditionsOut(
             occupation=conditions.occupation,
             department=conditions.department,
@@ -137,6 +143,14 @@ def plan_out(plan: Plan) -> PlanOut:
             chosen_classes=dict(conditions.chosen_classes),
             credit_limit=conditions.credit_limit,
         ),
+        result=None if plan.result is None else _result_out(plan.result),
+        failure=plan.failure,
+    )
+
+
+def _result_out(result: PlanResult) -> ResultOut:
+    profile = result.recommendation.profile
+    return ResultOut(
         profile=ProfileOut(
             occupation=profile.occupation,
             interpretation=profile.interpretation,
@@ -151,13 +165,13 @@ def plan_out(plan: Plan) -> PlanOut:
                 courses=[_placed_out(placed) for placed in semester_plan.courses],
                 continuing=[_placed_out(placed) for placed in semester_plan.continuing],
             )
-            for semester_plan in plan.roadmap.semesters
+            for semester_plan in result.roadmap.semesters
         ],
-        unplaced=[_course_out(course) for course in plan.roadmap.unplaced],
+        unplaced=[_course_out(course) for course in result.roadmap.unplaced],
         unlinked=[
             UnlinkedOut(
                 name=choice.name, reason=choice.reason, prerequisite_for=choice.prerequisite_for
             )
-            for choice in plan.recommendation.unlinked
+            for choice in result.recommendation.unlinked
         ],
     )

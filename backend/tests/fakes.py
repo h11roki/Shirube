@@ -1,7 +1,7 @@
 import json
 from collections.abc import Set
 from dataclasses import replace
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -10,16 +10,15 @@ from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
-from app.application.create_plan import CreatePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
-from app.application.ports import CourseSelector, EmbeddingError, InvalidTokenError
-from app.application.recommend_courses import RecommendCourses
+from app.application.ports import EmbeddingError, InvalidTokenError
+from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan
+from app.domain.plan import Plan, PlanStatus
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -123,9 +122,34 @@ class FakeCourseRepository:
 class FakePlanRepository:
     def __init__(self) -> None:
         self.plans: dict[UUID, Plan] = {}
+        self.stall_limits: list[timedelta] = []
 
     def add(self, plan: Plan) -> None:
         self.plans[plan.id] = plan
+
+    def claim_next(self) -> Plan | None:
+        pending = [plan for plan in self.plans.values() if plan.status is PlanStatus.PENDING]
+        return self.claim(pending[0].id) if pending else None
+
+    def claim(self, plan_id: UUID) -> Plan | None:
+        plan = self.plans.get(plan_id)
+        if plan is None or plan.status is not PlanStatus.PENDING:
+            return None
+        self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING)
+        return self.plans[plan_id]
+
+    def finish(self, plan: Plan) -> bool:
+        if self.plans[plan.id].status is not PlanStatus.RUNNING:
+            return False
+        self.plans[plan.id] = plan
+        return True
+
+    def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
+        self.stall_limits.append(after)
+        running = [plan for plan in self.plans.values() if plan.status is PlanStatus.RUNNING]
+        for plan in running:
+            self.plans[plan.id] = plan.failed(failure)
+        return [plan.id for plan in running]
 
     def get(self, plan_id: UUID) -> Plan | None:
         return self.plans.get(plan_id)
@@ -221,25 +245,16 @@ def chat_failing(status: int) -> ChatOpenAI:
 
 def plan_api(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
-    selector: CourseSelector | None = None,
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
     token: str | None = "token-a",
     today: date = date(2026, 10, 16),
 ) -> TestClient:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
-    profile = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
-    recommend = RecommendCourses(
-        search,
-        courses,
-        FakeOccupationAnalyzer({"職業": profile}),
-        selector or FakeCourseSelector([]),
-        30,
-    )
     stored = plans or FakePlanRepository()
     identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
     app = create_app(
-        CreatePlan(recommend, courses, stored, 16), GetPlan(stored), identify, 2026, lambda: today
+        RequestPlan(search, courses, stored, 16), GetPlan(stored), identify, 2026, lambda: today
     )
     headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
     return TestClient(app, raise_server_exceptions=False, headers=headers)

@@ -1,14 +1,16 @@
 from collections.abc import Mapping
+from datetime import timedelta
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import Engine, Select, select
+from sqlalchemy import ColumnElement, Engine, Select, func, select, update
 from sqlalchemy.orm import Session as DbSession
+from sqlalchemy.orm import aliased
 
 from app.application.ports import PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions
+from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
@@ -16,18 +18,20 @@ from app.infrastructure.db.models import (
     ChoiceJson,
     ConditionsJson,
     PlacedJson,
-    PlanJson,
     PlanRow,
     ProfileJson,
     RecommendationJson,
     RecommendedJson,
+    ResultJson,
     RoadmapJson,
     SemesterJson,
     SemesterPlanJson,
 )
 
-PLAN_JSON_VERSION = 1
-PLAN_JSON = TypeAdapter(PlanJson)
+RESULT_JSON_VERSION = 2
+CONDITIONS_JSON = TypeAdapter(ConditionsJson)
+RESULT_JSON = TypeAdapter(ResultJson)
+FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
 
 
 class SqlPlanRepository:
@@ -36,7 +40,64 @@ class SqlPlanRepository:
 
     def add(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
-            db.add(PlanRow(id=plan.id, user_id=plan.owner_id, body=plan_json(plan)))
+            db.add(
+                PlanRow(
+                    id=plan.id,
+                    user_id=plan.owner_id,
+                    status=plan.status,
+                    conditions=conditions_json(plan.conditions),
+                    result=None if plan.result is None else result_json(plan.result),
+                    failure=plan.failure,
+                )
+            )
+
+    def claim_next(self) -> Plan | None:
+        pending = aliased(PlanRow)
+        oldest = (
+            select(pending.id)
+            .where(pending.status == PlanStatus.PENDING)
+            .order_by(pending.created_at, pending.id)
+            .limit(1)
+            .with_for_update(skip_locked=True)
+            .scalar_subquery()
+        )
+        return self._claim(PlanRow.id == oldest)
+
+    def claim(self, plan_id: UUID) -> Plan | None:
+        return self._claim(PlanRow.id == plan_id)
+
+    def finish(self, plan: Plan) -> bool:
+        if plan.status not in FINISHED:
+            raise ValueError(f"終わっていない道標は保存し直せません: {plan.status}")
+        with DbSession(self._engine) as db, db.begin():
+            finished = db.scalars(
+                update(PlanRow)
+                .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.RUNNING)
+                .values(
+                    status=plan.status,
+                    result=None if plan.result is None else result_json(plan.result),
+                    failure=plan.failure,
+                    finished_at=func.now(),
+                )
+                .returning(PlanRow.id)
+                .execution_options(synchronize_session=False)
+            ).one_or_none()
+        return finished is not None
+
+    def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
+        with DbSession(self._engine) as db, db.begin():
+            return list(
+                db.scalars(
+                    update(PlanRow)
+                    .where(
+                        PlanRow.status == PlanStatus.RUNNING,
+                        PlanRow.claimed_at < func.now() - after,
+                    )
+                    .values(status=PlanStatus.FAILED, failure=failure, finished_at=func.now())
+                    .returning(PlanRow.id)
+                    .execution_options(synchronize_session=False)
+                )
+            )
 
     def get(self, plan_id: UUID) -> Plan | None:
         return self._first(select(PlanRow).where(PlanRow.id == plan_id))
@@ -46,19 +107,40 @@ class SqlPlanRepository:
             select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
         )
 
+    def _claim(self, which: ColumnElement[bool]) -> Plan | None:
+        with DbSession(self._engine) as db, db.begin():
+            row = db.scalars(
+                update(PlanRow)
+                .where(which, PlanRow.status == PlanStatus.PENDING)
+                .values(status=PlanStatus.RUNNING, claimed_at=func.now())
+                .returning(PlanRow)
+                .execution_options(synchronize_session=False)
+            ).one_or_none()
+            return None if row is None else _plan(row)
+
     def _first(self, query: Select[PlanRow]) -> Plan | None:
         with DbSession(self._engine) as db:
             row = db.scalars(query).one_or_none()
-        if row is None:
-            return None
-        version = row.body.get("version") if isinstance(row.body, dict) else None
-        if version != PLAN_JSON_VERSION:
-            raise PlanFormatError(f"{row.id}: 読めない版の Plan です: {version}")
-        try:
-            body = PLAN_JSON.validate_python(row.body, strict=True)
-            return plan_from_json(row.id, row.user_id, body)
-        except (KeyError, ValueError) as error:
-            raise PlanFormatError(f"{row.id}: 保存した Plan を読めません: {error!r}") from error
+            return None if row is None else _plan(row)
+
+
+def _plan(row: PlanRow) -> Plan:
+    stored = row.result
+    version = stored.get("version") if isinstance(stored, dict) else None
+    if stored is not None and version != RESULT_JSON_VERSION:
+        raise PlanFormatError(f"{row.id}: 読めない版の道標の結果です: {version}")
+    try:
+        conditions = conditions_from_json(
+            CONDITIONS_JSON.validate_python(row.conditions, strict=True)
+        )
+        result = (
+            None
+            if stored is None
+            else result_from_json(RESULT_JSON.validate_python(stored, strict=True))
+        )
+        return Plan(row.id, row.user_id, conditions, PlanStatus(row.status), result, row.failure)
+    except (KeyError, ValueError) as error:
+        raise PlanFormatError(f"{row.id}: 保存した道標を読めません: {error!r}") from error
 
 
 def _semester_json(semester: Semester) -> SemesterJson:
@@ -83,20 +165,33 @@ def _placed(data: PlacedJson, courses: Mapping[str, RecommendedCourse]) -> Place
     )
 
 
-def plan_json(plan: Plan) -> PlanJson:
-    conditions = plan.conditions
-    recommendation = plan.recommendation
+def conditions_json(conditions: PlanConditions) -> ConditionsJson:
+    return ConditionsJson(
+        occupation=conditions.occupation,
+        department=conditions.department,
+        year=conditions.year,
+        start=_semester_json(conditions.start),
+        chosen_classes=dict(conditions.chosen_classes),
+        credit_limit=conditions.credit_limit,
+    )
+
+
+def conditions_from_json(data: ConditionsJson) -> PlanConditions:
+    return PlanConditions(
+        data["occupation"],
+        data["department"],
+        data["year"],
+        _semester(data["start"]),
+        tuple(sorted(data["chosen_classes"].items())),
+        data["credit_limit"],
+    )
+
+
+def result_json(result: PlanResult) -> ResultJson:
+    recommendation = result.recommendation
     profile = recommendation.profile
-    return PlanJson(
-        version=PLAN_JSON_VERSION,
-        conditions=ConditionsJson(
-            occupation=conditions.occupation,
-            department=conditions.department,
-            year=conditions.year,
-            start=_semester_json(conditions.start),
-            chosen_classes=dict(conditions.chosen_classes),
-            credit_limit=conditions.credit_limit,
-        ),
+    return ResultJson(
+        version=RESULT_JSON_VERSION,
         recommendation=RecommendationJson(
             profile=ProfileJson(
                 occupation=profile.occupation,
@@ -132,15 +227,14 @@ def plan_json(plan: Plan) -> PlanJson:
                     courses=[_placed_json(placed) for placed in semester_plan.courses],
                     continuing=[placed.course.name for placed in semester_plan.continuing],
                 )
-                for semester_plan in plan.roadmap.semesters
+                for semester_plan in result.roadmap.semesters
             ],
-            unplaced=[course.name for course in plan.roadmap.unplaced],
+            unplaced=[course.name for course in result.roadmap.unplaced],
         ),
     )
 
 
-def plan_from_json(plan_id: UUID, owner_id: UUID, data: PlanJson) -> Plan:
-    conditions = data["conditions"]
+def result_from_json(data: ResultJson) -> PlanResult:
     stored = data["recommendation"]
     profile = stored["profile"]
     recommendation = Recommendation(
@@ -185,17 +279,4 @@ def plan_from_json(plan_id: UUID, owner_id: UUID, data: PlanJson) -> Plan:
     roadmap = Roadmap(
         tuple(semester_plans), tuple(courses[name] for name in data["roadmap"]["unplaced"])
     )
-    return Plan(
-        plan_id,
-        owner_id,
-        PlanConditions(
-            conditions["occupation"],
-            conditions["department"],
-            conditions["year"],
-            _semester(conditions["start"]),
-            tuple(sorted(conditions["chosen_classes"].items())),
-            conditions["credit_limit"],
-        ),
-        recommendation,
-        roadmap,
-    )
+    return PlanResult(recommendation, roadmap)

@@ -5,14 +5,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
-from app.application.create_plan import CreatePlan
 from app.application.get_plan import GetPlan
+from app.application.request_plan import RequestPlan
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
 
 
 def plans_router(
-    create_plan: CreatePlan,
+    request_plan: RequestPlan,
     get_plan: GetPlan,
     current_user: Callable[..., UUID],
     curriculum_year: int,
@@ -20,7 +20,7 @@ def plans_router(
 ) -> APIRouter:
     router = APIRouter()
 
-    @router.post("/plans", status_code=status.HTTP_201_CREATED)
+    @router.post("/plans", status_code=status.HTTP_202_ACCEPTED)
     def create(
         body: PlanIn,
         user_id: Annotated[UUID, Depends(current_user)],
@@ -28,7 +28,7 @@ def plans_router(
         response: Response,
     ) -> PlanOut:
         term = body.term or term_on(today())
-        plan = create_plan.run(
+        plan = request_plan.run(
             user_id,
             body.occupation,
             body.department,
