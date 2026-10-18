@@ -1,0 +1,77 @@
+# 0028. フロントは Auth.js v5 の Google ログインを暗号化したクッキーで持ち、エンドポイントごとの Route Handler が JWT を作ってバックエンドへ転送する
+
+- ステータス: 承認
+- 日付: 2026-10-18
+
+## 文脈
+
+ADR 0027 で、バックエンドは Next.js の Route Handler が作る HS256 の JWT(`iss` は `shirube-frontend`、`aud` は `shirube-backend`、寿命 5 分まで、`sub` は Google の sub)で利用者を確かめると決めた。ブラウザはバックエンドを直接呼ばず、Route Handler を通す(ADR 0024)。
+
+フロントは今 Hello World だけで、ログインも転送も無い。画面(職業の入力、道標の表示)はフェーズ 8 で作る。Auth.js の Next.js 向けの版は、App Router 向けに作り直した v5 が beta のまま公開されている(Next.js 16 に対応した 5.0.0-beta.32、2026 年 7 月)。
+
+## 検討した選択肢
+
+Auth.js の版
+
+1. v5(next-auth@5 の beta)
+2. v4(安定版)
+
+ログインの状態の持ち方
+
+1. Auth.js の JWT のセッション(`AUTH_SECRET` で暗号化したクッキー)
+2. Auth.js のアダプタで Postgres に持つセッション
+
+ブラウザからバックエンドへの転送
+
+1. エンドポイントごとの Route Handler(`/api/plans` の POST、`/api/plans/[id]` の GET)
+2. どの道もそのまま転送する汎用の Route Handler(`/api/backend/[...path]`)
+
+フロントのテスト
+
+1. 今 Vitest を入れる
+2. フェーズ 8 で入れる
+
+## 決定
+
+高橋さんがどれも 1 を選んだ。
+
+ログイン
+
+- Auth.js v5 の Google ログイン。設定は環境変数 `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET`
+- セッションは JWT の戦略で、暗号化したクッキーに入れる。フロントは DB を持たない
+- ログインのときに Google のアカウントの id(`providerAccountId`、Google の sub)をトークンに入れ、セッションに載せる。Route Handler は `auth()` でセッションから読む(v5 が勧める読み方)
+
+転送
+
+- Route Handler は、ログインしていなければ 401(本文はバックエンドと同じ「ログインしてください」)。ログインしていれば、Google の sub を `sub` にした JWT をその場で作り、`Authorization: Bearer` を付けてバックエンド(`BACKEND_URL`)へ転送する
+- JWT は jose で HS256 に署名し、鍵は `AUTH_JWT_SECRET`。`iat` と `exp` は同じ時刻から整数の秒で作り、寿命はちょうど 300 秒にする(ADR 0027 の確かめ方に合わせる)
+- バックエンドの状態コードと本文はそのまま返す。POST の `Location` はフロントの道(`/api/plans/{id}`)に直す。バックエンドに届かない、時間内に返らないときは 502
+- 開ける道は `/api/plans` と `/api/plans/[id]` だけで、API を足すときは Route Handler も足す
+
+テスト
+
+- Vitest を入れ、JWT の作り方(`iss`、`aud`、寿命、`sub`)と、転送の 401、ヘッダ、状態コードと `Location` の受け渡しを確かめる。CI のフロントの段でも回す
+
+画面
+
+- このフェーズでは、ホームにログインとログアウトのボタンと、ログイン中の名前だけを出す。入力と道標の画面はフェーズ 8
+
+## 理由
+
+- v5 は App Router の作りで、Route Handler や Server Component から同じ `auth()` でセッションを読める。v4 は Pages Router の作りで、App Router では書き方が回りくどい
+- 暗号化したクッキーなら、フロントが DB を持たずに済み、「フロントは API を呼んで表示するだけ」に合う。利用者の記録はバックエンドの users 表だけになる
+- エンドポイントごとにすると、外から届く道がはっきりし、バックエンドに管理用の道を足しても勝手に外へ出ない
+- JWT の約束(iss、aud、寿命、sub)はフロントとバックエンドで別々の言語で書くので、フロントの側でもテストで固定しておくと、ずれを早く見つけられる
+
+## 受け入れたトレードオフ
+
+- v5 は beta の名前のままで、版を上げるときに変更が入りうる
+- セッションのクッキーは期限まで有効で、サーバーから特定の利用者のログインだけを取り消せない
+- API を足すたびに Route Handler も書く
+- Google の sub をトークンに入れるので、ログインした本人にはセッションの情報として返る(本人の id で、ほかの人には見えない)
+
+## 再検討する条件
+
+- Auth.js v5 の安定版が出たとき、または beta の版上げで大きな変更が入ったとき
+- 特定の利用者のログインを取り消す必要が出たとき(DB のセッションにする)
+- Route Handler が単純な転送ばかり増えたとき
