@@ -5,7 +5,5 @@ export async function GET(
   { params }: RouteContext<"/api/plans/[id]">,
 ): Promise<Response> {
   const { id } = await params;
-  return forwardToBackend(`/plans/${encodeURIComponent(id)}`, {
-    method: "GET",
-  });
+  return forwardToBackend(`/plans/${encodeURIComponent(id)}`, request);
 }

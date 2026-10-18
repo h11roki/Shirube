@@ -19,6 +19,18 @@ function loggedInAs(googleSubject: string): Session {
   };
 }
 
+function getRequest(): Request {
+  return new Request("http://frontend.test/api/plans/abc");
+}
+
+function postRequest(body: string): Request {
+  return new Request("http://frontend.test/api/plans", {
+    method: "POST",
+    body,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
 function backendReturns(response: Response) {
   const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response);
   vi.stubGlobal("fetch", fetchMock);
@@ -38,18 +50,21 @@ beforeEach(() => {
 afterEach(() => {
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   auth.mockReset();
 });
 
 describe("forwardToBackend", () => {
-  it("asks to log in without calling the backend when there is no session", async () => {
+  it("asks to log in without reading the body or calling the backend when there is no session", async () => {
     auth.mockResolvedValue(null);
     const fetchMock = backendReturns(new Response(null, { status: 200 }));
+    const request = postRequest("{}");
 
-    const response = await forwardToBackend("/plans", { method: "GET" });
+    const response = await forwardToBackend("/plans", request);
 
     expect(response.status).toBe(401);
     expect(await response.json()).toEqual({ detail: "ログインしてください" });
+    expect(request.bodyUsed).toBe(false);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
@@ -57,25 +72,27 @@ describe("forwardToBackend", () => {
     auth.mockResolvedValue({ expires: "2099-01-01T00:00:00.000Z" });
     const fetchMock = backendReturns(new Response(null, { status: 200 }));
 
-    const response = await forwardToBackend("/plans", { method: "GET" });
+    const response = await forwardToBackend("/plans/abc", getRequest());
 
     expect(response.status).toBe(401);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("sends the request body with a token for the logged-in Google subject", async () => {
+  it("sends the body and its content type with a token for the logged-in Google subject", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     const fetchMock = backendReturns(new Response("{}", { status: 201 }));
 
-    await forwardToBackend("/plans", {
-      method: "POST",
-      body: '{"occupation":"組込みエンジニア"}',
-    });
+    await forwardToBackend(
+      "/plans",
+      postRequest('{"occupation":"組込みエンジニア"}'),
+    );
 
     const { url, init, headers } = sentRequest(fetchMock);
     expect(url).toBe(`${BACKEND_URL}/api/v1/plans`);
     expect(init.method).toBe("POST");
-    expect(init.body).toBe('{"occupation":"組込みエンジニア"}');
+    expect(await new Response(init.body).text()).toBe(
+      '{"occupation":"組込みエンジニア"}',
+    );
     expect(headers.get("Content-Type")).toBe("application/json");
     const token = headers.get("Authorization")?.replace(/^Bearer /, "") ?? "";
     const { payload } = await jwtVerify(
@@ -86,11 +103,11 @@ describe("forwardToBackend", () => {
     expect(payload.sub).toBe("google-subject");
   });
 
-  it("sends a GET without a body", async () => {
+  it("sends a GET without a body or content type", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     const fetchMock = backendReturns(new Response("{}", { status: 200 }));
 
-    await forwardToBackend("/plans/abc", { method: "GET" });
+    await forwardToBackend("/plans/abc", getRequest());
 
     const { url, init, headers } = sentRequest(fetchMock);
     expect(url).toBe(`${BACKEND_URL}/api/v1/plans/abc`);
@@ -99,13 +116,22 @@ describe("forwardToBackend", () => {
     expect(headers.has("Content-Type")).toBe(false);
   });
 
+  it("leaves redirects to the browser instead of following them with the token", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 200 }));
+
+    await forwardToBackend("/plans/abc", getRequest());
+
+    expect(sentRequest(fetchMock).init.redirect).toBe("manual");
+  });
+
   it("passes the backend status, body and content type through", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     backendReturns(
       Response.json({ detail: "道標が見つかりません" }, { status: 404 }),
     );
 
-    const response = await forwardToBackend("/plans/abc", { method: "GET" });
+    const response = await forwardToBackend("/plans/abc", getRequest());
 
     expect(response.status).toBe(404);
     expect(response.headers.get("Content-Type")).toBe("application/json");
@@ -121,50 +147,51 @@ describe("forwardToBackend", () => {
       }),
     );
 
-    const response = await forwardToBackend("/plans", {
-      method: "POST",
-      body: "{}",
-    });
+    const response = await forwardToBackend("/plans", postRequest("{}"));
 
     expect(response.headers.get("Location")).toBe("/api/plans/abc");
   });
 
-  it("drops a Location outside the backend API", async () => {
+  it.each(["http://elsewhere.test/", "/api/v10/plans/abc"])(
+    "drops a Location outside the backend API: %s",
+    async (location) => {
+      auth.mockResolvedValue(loggedInAs("google-subject"));
+      backendReturns(
+        new Response("{}", { status: 201, headers: { Location: location } }),
+      );
+
+      const response = await forwardToBackend("/plans", postRequest("{}"));
+
+      expect(response.headers.has("Location")).toBe(false);
+    },
+  );
+
+  it("answers 502 and logs the cause when the backend cannot be reached", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
-    backendReturns(
-      new Response(null, {
-        status: 307,
-        headers: { Location: "http://elsewhere.test/" },
-      }),
-    );
+    const cause = new TypeError("fetch failed");
+    vi.stubGlobal("fetch", vi.fn<typeof fetch>().mockRejectedValue(cause));
+    const logError = vi.spyOn(console, "error").mockImplementation(() => {});
 
-    const response = await forwardToBackend("/plans", { method: "GET" });
-
-    expect(response.headers.has("Location")).toBe(false);
-  });
-
-  it("answers 502 when the backend cannot be reached", async () => {
-    auth.mockResolvedValue(loggedInAs("google-subject"));
-    vi.stubGlobal(
-      "fetch",
-      vi.fn<typeof fetch>().mockRejectedValue(new TypeError("fetch failed")),
-    );
-
-    const response = await forwardToBackend("/plans", { method: "GET" });
+    const response = await forwardToBackend("/plans/abc", getRequest());
 
     expect(response.status).toBe(502);
     expect(await response.json()).toEqual({
       detail: "道標のサーバーに届きませんでした",
     });
+    expect(logError).toHaveBeenCalledWith(expect.any(String), cause);
   });
 
-  it("fails loudly when the signing secret is not configured", async () => {
-    auth.mockResolvedValue(loggedInAs("google-subject"));
-    vi.stubEnv("AUTH_JWT_SECRET", "");
-    backendReturns(new Response(null, { status: 200 }));
+  it.each(["AUTH_JWT_SECRET", "BACKEND_URL"])(
+    "fails loudly without calling the backend when %s is not configured",
+    async (name) => {
+      auth.mockResolvedValue(loggedInAs("google-subject"));
+      vi.stubEnv(name, "");
+      const fetchMock = backendReturns(new Response(null, { status: 200 }));
 
-    await expect(forwardToBackend("/plans", { method: "GET" })).rejects.toThrow(
-      "AUTH_JWT_SECRET",
-    );
-  });
+      await expect(
+        forwardToBackend("/plans/abc", getRequest()),
+      ).rejects.toThrow(name);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
 });

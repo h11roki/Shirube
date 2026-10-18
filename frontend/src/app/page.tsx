@@ -6,7 +6,7 @@ import { auth, signIn, signOut } from "@/auth";
 async function Account() {
   await connection();
   const session = await auth();
-  if (!session?.user) {
+  if (!session?.googleSubject) {
     return (
       <form
         action={async () => {
@@ -25,7 +25,7 @@ async function Account() {
         await signOut();
       }}
     >
-      <p>{session.user.name} でログインしています</p>
+      <p>{session.user?.name ?? "Google のアカウント"} でログインしています</p>
       <button type="submit">ログアウト</button>
     </form>
   );
