@@ -28,7 +28,7 @@ export function CourseTicket({
         <p
           className={`text-[11px] font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
         >
-          {roleLabel(course)}
+          {transfer ? RELEVANCE_LABELS.foundation : roleLabel(course)}
         </p>
         <h3 className={`leading-snug font-bold ${core ? "pr-10" : ""}`}>
           {course.name}
@@ -36,8 +36,8 @@ export function CourseTicket({
         <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
         {transfer && (
           <p className="text-xs text-route">
-            乗換 → {stationLabel(transfer.station)}{" "}
-            {semesterLabel(transfer.semester.grade, transfer.semester.term)}
+            乗換 → {transfer.pillar}({stationLabel(transfer.station)}{" "}
+            {semesterLabel(transfer.semester.grade, transfer.semester.term)})
           </p>
         )}
         {transfer?.afterPillar && (

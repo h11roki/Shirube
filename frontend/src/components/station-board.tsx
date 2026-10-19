@@ -23,14 +23,16 @@ export function StationBoard({
         </span>
       </div>
       <div className="grid justify-items-center px-4 pt-2 pb-1.5 text-center">
-        <h2 className="font-serif text-xl font-extrabold tracking-[0.08em] sm:text-2xl">
-          {label(semester)}
+        <div className="flex flex-wrap items-center justify-center gap-x-2">
+          <h2 className="font-serif text-xl font-extrabold tracking-[0.08em] sm:text-2xl">
+            {label(semester)}
+          </h2>
           {index === 0 && (
-            <span className="ml-2 inline-block rounded-xs bg-pillar px-1.5 align-[3px] font-sans text-[10.5px] tracking-[0.12em] text-paper">
+            <span className="rounded-xs bg-pillar px-1.5 text-[10.5px] font-bold tracking-[0.12em] text-paper">
               始発
             </span>
           )}
-        </h2>
+        </div>
         <p className="text-[10.5px] tracking-[0.3em] text-sub">
           {semesterReading(semester.grade, semester.term)}
         </p>

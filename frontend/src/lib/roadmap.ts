@@ -12,13 +12,6 @@ export type Transfer = {
   afterPillar: boolean;
 };
 
-export function graduationYear(conditions: {
-  year: number;
-  grade: number;
-}): number {
-  return conditions.year + (4 - conditions.grade) + 1;
-}
-
 export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
   const pillars = new Map<string, number>();
   semesters.forEach((semester, station) => {
@@ -31,7 +24,8 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
   const found = new Map<string, Transfer>();
   semesters.forEach((semester, station) => {
     for (const course of semester.courses) {
-      const pillar = course.prerequisite_for;
+      const pillar =
+        course.relevance === "foundation" ? course.prerequisite_for : null;
       const pillarStation = pillar === null ? undefined : pillars.get(pillar);
       if (pillar !== null && pillarStation !== undefined) {
         found.set(course.name, {

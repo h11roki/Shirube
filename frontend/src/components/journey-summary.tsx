@@ -1,13 +1,13 @@
 import type { SemesterPlan, Term } from "@/lib/api/client";
-import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
-import { graduationYear, routeTotals } from "@/lib/roadmap";
+import { RELEVANCE_LABELS, semesterLabel, stationLabel } from "@/lib/labels";
+import { routeTotals } from "@/lib/roadmap";
 
 export function JourneySummary({
   semesters,
   conditions,
 }: {
   semesters: SemesterPlan[];
-  conditions: { year: number; grade: number; term: Term };
+  conditions: { grade: number; term: Term };
 }) {
   const totals = routeTotals(semesters);
   const facts = [
@@ -27,7 +27,10 @@ export function JourneySummary({
         <span className="rounded-xs border border-paper/60 px-1 text-[11px]">
           到着
         </span>
-        卒業 {graduationYear(conditions)}年3月
+        卒業
+        <span className="text-[11px] tabular-nums">
+          {stationLabel(semesters.length)}
+        </span>
       </p>
       <dl className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-sm">
         {facts.map(([term, value]) => (

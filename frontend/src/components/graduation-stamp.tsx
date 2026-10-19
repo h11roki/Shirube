@@ -1,4 +1,4 @@
-export function GraduationStamp({ year }: { year: number }) {
+export function GraduationStamp({ station }: { station: string }) {
   return (
     <span
       aria-hidden
@@ -10,7 +10,7 @@ export function GraduationStamp({ year }: { year: number }) {
           卒業
         </span>
         <span className="text-[9.5px] tracking-[0.1em] tabular-nums">
-          {year}.3
+          {station}
         </span>
       </span>
     </span>

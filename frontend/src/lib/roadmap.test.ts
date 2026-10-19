@@ -7,7 +7,6 @@ import type {
   Term,
 } from "@/lib/api/client";
 import {
-  graduationYear,
   pickSemester,
   routeTotals,
   semesterCourses,
@@ -78,11 +77,6 @@ describe("roadmap", () => {
     });
   });
 
-  it("graduates in the March after the fourth year", () => {
-    expect(graduationYear({ year: 2026, grade: 3 })).toBe(2028);
-    expect(graduationYear({ year: 2026, grade: 1 })).toBe(2030);
-  });
-
   it("transfers each foundation to the station of the pillar it supports", () => {
     const pillar = placed("確率統計", "core");
     const early = {
@@ -97,9 +91,13 @@ describe("roadmap", () => {
       ...placed("実験", "foundation"),
       prerequisite_for: "置けなかった柱",
     };
+    const linkedPillar = {
+      ...placed("機械学習", "core"),
+      prerequisite_for: "確率統計",
+    };
     const route = [
       semester(3, "spring", [early, pillar]),
-      semester(3, "autumn", [late, orphan]),
+      semester(3, "autumn", [late, orphan, linkedPillar]),
     ];
 
     const found = transfers(route);
@@ -113,5 +111,6 @@ describe("roadmap", () => {
     expect(found.get("情報処理")?.afterPillar).toBe(true);
     expect(found.has("実験")).toBe(false);
     expect(found.has("確率統計")).toBe(false);
+    expect(found.has("機械学習")).toBe(false);
   });
 });

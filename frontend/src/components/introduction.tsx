@@ -62,7 +62,10 @@ export function Introduction() {
           <p className="text-sm text-sub">
             {conditions.year} 年度の時間割から作った、実際の出力です(
             {semesterLabel(conditions.grade, conditions.term)}
-            から)。最初の {SAMPLE_SEMESTERS} 学期だけを載せています。
+            から)。上の要約は卒業までのもので、道のりは最初の {
+              SAMPLE_SEMESTERS
+            }{" "}
+            学期だけを載せています。
           </p>
         </div>
         <JourneySummary semesters={result.semesters} conditions={conditions} />

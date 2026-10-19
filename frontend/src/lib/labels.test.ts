@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import type { PlacedCourse } from "@/lib/api/client";
 import {
   classLabel,
-  placementLabel,
   roleLabel,
   semesterLabel,
   semesterReading,
@@ -51,16 +50,6 @@ describe("labels", () => {
     expect(roleLabel({ relevance: "foundation", prerequisite_for: null })).toBe(
       "礎",
     );
-  });
-
-  it("writes where a placed course sits, its class, and its credits", () => {
-    expect(
-      placementLabel({
-        ...withSlots([{ weekday: "mon", period: 4 }]),
-        class_code: "6B",
-      }),
-    ).toBe("月4 ・ クラス 6B ・ 2 単位");
-    expect(placementLabel(withSlots([]))).toBe("コマなし ・ 2 単位");
   });
 
   it("reads a semester aloud and numbers its station", () => {

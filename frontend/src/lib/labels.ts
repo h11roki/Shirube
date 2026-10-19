@@ -99,16 +99,6 @@ export function slotsLabel(course: PlacedCourse): string {
   );
 }
 
-export function placementLabel(course: PlacedCourse): string {
-  return [
-    slotsLabel(course),
-    ...(course.class_code === null
-      ? []
-      : [`クラス ${classLabel(course.class_code)}`]),
-    `${course.credits} 単位`,
-  ].join(" ・ ");
-}
-
 export function classLabel(classCode: string): string {
   return classCode || "記号なし";
 }

@@ -14,8 +14,12 @@ import { RouteMap } from "@/components/route-map";
 import { TEXT_LINK } from "@/components/styles";
 import { TimetableBook } from "@/components/timetable-book";
 import type { Plan, PlanResult as Result } from "@/lib/api/client";
-import { RELEVANCE_LABELS, RESULT_VIEW_LABELS } from "@/lib/labels";
-import { graduationYear, routeTotals } from "@/lib/roadmap";
+import {
+  RELEVANCE_LABELS,
+  RESULT_VIEW_LABELS,
+  stationLabel,
+} from "@/lib/labels";
+import { routeTotals } from "@/lib/roadmap";
 import {
   type ResultView,
   VIEWS_ANCHOR,
@@ -103,7 +107,9 @@ export function PlanResultView({
           planPath={pathname}
           end={
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <GraduationStamp year={graduationYear(conditions)} />
+              <GraduationStamp
+                station={stationLabel(result.semesters.length)}
+              />
               <div className="grid gap-1">
                 <h2 className="font-serif text-2xl font-bold">卒業駅</h2>
                 <p className="text-sm text-sub">
