@@ -1,21 +1,29 @@
 "use client";
 
-import { type ReactNode, useId, useState } from "react";
+import { type CSSProperties, type ReactNode, useId, useState } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
 import { QueryLink } from "@/components/query-link";
+import { StationBoard } from "@/components/station-board";
 import { TEXT_LINK } from "@/components/styles";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
   EMPTY_SEMESTER_LABEL,
-  semesterLabel,
   slotsLabel,
 } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
-import { semesterCourses, semesterKey } from "@/lib/roadmap";
+import {
+  type Transfer,
+  semesterCourses,
+  semesterKey,
+  transfers,
+} from "@/lib/roadmap";
 import { VIEWS_ANCHOR, resultViewHref } from "@/lib/result-view";
+
+const GOAL_PRESS_MS = 300;
+const LINE_DELAY_MS = 250;
 
 export function RouteMap({
   semesters,
@@ -26,19 +34,28 @@ export function RouteMap({
   planPath?: string;
   end: ReactNode;
 }) {
+  const found = transfers(semesters);
+  const arrive = semesters.length * STAGGER_MS;
   return (
-    <ol className="relative grid gap-9 pl-12 before:absolute before:inset-y-2.5 before:left-4 before:w-1 before:rounded-full before:bg-route">
+    <ol className="relative grid gap-9 pl-12">
       {semesters.map((semester, index) => (
         <Station
           key={semesterKey(semester)}
-          semester={semester}
+          index={index}
+          semesters={semesters}
+          transfers={found}
           planPath={planPath}
           delayMs={index * STAGGER_MS}
         />
       ))}
       <li
-        style={{ animationDelay: `${semesters.length * STAGGER_MS}ms` }}
-        className="relative grid min-w-0 gap-1 before:absolute before:top-1.5 before:-left-[39px] before:size-[18px] before:rounded-full before:bg-pillar motion-safe:animate-rise"
+        style={
+          {
+            animationDelay: `${arrive}ms`,
+            "--arrive": `${arrive + GOAL_PRESS_MS}ms`,
+          } as CSSProperties
+        }
+        className="relative min-w-0 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
       >
         {end}
       </li>
@@ -47,34 +64,49 @@ export function RouteMap({
 }
 
 function Station({
-  semester,
+  index,
+  semesters,
+  transfers,
   planPath,
   delayMs,
 }: {
-  semester: SemesterPlan;
+  index: number;
+  semesters: SemesterPlan[];
+  transfers: Map<string, Transfer>;
   planPath?: string;
   delayMs: number;
 }) {
   const [open, setOpen] = useState(false);
   const weekId = useId();
+  const semester = semesters[index];
   const all = semesterCourses(semester);
   return (
     <li
-      style={{ animationDelay: `${delayMs}ms` }}
-      className="relative grid min-w-0 gap-3 before:absolute before:top-1.5 before:-left-[39px] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper motion-safe:animate-rise"
+      style={
+        {
+          animationDelay: `${delayMs}ms`,
+          "--line-delay": `${delayMs + LINE_DELAY_MS}ms`,
+        } as CSSProperties
+      }
+      className="relative grid min-w-0 gap-3 before:absolute before:top-7 before:-left-[39px] before:z-[1] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper after:absolute after:top-9 after:-bottom-9 after:-left-[32px] after:w-1 after:origin-top after:bg-route motion-safe:animate-rise motion-safe:after:animate-draw motion-safe:after:[animation-delay:var(--line-delay)]"
     >
-      <h2 className="flex flex-wrap items-baseline gap-x-3.5 gap-y-1 font-serif text-xl font-bold">
-        {semesterLabel(semester.grade, semester.term)}
-        <span className="font-sans text-xs font-medium text-sub">
-          {semester.credits} 単位 ・ {semester.courses.length} 科目
-          {semester.continuing.length > 0 &&
-            ` ・ ${CONTINUING_LABEL} ${semester.continuing.length} 科目`}
-        </span>
-      </h2>
+      <StationBoard
+        index={index}
+        semester={semester}
+        previous={semesters[index - 1]}
+        next={semesters[index + 1]}
+      />
+      <p className="text-xs text-sub">
+        {semester.credits} 単位 ・ {semester.courses.length} 科目
+        {semester.continuing.length > 0 &&
+          ` ・ ${CONTINUING_LABEL} ${semester.continuing.length} 科目`}
+      </p>
       {all.length === 0 && (
         <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>
       )}
-      {semester.courses.length > 0 && <CourseGrid courses={semester.courses} />}
+      {semester.courses.length > 0 && (
+        <CourseGrid courses={semester.courses} transfers={transfers} />
+      )}
       {semester.continuing.length > 0 && (
         <p className="text-[13px] text-sub">
           {CONTINUING_LABEL}:{" "}

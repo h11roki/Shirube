@@ -1,4 +1,5 @@
 import { SignInButton } from "@/components/account";
+import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
@@ -64,6 +65,7 @@ export function Introduction() {
             から)。最初の {SAMPLE_SEMESTERS} 学期だけを載せています。
           </p>
         </div>
+        <JourneySummary semesters={result.semesters} conditions={conditions} />
         <RouteMap
           semesters={result.semesters.slice(0, SAMPLE_SEMESTERS)}
           end={

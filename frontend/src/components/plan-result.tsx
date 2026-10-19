@@ -4,20 +4,18 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { CourseGrid } from "@/components/course-grid";
+import { DestinationPlate } from "@/components/destination-plate";
+import { GraduationStamp } from "@/components/graduation-stamp";
+import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
 import { TEXT_LINK } from "@/components/styles";
-import { Signpost } from "@/components/signpost";
 import { TimetableBook } from "@/components/timetable-book";
 import type { Plan, PlanResult as Result } from "@/lib/api/client";
-import {
-  RELEVANCE_LABELS,
-  RESULT_VIEW_LABELS,
-  semesterLabel,
-} from "@/lib/labels";
-import { routeTotals } from "@/lib/roadmap";
+import { RELEVANCE_LABELS, RESULT_VIEW_LABELS } from "@/lib/labels";
+import { graduationYear, routeTotals } from "@/lib/roadmap";
 import {
   type ResultView,
   VIEWS_ANCHOR,
@@ -38,45 +36,33 @@ export function PlanResultView({
   const { view, semester } = readResultView(useSearchParams());
   const { profile } = result;
   const { conditions } = plan;
-  const last = result.semesters.at(-1);
   const totals = routeTotals(result.semesters);
   return (
     <div className="grid gap-8">
-      <section className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
-        <div className="grid min-w-0 gap-2">
-          <Kicker>目的地 ── {profile.occupation}</Kicker>
-          <h1 className="font-serif text-3xl leading-snug font-extrabold text-balance sm:text-4xl">
-            {profile.interpretation}への道標
-          </h1>
-          {profile.assumption && (
-            <p className="text-sm text-sub">前提: {profile.assumption}</p>
-          )}
-          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-sub">
-            {profile.skills.map((skill) => (
-              <li key={skill}>
-                <span aria-hidden className="text-pillar">
-                  ◇{" "}
-                </span>
-                {skill}
-              </li>
-            ))}
-          </ul>
-          <p className="text-xs text-sub">
-            {[
-              ...(last
-                ? [
-                    `${semesterLabel(conditions.grade, conditions.term)}から ${semesterLabel(last.grade, last.term)}まで`,
-                  ]
-                : []),
-              `1 学期 ${conditions.credit_limit} 単位まで`,
-              `${conditions.year} 年度の時間割`,
-            ].join(" ・ ")}
+      <section className="grid gap-4">
+        <h1 className="sr-only">{profile.interpretation}への道標</h1>
+        <Kicker>目的地 ── {profile.occupation}</Kicker>
+        <DestinationPlate destination={profile.interpretation} />
+        {profile.assumption && (
+          <p className="max-w-2xl text-sm text-sub">
+            前提: {profile.assumption}
           </p>
-        </div>
-        <Signpost
-          from={`${conditions.grade} 回生`}
-          className="hidden w-24 text-ink sm:block"
-        />
+        )}
+        <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-sub">
+          {profile.skills.map((skill) => (
+            <li key={skill}>
+              <span aria-hidden className="text-pillar">
+                ◇{" "}
+              </span>
+              {skill}
+            </li>
+          ))}
+        </ul>
+        <JourneySummary semesters={result.semesters} conditions={conditions} />
+        <p className="text-xs text-sub">
+          1 学期 {conditions.credit_limit} 単位まで ・ {conditions.year}{" "}
+          年度の時間割
+        </p>
       </section>
 
       <div
@@ -116,14 +102,17 @@ export function PlanResultView({
           semesters={result.semesters}
           planPath={pathname}
           end={
-            <>
-              <h2 className="font-serif text-xl font-bold">卒業</h2>
-              <p className="text-sm text-sub">
-                ここまで {totals.credits} 単位。{RELEVANCE_LABELS.core}{" "}
-                {totals.core} 科目と{RELEVANCE_LABELS.foundation}{" "}
-                {totals.foundation} 科目を通ります。
-              </p>
-            </>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+              <GraduationStamp year={graduationYear(conditions)} />
+              <div className="grid gap-1">
+                <h2 className="font-serif text-2xl font-bold">卒業駅</h2>
+                <p className="text-sm text-sub">
+                  ここまで {totals.credits} 単位。{RELEVANCE_LABELS.core}{" "}
+                  {totals.core} 科目と{RELEVANCE_LABELS.foundation}{" "}
+                  {totals.foundation} 科目を通ります。
+                </p>
+              </div>
+            </div>
           }
         />
       ) : (

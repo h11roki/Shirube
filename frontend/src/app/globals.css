@@ -15,6 +15,8 @@
   --danger: #9f2a1d;
   --danger-soft: #fbe6e1;
   --shadow: rgb(60 40 20 / 0.08);
+  --plate: #24211d;
+  --plate-ink: #f4efe4;
   color-scheme: light;
 }
 
@@ -33,6 +35,8 @@
   --danger: #f0a090;
   --danger-soft: #42221c;
   --shadow: rgb(0 0 0 / 0.35);
+  --plate: #0f0e0c;
+  --plate-ink: #ede6d8;
   color-scheme: dark;
 }
 
@@ -55,6 +59,8 @@
   --color-route-soft: var(--route-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
+  --color-plate: var(--plate);
+  --color-plate-ink: var(--plate-ink);
   --shadow-paper: 0 1px 0 var(--shadow);
   --shadow-sticky: 0 2px 0 var(--shadow);
   --animate-rise: rise 0.5s ease both;
@@ -63,6 +69,8 @@
   --animate-march: march 0.9s linear infinite;
   --animate-blink: blink 1.4s ease-in-out infinite both;
   --animate-sway: sway 4s ease-in-out infinite;
+  --animate-draw: draw 0.6s cubic-bezier(0.6, 0.05, 0.3, 1) both;
+  --animate-press: press 0.55s cubic-bezier(0.2, 1.6, 0.4, 1) both;
 
   @keyframes rise {
     from {
@@ -97,6 +105,19 @@
     }
     40% {
       opacity: 1;
+    }
+  }
+
+  @keyframes draw {
+    from {
+      transform: scaleY(0);
+    }
+  }
+
+  @keyframes press {
+    from {
+      opacity: 0;
+      transform: scale(1.8) rotate(-14deg);
     }
   }
 
