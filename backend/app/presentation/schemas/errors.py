@@ -18,6 +18,9 @@ INVALID_RESPONSE: dict[int | str, dict[str, Any]] = {
         "description": "リクエストを直せば通る誤り",
     }
 }
+CONFLICT_RESPONSE: dict[int | str, dict[str, Any]] = {
+    status.HTTP_409_CONFLICT: {"model": ErrorOut, "description": "道標がまだできあがっていない"}
+}
 NOT_FOUND_RESPONSE: dict[int | str, dict[str, Any]] = {
     status.HTTP_404_NOT_FOUND: {"model": ErrorOut, "description": "無いか、ほかの利用者の道標"}
 }

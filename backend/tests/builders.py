@@ -123,6 +123,14 @@ def sample_plan(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     )
 
 
+def sample_plan_asking(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
+    plan = sample_plan(plan_id, owner_id)
+    assert plan.result is not None
+    return plan.placed_again(
+        replace(plan.result.roadmap, offered_earlier=frozenset({"科目A", "科目D"}))
+    )
+
+
 def sample_plan_with_taken(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     plan = sample_plan(plan_id, owner_id)
     assert plan.result is not None

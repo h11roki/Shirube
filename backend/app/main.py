@@ -1,5 +1,6 @@
 import sys
 
+from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
@@ -25,12 +26,15 @@ except ValueError as error:
     sys.exit(f"環境変数を確かめてください: AUTH_JWT_SECRET: {error}")
 engine = database_engine(settings)
 plans = SqlPlanRepository(engine)
+courses = SqlCourseRepository(engine)
+users = SqlUserRepository(engine)
 app = create_app(
     request_plan=request_plan(settings, engine),
     get_plan=GetPlan(plans),
     list_plans=ListPlans(plans),
-    list_class_choices=ListClassChoices(SqlCourseRepository(engine)),
-    identify=IdentifyUser(verifier, SqlUserRepository(engine)),
+    list_class_choices=ListClassChoices(courses),
+    answer_taken_courses=AnswerTakenCourses(plans, users, courses),
+    identify=IdentifyUser(verifier, users),
     curriculum_year=settings.curriculum_year,
     today=university_today,
 )

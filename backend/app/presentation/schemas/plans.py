@@ -11,6 +11,7 @@ from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
 MAX_CHOSEN_CLASSES = 50
+MAX_TAKEN_COURSES = 50
 MAX_NAME_LENGTH = 100
 
 DepartmentName = Annotated[
@@ -36,6 +37,14 @@ class PlanIn(BaseModel):
         if not is_single_line(occupation):
             raise ValueError("職業名は空でない 1 行にしてください")
         return occupation
+
+
+class TakenCoursesIn(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    names: list[Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)]] = Field(
+        max_length=MAX_TAKEN_COURSES
+    )
 
 
 class SlotOut(BaseModel):
@@ -94,6 +103,8 @@ class ResultOut(BaseModel):
     profile: ProfileOut
     semesters: list[SemesterPlanOut]
     unplaced: list[CourseOut]
+    taken: list[CourseOut]
+    offered_earlier: list[str]
     unlinked: list[UnlinkedOut]
 
 
@@ -186,6 +197,8 @@ def _result_out(result: PlanResult) -> ResultOut:
             for semester_plan in result.roadmap.semesters
         ],
         unplaced=[_course_out(course) for course in result.roadmap.unplaced],
+        taken=[_course_out(course) for course in result.roadmap.taken],
+        offered_earlier=sorted(result.roadmap.offered_earlier),
         unlinked=[
             UnlinkedOut(
                 name=choice.name, reason=choice.reason, prerequisite_for=choice.prerequisite_for

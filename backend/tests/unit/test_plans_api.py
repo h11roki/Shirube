@@ -9,7 +9,7 @@ from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStage, PlanStatus
-from tests.builders import sample_conditions, sample_plan
+from tests.builders import sample_conditions, sample_plan, sample_plan_asking
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
@@ -135,6 +135,7 @@ def test_a_succeeded_plan_is_shown_with_its_result() -> None:
     }
     assert [course["name"] for course in result["semesters"][1]["continuing"]] == ["科目B"]
     assert [course["name"] for course in result["unplaced"]] == ["科目D"]
+    assert (result["taken"], result["offered_earlier"]) == ([], [])
     assert result["unlinked"] == [{"name": "科目E", "reason": "理由E", "prerequisite_for": "科目F"}]
 
 
@@ -300,3 +301,47 @@ def test_another_users_plan_is_not_found() -> None:
         404,
         {"detail": f"Plan がありません: {accepted['id']}"},
     )
+
+
+def test_answering_taken_courses_returns_the_plan_placed_again() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = sample_plan_asking(uuid4(), users.id_of("google-a"))
+    plans.add(plan)
+    courses = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6})
+
+    response = client(courses, plans, users).put(
+        f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目A"]}
+    )
+
+    assert response.status_code == 200
+    result = response.json()["result"]
+    assert [course["name"] for course in result["taken"]] == ["科目A"]
+    assert result["offered_earlier"] == ["科目A", "科目B", "科目C", "科目D"]
+
+
+def test_answering_about_a_course_not_asked_or_on_an_unfinished_plan_is_refused() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    owner = users.id_of("google-a")
+    plan = sample_plan_asking(uuid4(), owner)
+    waiting = Plan(uuid4(), owner, sample_conditions())
+    plans.add(plan)
+    plans.add(waiting)
+    api = client(plans=plans, users=users)
+
+    unasked = api.put(f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目B"]})
+    unfinished = api.put(f"/api/v1/plans/{waiting.id}/taken-courses", json={"names": []})
+    others = client(plans=plans, users=users, token="token-b").put(
+        f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目A"]}
+    )
+    wrong_shape = api.put(f"/api/v1/plans/{plan.id}/taken-courses", json={"name": "科目A"})
+
+    assert (unasked.status_code, unasked.json()) == (
+        422,
+        {"detail": "この道標でもう取ったかを聞いていない授業です: 科目B"},
+    )
+    assert unfinished.status_code == 409
+    assert unfinished.json()["detail"].startswith("できあがっていない道標では答えられません")
+    assert others.status_code == 404
+    assert wrong_shape.status_code == 422

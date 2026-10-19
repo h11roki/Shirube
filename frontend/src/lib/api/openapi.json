@@ -206,6 +206,101 @@
         }
       }
     },
+    "/api/v1/plans/{plan_id}/taken-courses": {
+      "put": {
+        "summary": "Answer Taken",
+        "operationId": "answer_taken_api_v1_plans__plan_id__taken_courses_put",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TakenCoursesIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "無いか、ほかの利用者の道標",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "道標がまだできあがっていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/class-choices": {
       "get": {
         "summary": "Show",
@@ -760,6 +855,20 @@
             "type": "array",
             "title": "Unplaced"
           },
+          "taken": {
+            "items": {
+              "$ref": "#/components/schemas/CourseOut"
+            },
+            "type": "array",
+            "title": "Taken"
+          },
+          "offered_earlier": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Offered Earlier"
+          },
           "unlinked": {
             "items": {
               "$ref": "#/components/schemas/UnlinkedOut"
@@ -773,6 +882,8 @@
           "profile",
           "semesters",
           "unplaced",
+          "taken",
+          "offered_earlier",
           "unlinked"
         ],
         "title": "ResultOut"
@@ -831,6 +942,25 @@
           "period"
         ],
         "title": "SlotOut"
+      },
+      "TakenCoursesIn": {
+        "properties": {
+          "names": {
+            "items": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "type": "array",
+            "maxItems": 50,
+            "title": "Names"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "names"
+        ],
+        "title": "TakenCoursesIn"
       },
       "Term": {
         "type": "string",

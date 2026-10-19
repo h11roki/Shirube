@@ -56,6 +56,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/plans/{plan_id}/taken-courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Answer Taken */
+        put: operations["answer_taken_api_v1_plans__plan_id__taken_courses_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/class-choices": {
         parameters: {
             query?: never;
@@ -232,6 +249,10 @@ export interface components {
             semesters: components["schemas"]["SemesterPlanOut"][];
             /** Unplaced */
             unplaced: components["schemas"]["CourseOut"][];
+            /** Taken */
+            taken: components["schemas"]["CourseOut"][];
+            /** Offered Earlier */
+            offered_earlier: string[];
             /** Unlinked */
             unlinked: components["schemas"]["UnlinkedOut"][];
         };
@@ -252,6 +273,11 @@ export interface components {
             weekday: components["schemas"]["Weekday"];
             /** Period */
             period: number;
+        };
+        /** TakenCoursesIn */
+        TakenCoursesIn: {
+            /** Names */
+            names: string[];
         };
         /**
          * Term
@@ -423,6 +449,77 @@ export interface operations {
             };
             /** @description 無いか、ほかの利用者の道標 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    answer_taken_api_v1_plans__plan_id__taken_courses_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TakenCoursesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 無いか、ほかの利用者の道標 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 道標がまだできあがっていない */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

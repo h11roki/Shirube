@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
@@ -293,12 +294,14 @@ def plan_app(
 ) -> FastAPI:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     stored = plans or FakePlanRepository()
-    identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
+    known = users or FakeUserRepository()
+    identify = IdentifyUser(FakeTokenVerifier(TOKENS), known)
     return create_app(
         RequestPlan(search, courses, stored, 16),
         GetPlan(stored),
         ListPlans(stored),
         ListClassChoices(courses),
+        AnswerTakenCourses(stored, known, courses),
         identify,
         2026,
         lambda: today,
