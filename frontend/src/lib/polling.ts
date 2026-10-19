@@ -2,6 +2,7 @@ import type { PlanStatus } from "@/lib/api/client";
 
 export const POLL_INTERVAL_MS = 2_000;
 export const POLL_LIMIT_MS = 180_000;
+export const POLL_REQUEST_TIMEOUT_MS = 10_000;
 
 export type Watch = "waiting" | "finished" | "gave-up";
 

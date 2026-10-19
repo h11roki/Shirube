@@ -7,6 +7,7 @@ import { type ReactNode, useEffect, useState } from "react";
 import { PlanResultView } from "@/components/plan-result";
 import { StatusBadge } from "@/components/status-badge";
 import {
+  ApiError,
   type Plan,
   isTemporary,
   messageOf,
@@ -16,15 +17,18 @@ import { semesterLabel } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_LIMIT_MS,
+  POLL_REQUEST_TIMEOUT_MS,
   type Watch,
   watchState,
 } from "@/lib/polling";
+
+const UNAUTHORIZED = 401;
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
   const [plan, setPlan] = useState<Plan>();
   const [watch, setWatch] = useState<Watch>("waiting");
-  const [error, setError] = useState<string>();
+  const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
 
   useEffect(() => {
@@ -35,6 +39,7 @@ export function PlanView() {
       try {
         const latest = await requestJson<Plan>(
           `/api/plans/${encodeURIComponent(id)}`,
+          { signal: AbortSignal.timeout(POLL_REQUEST_TIMEOUT_MS) },
         );
         if (!active) {
           return;
@@ -53,7 +58,10 @@ export function PlanView() {
         if (isTemporary(caught) && Date.now() - startedAt < POLL_LIMIT_MS) {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         } else {
-          setError(messageOf(caught));
+          setError({
+            message: messageOf(caught),
+            status: caught instanceof ApiError ? caught.status : 0,
+          });
         }
       }
     }
@@ -70,10 +78,23 @@ export function PlanView() {
     setRound((current) => current + 1);
   }
 
+  if (error?.status === UNAUTHORIZED) {
+    return (
+      <Notice title="ログインが切れました">
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-100"
+        >
+          ログインし直す
+        </button>
+      </Notice>
+    );
+  }
   if (error) {
     return (
       <Notice title="道標を読み込めませんでした">
-        <p>{error}</p>
+        <p>{error.message}</p>
         <RetryButton onClick={retry} />
       </Notice>
     );
@@ -113,8 +134,8 @@ export function PlanView() {
         </h1>
       </div>
       <p className="text-sm text-stone-600">
-        {semesterLabel(conditions.grade, conditions.term)}から
-        {semesterLabel(4, "autumn")}までを組みます。
+        {semesterLabel(conditions.grade, conditions.term)}
+        から卒業までを組みます。
       </p>
       {watch === "gave-up" ? (
         <div className="space-y-3 text-sm text-stone-700">

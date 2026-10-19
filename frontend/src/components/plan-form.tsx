@@ -34,7 +34,7 @@ export function PlanForm() {
   const [chosenClasses, setChosenClasses] = useState<Record<string, string>>(
     {},
   );
-  const [loadError, setLoadError] = useState<string>();
+  const [failed, setFailed] = useState<{ query: string; message: string }>();
   const [reloads, setReloads] = useState(0);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
@@ -44,6 +44,8 @@ export function PlanForm() {
     ...(chosenTerm ? { term: chosenTerm } : {}),
   }).toString();
   const choices = loaded?.query === query ? loaded.answer : undefined;
+  const loadError = failed?.query === query ? failed.message : undefined;
+  const loading = !choices && !loadError;
 
   useEffect(() => {
     let active = true;
@@ -51,12 +53,12 @@ export function PlanForm() {
       .then((answer) => {
         if (active) {
           setLoaded({ query, answer });
-          setLoadError(undefined);
+          setFailed(undefined);
         }
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(messageOf(error));
+          setFailed({ query, message: messageOf(error) });
         }
       });
     return () => {
@@ -143,12 +145,12 @@ export function PlanForm() {
           <select
             id="term"
             className={fieldClass}
-            value={chosenTerm ?? choices?.term ?? ""}
+            value={chosenTerm ?? choices?.term ?? loaded?.answer.term ?? ""}
             onChange={(event) =>
               setChosenTerm(TERMS.find((value) => value === event.target.value))
             }
           >
-            {!chosenTerm && !choices && (
+            {!chosenTerm && !loaded && (
               <option value="">今日の日付から決める</option>
             )}
             {TERMS.map((value) => (
@@ -166,7 +168,7 @@ export function PlanForm() {
         </div>
       </div>
 
-      {loadError && !choices && (
+      {loadError && (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
           <p className="text-red-700">
             クラスの選択を読み込めませんでした: {loadError}
@@ -237,7 +239,7 @@ export function PlanForm() {
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={submitting}
+          disabled={submitting || loading}
           className="rounded-md bg-teal-700 px-5 py-2.5 font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-stone-400"
         >
           {submitting ? "受け付けています" : "道標を作る"}
