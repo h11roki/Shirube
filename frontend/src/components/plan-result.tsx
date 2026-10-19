@@ -49,10 +49,12 @@ export function PlanResultView({
   plan,
   result,
   onAnswered,
+  onReload,
 }: {
   plan: Plan;
   result: Result;
   onAnswered: (plan: Plan) => void;
+  onReload: () => void;
 }) {
   const pathname = usePathname();
   const { view, semester } = readResultView(useSearchParams());
@@ -68,7 +70,12 @@ export function PlanResultView({
     if (!answered) {
       return;
     }
-    const timer = setTimeout(() => setAnswered(undefined), ANSWERED_MS);
+    const timer = setTimeout(() => {
+      if (notice.current?.contains(document.activeElement)) {
+        notice.current.focus({ preventScroll: true });
+      }
+      setAnswered(undefined);
+    }, ANSWERED_MS);
     return () => clearTimeout(timer);
   }, [answered]);
 
@@ -88,6 +95,7 @@ export function PlanResultView({
       });
     } catch (caught) {
       setAnswered({ message: messageOf(caught), failed: true, undo: null });
+      onReload();
     } finally {
       setBusy(false);
       notice.current?.focus({ preventScroll: true });
