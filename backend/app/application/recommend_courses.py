@@ -1,5 +1,5 @@
 from collections.abc import Callable, Sequence
-from enum import Enum
+from enum import Enum, auto
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses, SearchError
@@ -12,8 +12,8 @@ from app.domain.roadmap import Semester
 
 
 class RecommendStep(Enum):
-    SEARCHING = "searching"
-    SELECTING = "selecting"
+    SEARCHING = auto()
+    SELECTING = auto()
 
 
 class RecommendCourses:

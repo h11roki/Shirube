@@ -163,9 +163,9 @@ class FakePlanRepository:
         return self.plans[plan_id]
 
     def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
-        self.stages.append((plan_id, stage))
         plan = self.plans.get(plan_id)
         if plan is not None and plan.status is PlanStatus.RUNNING:
+            self.stages.append((plan_id, stage))
             self.plans[plan_id] = replace(plan, stage=stage)
 
     def finish(self, plan: Plan) -> bool:

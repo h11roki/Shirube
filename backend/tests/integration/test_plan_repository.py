@@ -362,7 +362,7 @@ def test_plans_running_past_the_limit_fail_and_recent_ones_keep_running(
         "unknown-stage",
     ],
 )
-def test_the_table_refuses_a_status_that_does_not_match_its_result_and_failure(
+def test_the_table_refuses_a_status_that_does_not_match_its_result_failure_and_stage(
     engine: Engine, repository: SqlPlanRepository, owner: UUID, row: dict[str, Any]
 ) -> None:
     with pytest.raises(IntegrityError), engine.begin() as connection:

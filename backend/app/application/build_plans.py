@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import assert_never
 from uuid import UUID
 
 from app.application.ports import (
@@ -17,10 +18,6 @@ from app.domain.roadmap import place, remaining_semesters
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 STALLED = "道標を作る途中で止まりました"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
-STAGE_OF_STEP = {
-    RecommendStep.SEARCHING: PlanStage.SEARCHING,
-    RecommendStep.SELECTING: PlanStage.SELECTING,
-}
 UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
     EmbeddingError,
     OccupationAnalysisError,
@@ -63,7 +60,7 @@ class BuildPlans:
                 conditions.year,
                 conditions.department,
                 semesters,
-                lambda step: self._enter(plan, STAGE_OF_STEP[step]),
+                lambda step: self._enter(plan, step),
             )
             self._enter(plan, PlanStage.PLACING)
             roadmap = place(
@@ -87,8 +84,20 @@ class BuildPlans:
         logger.warning("道標 %s は作っている間に作成中でなくなったので、結果を捨てました", plan.id)
         return self._plans.get(plan.id)
 
-    def _enter(self, plan: Plan, stage: PlanStage) -> None:
+    def _enter(self, plan: Plan, step: RecommendStep | PlanStage) -> None:
         try:
-            self._plans.enter_stage(plan.id, stage)
+            self._plans.enter_stage(plan.id, _stage_of(step))
         except Exception:
-            logger.warning("道標 %s の段 %s を書けませんでした", plan.id, stage, exc_info=True)
+            logger.exception("道標 %s の段 %s を書けませんでした", plan.id, step)
+
+
+def _stage_of(step: RecommendStep | PlanStage) -> PlanStage:
+    match step:
+        case PlanStage():
+            return step
+        case RecommendStep.SEARCHING:
+            return PlanStage.SEARCHING
+        case RecommendStep.SELECTING:
+            return PlanStage.SELECTING
+        case _:
+            assert_never(step)
