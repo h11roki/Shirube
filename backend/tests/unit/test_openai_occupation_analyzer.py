@@ -47,7 +47,7 @@ def test_structured_answer_becomes_a_profile_and_the_schema_limits_the_skills() 
 
 
 @pytest.mark.parametrize("assumption", [None, "", "  "], ids=["null", "empty", "blank"])
-def test_missing_assumption_means_the_name_was_not_ambiguous(assumption: str | None) -> None:
+def test_missing_assumption_means_the_name_was_read_as_it_is(assumption: str | None) -> None:
     analyzer = analyzer_answering(
         answer(interpretation="制御エンジニア", assumption=assumption, skills=["甲", "乙", "丙"])
     )
