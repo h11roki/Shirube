@@ -4,8 +4,9 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
+import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
-import { StatusBadge } from "@/components/status-badge";
+import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import {
   ApiError,
   type Plan,
@@ -14,7 +15,6 @@ import {
   messageOf,
   requestJson,
 } from "@/lib/api/client";
-import { semesterLabel } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_REQUEST_TIMEOUT_MS,
@@ -98,7 +98,7 @@ export function PlanView() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-100"
+          className={OUTLINE_BUTTON}
         >
           ログインし直す
         </button>
@@ -114,7 +114,7 @@ export function PlanView() {
     );
   }
   if (!plan) {
-    return <p className="text-sm text-stone-500">読み込んでいます</p>;
+    return <p className="text-sm text-sub">読み込んでいます</p>;
   }
   if (plan.status === "succeeded") {
     return plan.result ? (
@@ -129,45 +129,30 @@ export function PlanView() {
     return (
       <Notice title="道標を作れませんでした">
         <p>{plan.failure}</p>
-        <Link href="/" className="text-teal-800 underline">
+        <Link href="/" className={TEXT_LINK}>
           もう一度作る
         </Link>
       </Notice>
     );
   }
-  const { conditions } = plan;
   return (
-    <section
-      aria-live="polite"
-      className="space-y-3 rounded-xl border border-stone-200 bg-white p-6 shadow-sm"
-    >
-      <div className="flex items-center gap-3">
-        <StatusBadge status={plan.status} />
-        <h1 className="text-lg font-bold">
-          {conditions.occupation} への道標を作っています
-        </h1>
-      </div>
-      <p className="text-sm text-stone-600">
-        {semesterLabel(conditions.grade, conditions.term)}
-        から卒業までを組みます。
-      </p>
-      {watch === "gave-up" ? (
-        <div className="space-y-3 text-sm text-stone-700">
-          <p>
-            時間がかかっています。あとで
-            <Link href="/plans" className="text-teal-800 underline">
-              一覧
-            </Link>
-            から見てください。
-          </p>
-          <RetryButton onClick={retry} />
-        </div>
-      ) : (
-        <p className="text-sm text-stone-500">
-          ふだん 10〜30 秒かかります。このページを開いたままお待ちください。
-        </p>
-      )}
-    </section>
+    <PlanProgress
+      plan={plan}
+      stalled={
+        watch === "gave-up" ? (
+          <div className="grid justify-items-start gap-3 text-sm">
+            <p>
+              時間がかかっています。あとで
+              <Link href="/plans" className={TEXT_LINK}>
+                一覧
+              </Link>
+              から見てください。
+            </p>
+            <RetryButton onClick={retry} />
+          </div>
+        ) : undefined
+      }
+    />
   );
 }
 
@@ -175,9 +160,9 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section
       role="alert"
-      className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-900"
+      className="mx-auto grid max-w-xl justify-items-start gap-3 rounded-lg border border-danger/30 bg-danger-soft p-6 text-sm"
     >
-      <h1 className="text-lg font-bold">{title}</h1>
+      <h1 className="font-serif text-xl font-bold text-danger">{title}</h1>
       {children}
     </section>
   );
@@ -185,11 +170,7 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
 
 function RetryButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-100"
-    >
+    <button type="button" onClick={onClick} className={OUTLINE_BUTTON}>
       もう一度確かめる
     </button>
   );

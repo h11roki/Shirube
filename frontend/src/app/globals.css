@@ -1,7 +1,122 @@
 @import "tailwindcss";
 
-@theme {
+:root {
+  --paper: #f4efe4;
+  --sheet: #fbf8f1;
+  --note: #fffaf0;
+  --ink: #2a2520;
+  --sub: #6b6257;
+  --line: #d8cfbe;
+  --grid: rgb(47 88 116 / 0.05);
+  --pillar: #b23d27;
+  --pillar-soft: #f6dfd6;
+  --route: #2f5874;
+  --route-soft: #dbe6ee;
+  --danger: #9f2a1d;
+  --danger-soft: #fbe6e1;
+  --shadow: rgb(60 40 20 / 0.08);
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  --paper: #1c1a17;
+  --sheet: #26231f;
+  --note: #2b2823;
+  --ink: #ede6d8;
+  --sub: #a99f90;
+  --line: #3d3730;
+  --grid: rgb(134 175 204 / 0.04);
+  --pillar: #e2775d;
+  --pillar-soft: #4a2b23;
+  --route: #86afcc;
+  --route-soft: #24343f;
+  --danger: #f0a090;
+  --danger-soft: #42221c;
+  --shadow: rgb(0 0 0 / 0.35);
+  color-scheme: dark;
+}
+
+@theme inline {
   --font-sans:
-    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
-    "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+    var(--font-zen-kaku-gothic-new), "Hiragino Sans",
+    "Hiragino Kaku Gothic ProN", "Noto Sans JP", "Yu Gothic UI", "Meiryo",
+    system-ui, sans-serif;
+  --font-serif:
+    var(--font-shippori-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --color-paper: var(--paper);
+  --color-sheet: var(--sheet);
+  --color-note: var(--note);
+  --color-ink: var(--ink);
+  --color-sub: var(--sub);
+  --color-line: var(--line);
+  --color-pillar: var(--pillar);
+  --color-pillar-soft: var(--pillar-soft);
+  --color-route: var(--route);
+  --color-route-soft: var(--route-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --shadow-paper: 0 1px 0 var(--shadow);
+  --shadow-sticky: 0 2px 0 var(--shadow);
+  --animate-rise: rise 0.5s ease both;
+  --animate-beacon: beacon 1.2s ease-in-out infinite;
+  --animate-pop: pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-march: march 0.9s linear infinite;
+  --animate-blink: blink 1.4s ease-in-out infinite both;
+  --animate-sway: sway 4s ease-in-out infinite;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  @keyframes beacon {
+    50% {
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--pillar) 25%, transparent);
+    }
+  }
+
+  @keyframes pop {
+    from {
+      transform: scale(0);
+    }
+  }
+
+  @keyframes march {
+    to {
+      background-position: 0 12px;
+    }
+  }
+
+  @keyframes blink {
+    0%,
+    80%,
+    100% {
+      opacity: 0.2;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
+
+  @keyframes sway {
+    0%,
+    100% {
+      transform: rotate(-2deg);
+    }
+    50% {
+      transform: rotate(2deg);
+    }
+  }
+}
+
+@layer base {
+  body {
+    background-color: var(--paper);
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
 }

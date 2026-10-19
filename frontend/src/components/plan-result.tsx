@@ -1,41 +1,31 @@
-import Link from "next/link";
+"use client";
 
-import { WeekTable } from "@/components/week-table";
-import type {
-  Course,
-  Plan,
-  PlanResult as Result,
-  Relevance,
-} from "@/lib/api/client";
+import Link from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
+
+import { CourseGrid } from "@/components/course-grid";
+import { Kicker } from "@/components/kicker";
+import { QueryLink } from "@/components/query-link";
+import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
+import { RouteMap } from "@/components/route-map";
+import { TEXT_LINK } from "@/components/styles";
+import { Signpost } from "@/components/signpost";
+import { TimetableBook } from "@/components/timetable-book";
+import type { Plan, PlanResult as Result } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
-  classLabel,
+  RESULT_VIEW_LABELS,
   semesterLabel,
-  slotsLabel,
 } from "@/lib/labels";
+import { routeTotals } from "@/lib/roadmap";
+import {
+  type ResultView,
+  VIEWS_ANCHOR,
+  readResultView,
+  resultViewHref,
+} from "@/lib/result-view";
 
-const BADGE_STYLES: Record<Relevance, string> = {
-  core: "bg-teal-700 text-white",
-  foundation: "bg-amber-100 text-amber-900",
-};
-
-function CourseHeading({ course }: { course: Course }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <span
-        className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${BADGE_STYLES[course.relevance]}`}
-      >
-        {RELEVANCE_LABELS[course.relevance]}
-      </span>
-      <span className="font-medium">{course.name}</span>
-      {course.prerequisite_for && (
-        <span className="text-xs text-stone-500">
-          → {course.prerequisite_for} の土台
-        </span>
-      )}
-    </div>
-  );
-}
+const VIEWS: ResultView[] = ["route", "timetable"];
 
 export function PlanResultView({
   plan,
@@ -44,129 +34,128 @@ export function PlanResultView({
   plan: Plan;
   result: Result;
 }) {
+  const pathname = usePathname();
+  const { view, semester } = readResultView(useSearchParams());
   const { profile } = result;
   const { conditions } = plan;
   const last = result.semesters.at(-1);
+  const totals = routeTotals(result.semesters);
   return (
-    <div className="space-y-8">
-      <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
-        <p className="text-sm text-stone-500">{profile.occupation}</p>
-        <h1 className="text-2xl font-bold tracking-tight text-balance">
-          {profile.interpretation} への道標
-        </h1>
-        {profile.assumption && (
-          <p className="rounded-md bg-stone-50 px-3 py-2 text-sm text-stone-700">
-            前提: {profile.assumption}
-          </p>
-        )}
-        <ul className="flex flex-wrap gap-2">
-          {profile.skills.map((skill) => (
-            <li
-              key={skill}
-              className="rounded-full bg-teal-50 px-3 py-1 text-xs text-teal-900"
-            >
-              {skill}
-            </li>
-          ))}
-        </ul>
-        <p className="text-xs text-stone-500">
-          {[
-            ...(last
-              ? [
-                  `${semesterLabel(conditions.grade, conditions.term)}から ${semesterLabel(last.grade, last.term)}まで`,
-                ]
-              : []),
-            `1 学期 ${conditions.credit_limit} 単位まで`,
-            `${conditions.year} 年度の時間割`,
-          ].join("・")}
-        </p>
-      </section>
-
-      {result.semesters.map((semester) => (
-        <section
-          key={`${semester.grade}-${semester.term}`}
-          className="space-y-4"
-        >
-          <h2 className="flex items-baseline gap-3 text-lg font-bold">
-            {semesterLabel(semester.grade, semester.term)}
-            <span className="text-sm font-normal text-stone-500">
-              {semester.credits} 単位
-            </span>
-          </h2>
-          {semester.courses.length + semester.continuing.length === 0 ? (
-            <p className="text-sm text-stone-500">
-              この学期に置いた科目はありません。
-            </p>
-          ) : (
-            <>
-              <WeekTable
-                courses={[...semester.courses, ...semester.continuing]}
-              />
-              <ul className="grid gap-3 sm:grid-cols-2">
-                {semester.courses.map((course) => (
-                  <li
-                    key={course.section_code}
-                    className="rounded-lg border border-stone-200 bg-white p-3"
-                  >
-                    <CourseHeading course={course} />
-                    <p className="mt-1.5 text-sm text-stone-700">
-                      {course.reason}
-                    </p>
-                    <p className="mt-1.5 text-xs text-stone-500">
-                      {[
-                        slotsLabel(course),
-                        ...(course.class_code === null
-                          ? []
-                          : [`クラス ${classLabel(course.class_code)}`]),
-                        ...(course.class_confirmed ? [] : ["クラス未確定"]),
-                        `${course.credits} 単位`,
-                      ].join("・")}
-                    </p>
-                  </li>
-                ))}
-              </ul>
-              {semester.continuing.length > 0 && (
-                <p className="text-xs text-stone-500">
-                  春学期からの続き:{" "}
-                  {semester.continuing
-                    .map((course) => `${course.name}(${slotsLabel(course)})`)
-                    .join("、")}
-                </p>
-              )}
-            </>
+    <div className="grid gap-8">
+      <section className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
+        <div className="grid min-w-0 gap-2">
+          <Kicker>目的地 ── {profile.occupation}</Kicker>
+          <h1 className="font-serif text-3xl leading-snug font-extrabold text-balance sm:text-4xl">
+            {profile.interpretation}への道標
+          </h1>
+          {profile.assumption && (
+            <p className="text-sm text-sub">前提: {profile.assumption}</p>
           )}
-        </section>
-      ))}
-
-      {result.unplaced.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold">置けなかった科目</h2>
-          <p className="text-sm text-stone-600">
-            残りの学期で、コマが空いていて単位の上限にも収まるクラスが見つからなかった科目です。
-          </p>
-          <ul className="grid gap-3 sm:grid-cols-2">
-            {result.unplaced.map((course) => (
-              <li
-                key={course.name}
-                className="rounded-lg border border-dashed border-stone-300 p-3"
-              >
-                <CourseHeading course={course} />
-                <p className="mt-1.5 text-sm text-stone-700">{course.reason}</p>
+          <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-sub">
+            {profile.skills.map((skill) => (
+              <li key={skill}>
+                <span aria-hidden className="text-pillar">
+                  ◇{" "}
+                </span>
+                {skill}
               </li>
             ))}
           </ul>
+          <p className="text-xs text-sub">
+            {[
+              ...(last
+                ? [
+                    `${semesterLabel(conditions.grade, conditions.term)}から ${semesterLabel(last.grade, last.term)}まで`,
+                  ]
+                : []),
+              `1 学期 ${conditions.credit_limit} 単位まで`,
+              `${conditions.year} 年度の時間割`,
+            ].join(" ・ ")}
+          </p>
+        </div>
+        <Signpost
+          from={`${conditions.grade} 回生`}
+          className="hidden w-24 text-ink sm:block"
+        />
+      </section>
+
+      <div
+        id={VIEWS_ANCHOR}
+        className="flex scroll-mt-4 flex-wrap items-center justify-between gap-3"
+      >
+        <nav
+          aria-label="見え方"
+          className="inline-flex rounded-full border border-line bg-sheet p-0.5 text-sm"
+        >
+          {VIEWS.map((each) => (
+            <QueryLink
+              key={each}
+              href={resultViewHref(pathname, each, semester)}
+              aria-current={view === each ? "page" : undefined}
+              className={`rounded-full px-4 py-1 ${view === each ? "bg-ink text-paper" : "text-sub hover:text-ink"}`}
+            >
+              {RESULT_VIEW_LABELS[each]}
+            </QueryLink>
+          ))}
+        </nav>
+        <p className="flex gap-4 text-xs text-sub">
+          {RELEVANCES.map((relevance) => (
+            <span key={relevance} className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className={`size-2.5 rounded-xs ${RELEVANCE_TONES[relevance].fill}`}
+              />
+              {RELEVANCE_LABELS[relevance]}の授業
+            </span>
+          ))}
+        </p>
+      </div>
+
+      {view === "route" ? (
+        <RouteMap
+          semesters={result.semesters}
+          planPath={pathname}
+          end={
+            <>
+              <h2 className="font-serif text-xl font-bold">卒業</h2>
+              <p className="text-sm text-sub">
+                ここまで {totals.credits} 単位。{RELEVANCE_LABELS.core}{" "}
+                {totals.core} 科目と{RELEVANCE_LABELS.foundation}{" "}
+                {totals.foundation} 科目を通ります。
+              </p>
+            </>
+          }
+        />
+      ) : (
+        <TimetableBook
+          semesters={result.semesters}
+          selected={semester}
+          planPath={pathname}
+        />
+      )}
+
+      {result.unplaced.length > 0 && (
+        <section className="grid gap-3 rounded-lg border border-dashed border-line p-4 sm:p-5">
+          <h2 className="font-serif text-lg font-bold">置けなかった授業</h2>
+          <p className="text-sm text-sub">
+            残りの学期で、コマが空いていて単位の上限にも収まるクラスが見つからなかった授業です。
+          </p>
+          <CourseGrid courses={result.unplaced} />
         </section>
       )}
 
       {result.unlinked.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="text-lg font-bold">中心につながらず外した土台</h2>
-          <ul className="space-y-2 text-sm text-stone-700">
+        <section className="grid gap-3">
+          <h2 className="font-serif text-lg font-bold">
+            {RELEVANCE_LABELS.core}につながらず外した
+            {RELEVANCE_LABELS.foundation}
+          </h2>
+          <ul className="grid gap-2 text-sm">
             {result.unlinked.map((course) => (
               <li key={course.name}>
-                {course.name}
+                <span className="font-bold">{course.name}</span>
                 {course.prerequisite_for && (
-                  <span className="text-stone-500">
+                  <span className="text-sub">
                     (→ {course.prerequisite_for})
                   </span>
                 )}
@@ -178,7 +167,7 @@ export function PlanResultView({
       )}
 
       <p>
-        <Link href="/" className="text-sm text-teal-800 underline">
+        <Link href="/" className={`text-sm ${TEXT_LINK}`}>
           別の職業で作る
         </Link>
       </p>

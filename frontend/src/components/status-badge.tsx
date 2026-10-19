@@ -2,10 +2,10 @@ import type { PlanStatus } from "@/lib/api/client";
 import { STATUS_LABELS } from "@/lib/labels";
 
 const STATUS_STYLES: Record<PlanStatus, string> = {
-  pending: "bg-stone-100 text-stone-700",
-  running: "bg-sky-100 text-sky-800",
-  succeeded: "bg-teal-100 text-teal-800",
-  failed: "bg-red-100 text-red-800",
+  pending: "border border-line text-sub",
+  running: "bg-route-soft text-route",
+  succeeded: "bg-route text-paper",
+  failed: "bg-danger-soft text-danger",
 };
 
 export function StatusBadge({ status }: { status: PlanStatus }) {

@@ -14,13 +14,10 @@ export async function Account() {
         await signOut({ redirectTo: "/" });
       }}
     >
-      <span className="hidden text-stone-600 sm:inline">
+      <span className="hidden sm:inline">
         {session.user?.name ?? "Google のアカウント"}
       </span>
-      <button
-        type="submit"
-        className="rounded-md px-2 py-1 text-stone-600 hover:bg-stone-100 hover:text-stone-900"
-      >
+      <button type="submit" className="hover:text-ink">
         ログアウト
       </button>
     </form>
@@ -37,7 +34,7 @@ export function SignInButton() {
     >
       <button
         type="submit"
-        className="rounded-md bg-teal-700 px-3 py-1.5 font-medium text-white hover:bg-teal-800"
+        className="rounded-full bg-pillar px-4 py-1.5 font-medium text-paper hover:opacity-90"
       >
         Google でログイン
       </button>

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import type { PlacedCourse } from "@/lib/api/client";
-import { classLabel, semesterLabel, slotsLabel } from "@/lib/labels";
+import {
+  classLabel,
+  placementLabel,
+  roleLabel,
+  semesterLabel,
+  slotsLabel,
+} from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
   return {
@@ -33,6 +39,26 @@ describe("labels", () => {
 
   it("names a semester by grade and term", () => {
     expect(semesterLabel(3, "autumn")).toBe("3 回生 秋学期");
+  });
+
+  it("calls a core course a pillar and a foundation the base of the course it leads to", () => {
+    expect(roleLabel({ relevance: "core", prerequisite_for: null })).toBe("柱");
+    expect(
+      roleLabel({ relevance: "foundation", prerequisite_for: "確率統計" }),
+    ).toBe("確率統計の礎");
+    expect(roleLabel({ relevance: "foundation", prerequisite_for: null })).toBe(
+      "礎",
+    );
+  });
+
+  it("writes where a placed course sits, its class, and its credits", () => {
+    expect(
+      placementLabel({
+        ...withSlots([{ weekday: "mon", period: 4 }]),
+        class_code: "6B",
+      }),
+    ).toBe("月4 ・ クラス 6B ・ 2 単位");
+    expect(placementLabel(withSlots([]))).toBe("コマなし ・ 2 単位");
   });
 
   it("names a class without a code", () => {

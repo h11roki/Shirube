@@ -1,10 +1,13 @@
 import type {
+  Course,
   PlacedCourse,
+  PlanStage,
   PlanStatus,
   Relevance,
   Term,
   Weekday,
 } from "@/lib/api/client";
+import type { ResultView } from "@/lib/result-view";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -14,8 +17,28 @@ export const STATUS_LABELS: Record<PlanStatus, string> = {
 };
 
 export const RELEVANCE_LABELS: Record<Relevance, string> = {
-  core: "中心",
-  foundation: "土台",
+  core: "柱",
+  foundation: "礎",
+};
+
+export const STAGE_LABELS: Record<PlanStage, string> = {
+  analyzing: "目的地を地図に書き込んでいます",
+  searching: "道を探しています",
+  selecting: "通る授業を選んでいます",
+  placing: "道標を立てています",
+};
+
+export const WAITING_LABEL = "順番を待っています";
+
+export const DEPARTMENT_NAME = "電子情報工学科";
+
+export const EMPTY_SEMESTER_LABEL = "この学期に置いた授業はありません。";
+
+export const CONTINUING_LABEL = "春学期からの続き";
+
+export const RESULT_VIEW_LABELS: Record<ResultView, string> = {
+  route: "道のり",
+  timetable: "時間割帳",
 };
 
 export const TERM_LABELS: Record<Term, string> = {
@@ -37,12 +60,31 @@ export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;
 }
 
+export function roleLabel(
+  course: Pick<Course, "relevance" | "prerequisite_for">,
+): string {
+  if (course.relevance === "foundation" && course.prerequisite_for) {
+    return `${course.prerequisite_for}の${RELEVANCE_LABELS.foundation}`;
+  }
+  return RELEVANCE_LABELS[course.relevance];
+}
+
 export function slotsLabel(course: PlacedCourse): string {
   return (
     course.slots
       .map((slot) => `${WEEKDAY_LABELS[slot.weekday]}${slot.period}`)
       .join("・") || "コマなし"
   );
+}
+
+export function placementLabel(course: PlacedCourse): string {
+  return [
+    slotsLabel(course),
+    ...(course.class_code === null
+      ? []
+      : [`クラス ${classLabel(course.class_code)}`]),
+    `${course.credits} 単位`,
+  ].join(" ・ ");
 }
 
 export function classLabel(classCode: string): string {

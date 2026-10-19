@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
+import { OUTLINE_BUTTON } from "@/components/styles";
 import {
   type ClassChoices,
   type Plan,
@@ -12,16 +13,15 @@ import {
   requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
-import { TERM_LABELS, classLabel } from "@/lib/labels";
+import { DEPARTMENT_NAME, TERM_LABELS, classLabel } from "@/lib/labels";
 
 const DEPARTMENT = "情";
-const DEPARTMENT_NAME = "電子情報工学科";
 const GRADES = [1, 2, 3, 4];
 const TERMS: Term[] = ["spring", "autumn"];
 const MAX_OCCUPATION_LENGTH = 100;
 
 const fieldClass =
-  "w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:border-teal-600 focus:outline-none focus:ring-2 focus:ring-teal-600/20";
+  "w-full rounded-md border border-line bg-paper px-3 py-2 text-ink focus:border-route focus:ring-2 focus:ring-route/20 focus:outline-none";
 
 export function PlanForm() {
   const router = useRouter();
@@ -99,7 +99,7 @@ export function PlanForm() {
   return (
     <form
       onSubmit={submit}
-      className="space-y-6 rounded-xl border border-stone-200 bg-white p-6 shadow-sm"
+      className="space-y-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8"
     >
       <div className="space-y-2">
         <label htmlFor="occupation" className="block text-sm font-medium">
@@ -156,7 +156,7 @@ export function PlanForm() {
         </div>
         <div className="space-y-2">
           <span className="block text-sm font-medium">学科</span>
-          <p className="rounded-md border border-stone-200 bg-stone-50 px-3 py-2 text-stone-700">
+          <p className="rounded-md border border-line bg-paper px-3 py-2 text-sub">
             {DEPARTMENT_NAME}
           </p>
         </div>
@@ -164,14 +164,14 @@ export function PlanForm() {
 
       {loadError && (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-          <p className="text-red-700">
+          <p className="text-danger">
             クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます):{" "}
             {loadError}
           </p>
           <button
             type="button"
             onClick={() => setReloads((current) => current + 1)}
-            className="rounded-md border border-stone-300 bg-white px-3 py-1 text-stone-800 hover:bg-stone-100"
+            className={OUTLINE_BUTTON}
           >
             読み直す
           </button>
@@ -179,12 +179,12 @@ export function PlanForm() {
       )}
 
       {choices && choices.courses.length > 0 && (
-        <details className="rounded-lg border border-stone-200 bg-stone-50 p-4">
+        <details className="rounded-lg border border-line bg-paper p-4">
           <summary className="cursor-pointer text-sm font-medium">
             学科でクラスが分かれている科目({choices.courses.length}
             科目、任意)
           </summary>
-          <p className="mt-3 text-sm text-stone-600">
+          <p className="mt-3 text-sm text-sub">
             自分のクラスが分かっている科目だけ選んでください。選ばない科目が道標に入ったときは、学科向けのクラスに置き「クラス未確定」と出します。
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
@@ -194,7 +194,7 @@ export function PlanForm() {
                 picked === undefined ? -1 : course.class_codes.indexOf(picked);
               return (
                 <label key={course.name} className="space-y-1 text-sm">
-                  <span className="block text-stone-700">{course.name}</span>
+                  <span className="block text-sub">{course.name}</span>
                   <select
                     className={fieldClass}
                     value={index < 0 ? "" : String(index)}
@@ -226,7 +226,7 @@ export function PlanForm() {
       )}
 
       {submitError && (
-        <p role="alert" className="text-sm text-red-700">
+        <p role="alert" className="text-sm text-danger">
           {submitError}
         </p>
       )}
@@ -235,13 +235,11 @@ export function PlanForm() {
         <button
           type="submit"
           disabled={submitting || loading}
-          className="rounded-md bg-teal-700 px-5 py-2.5 font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-stone-400"
+          className="rounded-full bg-pillar px-6 py-2.5 font-bold text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {submitting ? "受け付けています" : "道標を作る"}
         </button>
-        <p className="text-xs text-stone-500">
-          作るのにふだん 10〜30 秒かかります。
-        </p>
+        <p className="text-xs text-sub">作るのにふだん 10〜30 秒かかります。</p>
       </div>
     </form>
   );
