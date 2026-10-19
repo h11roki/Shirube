@@ -5,11 +5,13 @@ import type {
   Term,
 } from "@/lib/api/client";
 
+export type TransferOrder = "before" | "same" | "after";
+
 export type Transfer = {
   pillar: string;
   station: number;
   semester: SemesterPlan;
-  afterPillar: boolean;
+  order: TransferOrder;
 };
 
 export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
@@ -32,7 +34,12 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
           pillar,
           station: pillarStation,
           semester: semesters[pillarStation],
-          afterPillar: station > pillarStation,
+          order:
+            station < pillarStation
+              ? "before"
+              : station === pillarStation
+                ? "same"
+                : "after",
         });
       }
     }

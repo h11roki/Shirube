@@ -5,7 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 
 import { CourseGrid } from "@/components/course-grid";
 import { DestinationPlate } from "@/components/destination-plate";
-import { GraduationStamp } from "@/components/graduation-stamp";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { QueryLink } from "@/components/query-link";
@@ -17,8 +16,8 @@ import type { Plan, PlanResult as Result } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
+  goalStationLabel,
   semesterLabel,
-  stationLabel,
 } from "@/lib/labels";
 import {
   type ResultView,
@@ -107,9 +106,20 @@ export function PlanResultView({
           planPath={pathname}
           end={
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-              <GraduationStamp
-                station={stationLabel(result.semesters.length)}
-              />
+              <span
+                aria-hidden
+                className="relative grid size-24 shrink-0 rotate-[-8deg] place-items-center rounded-full border-[3px] border-pillar text-center leading-tight text-pillar before:absolute before:inset-1.5 before:rounded-full before:border-[1.5px] before:border-dashed before:border-pillar motion-safe:animate-press motion-safe:[animation-delay:var(--arrive,0ms)]"
+              >
+                <span className="grid">
+                  <span className="text-[9px] tracking-[0.2em]">しるべ線</span>
+                  <span className="font-serif text-2xl font-extrabold tracking-[0.1em]">
+                    卒業
+                  </span>
+                  <span className="text-[9.5px] tracking-[0.1em] tabular-nums">
+                    {goalStationLabel(result.semesters.length)}
+                  </span>
+                </span>
+              </span>
               <div className="grid gap-1">
                 <h2 className="font-serif text-2xl font-bold">卒業駅</h2>
                 {last && (

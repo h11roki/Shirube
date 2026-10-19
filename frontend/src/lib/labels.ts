@@ -82,6 +82,10 @@ export function stationLabel(index: number): string {
   return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
 }
 
+export function goalStationLabel(semesterCount: number): string {
+  return stationLabel(semesterCount);
+}
+
 export function roleLabel(
   course: Pick<Course, "relevance" | "prerequisite_for">,
 ): string {

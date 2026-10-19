@@ -40,9 +40,10 @@ export function CourseTicket({
             {semesterLabel(transfer.semester.grade, transfer.semester.term)})
           </p>
         )}
-        {transfer?.afterPillar && (
+        {transfer && transfer.order !== "before" && (
           <p className="text-xs font-bold text-pillar">
-            {RELEVANCE_LABELS.core}より後の学期です
+            {RELEVANCE_LABELS.core}
+            {transfer.order === "same" ? "と同じ" : "より後の"}学期です
           </p>
         )}
       </div>

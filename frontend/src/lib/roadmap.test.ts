@@ -95,8 +95,13 @@ describe("roadmap", () => {
       ...placed("機械学習", "core"),
       prerequisite_for: "確率統計",
     };
+    const together = {
+      ...placed("同時の礎", "foundation"),
+      prerequisite_for: "確率統計",
+    };
     const route = [
-      semester(3, "spring", [early, pillar]),
+      semester(2, "autumn", [early]),
+      semester(3, "spring", [pillar, together]),
       semester(3, "autumn", [late, orphan, linkedPillar]),
     ];
 
@@ -104,11 +109,12 @@ describe("roadmap", () => {
 
     expect(found.get("基礎数学")).toEqual({
       pillar: "確率統計",
-      station: 0,
-      semester: route[0],
-      afterPillar: false,
+      station: 1,
+      semester: route[1],
+      order: "before",
     });
-    expect(found.get("情報処理")?.afterPillar).toBe(true);
+    expect(found.get("情報処理")?.order).toBe("after");
+    expect(found.get("同時の礎")?.order).toBe("same");
     expect(found.has("実験")).toBe(false);
     expect(found.has("確率統計")).toBe(false);
     expect(found.has("機械学習")).toBe(false);

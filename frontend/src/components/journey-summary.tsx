@@ -1,5 +1,9 @@
 import type { SemesterPlan, Term } from "@/lib/api/client";
-import { RELEVANCE_LABELS, semesterLabel, stationLabel } from "@/lib/labels";
+import {
+  RELEVANCE_LABELS,
+  goalStationLabel,
+  semesterLabel,
+} from "@/lib/labels";
 import { routeTotals } from "@/lib/roadmap";
 
 export function JourneySummary({
@@ -29,7 +33,7 @@ export function JourneySummary({
         </span>
         卒業
         <span className="text-[11px] tabular-nums">
-          {stationLabel(semesters.length)}
+          {goalStationLabel(semesters.length)}
         </span>
       </p>
       <dl className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-sm">

@@ -57,7 +57,9 @@ export function TimetableBook({
         </div>
         {all.length > 0 ? (
           <div className="grid min-w-0 gap-3">
-            <CourseGrid courses={semester.courses} transfers={found} />
+            {semester.courses.length > 0 && (
+              <CourseGrid courses={semester.courses} transfers={found} />
+            )}
             {semester.continuing.length > 0 && (
               <p className="pt-1 text-xs font-bold text-sub">
                 {CONTINUING_LABEL}(単位は春学期に数えます)

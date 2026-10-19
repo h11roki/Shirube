@@ -8,6 +8,7 @@ import {
   semesterReading,
   slotsLabel,
   stationLabel,
+  goalStationLabel,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -57,6 +58,7 @@ describe("labels", () => {
     expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
     expect(stationLabel(0)).toBe("SH01");
     expect(stationLabel(11)).toBe("SH12");
+    expect(goalStationLabel(4)).toBe("SH05");
   });
 
   it("names a class without a code", () => {
