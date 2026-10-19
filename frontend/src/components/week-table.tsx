@@ -1,62 +1,66 @@
 import type { PlacedCourse, Relevance } from "@/lib/api/client";
-import { WEEKDAY_LABELS } from "@/lib/labels";
+import { RELEVANCE_LABELS, WEEKDAY_LABELS, classLabel } from "@/lib/labels";
 import { weekTable } from "@/lib/timetable";
 
-const RELEVANCE_STYLES: Record<Relevance, string> = {
-  core: "bg-teal-50 text-teal-900 ring-teal-200",
-  foundation: "bg-amber-50 text-amber-900 ring-amber-200",
+const STICKY_STYLES: Record<Relevance, string> = {
+  core: "rotate-[0.4deg] bg-pillar-soft",
+  foundation: "rotate-[-0.4deg] bg-route-soft",
 };
 
 export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
   const table = weekTable(courses);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[32rem] table-fixed border-collapse text-xs">
-        <thead>
-          <tr>
-            <th className="w-10" />
-            {table.weekdays.map((weekday) => (
-              <th
-                key={weekday}
-                scope="col"
-                className="pb-1 font-medium text-stone-500"
-              >
-                {WEEKDAY_LABELS[weekday]}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {table.rows.map((row) => (
-            <tr key={row.period}>
-              <th
-                scope="row"
-                className="pr-2 text-right font-medium text-stone-500"
-              >
-                {row.period}
-              </th>
-              {row.cells.map((cell, index) => (
-                <td
-                  key={table.weekdays[index]}
-                  className="h-12 border border-stone-200 p-1 align-top"
+    <div className="grid min-w-0 gap-2">
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[34rem] table-fixed border-separate border-spacing-1.5 text-xs">
+          <thead>
+            <tr>
+              <th className="w-6" />
+              {table.weekdays.map((weekday) => (
+                <th
+                  key={weekday}
+                  scope="col"
+                  className="font-serif font-bold text-sub"
                 >
-                  {cell.map((course) => (
-                    <span
-                      key={course.section_code}
-                      className={`mb-1 block truncate rounded px-1.5 py-1 ring-1 ${RELEVANCE_STYLES[course.relevance]}`}
-                      title={course.name}
-                    >
-                      {course.name}
-                    </span>
-                  ))}
-                </td>
+                  {WEEKDAY_LABELS[weekday]}
+                </th>
               ))}
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody>
+            {table.rows.map((row) => (
+              <tr key={row.period}>
+                <th scope="row" className="font-serif font-bold text-sub">
+                  {row.period}
+                </th>
+                {row.cells.map((cell, index) => (
+                  <td
+                    key={table.weekdays[index]}
+                    className={`h-14 align-top ${cell.length === 0 ? "rounded-md border-[1.5px] border-dashed border-line" : ""}`}
+                  >
+                    {cell.map((course) => (
+                      <span
+                        key={course.section_code}
+                        title={course.reason}
+                        className={`mb-1 block rounded-sm px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${STICKY_STYLES[course.relevance]}`}
+                      >
+                        {course.name}
+                        <span className="mt-0.5 block text-[10.5px] font-medium text-sub">
+                          {RELEVANCE_LABELS[course.relevance]}
+                          {course.class_code !== null &&
+                            ` ・ ${classLabel(course.class_code)}`}
+                        </span>
+                      </span>
+                    ))}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
       {table.unscheduled.length > 0 && (
-        <p className="mt-2 text-xs text-stone-500">
+        <p className="text-xs text-sub">
           コマの無い授業:{" "}
           {table.unscheduled.map((course) => course.name).join("、")}
         </p>

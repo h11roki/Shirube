@@ -7,6 +7,7 @@ import type {
   Term,
   Weekday,
 } from "@/lib/api/client";
+import type { ResultView } from "@/lib/result-view";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -28,6 +29,11 @@ export const STAGE_LABELS: Record<PlanStage, string> = {
 };
 
 export const WAITING_LABEL = "順番を待っています";
+
+export const RESULT_VIEW_LABELS: Record<ResultView, string> = {
+  route: "道のり",
+  timetable: "時間割帳",
+};
 
 export const TERM_LABELS: Record<Term, string> = {
   spring: "春学期",
@@ -63,6 +69,16 @@ export function slotsLabel(course: PlacedCourse): string {
       .map((slot) => `${WEEKDAY_LABELS[slot.weekday]}${slot.period}`)
       .join("・") || "コマなし"
   );
+}
+
+export function placementLabel(course: PlacedCourse): string {
+  return [
+    slotsLabel(course),
+    ...(course.class_code === null
+      ? []
+      : [`クラス ${classLabel(course.class_code)}`]),
+    `${course.credits} 単位`,
+  ].join(" ・ ");
 }
 
 export function classLabel(classCode: string): string {
