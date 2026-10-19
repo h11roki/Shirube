@@ -205,7 +205,7 @@ function RouteStrip({
         {stops.map((stop, index) => {
           const goal = index === stops.length - 1;
           return (
-            <li key={stop.key} className="flex items-center">
+            <li key={stop.key} className="flex items-start">
               <button
                 type="button"
                 onClick={() => onPick(index)}
@@ -228,7 +228,7 @@ function RouteStrip({
               {!goal && (
                 <span
                   aria-hidden
-                  className={`mx-1 h-0.5 w-5 sm:w-12 ${index < active ? "bg-route" : "bg-line"}`}
+                  className={`mx-1 mt-[5px] h-0.5 w-5 sm:w-12 ${index < active ? "bg-route" : "bg-line"}`}
                 />
               )}
             </li>

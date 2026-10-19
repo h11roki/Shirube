@@ -79,7 +79,9 @@ export function Introduction() {
           destination={result.profile.interpretation}
           end={
             <div className="flex min-h-24 flex-col justify-center">
-              <h3 className="font-serif text-xl font-bold">卒業まで続きます</h3>
+              <h3 className="font-serif text-xl font-bold">
+                {result.profile.interpretation}へ続きます
+              </h3>
               <p className="text-sm text-sub">
                 ログインすると、自分の職業と回生で作れます。
               </p>
