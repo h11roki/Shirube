@@ -6,7 +6,7 @@ import { OUTLINE_BUTTON } from "@/components/styles";
 import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
 import { forgetTakenLabel } from "@/lib/labels";
 
-export function TakenCourseList() {
+export function TakenCourseList({ onForget }: { onForget: () => void }) {
   const [names, setNames] = useState<string[]>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
@@ -43,6 +43,7 @@ export function TakenCourseList() {
       );
       setNames(answer.names);
       setForgotten(true);
+      onForget();
     } catch (error) {
       setFailure(messageOf(error));
     } finally {
@@ -60,7 +61,10 @@ export function TakenCourseList() {
         </p>
         <button
           type="button"
-          onClick={() => setReloads((current) => current + 1)}
+          onClick={() => {
+            setFailure(undefined);
+            setReloads((current) => current + 1);
+          }}
           className={OUTLINE_BUTTON}
         >
           読み直す

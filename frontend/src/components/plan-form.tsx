@@ -226,7 +226,12 @@ export function PlanForm() {
         </details>
       )}
 
-      <TakenCourseList />
+      <TakenCourseList
+        onForget={() => {
+          setSubmitError(undefined);
+          setReloads((current) => current + 1);
+        }}
+      />
 
       {submitError && (
         <p role="alert" className="text-sm text-danger">
