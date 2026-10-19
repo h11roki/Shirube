@@ -11,6 +11,7 @@ export type SemesterPlan = Schemas["SemesterPlanOut"];
 export type PlacedCourse = Schemas["PlacedCourseOut"];
 export type Course = Schemas["CourseOut"];
 export type PlanStatus = Schemas["PlanStatus"];
+export type PlanStage = Schemas["PlanStage"];
 export type Relevance = Schemas["Relevance"];
 export type Term = Schemas["Term"];
 export type Weekday = Schemas["Weekday"];

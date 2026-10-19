@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
 import { PlanResultView } from "@/components/plan-result";
-import { StatusBadge } from "@/components/status-badge";
+import { ProgressSteps } from "@/components/progress-steps";
 import {
   ApiError,
   type Plan,
@@ -22,6 +22,9 @@ import {
   watchAfterFailure,
   watchState,
 } from "@/lib/polling";
+
+const BUTTON_CLASS =
+  "rounded-full border border-line bg-sheet px-4 py-1.5 text-ink hover:border-ink";
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
@@ -98,7 +101,7 @@ export function PlanView() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-100"
+          className={BUTTON_CLASS}
         >
           ログインし直す
         </button>
@@ -114,7 +117,7 @@ export function PlanView() {
     );
   }
   if (!plan) {
-    return <p className="text-sm text-stone-500">読み込んでいます</p>;
+    return <p className="text-sm text-sub">読み込んでいます</p>;
   }
   if (plan.status === "succeeded") {
     return plan.result ? (
@@ -129,7 +132,7 @@ export function PlanView() {
     return (
       <Notice title="道標を作れませんでした">
         <p>{plan.failure}</p>
-        <Link href="/" className="text-teal-800 underline">
+        <Link href="/" className="text-route underline underline-offset-4">
           もう一度作る
         </Link>
       </Notice>
@@ -139,23 +142,29 @@ export function PlanView() {
   return (
     <section
       aria-live="polite"
-      className="space-y-3 rounded-xl border border-stone-200 bg-white p-6 shadow-sm"
+      className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8"
     >
-      <div className="flex items-center gap-3">
-        <StatusBadge status={plan.status} />
-        <h1 className="text-lg font-bold">
-          {conditions.occupation} への道標を作っています
+      <div className="grid gap-1.5">
+        <p className="text-xs font-bold tracking-[0.28em] text-pillar">
+          目的地 ── {conditions.occupation}
+        </p>
+        <h1 className="font-serif text-2xl font-extrabold text-balance">
+          {conditions.occupation}への道標を作っています
         </h1>
+        <p className="text-sm text-sub">
+          {semesterLabel(conditions.grade, conditions.term)}
+          から卒業までを組みます。
+        </p>
       </div>
-      <p className="text-sm text-stone-600">
-        {semesterLabel(conditions.grade, conditions.term)}
-        から卒業までを組みます。
-      </p>
+      <ProgressSteps status={plan.status} stage={plan.stage} />
       {watch === "gave-up" ? (
-        <div className="space-y-3 text-sm text-stone-700">
+        <div className="grid justify-items-start gap-3 text-sm">
           <p>
             時間がかかっています。あとで
-            <Link href="/plans" className="text-teal-800 underline">
+            <Link
+              href="/plans"
+              className="text-route underline underline-offset-4"
+            >
               一覧
             </Link>
             から見てください。
@@ -163,7 +172,7 @@ export function PlanView() {
           <RetryButton onClick={retry} />
         </div>
       ) : (
-        <p className="text-sm text-stone-500">
+        <p className="text-xs text-sub">
           ふだん 10〜30 秒かかります。このページを開いたままお待ちください。
         </p>
       )}
@@ -175,9 +184,9 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section
       role="alert"
-      className="space-y-3 rounded-xl border border-red-200 bg-red-50 p-6 text-sm text-red-900"
+      className="mx-auto grid max-w-xl justify-items-start gap-3 rounded-lg border border-danger/30 bg-danger-soft p-6 text-sm"
     >
-      <h1 className="text-lg font-bold">{title}</h1>
+      <h1 className="font-serif text-xl font-bold text-danger">{title}</h1>
       {children}
     </section>
   );
@@ -185,11 +194,7 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
 
 function RetryButton({ onClick }: { onClick: () => void }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-md border border-stone-300 bg-white px-3 py-1.5 text-stone-800 hover:bg-stone-100"
-    >
+    <button type="button" onClick={onClick} className={BUTTON_CLASS}>
       もう一度確かめる
     </button>
   );

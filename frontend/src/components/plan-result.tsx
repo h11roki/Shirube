@@ -7,12 +7,7 @@ import type {
   PlanResult as Result,
   Relevance,
 } from "@/lib/api/client";
-import {
-  RELEVANCE_LABELS,
-  classLabel,
-  semesterLabel,
-  slotsLabel,
-} from "@/lib/labels";
+import { classLabel, roleLabel, semesterLabel, slotsLabel } from "@/lib/labels";
 
 const BADGE_STYLES: Record<Relevance, string> = {
   core: "bg-teal-700 text-white",
@@ -25,14 +20,9 @@ function CourseHeading({ course }: { course: Course }) {
       <span
         className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${BADGE_STYLES[course.relevance]}`}
       >
-        {RELEVANCE_LABELS[course.relevance]}
+        {roleLabel(course)}
       </span>
       <span className="font-medium">{course.name}</span>
-      {course.prerequisite_for && (
-        <span className="text-xs text-stone-500">
-          → {course.prerequisite_for} の土台
-        </span>
-      )}
     </div>
   );
 }
@@ -160,7 +150,7 @@ export function PlanResultView({
 
       {result.unlinked.length > 0 && (
         <section className="space-y-3">
-          <h2 className="text-lg font-bold">中心につながらず外した土台</h2>
+          <h2 className="text-lg font-bold">柱につながらず外した礎</h2>
           <ul className="space-y-2 text-sm text-stone-700">
             {result.unlinked.map((course) => (
               <li key={course.name}>
