@@ -2,7 +2,7 @@ export function DestinationPlate({ destination }: { destination: string }) {
   return (
     <p
       aria-hidden
-      className="inline-grid justify-items-start justify-self-start rounded-md border border-line bg-plate px-5 pt-1.5 pb-2.5 text-plate-ink shadow-paper"
+      className="inline-block justify-self-start rounded-md border border-line bg-plate px-5 py-2 text-plate-ink shadow-paper"
     >
       <span className="font-serif text-2xl leading-snug font-extrabold tracking-wide text-balance sm:text-3xl">
         {destination}

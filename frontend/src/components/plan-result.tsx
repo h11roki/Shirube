@@ -196,18 +196,9 @@ export function PlanResultView({
             planPath={pathname}
             withStrip
             destination={profile.interpretation}
-            end={
-              <div className="grid min-h-24 content-center gap-1">
-                <h2 className="font-serif text-2xl font-bold">
-                  {profile.interpretation}へ
-                </h2>
-                {last && (
-                  <p className="text-sm text-sub">
-                    {semesterLabel(last.grade, last.term)}
-                    のあと、道標はここで終わります。
-                  </p>
-                )}
-              </div>
+            endNote={
+              last &&
+              `${semesterLabel(last.grade, last.term)}のあと、道標はここで終わります。`
             }
           />
         ) : (
