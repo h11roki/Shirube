@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-
 import { LoginRequired } from "@/components/login-required";
 import { PlanForm } from "@/components/plan-form";
 
@@ -11,17 +9,12 @@ export default function Home() {
           なりたい職業から、卒業までの道標を作る
         </h1>
         <p className="text-sm text-stone-600">
-          職業に要るスキルを読み取り、シラバスから関係の深い授業を選んで、4
-          回生の秋学期までの時間割に並べます。
+          職業に要るスキルを読み取り、シラバスから関係の深い授業を選んで、卒業までの時間割に並べます。
         </p>
       </div>
-      <Suspense
-        fallback={<p className="text-sm text-stone-500">読み込んでいます</p>}
-      >
-        <LoginRequired>
-          <PlanForm />
-        </LoginRequired>
-      </Suspense>
+      <LoginRequired>
+        <PlanForm />
+      </LoginRequired>
     </div>
   );
 }

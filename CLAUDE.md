@@ -45,7 +45,7 @@ frontend(`frontend/` で実行)
 
 `main.py`、`presentation/cli/`、`presentation/worker.py` は合成ルートで、infrastructure の実装を組み立てて application のポートの型として渡す。共有する組み立ての部品は `presentation/composition.py` に置く。API は `presentation/api/app.py` の `create_app` が組み立て済みのユースケースを受け取り(ADR 0029)、テストはフェイクを渡す。それ以外の presentation のコードは infrastructure を import しない。
 
-frontend は API を呼んで表示するだけで、業務ロジックを置かない。バックエンドは Next.js の Route Handler(`src/app/api/`)経由で呼ぶ。Route Handler はログインを確かめ、`src/lib/backend.ts` で Google の sub を入れた JWT を付けて転送するだけ(ADR 0028)。 画面は `src/app/` の入力(`/`)、結果(`/plans/[id]`)、一覧(`/plans`)で、どれも `LoginRequired` でログインを確かめてから、Client Component(`src/components/`)が Route Handler だけを呼ぶ(ADR 0030)。API の型は `src/lib/api/client.ts` が生成した `schema.ts` から取り出し、表示の決まり(週の時間割の並べ方、ポーリングの打ち切り、ラベル)は `src/lib/` に置いて Vitest で確かめる。部品は Tailwind だけで書く。
+frontend は API を呼んで表示するだけで、業務ロジックを置かない。バックエンドは Next.js の Route Handler(`src/app/api/`)経由で呼ぶ。Route Handler はログインを確かめ、`src/lib/backend.ts` で Google の sub を入れた JWT を付けて転送するだけ(ADR 0028)。画面は `src/app/` の入力(`/`)、結果(`/plans/[id]`)、一覧(`/plans`)で、どれも `LoginRequired` でログインを確かめてから、Client Component(`src/components/`)が Route Handler だけを呼ぶ(ADR 0030)。API の型は、openapi-typescript が生成した `schema.ts` から `src/lib/api/client.ts` が取り出し、表示の決まり(週の時間割の並べ方、ポーリングの打ち切り、ラベル)は `src/lib/` に置いて Vitest で確かめる。部品は Tailwind だけで書く。
 
 ## 決まっていること(詳細は ADR)
 

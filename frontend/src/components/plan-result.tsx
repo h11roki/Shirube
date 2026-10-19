@@ -20,20 +20,14 @@ const BADGE_STYLES: Record<Relevance, string> = {
   foundation: "bg-amber-100 text-amber-900",
 };
 
-function RelevanceBadge({ relevance }: { relevance: Relevance }) {
-  return (
-    <span
-      className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${BADGE_STYLES[relevance]}`}
-    >
-      {RELEVANCE_LABELS[relevance]}
-    </span>
-  );
-}
-
 function CourseHeading({ course }: { course: Course }) {
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <RelevanceBadge relevance={course.relevance} />
+      <span
+        className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-medium ${BADGE_STYLES[course.relevance]}`}
+      >
+        {RELEVANCE_LABELS[course.relevance]}
+      </span>
       <span className="font-medium">{course.name}</span>
       {course.prerequisite_for && (
         <span className="text-xs text-stone-500">
@@ -72,6 +66,7 @@ export function PlanResultView({
 }) {
   const { profile } = result;
   const { conditions } = plan;
+  const last = result.semesters.at(-1);
   return (
     <div className="space-y-8">
       <section className="space-y-3 rounded-xl border border-stone-200 bg-white p-6 shadow-sm">
@@ -96,8 +91,8 @@ export function PlanResultView({
         </ul>
         <p className="text-xs text-stone-500">
           {semesterLabel(conditions.grade, conditions.term)}から{" "}
-          {semesterLabel(4, "autumn")}まで・1 学期 {conditions.credit_limit}{" "}
-          単位まで・{conditions.year} 年度の時間割
+          {last && `${semesterLabel(last.grade, last.term)}まで`}・1 学期{" "}
+          {conditions.credit_limit} 単位まで・{conditions.year} 年度の時間割
         </p>
       </section>
 

@@ -1,9 +1,19 @@
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 
 import { SignInButton } from "@/components/account";
 import { currentSession } from "@/lib/session";
 
-export async function LoginRequired({ children }: { children: ReactNode }) {
+export function LoginRequired({ children }: { children: ReactNode }) {
+  return (
+    <Suspense
+      fallback={<p className="text-sm text-stone-500">読み込んでいます</p>}
+    >
+      <SessionGate>{children}</SessionGate>
+    </Suspense>
+  );
+}
+
+async function SessionGate({ children }: { children: ReactNode }) {
   const session = await currentSession();
   if (session?.googleSubject) {
     return children;

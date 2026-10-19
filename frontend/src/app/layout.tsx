@@ -5,7 +5,7 @@ import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "shirube",
+  title: { default: "shirube", template: "%s | shirube" },
   description: "なりたい職業から、卒業までの履修の道標を描く",
 };
 
