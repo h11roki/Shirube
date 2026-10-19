@@ -6,7 +6,13 @@ import { OUTLINE_BUTTON } from "@/components/styles";
 import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
 import { forgetTakenLabel } from "@/lib/labels";
 
-export function TakenCourseList({ onForget }: { onForget: () => void }) {
+export function TakenCourseList({
+  refresh,
+  onForget,
+}: {
+  refresh: number;
+  onForget: () => void;
+}) {
   const [names, setNames] = useState<string[]>();
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
@@ -31,7 +37,7 @@ export function TakenCourseList({ onForget }: { onForget: () => void }) {
     return () => {
       active = false;
     };
-  }, [reloads]);
+  }, [reloads, refresh]);
 
   async function forget(name: string) {
     setBusy(true);

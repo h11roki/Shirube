@@ -40,6 +40,7 @@ export function PlanForm() {
   const [reloads, setReloads] = useState(0);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [takenRefresh, setTakenRefresh] = useState(0);
   const query = new URLSearchParams({
     department: DEPARTMENT,
     grade: String(grade),
@@ -94,6 +95,7 @@ export function PlanForm() {
     } catch (error) {
       setSubmitError(messageOf(error));
       setSubmitting(false);
+      setTakenRefresh((current) => current + 1);
     }
   }
 
@@ -227,8 +229,10 @@ export function PlanForm() {
       )}
 
       <TakenCourseList
+        refresh={takenRefresh}
         onForget={() => {
           setSubmitError(undefined);
+          setFailed(undefined);
           setReloads((current) => current + 1);
         }}
       />
