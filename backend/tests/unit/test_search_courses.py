@@ -115,7 +115,7 @@ def test_a_year_without_timetable_or_syllabi_is_a_search_error_not_a_lack_of_can
     assert not isinstance(raised.value, NoCandidatesError)
 
 
-def test_excluded_names_leave_the_candidates_but_a_page_keeps_its_other_names() -> None:
+def test_a_taken_name_leaves_the_candidates_with_every_name_of_its_joint_page() -> None:
     joint = FakeCourseRepository(
         sections=(
             replace(course_section("50001"), name="合併の科目甲"),
@@ -129,10 +129,6 @@ def test_excluded_names_leave_the_candidates_but_a_page_keeps_its_other_names() 
     )
     search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
 
-    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {
-        "合併の科目乙",
-        "論理回路",
-    }
-    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲", "合併の科目乙"}).names == {
-        "論理回路"
-    }
+    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {"論理回路"}
+    with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
+        search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目乙", "論理回路"})

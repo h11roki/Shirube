@@ -101,6 +101,7 @@ def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
         search_courses(settings, engine),
         SqlCourseRepository(engine),
         SqlPlanRepository(engine),
+        SqlUserRepository(engine),
         settings.semester_credit_limit,
     )
 

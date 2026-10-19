@@ -8,7 +8,7 @@ from app.application.search_courses import NoCandidatesError
 from app.domain.course import Term, TimeSlot, Weekday
 from app.domain.plan import PlanConditions, PlanStatus
 from app.domain.roadmap import RoadmapError, Semester
-from tests.fakes import FakePlanRepository, courses_ranked_by
+from tests.fakes import FakePlanRepository, FakeUserRepository, courses_ranked_by
 
 START = Semester(3, Term.SPRING)
 OWNER = UUID("6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b")
@@ -18,7 +18,7 @@ def test_a_request_is_saved_waiting_with_its_conditions() -> None:
     repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     plans = FakePlanRepository()
 
-    plan = RequestPlan(search, repository, plans, 16).run(
+    plan = RequestPlan(search, repository, plans, FakeUserRepository(), 16).run(
         OWNER, "職業", "情", 2026, START, {"科目A": "6T"}
     )
 
@@ -42,7 +42,7 @@ def test_a_class_that_cannot_be_chosen_is_refused_without_saving() -> None:
     plans = FakePlanRepository()
 
     with pytest.raises(RoadmapError, match="情報科学Ⅱ: 選べるクラスは TA、TB です"):
-        RequestPlan(search, repository, plans, 16).run(
+        RequestPlan(search, repository, plans, FakeUserRepository(), 16).run(
             OWNER, "職業", "情", 2026, START, {"情報科学Ⅱ": "TZ"}
         )
     assert plans.plans == {}
@@ -53,5 +53,20 @@ def test_a_department_without_candidates_is_refused_without_saving() -> None:
     plans = FakePlanRepository()
 
     with pytest.raises(NoCandidatesError, match="2026 年度の 機 に"):
-        RequestPlan(search, repository, plans, 16).run(OWNER, "職業", "機", 2026, START, {})
+        RequestPlan(search, repository, plans, FakeUserRepository(), 16).run(
+            OWNER, "職業", "機", 2026, START, {}
+        )
+    assert plans.plans == {}
+
+
+def test_a_request_whose_candidates_are_all_taken_is_refused_without_saving() -> None:
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    users.add_taken(OWNER, "科目A")
+    users.add_taken(OWNER, "科目B")
+
+    with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
+        RequestPlan(search, repository, plans, users, 16).run(OWNER, "職業", "情", 2026, START, {})
+
     assert plans.plans == {}

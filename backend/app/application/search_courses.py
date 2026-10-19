@@ -5,6 +5,8 @@ from app.application.ports import ChunkSearch, CourseRepository, Embedder, Embed
 from app.domain.ranking import CourseMatch, rank_courses
 from app.domain.roadmap import Semester, opens_in
 
+EXCLUDED_NOTE = "(もう取ったと答えた授業は除いています)"
+
 
 class SearchError(ValueError):
     pass
@@ -68,14 +70,21 @@ class SearchCourses:
         if not page_of or not sections:
             raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
         names_of_page: dict[str, set[str]] = defaultdict(set)
+        taken_pages = set()
         for section in sections:
-            offered = any(opens_in(section, department, year, semester) for semester in semesters)
-            if offered and section.code in page_of and section.name not in excluded:
-                names_of_page[page_of[section.code]].add(section.name)
+            page = page_of.get(section.code)
+            if page is None:
+                continue
+            if section.name in excluded:
+                taken_pages.add(page)
+            if any(opens_in(section, department, year, semester) for semester in semesters):
+                names_of_page[page].add(section.name)
+        for page in taken_pages:
+            names_of_page.pop(page, None)
         if not names_of_page:
             raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
-                "候補の科目がありません"
+                "候補の科目がありません" + (EXCLUDED_NOTE if excluded else "")
             )
         model = self._embedder.model
         if not self._chunks.is_embedded(year, model):

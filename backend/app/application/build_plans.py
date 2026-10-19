@@ -65,7 +65,7 @@ class BuildPlans:
                 conditions.department,
                 conditions.semesters,
                 lambda step: self._enter_step(plan, step),
-                self._users.taken(plan.owner_id),
+                excluded=self._users.taken(plan.owner_id),
             )
             self._enter(plan, PlanStage.PLACING)
             roadmap = conditions.roadmap(recommendation, sections)

@@ -12,15 +12,14 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.answer_taken_courses import AnswerTakenCourses
-from app.application.forget_taken_course import ForgetTakenCourse
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
-from app.application.list_taken_courses import ListTakenCourses
 from app.application.ports import EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.application.taken_courses import TakenCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
@@ -304,13 +303,12 @@ def plan_app(
     known = users or FakeUserRepository()
     identify = IdentifyUser(FakeTokenVerifier(TOKENS), known)
     return create_app(
-        RequestPlan(search, courses, stored, 16),
+        RequestPlan(search, courses, stored, known, 16),
         GetPlan(stored),
         ListPlans(stored),
         ListClassChoices(courses),
         AnswerTakenCourses(stored, known, courses),
-        ListTakenCourses(known),
-        ForgetTakenCourse(known),
+        TakenCourses(known),
         identify,
         2026,
         lambda: today,

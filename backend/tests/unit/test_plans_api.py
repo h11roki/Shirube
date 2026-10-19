@@ -360,8 +360,10 @@ def test_the_users_taken_courses_are_listed_and_forgotten_one_by_one() -> None:
     listed = api.get("/api/v1/taken-courses")
     forgotten = api.delete("/api/v1/taken-courses/情報処理")
     too_long = api.delete(f"/api/v1/taken-courses/{'科' * 101}")
+    empty = api.delete("/api/v1/taken-courses/")
 
     assert listed.json() == {"names": ["情報処理", "確率統計"]}
     assert (forgotten.status_code, forgotten.json()) == (200, {"names": ["確率統計"]})
     assert users.taken(users.id_of("google-b")) == {"情報処理"}
     assert too_long.status_code == 422
+    assert empty.status_code == 422
