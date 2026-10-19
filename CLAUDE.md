@@ -13,7 +13,7 @@ backend(`backend/` で実行)
 - `DATABASE_URL=... uv run python -m app.presentation.cli.ingest timetable data/curriculum/<時間割表>.pdf ...` でその年度の時間割表を全てまとめて、`... ingest syllabi` で保存済みシラバスを全て、それぞれ年度単位で DB に入れ替える(ADR 0014)。片方だけ取り直せる
 - `DATABASE_URL=... uv run python -m app.presentation.cli.embed`(`OPENAI_API_KEY` が要る)で、その年度のシラバスをチャンクにして埋め込む(ADR 0015)。`ingest syllabi` の後に実行する。埋め込み済みの本文は API を呼ばずに再利用する。`--prune` で今のモデル以外と使われなくなった埋め込みを消す(今のモデルで埋め込み終わっていない年度があれば断る)。embed を 2 つ同時に走らせない
 - `DATABASE_URL=... uv run python -m app.presentation.cli.evaluate`(`OPENAI_API_KEY` が要る)で、`eval/occupations.json` の職業ごとに検索の再現率@10 と @20 を出す(ADR 0017)。`--skills llm` で手書きのスキルの代わりに LLM が職業名から出したスキルを使う(ADR 0018、モデルは `CHAT_MODEL`)。`embed` の後に実行する。チャンクの切り方、モデル、クエリを変えたら測り直す。期待する科目は手で書き換えず、`eval/judgments.json` の判定の多数決と高橋さんの決定から作る(テストが一致を確かめる)
-- `DATABASE_URL=... uv run python -m app.presentation.cli.recommend 職業名`(`OPENAI_API_KEY` が要る)で、LLM が職業をスキルに直し(`CHAT_MODEL`。Webエンジニアのように学科の授業に無い応用分野や道具で決まる細かい職種は、授業で備えられる広い職業として読み、前提に書く。学科の授業がそのまま備える職業はそのまま読む。ADR 0032)、検索の上位 30 件(`SELECTION_CANDIDATE_LIMIT`)から中心と土台の科目を理由つきで選ぶ(`SELECTION_MODEL`、ADR 0018、0023)。土台は前提にする中心の科目を 1 つ指し、中心に選ばれていなければ外して表示する。`--year`、`--department`(既定は情)、`--grades` で候補を絞る。土台は中心に選んだ授業の前提に限るので、低い回生だけに絞って候補に中心が無いと空になる。1 回に LLM を 2 回呼び、数円かかる
+- `DATABASE_URL=... uv run python -m app.presentation.cli.recommend 職業名`(`OPENAI_API_KEY` が要る)で、LLM が職業をスキルに直し(`CHAT_MODEL`)、検索の上位 30 件(`SELECTION_CANDIDATE_LIMIT`)から中心と土台の科目を理由つきで選ぶ(`SELECTION_MODEL`、ADR 0018、0023)。土台は前提にする中心の科目を 1 つ指し、中心に選ばれていなければ外して表示する。`--year`、`--department`(既定は情)、`--grades` で候補を絞る。土台は中心に選んだ授業の前提に限るので、低い回生だけに絞って候補に中心が無いと空になる。1 回に LLM を 2 回呼び、数円かかる
 - `DATABASE_URL=... uv run python -m app.presentation.cli.evaluate_selection`(`OPENAI_API_KEY` が要る)で、評価データの職業ごとに選び直しの結果を判定の票(期待・土台・少数・関係なし)と比べる(ADR 0023)。中心につながらず外した土台と、その判定の内訳も出す。スキルは評価データの手書きのものを使う。選び手は土台の意味が判定者より狭く、迷ったときの決め方も違うので、中心と土台の内訳は判定と同じ物差しではない。判定の関係なしを誤りの目安に見る。1 回 10 職業で約 15 円(nano)。指示文や `SELECTION_MODEL` を変えたら測り直す
 - `DATABASE_URL=... uv run python -m app.presentation.cli.plan create 職業名 --grade 3`(`OPENAI_API_KEY` が要る)で、道標を待ちで保存し、worker を待たずにその場で取って、推薦して始める学期から 4 回生の秋学期までの道標を作って表示する(ADR 0029)。失敗したら失敗の文を出して 1 で終わる。`--term`(spring / autumn、既定は今日の月から)、`--department`、`--year`、`--class 科目名=クラス記号`(学科で分かれたクラスの選択、繰り返せる。記号の無いクラスは `科目名=`)。1 学期の単位の上限は `SEMESTER_CREDIT_LIMIT`(既定 16)。`... plan show <id>` で保存した道標を状態つきで表示する。CLI で作った道標は sub が cli:local の利用者のもの(ADR 0027)
 - `uv run python -m app.presentation.cli.timetable data/curriculum/<時間割表>.pdf > data/curriculum/timetable.jsonl` で時間割表を JSON Lines に変換
@@ -52,6 +52,7 @@ frontend は API を呼んで表示するだけで、業務ロジックを置か
 - pgvector、セクション単位のチャンク、text-embedding-3-small(モデル名と次元数は設定値)
 - 時間割は学期ごとの貪欲法。前提科目は制約にせず表示だけ
 - 当年度のシラバスを翌年度以降の代理とみなす
+- 職業名は、学科の授業に無い応用分野や道具で決まる細かい職種(Webエンジニアなど)なら授業で備えられる広い職業として読み、そう読んだことを前提に書く。学科の授業がそのまま備える職業はそのまま読む(ADR 0032)
 - 認証は Auth.js の Google ログイン。バックエンドは JWT を検証し、認可はバックエンドで行う
 - 本番は EC2 1台 + compose。設定は環境変数、アプリはステートレス
 

@@ -35,11 +35,8 @@ C 言語や Python のように授業で使うプログラミング言語は、�
 
 
 class _Profile(BaseModel):
-    interpretation: str = Field(description="解釈した職業名。細かい職種は広い職業として短く")
-    assumption: str | None = Field(
-        description="解釈が割れたとき、または細かい職種を広く読んだときの前提。"
-        "どちらでもなければ null"
-    )
+    interpretation: str = Field(description="解釈した職業名")
+    assumption: str | None = Field(description="前提の 1 文。書かないときは null")
     skills: list[str] = Field(
         description="仕事で直接使う知識・技能。重要な順",
         min_length=SKILL_COUNT.start,
