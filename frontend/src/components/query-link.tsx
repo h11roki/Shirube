@@ -10,6 +10,17 @@ type QueryLinkProps = Omit<
   onNavigate?: () => void;
 };
 
+export function pushQuery(href: string): boolean {
+  const target = new URL(href, window.location.href);
+  const changed =
+    target.pathname + target.search !==
+    window.location.pathname + window.location.search;
+  if (changed) {
+    window.history.pushState(null, "", href);
+  }
+  return changed;
+}
+
 export function QueryLink({ href, onNavigate, ...rest }: QueryLinkProps) {
   function navigate(event: MouseEvent<HTMLAnchorElement>) {
     if (
@@ -22,13 +33,7 @@ export function QueryLink({ href, onNavigate, ...rest }: QueryLinkProps) {
       return;
     }
     event.preventDefault();
-    const target = new URL(href, window.location.href);
-    if (
-      target.pathname + target.search !==
-      window.location.pathname + window.location.search
-    ) {
-      window.history.pushState(null, "", href);
-    }
+    pushQuery(href);
     onNavigate?.();
   }
 

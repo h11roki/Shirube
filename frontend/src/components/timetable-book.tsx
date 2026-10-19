@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { QueryLink } from "@/components/query-link";
+import { QueryLink, pushQuery } from "@/components/query-link";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -29,6 +29,16 @@ function reachableEverywhere(): boolean {
   return true;
 }
 
+function revealPending(pending: RefObject<string | null>) {
+  const section = pending.current;
+  pending.current = null;
+  if (section) {
+    document
+      .getElementById(`ticket-${section}`)
+      ?.scrollIntoView({ block: "center" });
+  }
+}
+
 export function TimetableBook({
   semesters,
   selected,
@@ -39,23 +49,23 @@ export function TimetableBook({
   planPath: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
+  const pending = useRef<string | null>(null);
   const go = useCallback(
     (transfer: Transfer) => {
-      window.history.pushState(
-        null,
-        "",
+      pending.current = transfer.pillarSection;
+      const moved = pushQuery(
         resultViewHref(planPath, "timetable", semesterKey(transfer.semester)),
       );
-      setTimeout(() =>
-        document
-          .getElementById(`ticket-${transfer.pillarSection}`)
-          ?.scrollIntoView({ block: "center" }),
-      );
+      if (!moved) {
+        revealPending(pending);
+      }
     },
     [planPath],
   );
   const focusing = useTransferFocusValue(found, reachableEverywhere, go);
   const semester = pickSemester(semesters, selected);
+  const shownKey = semester ? semesterKey(semester) : null;
+  useEffect(() => revealPending(pending), [shownKey]);
   if (!semester) {
     return <p className="text-sm text-sub">学期がありません。</p>;
   }

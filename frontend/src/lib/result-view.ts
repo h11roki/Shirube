@@ -5,6 +5,25 @@ export const VIEWS_ANCHOR = "views";
 const VIEW_PARAM = "view";
 const SEMESTER_PARAM = "semester";
 
+const IN_VIEW = 0.4;
+
+export function activeStation(
+  tops: number[],
+  viewportHeight: number,
+  scrolledToEnd: boolean,
+): number {
+  if (scrolledToEnd) {
+    return tops.length - 1;
+  }
+  let current = 0;
+  tops.forEach((top, index) => {
+    if (top < viewportHeight * IN_VIEW) {
+      current = index;
+    }
+  });
+  return Math.max(0, current);
+}
+
 export function readResultView(params: Pick<URLSearchParams, "get">): {
   view: ResultView;
   semester: string | null;

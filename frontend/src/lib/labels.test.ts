@@ -9,6 +9,8 @@ import {
   semesterShortLabel,
   slotsLabel,
   stationLabel,
+  transferLabel,
+  transferWarning,
   goalStationLabel,
 } from "@/lib/labels";
 
@@ -61,6 +63,25 @@ describe("labels", () => {
     expect(stationLabel(0)).toBe("SH01");
     expect(stationLabel(11)).toBe("SH12");
     expect(goalStationLabel(4)).toBe("SH05");
+  });
+
+  it("writes a transfer to the pillar's station and warns when it is not earlier", () => {
+    expect(
+      transferLabel({
+        pillar: "確率統計",
+        station: 0,
+        semester: {
+          grade: 3,
+          term: "spring",
+          credits: 2,
+          courses: [],
+          continuing: [],
+        },
+      }),
+    ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
+    expect(transferWarning("before")).toBeNull();
+    expect(transferWarning("same")).toBe("柱と同じ学期です");
+    expect(transferWarning("after")).toBe("柱より後の学期です");
   });
 
   it("names a class without a code", () => {

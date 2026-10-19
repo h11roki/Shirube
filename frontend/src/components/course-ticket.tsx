@@ -7,9 +7,9 @@ import {
   RELEVANCE_LABELS,
   classLabel,
   roleLabel,
-  semesterLabel,
   slotsLabel,
-  stationLabel,
+  transferLabel,
+  transferWarning,
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
 
@@ -21,10 +21,6 @@ const EMPHASIS = {
 
 const NOTCH =
   "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
-
-function transferLabel(transfer: Transfer): string {
-  return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
-}
 
 export function CourseTicket({
   course,
@@ -76,10 +72,9 @@ export function CourseTicket({
             )}
           </p>
         )}
-        {transfer && transfer.order !== "before" && (
+        {transfer && transferWarning(transfer.order) && (
           <p className="text-xs font-bold text-pillar">
-            {RELEVANCE_LABELS.core}
-            {transfer.order === "same" ? "と同じ" : "より後の"}学期です
+            {transferWarning(transfer.order)}
           </p>
         )}
       </div>

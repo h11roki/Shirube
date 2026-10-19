@@ -37,7 +37,7 @@ export function useTransferFocusValue(
   const [selected, setSelected] = useState<string | null>(null);
   const [followed, setFollowed] = useState<string | null>(null);
   const release = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const focus = hovered ?? followed ?? selected;
+  const focus = followed ?? hovered ?? selected;
 
   useEffect(() => () => clearTimeout(release.current), []);
 
@@ -50,6 +50,7 @@ export function useTransferFocusValue(
       reachable,
       follow: (from, transfer) => {
         clearTimeout(release.current);
+        setSelected(null);
         setFollowed(from);
         go(transfer);
         release.current = setTimeout(() => setFollowed(null), FOLLOW_MS);

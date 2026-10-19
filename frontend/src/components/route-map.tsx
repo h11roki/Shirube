@@ -36,11 +36,10 @@ import {
   semesterKey,
   transfers,
 } from "@/lib/roadmap";
-import { VIEWS_ANCHOR, resultViewHref } from "@/lib/result-view";
+import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
 
 const GOAL_PRESS_MS = 300;
 const LINE_DELAY_MS = 250;
-const IN_VIEW = 0.4;
 
 export function RouteMap({
   semesters,
@@ -79,24 +78,30 @@ export function RouteMap({
     function update() {
       frame = 0;
       const stations = root.current?.querySelectorAll("[data-station]") ?? [];
-      let current = 0;
-      stations.forEach((station, index) => {
-        if (station.getBoundingClientRect().top < innerHeight * IN_VIEW) {
-          current = index;
-        }
-      });
-      const bottom =
+      const scrolledToEnd =
+        scrollY > 0 &&
         scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
-      setActive(bottom ? stations.length - 1 : current);
+      setActive(
+        activeStation(
+          [...stations].map((station) => station.getBoundingClientRect().top),
+          innerHeight,
+          scrolledToEnd,
+        ),
+      );
     }
     function schedule() {
       if (!frame) {
         frame = requestAnimationFrame(update);
       }
     }
+    const resized = new ResizeObserver(schedule);
+    if (root.current) {
+      resized.observe(root.current);
+    }
     addEventListener("scroll", schedule, { passive: true });
     addEventListener("resize", schedule);
     return () => {
+      resized.disconnect();
       cancelAnimationFrame(frame);
       removeEventListener("scroll", schedule);
       removeEventListener("resize", schedule);
@@ -166,8 +171,20 @@ function RouteStrip({
       name: "卒業",
     },
   ];
+  const strip = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const current = strip.current?.querySelector<HTMLElement>("[aria-current]");
+    if (strip.current && current) {
+      strip.current.scrollTo({
+        left:
+          current.offsetLeft -
+          (strip.current.clientWidth - current.offsetWidth) / 2,
+      });
+    }
+  }, [active]);
   return (
     <nav
+      ref={strip}
       aria-label="路線図"
       className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-4 py-2 shadow-paper backdrop-blur"
     >
