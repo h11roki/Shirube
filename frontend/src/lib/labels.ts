@@ -102,10 +102,12 @@ export function transferLabel(
   return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
 }
 
+const NOT_EARLIER = `${RELEVANCE_LABELS.core}より前の学期には置けませんでした`;
+
 export const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
   before: null,
-  same: `${RELEVANCE_LABELS.core}と同じ学期です`,
-  after: `${RELEVANCE_LABELS.core}より後の学期です`,
+  same: `${RELEVANCE_LABELS.core}と同じ学期です。${NOT_EARLIER}`,
+  after: `${RELEVANCE_LABELS.core}より後の学期です。${NOT_EARLIER}`,
 };
 
 export function roleLabel(
