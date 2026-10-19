@@ -27,18 +27,21 @@ const LINE_DELAY_MS = 250;
 
 export function RouteMap({
   semesters,
+  shown = semesters.length,
   planPath,
   end,
 }: {
   semesters: SemesterPlan[];
+  shown?: number;
   planPath?: string;
   end: ReactNode;
 }) {
   const found = transfers(semesters);
-  const arrive = semesters.length * STAGGER_MS;
+  const visible = semesters.slice(0, shown);
+  const arrive = visible.length * STAGGER_MS;
   return (
     <ol className="relative grid gap-9 pl-12">
-      {semesters.map((semester, index) => (
+      {visible.map((semester, index) => (
         <Station
           key={semesterKey(semester)}
           index={index}
