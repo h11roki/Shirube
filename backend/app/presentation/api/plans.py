@@ -11,6 +11,7 @@ from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
 from app.domain.plan import Plan
 from app.domain.roadmap import Semester, term_on
+from app.presentation.api.taken_courses import TakenCourseName
 from app.presentation.schemas.errors import CONFLICT_RESPONSE, INVALID_RESPONSE, NOT_FOUND_RESPONSE
 from app.presentation.schemas.plans import (
     PlanIn,
@@ -19,7 +20,6 @@ from app.presentation.schemas.plans import (
     PlanSummaryOut,
     plan_out,
 )
-from app.presentation.schemas.taken_courses import TakenCourseName
 
 TAKEN_COURSE = "/plans/{plan_id}/taken-courses/{name:path}"
 TAKEN_RESPONSES = {**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE}

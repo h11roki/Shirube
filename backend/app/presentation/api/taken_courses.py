@@ -2,11 +2,14 @@ from collections.abc import Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Path
 
 from app.application.taken_courses import TakenCourses
 from app.presentation.schemas.errors import INVALID_RESPONSE
-from app.presentation.schemas.taken_courses import TakenCourseName, TakenCoursesOut
+from app.presentation.schemas.plans import MAX_NAME_LENGTH
+from app.presentation.schemas.taken_courses import TakenCoursesOut
+
+TakenCourseName = Annotated[str, Path(min_length=1, max_length=MAX_NAME_LENGTH)]
 
 
 def taken_courses_router(

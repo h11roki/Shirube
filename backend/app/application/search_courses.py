@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence, Set
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
+from app.domain.course import left_out_codes
 from app.domain.ranking import CourseMatch, rank_courses
 from app.domain.roadmap import Semester, opens_in
 
@@ -69,20 +70,17 @@ class SearchCourses:
         sections = self._courses.sections(year)
         if not page_of or not sections:
             raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
+        left_out = left_out_codes(sections, page_of, department, excluded)
         names_of_page: dict[str, set[str]] = defaultdict(set)
-        taken_pages = set()
+        removed = False
         for section in sections:
-            page = page_of.get(section.code)
-            if page is None:
+            offered = any(opens_in(section, department, year, semester) for semester in semesters)
+            if not offered or section.code not in page_of:
                 continue
-            in_department = section.departments is None or department in section.departments
-            if section.name in excluded and in_department:
-                taken_pages.add(page)
-            if any(opens_in(section, department, year, semester) for semester in semesters):
-                names_of_page[page].add(section.name)
-        removed = bool(taken_pages & names_of_page.keys())
-        for page in taken_pages:
-            names_of_page.pop(page, None)
+            if section.code in left_out:
+                removed = True
+                continue
+            names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
             raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
