@@ -13,7 +13,6 @@ from app.application.ports import (
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
-from app.domain.roadmap import remaining_semesters
 
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 STALLED = "道標を作る途中で止まりました"
@@ -53,13 +52,12 @@ class BuildPlans:
     def _build(self, plan: Plan) -> Plan | None:
         conditions = plan.conditions
         try:
-            semesters = remaining_semesters(conditions.start)
             sections = self._courses.sections(conditions.year)
             recommendation = self._recommend.run(
                 conditions.occupation,
                 conditions.year,
                 conditions.department,
-                semesters,
+                conditions.semesters,
                 lambda step: self._enter_step(plan, step),
             )
             self._enter(plan, PlanStage.PLACING)

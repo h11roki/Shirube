@@ -42,6 +42,10 @@ class PlanConditions:
         if names != sorted(set(names)):
             raise PlanError("クラスの選択は科目名の順に、科目ごとに 1 つにしてください")
 
+    @property
+    def semesters(self) -> tuple[Semester, ...]:
+        return remaining_semesters(self.start)
+
     def roadmap(
         self,
         recommendation: Recommendation,
@@ -53,7 +57,7 @@ class PlanConditions:
             sections,
             self.department,
             self.year,
-            remaining_semesters(self.start),
+            self.semesters,
             self.credit_limit,
             dict(self.chosen_classes),
             taken,
@@ -89,7 +93,7 @@ class Plan:
         if recommendation.profile.occupation != self.conditions.occupation:
             raise PlanError(f"推薦の職業が条件と違います: {recommendation.profile.occupation}")
         semesters = tuple(plan.semester for plan in roadmap.semesters)
-        if semesters != remaining_semesters(self.conditions.start):
+        if semesters != self.conditions.semesters:
             raise PlanError(
                 f"道標の学期が {self.conditions.start}から 4 回生 秋学期までになっていません"
             )
