@@ -17,7 +17,7 @@ const CREATED_AT = new Intl.DateTimeFormat("ja-JP", {
   timeStyle: "short",
 });
 
-const STAGGER_MS = 60;
+const ROW_STAGGER_MS = 60;
 const STAGGERED_ROWS = 10;
 
 export function PlanList() {
@@ -68,7 +68,7 @@ export function PlanList() {
         <li
           key={plan.id}
           style={{
-            animationDelay: `${Math.min(index, STAGGERED_ROWS) * STAGGER_MS}ms`,
+            animationDelay: `${Math.min(index, STAGGERED_ROWS) * ROW_STAGGER_MS}ms`,
           }}
           className="motion-safe:animate-rise"
         >

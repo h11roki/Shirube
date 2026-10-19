@@ -30,6 +30,12 @@ export const STAGE_LABELS: Record<PlanStage, string> = {
 
 export const WAITING_LABEL = "順番を待っています";
 
+export const DEPARTMENT_NAME = "電子情報工学科";
+
+export const EMPTY_SEMESTER_LABEL = "この学期に置いた授業はありません。";
+
+export const CONTINUING_LABEL = "春学期からの続き";
+
 export const RESULT_VIEW_LABELS: Record<ResultView, string> = {
   route: "道のり",
   timetable: "時間割帳",

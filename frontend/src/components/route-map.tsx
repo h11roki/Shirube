@@ -1,14 +1,19 @@
 "use client";
 
-import Link from "next/link";
 import { type ReactNode, useId, useState } from "react";
 
 import { CourseCard } from "@/components/course-card";
+import { QueryLink } from "@/components/query-link";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
-import { semesterLabel, slotsLabel } from "@/lib/labels";
+import {
+  CONTINUING_LABEL,
+  EMPTY_SEMESTER_LABEL,
+  semesterLabel,
+  slotsLabel,
+} from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
-import { semesterKey } from "@/lib/roadmap";
+import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, resultViewHref } from "@/lib/result-view";
 
 export function RouteMap({
@@ -51,7 +56,7 @@ function Station({
 }) {
   const [open, setOpen] = useState(false);
   const weekId = useId();
-  const all = [...semester.courses, ...semester.continuing];
+  const all = semesterCourses(semester);
   return (
     <li
       style={{ animationDelay: `${delayMs}ms` }}
@@ -64,7 +69,7 @@ function Station({
         </span>
       </h2>
       {all.length === 0 && (
-        <p className="text-sm text-sub">この学期に置いた授業はありません。</p>
+        <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>
       )}
       {semester.courses.length > 0 && (
         <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
@@ -75,7 +80,7 @@ function Station({
       )}
       {semester.continuing.length > 0 && (
         <p className="text-[13px] text-sub">
-          春学期からの続き:{" "}
+          {CONTINUING_LABEL}:{" "}
           {semester.continuing
             .map((course) => `${course.name}(${slotsLabel(course)})`)
             .join("、")}
@@ -93,12 +98,19 @@ function Station({
             {open ? "この学期の時間割を閉じる ▴" : "この学期の時間割を開く ▾"}
           </button>
           {planPath && (
-            <Link
-              href={`${resultViewHref(planPath, "timetable", semesterKey(semester))}#${VIEWS_ANCHOR}`}
+            <QueryLink
+              href={resultViewHref(
+                planPath,
+                "timetable",
+                semesterKey(semester),
+              )}
+              onNavigate={() =>
+                document.getElementById(VIEWS_ANCHOR)?.scrollIntoView()
+              }
               className="text-route underline underline-offset-4"
             >
               時間割帳で見る →
-            </Link>
+            </QueryLink>
           )}
         </div>
       )}

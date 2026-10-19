@@ -2,6 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 
+import { Kicker } from "@/components/kicker";
 import { Signpost } from "@/components/signpost";
 import type { Plan } from "@/lib/api/client";
 import { STAGE_LABELS, WAITING_LABEL, semesterLabel } from "@/lib/labels";
@@ -29,13 +30,14 @@ export function PlanProgress({
   stalled?: ReactNode;
 }) {
   const { conditions } = plan;
+  const [startedAt] = useState(Date.now);
+  const steps = progressSteps(plan.status, plan.stage);
+  const current = steps.find((step) => step.state === "now");
   return (
     <section className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1.5">
-          <p className="text-xs font-bold tracking-[0.28em] text-pillar">
-            目的地 ── {conditions.occupation}
-          </p>
+          <Kicker>目的地 ── {conditions.occupation}</Kicker>
           <h1 className="font-serif text-2xl font-extrabold text-balance">
             {conditions.occupation}への道標を作っています
           </h1>
@@ -49,20 +51,25 @@ export function PlanProgress({
           className="w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
         />
       </div>
-      <div aria-live="polite" className="grid gap-6">
-        {plan.status === "pending" && (
-          <p className="flex items-center gap-2.5 text-sm font-bold">
-            <span
-              aria-hidden
-              className="size-3.5 rounded-full border-[3px] border-pillar motion-safe:animate-beacon"
-            />
-            {WAITING_LABEL}
+      {plan.status === "pending" && (
+        <p aria-hidden className="flex items-center gap-2.5 text-sm font-bold">
+          <span
+            aria-hidden
+            className="size-3.5 rounded-full border-[3px] border-pillar motion-safe:animate-beacon"
+          />
+          {WAITING_LABEL}
+        </p>
+      )}
+      <StepLine steps={steps} />
+      <div className="grid gap-3">
+        <div aria-live="polite">
+          <p className="sr-only">
+            {current ? STAGE_LABELS[current.stage] : WAITING_LABEL}
           </p>
-        )}
-        <StepLine steps={progressSteps(plan.status, plan.stage)} />
-        {stalled}
+          {stalled}
+        </div>
+        {!stalled && <WaitedTime since={startedAt} />}
       </div>
-      {!stalled && <WaitedTime />}
     </section>
   );
 }
@@ -146,9 +153,8 @@ function StationDot({ state }: { state: StepState }) {
   );
 }
 
-function WaitedTime() {
-  const [startedAt] = useState(Date.now);
-  const [now, setNow] = useState(startedAt);
+function WaitedTime({ since }: { since: number }) {
+  const [now, setNow] = useState(since);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
@@ -156,7 +162,7 @@ function WaitedTime() {
   return (
     <p className="text-xs text-sub">
       <span className="tabular-nums">
-        待ち時間 {Math.floor((now - startedAt) / TICK_MS)} 秒
+        待ち時間 {Math.floor((now - since) / TICK_MS)} 秒
       </span>{" "}
       ・ ふだん 10〜30 秒で終わります。このページを開いたままお待ちください。
     </p>

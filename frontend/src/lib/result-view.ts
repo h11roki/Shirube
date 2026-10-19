@@ -4,14 +4,13 @@ export const VIEWS_ANCHOR = "views";
 
 const VIEW_PARAM = "view";
 const SEMESTER_PARAM = "semester";
-const TIMETABLE: ResultView = "timetable";
 
 export function readResultView(params: Pick<URLSearchParams, "get">): {
   view: ResultView;
   semester: string | null;
 } {
   return {
-    view: params.get(VIEW_PARAM) === TIMETABLE ? TIMETABLE : "route",
+    view: params.get(VIEW_PARAM) === "timetable" ? "timetable" : "route",
     semester: params.get(SEMESTER_PARAM),
   };
 }
@@ -21,10 +20,10 @@ export function resultViewHref(
   view: ResultView,
   semester?: string | null,
 ): string {
-  if (view !== TIMETABLE) {
+  if (view !== "timetable") {
     return pathname;
   }
-  const params = new URLSearchParams({ [VIEW_PARAM]: TIMETABLE });
+  const params = new URLSearchParams({ [VIEW_PARAM]: "timetable" });
   if (semester) {
     params.set(SEMESTER_PARAM, semester);
   }

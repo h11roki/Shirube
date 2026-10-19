@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { CourseCard } from "@/components/course-card";
+import { Kicker } from "@/components/kicker";
+import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
 import { Signpost } from "@/components/signpost";
@@ -41,9 +43,7 @@ export function PlanResultView({
     <div className="grid gap-8">
       <section className="grid gap-5 sm:grid-cols-[1fr_auto] sm:items-end">
         <div className="grid min-w-0 gap-2">
-          <p className="text-xs font-bold tracking-[0.28em] text-pillar">
-            目的地 ── {profile.occupation}
-          </p>
+          <Kicker>目的地 ── {profile.occupation}</Kicker>
           <h1 className="font-serif text-3xl leading-snug font-extrabold text-balance sm:text-4xl">
             {profile.interpretation}への道標
           </h1>
@@ -87,15 +87,14 @@ export function PlanResultView({
           className="inline-flex rounded-full border border-line bg-sheet p-0.5 text-sm"
         >
           {VIEWS.map((each) => (
-            <Link
+            <QueryLink
               key={each}
               href={resultViewHref(pathname, each, semester)}
-              scroll={false}
               aria-current={view === each ? "page" : undefined}
               className={`rounded-full px-4 py-1 ${view === each ? "bg-ink text-paper" : "text-sub hover:text-ink"}`}
             >
               {RESULT_VIEW_LABELS[each]}
-            </Link>
+            </QueryLink>
           ))}
         </nav>
         <p className="flex gap-4 text-xs text-sub">

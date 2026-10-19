@@ -1,4 +1,5 @@
 import { SignInButton } from "@/components/account";
+import { Kicker } from "@/components/kicker";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
@@ -53,9 +54,7 @@ export function Introduction() {
 
       <section className="grid gap-5">
         <div className="grid gap-1">
-          <p className="text-xs font-bold tracking-[0.28em] text-pillar">
-            見本 ── {conditions.occupation}
-          </p>
+          <Kicker>見本 ── {conditions.occupation}</Kicker>
           <h2 className="font-serif text-2xl font-extrabold text-balance">
             {result.profile.interpretation}への道標
           </h2>

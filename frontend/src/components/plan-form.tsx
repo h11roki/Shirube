@@ -12,10 +12,9 @@ import {
   requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
-import { TERM_LABELS, classLabel } from "@/lib/labels";
+import { DEPARTMENT_NAME, TERM_LABELS, classLabel } from "@/lib/labels";
 
 const DEPARTMENT = "情";
-const DEPARTMENT_NAME = "電子情報工学科";
 const GRADES = [1, 2, 3, 4];
 const TERMS: Term[] = ["spring", "autumn"];
 const MAX_OCCUPATION_LENGTH = 100;

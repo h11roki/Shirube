@@ -1,7 +1,16 @@
-import type { Relevance, SemesterPlan, Term } from "@/lib/api/client";
+import type {
+  PlacedCourse,
+  Relevance,
+  SemesterPlan,
+  Term,
+} from "@/lib/api/client";
 
 export function semesterKey(semester: { grade: number; term: Term }): string {
   return `${semester.grade}-${semester.term}`;
+}
+
+export function semesterCourses(semester: SemesterPlan): PlacedCourse[] {
+  return [...semester.courses, ...semester.continuing];
 }
 
 export function pickSemester(

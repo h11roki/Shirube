@@ -6,7 +6,12 @@ import type {
   SemesterPlan,
   Term,
 } from "@/lib/api/client";
-import { pickSemester, routeTotals, semesterKey } from "@/lib/roadmap";
+import {
+  pickSemester,
+  routeTotals,
+  semesterCourses,
+  semesterKey,
+} from "@/lib/roadmap";
 
 function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
   return {
@@ -54,6 +59,13 @@ describe("roadmap", () => {
     expect(pickSemester(semesters, "9-spring")).toBe(semesters[0]);
     expect(pickSemester(semesters, null)).toBe(semesters[0]);
     expect(pickSemester([], null)).toBeUndefined();
+  });
+
+  it("lists a semester's own courses before those carried over from spring", () => {
+    expect(semesterCourses(semesters[1]).map((course) => course.name)).toEqual([
+      "柱の授業",
+      "通年の授業",
+    ]);
   });
 
   it("totals the route without counting a year-long course twice", () => {

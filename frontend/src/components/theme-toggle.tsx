@@ -30,7 +30,9 @@ export function ThemeToggle() {
         root.dataset.theme = DARK_THEME;
         localStorage.setItem(THEME_STORAGE_KEY, DARK_THEME);
       }
-    } catch {}
+    } catch (error) {
+      console.warn("選んだ見た目を覚えられませんでした", error);
+    }
   }
 
   return (
