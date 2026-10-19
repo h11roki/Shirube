@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from uuid import uuid4
 
 import pytest
 from sqlalchemy import Engine, delete, func, select
@@ -39,8 +40,6 @@ def test_taken_courses_are_added_and_removed_one_by_one_for_each_user(
     users.remove_taken(user, "科目A")
     users.remove_taken(user, "科目C")
 
-    with engine.connect() as connection:
-        rows = connection.execute(select(TakenCourseRow.user_id, TakenCourseRow.name)).all()
-    assert sorted((str(user_id), name) for user_id, name in rows) == sorted(
-        [(str(other), "科目A"), (str(user), "科目B")]
-    )
+    assert users.taken(user) == {"科目B"}
+    assert users.taken(other) == {"科目A"}
+    assert users.taken(uuid4()) == frozenset()

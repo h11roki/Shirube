@@ -59,7 +59,7 @@ def test_marking_places_the_plan_again_without_the_course_and_remembers_it() -> 
     assert taken_names(marked) == ["科目A"]
     assert "科目A" not in placed_names(marked)
     assert plans.get(plan.id) == marked
-    assert users.taken[owner] == {"科目A"}
+    assert users.remembered[owner] == {"科目A"}
 
 
 def test_each_answer_starts_from_the_stored_plan_so_earlier_answers_are_kept() -> None:
@@ -73,7 +73,7 @@ def test_each_answer_starts_from_the_stored_plan_so_earlier_answers_are_kept() -
 
     assert taken_names(unmarked) == ["科目D"]
     assert "科目A" in placed_names(unmarked)
-    assert users.taken[owner] == {"科目D"}
+    assert users.remembered[owner] == {"科目D"}
 
 
 def test_a_course_the_plan_did_not_ask_about_is_refused_and_nothing_changes() -> None:
@@ -86,7 +86,7 @@ def test_a_course_the_plan_did_not_ask_about_is_refused_and_nothing_changes() ->
         )
 
     assert plans.get(plan.id) == plan
-    assert users.taken == {}
+    assert users.remembered == {}
 
 
 def test_an_unfinished_plan_is_refused_and_another_users_plan_is_none() -> None:
@@ -129,7 +129,7 @@ def test_a_plan_whose_timetable_changed_since_it_was_made_is_refused() -> None:
             owner_id=owner, plan_id=chosen.id, name="科目A"
         )
     assert plans.get(plan.id) == plan
-    assert users.taken == {}
+    assert users.remembered == {}
 
 
 def test_an_answer_that_lost_to_another_screen_is_refused_without_remembering_it() -> None:
@@ -141,4 +141,4 @@ def test_an_answer_that_lost_to_another_screen_is_refused_without_remembering_it
             owner_id=owner, plan_id=plan.id, name="科目A"
         )
 
-    assert users.taken == {}
+    assert users.remembered == {}

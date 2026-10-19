@@ -3,7 +3,7 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.get_plan import GetPlan
@@ -13,15 +13,14 @@ from app.domain.plan import Plan
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.errors import CONFLICT_RESPONSE, INVALID_RESPONSE, NOT_FOUND_RESPONSE
 from app.presentation.schemas.plans import (
-    MAX_NAME_LENGTH,
     PlanIn,
     PlanListOut,
     PlanOut,
     PlanSummaryOut,
     plan_out,
 )
+from app.presentation.schemas.taken_courses import TakenCourseName
 
-TakenCourseName = Annotated[str, Path(max_length=MAX_NAME_LENGTH)]
 TAKEN_COURSE = "/plans/{plan_id}/taken-courses/{name:path}"
 TAKEN_RESPONSES = {**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE}
 

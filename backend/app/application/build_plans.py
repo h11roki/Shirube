@@ -9,6 +9,7 @@ from app.application.ports import (
     EmbeddingError,
     OccupationAnalysisError,
     PlanRepository,
+    UserRepository,
 )
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.domain.plan import Plan, PlanResult, PlanStage
@@ -29,11 +30,16 @@ logger = logging.getLogger(__name__)
 
 class BuildPlans:
     def __init__(
-        self, recommend: RecommendCourses, courses: CourseRepository, plans: PlanRepository
+        self,
+        recommend: RecommendCourses,
+        courses: CourseRepository,
+        plans: PlanRepository,
+        users: UserRepository,
     ) -> None:
         self._recommend = recommend
         self._courses = courses
         self._plans = plans
+        self._users = users
 
     def fail_stalled(self, after: timedelta) -> list[UUID]:
         stalled = self._plans.fail_stalled(after, STALLED)
@@ -59,6 +65,7 @@ class BuildPlans:
                 conditions.department,
                 conditions.semesters,
                 lambda step: self._enter_step(plan, step),
+                self._users.taken(plan.owner_id),
             )
             self._enter(plan, PlanStage.PLACING)
             roadmap = conditions.roadmap(recommendation, sections)

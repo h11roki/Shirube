@@ -1,10 +1,12 @@
 import sys
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.forget_taken_course import ForgetTakenCourse
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
+from app.application.list_taken_courses import ListTakenCourses
 from app.infrastructure.auth.jwt_verifier import JwtVerifier
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.plans import SqlPlanRepository
@@ -34,6 +36,8 @@ app = create_app(
     list_plans=ListPlans(plans),
     list_class_choices=ListClassChoices(courses),
     answer_taken_courses=AnswerTakenCourses(plans, users, courses),
+    list_taken_courses=ListTakenCourses(users),
+    forget_taken_course=ForgetTakenCourse(users),
     identify=IdentifyUser(verifier, users),
     curriculum_year=settings.curriculum_year,
     today=university_today,

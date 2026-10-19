@@ -25,6 +25,7 @@ from tests.fakes import (
     FakeEmbedder,
     FakeOccupationAnalyzer,
     FakePlanRepository,
+    FakeUserRepository,
     courses_ranked_by,
 )
 
@@ -46,6 +47,7 @@ def builder(
     plans: FakePlanRepository,
     selector: FakeCourseSelector | None = None,
     profile: OccupationProfile = PROFILE,
+    users: FakeUserRepository | None = None,
 ) -> BuildPlans:
     courses, search = courses_and_search
     recommend = RecommendCourses(
@@ -55,7 +57,7 @@ def builder(
         selector or FakeCourseSelector([]),
         30,
     )
-    return BuildPlans(recommend, courses, plans)
+    return BuildPlans(recommend, courses, plans, users or FakeUserRepository())
 
 
 def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() -> None:
@@ -238,3 +240,21 @@ def test_a_stage_that_cannot_be_written_does_not_fail_the_plan(
     assert built.status is PlanStatus.SUCCEEDED
     assert plans.plans[plan.id] == built
     assert "の段" in caplog.text
+
+
+def test_courses_the_owner_has_taken_are_left_out_of_the_candidates() -> None:
+    selector = FakeCourseSelector([CourseChoice("科目A", Relevance.CORE, "理由A")])
+    users = FakeUserRepository()
+    users.add_taken(OWNER, "科目B")
+    users.add_taken(uuid4(), "科目A")
+    plans = FakePlanRepository()
+    waiting(plans)
+
+    built = builder(
+        courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7}), plans, selector, users=users
+    ).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.SUCCEEDED
+    [(_, candidates)] = selector.calls
+    assert [candidate.name for candidate in candidates] == ["科目A", "科目C"]

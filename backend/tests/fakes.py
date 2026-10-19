@@ -12,10 +12,12 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.forget_taken_course import ForgetTakenCourse
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
+from app.application.list_taken_courses import ListTakenCourses
 from app.application.ports import EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
@@ -213,16 +215,19 @@ class FakeTokenVerifier:
 class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
-        self.taken: dict[UUID, set[str]] = {}
+        self.remembered: dict[UUID, set[str]] = {}
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
 
+    def taken(self, user_id: UUID) -> frozenset[str]:
+        return frozenset(self.remembered.get(user_id, set()))
+
     def add_taken(self, user_id: UUID, name: str) -> None:
-        self.taken.setdefault(user_id, set()).add(name)
+        self.remembered.setdefault(user_id, set()).add(name)
 
     def remove_taken(self, user_id: UUID, name: str) -> None:
-        self.taken.setdefault(user_id, set()).discard(name)
+        self.remembered.setdefault(user_id, set()).discard(name)
 
 
 def chat_answering(
@@ -304,6 +309,8 @@ def plan_app(
         ListPlans(stored),
         ListClassChoices(courses),
         AnswerTakenCourses(stored, known, courses),
+        ListTakenCourses(known),
+        ForgetTakenCourse(known),
         identify,
         2026,
         lambda: today,

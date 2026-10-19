@@ -18,6 +18,7 @@ from tests.fakes import (
     FakeCourseSelector,
     FakeOccupationAnalyzer,
     FakePlanRepository,
+    FakeUserRepository,
     courses_ranked_by,
 )
 
@@ -55,7 +56,7 @@ def builder(plans: FakePlanRepository) -> BuildPlans:
     recommend = RecommendCourses(
         search, courses, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
     )
-    return BuildPlans(recommend, courses, plans)
+    return BuildPlans(recommend, courses, plans, FakeUserRepository())
 
 
 def waiting(plans: FakePlanRepository) -> Plan:

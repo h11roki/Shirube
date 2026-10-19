@@ -113,3 +113,26 @@ def test_a_year_without_timetable_or_syllabi_is_a_search_error_not_a_lack_of_can
     ) as raised:
         search.candidates(2026, "情", ALL_SEMESTERS)
     assert not isinstance(raised.value, NoCandidatesError)
+
+
+def test_excluded_names_leave_the_candidates_but_a_page_keeps_its_other_names() -> None:
+    joint = FakeCourseRepository(
+        sections=(
+            replace(course_section("50001"), name="合併の科目甲"),
+            replace(course_section("50002"), name="合併の科目乙"),
+            replace(course_section("30001"), name="論理回路"),
+        ),
+        syllabi=(
+            syllabus("50001", aliases=(CourseName("50002", "合併の科目乙"),)),
+            syllabus("30001"),
+        ),
+    )
+    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
+
+    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {
+        "合併の科目乙",
+        "論理回路",
+    }
+    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲", "合併の科目乙"}).names == {
+        "論理回路"
+    }

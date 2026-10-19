@@ -56,7 +56,13 @@ class SearchCourses:
         self._chunks = chunks
         self._embedder = embedder
 
-    def candidates(self, year: int, department: str, semesters: Sequence[Semester]) -> Candidates:
+    def candidates(
+        self,
+        year: int,
+        department: str,
+        semesters: Sequence[Semester],
+        excluded: Set[str] = frozenset(),
+    ) -> Candidates:
         page_of = self._courses.syllabus_codes(year)
         sections = self._courses.sections(year)
         if not page_of or not sections:
@@ -64,7 +70,7 @@ class SearchCourses:
         names_of_page: dict[str, set[str]] = defaultdict(set)
         for section in sections:
             offered = any(opens_in(section, department, year, semester) for semester in semesters)
-            if offered and section.code in page_of:
+            if offered and section.code in page_of and section.name not in excluded:
                 names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
             raise NoCandidatesError(
