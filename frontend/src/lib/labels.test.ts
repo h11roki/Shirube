@@ -10,7 +10,7 @@ import {
   slotsLabel,
   stationLabel,
   transferLabel,
-  transferWarning,
+  TRANSFER_WARNINGS,
   goalStationLabel,
 } from "@/lib/labels";
 
@@ -79,9 +79,9 @@ describe("labels", () => {
         },
       }),
     ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
-    expect(transferWarning("before")).toBeNull();
-    expect(transferWarning("same")).toBe("柱と同じ学期です");
-    expect(transferWarning("after")).toBe("柱より後の学期です");
+    expect(TRANSFER_WARNINGS.before).toBeNull();
+    expect(TRANSFER_WARNINGS.same).toBe("柱と同じ学期です");
+    expect(TRANSFER_WARNINGS.after).toBe("柱より後の学期です");
   });
 
   it("names a class without a code", () => {

@@ -102,15 +102,11 @@ export function transferLabel(
   return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
 }
 
-const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
+export const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
   before: null,
   same: `${RELEVANCE_LABELS.core}と同じ学期です`,
   after: `${RELEVANCE_LABELS.core}より後の学期です`,
 };
-
-export function transferWarning(order: TransferOrder): string | null {
-  return TRANSFER_WARNINGS[order];
-}
 
 export function roleLabel(
   course: Pick<Course, "relevance" | "prerequisite_for">,

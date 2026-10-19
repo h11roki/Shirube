@@ -1,8 +1,9 @@
 "use client";
 
-import { type RefObject, useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
+import { revealTicket } from "@/components/course-ticket";
 import { QueryLink, pushQuery } from "@/components/query-link";
 import {
   TransferFocusContext,
@@ -29,16 +30,6 @@ function reachableEverywhere(): boolean {
   return true;
 }
 
-function revealPending(pending: RefObject<string | null>) {
-  const section = pending.current;
-  pending.current = null;
-  if (section) {
-    document
-      .getElementById(`ticket-${section}`)
-      ?.scrollIntoView({ block: "center" });
-  }
-}
-
 export function TimetableBook({
   semesters,
   selected,
@@ -49,23 +40,31 @@ export function TimetableBook({
   planPath: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
+  const semester = pickSemester(semesters, selected);
+  const shownKey = semester ? semesterKey(semester) : null;
   const pending = useRef<string | null>(null);
+  const shown = useRef(shownKey);
   const go = useCallback(
     (transfer: Transfer) => {
-      pending.current = transfer.pillarSection;
-      const moved = pushQuery(
-        resultViewHref(planPath, "timetable", semesterKey(transfer.semester)),
-      );
-      if (!moved) {
-        revealPending(pending);
+      const target = semesterKey(transfer.semester);
+      if (target === shown.current) {
+        revealTicket(transfer.pillarSection);
+        return;
       }
+      pending.current = transfer.pillarSection;
+      pushQuery(resultViewHref(planPath, "timetable", target));
     },
     [planPath],
   );
   const focusing = useTransferFocusValue(found, reachableEverywhere, go);
-  const semester = pickSemester(semesters, selected);
-  const shownKey = semester ? semesterKey(semester) : null;
-  useEffect(() => revealPending(pending), [shownKey]);
+  useEffect(() => {
+    shown.current = shownKey;
+    const section = pending.current;
+    pending.current = null;
+    if (section) {
+      revealTicket(section);
+    }
+  }, [shownKey]);
   if (!semester) {
     return <p className="text-sm text-sub">学期がありません。</p>;
   }

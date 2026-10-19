@@ -8,8 +8,8 @@ import {
   classLabel,
   roleLabel,
   slotsLabel,
+  TRANSFER_WARNINGS,
   transferLabel,
-  transferWarning,
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
 
@@ -22,6 +22,16 @@ const EMPHASIS = {
 const NOTCH =
   "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
 
+function ticketId(section: string): string {
+  return `ticket-${section}`;
+}
+
+export function revealTicket(section: string) {
+  document
+    .getElementById(ticketId(section))
+    ?.scrollIntoView({ block: "center" });
+}
+
 export function CourseTicket({
   course,
   transfer,
@@ -32,6 +42,7 @@ export function CourseTicket({
   const focusing = useTransferFocus();
   const core = course.relevance === "core";
   const placed = "slots" in course;
+  const warning = transfer ? TRANSFER_WARNINGS[transfer.order] : null;
   const emphasis =
     focusing?.focus === course.name
       ? EMPHASIS.self
@@ -40,7 +51,7 @@ export function CourseTicket({
         : "";
   return (
     <article
-      id={placed ? `ticket-${course.section_code}` : undefined}
+      id={placed ? ticketId(course.section_code) : undefined}
       onPointerEnter={() => focusing?.hover(course.name)}
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
@@ -72,11 +83,7 @@ export function CourseTicket({
             )}
           </p>
         )}
-        {transfer && transferWarning(transfer.order) && (
-          <p className="text-xs font-bold text-pillar">
-            {transferWarning(transfer.order)}
-          </p>
-        )}
+        {warning && <p className="text-xs font-bold text-pillar">{warning}</p>}
       </div>
       {placed && (
         <dl

@@ -12,6 +12,7 @@ import {
 } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
+import { revealTicket } from "@/components/course-ticket";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
 import { TEXT_LINK } from "@/components/styles";
@@ -40,6 +41,7 @@ import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
 
 const GOAL_PRESS_MS = 300;
 const LINE_DELAY_MS = 250;
+const PICK_HOLD_MS = 1200;
 
 export function RouteMap({
   semesters,
@@ -63,12 +65,14 @@ export function RouteMap({
     (transfer: Transfer) => transfer.station < shown,
     [shown],
   );
-  const go = useCallback((transfer: Transfer) => {
-    document
-      .getElementById(`ticket-${transfer.pillarSection}`)
-      ?.scrollIntoView({ block: "center" });
-  }, []);
+  const go = useCallback(
+    (transfer: Transfer) => revealTicket(transfer.pillarSection),
+    [],
+  );
+  const picked = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusing = useTransferFocusValue(found, reachable, go);
+
+  useEffect(() => () => clearTimeout(picked.current), []);
 
   useEffect(() => {
     if (!withStrip) {
@@ -77,6 +81,9 @@ export function RouteMap({
     let frame = requestAnimationFrame(update);
     function update() {
       frame = 0;
+      if (picked.current) {
+        return;
+      }
       const stations = root.current?.querySelectorAll("[data-station]") ?? [];
       const scrolledToEnd =
         scrollY > 0 &&
@@ -95,13 +102,16 @@ export function RouteMap({
       }
     }
     const resized = new ResizeObserver(schedule);
-    if (root.current) {
-      resized.observe(root.current);
+    const area = root.current;
+    if (area) {
+      resized.observe(area);
+      area.addEventListener("animationend", schedule);
     }
     addEventListener("scroll", schedule, { passive: true });
     addEventListener("resize", schedule);
     return () => {
       resized.disconnect();
+      area?.removeEventListener("animationend", schedule);
       cancelAnimationFrame(frame);
       removeEventListener("scroll", schedule);
       removeEventListener("resize", schedule);
@@ -110,6 +120,10 @@ export function RouteMap({
 
   function pick(index: number) {
     setActive(index);
+    clearTimeout(picked.current);
+    picked.current = setTimeout(() => {
+      picked.current = undefined;
+    }, PICK_HOLD_MS);
     root.current
       ?.querySelectorAll("[data-station]")
       [index]?.scrollIntoView({ block: "start" });

@@ -21,7 +21,7 @@ export function activeStation(
       current = index;
     }
   });
-  return Math.max(0, current);
+  return current;
 }
 
 export function readResultView(params: Pick<URLSearchParams, "get">): {

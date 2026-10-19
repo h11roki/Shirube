@@ -51,6 +51,7 @@ export function useTransferFocusValue(
       follow: (from, transfer) => {
         clearTimeout(release.current);
         setSelected(null);
+        setHovered(null);
         setFollowed(from);
         go(transfer);
         release.current = setTimeout(() => setFollowed(null), FOLLOW_MS);
