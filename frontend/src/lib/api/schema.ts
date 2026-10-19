@@ -56,7 +56,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/plans/{plan_id}/taken-courses": {
+    "/api/v1/plans/{plan_id}/taken-courses/{name}": {
         parameters: {
             query?: never;
             header?: never;
@@ -64,10 +64,11 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Answer Taken */
-        put: operations["answer_taken_api_v1_plans__plan_id__taken_courses_put"];
+        /** Mark Taken */
+        put: operations["mark_taken_api_v1_plans__plan_id__taken_courses__name__put"];
         post?: never;
-        delete?: never;
+        /** Unmark Taken */
+        delete: operations["unmark_taken_api_v1_plans__plan_id__taken_courses__name__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -274,11 +275,6 @@ export interface components {
             /** Period */
             period: number;
         };
-        /** TakenCoursesIn */
-        TakenCoursesIn: {
-            /** Names */
-            names: string[];
-        };
         /**
          * Term
          * @enum {string}
@@ -476,20 +472,17 @@ export interface operations {
             };
         };
     };
-    answer_taken_api_v1_plans__plan_id__taken_courses_put: {
+    mark_taken_api_v1_plans__plan_id__taken_courses__name__put: {
         parameters: {
             query?: never;
             header?: never;
             path: {
                 plan_id: string;
+                name: string;
             };
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["TakenCoursesIn"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Successful Response */
             200: {
@@ -518,7 +511,75 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
-            /** @description 道標がまだできあがっていない */
+            /** @description 道標が完了していない、時間割表が変わった、ほかの画面で答えが変わった */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    unmark_taken_api_v1_plans__plan_id__taken_courses__name__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 無いか、ほかの利用者の道標 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 道標が完了していない、時間割表が変わった、ほかの画面で答えが変わった */
             409: {
                 headers: {
                     [name: string]: unknown;

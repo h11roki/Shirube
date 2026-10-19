@@ -7,7 +7,7 @@ from uuid import UUID
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanStage, PlanSummary
+from app.domain.plan import Plan, PlanResult, PlanStage, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -77,7 +77,9 @@ class TokenVerifier(Protocol):
 class UserRepository(Protocol):
     def id_of(self, subject: str) -> UUID: ...
 
-    def replace_taken(self, user_id: UUID, asked: Set[str], taken: Set[str]) -> None: ...
+    def add_taken(self, user_id: UUID, name: str) -> None: ...
+
+    def remove_taken(self, user_id: UUID, name: str) -> None: ...
 
 
 class PlanFormatError(ValueError):
@@ -95,7 +97,7 @@ class PlanRepository(Protocol):
 
     def finish(self, plan: Plan) -> bool: ...
 
-    def replace_result(self, plan: Plan) -> bool: ...
+    def replace_result(self, plan: Plan, previous: PlanResult) -> bool: ...
 
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]: ...
 

@@ -22,7 +22,7 @@ from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanStage, PlanStatus, PlanSummary
+from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -175,8 +175,9 @@ class FakePlanRepository:
         self.plans[plan.id] = plan
         return True
 
-    def replace_result(self, plan: Plan) -> bool:
-        if self.plans[plan.id].status is not PlanStatus.SUCCEEDED:
+    def replace_result(self, plan: Plan, previous: PlanResult) -> bool:
+        stored = self.plans[plan.id]
+        if stored.status is not PlanStatus.SUCCEEDED or stored.result != previous:
             return False
         self.plans[plan.id] = plan
         return True
@@ -217,10 +218,11 @@ class FakeUserRepository:
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
 
-    def replace_taken(self, user_id: UUID, asked: Set[str], taken: Set[str]) -> None:
-        names = self.taken.setdefault(user_id, set())
-        names -= asked - taken
-        names |= taken
+    def add_taken(self, user_id: UUID, name: str) -> None:
+        self.taken.setdefault(user_id, set()).add(name)
+
+    def remove_taken(self, user_id: UUID, name: str) -> None:
+        self.taken.setdefault(user_id, set()).discard(name)
 
 
 def chat_answering(

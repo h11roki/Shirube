@@ -11,7 +11,6 @@ from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
 MAX_CHOSEN_CLASSES = 50
-MAX_TAKEN_COURSES = 50
 MAX_NAME_LENGTH = 100
 
 DepartmentName = Annotated[
@@ -37,14 +36,6 @@ class PlanIn(BaseModel):
         if not is_single_line(occupation):
             raise ValueError("職業名は空でない 1 行にしてください")
         return occupation
-
-
-class TakenCoursesIn(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-
-    names: list[Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)]] = Field(
-        max_length=MAX_TAKEN_COURSES
-    )
 
 
 class SlotOut(BaseModel):

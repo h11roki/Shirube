@@ -1,4 +1,3 @@
-from collections.abc import Set
 from uuid import UUID, uuid4
 
 from sqlalchemy import Engine, delete, select
@@ -28,17 +27,16 @@ class SqlUserRepository:
             db.commit()
             return user_id
 
-    def replace_taken(self, user_id: UUID, asked: Set[str], taken: Set[str]) -> None:
+    def add_taken(self, user_id: UUID, name: str) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(
+                insert(TakenCourseRow).values(user_id=user_id, name=name).on_conflict_do_nothing()
+            )
+
+    def remove_taken(self, user_id: UUID, name: str) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(
                 delete(TakenCourseRow).where(
-                    TakenCourseRow.user_id == user_id,
-                    TakenCourseRow.name.in_(sorted(asked - taken)),
+                    TakenCourseRow.user_id == user_id, TakenCourseRow.name == name
                 )
             )
-            if taken:
-                db.execute(
-                    insert(TakenCourseRow)
-                    .values([{"user_id": user_id, "name": name} for name in sorted(taken)])
-                    .on_conflict_do_nothing()
-                )

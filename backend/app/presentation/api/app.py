@@ -7,8 +7,10 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from app.application.answer_taken_courses import (
+    AnswerConflictError,
     AnswerTakenCourses,
     PlanNotFinishedError,
+    PlanOutdatedError,
     UnaskedCourseError,
 )
 from app.application.build_plans import SERVER_FAILURE
@@ -33,6 +35,11 @@ INPUT_ERRORS: tuple[type[Exception], ...] = (
     NoCandidatesError,
     UnaskedCourseError,
 )
+CONFLICT_ERRORS: tuple[type[Exception], ...] = (
+    PlanNotFinishedError,
+    PlanOutdatedError,
+    AnswerConflictError,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +48,7 @@ async def _input_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(error)}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
 
 
-async def _not_finished(request: Request, error: Exception) -> JSONResponse:
+async def _conflict(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(error)}, status_code=status.HTTP_409_CONFLICT)
 
 
@@ -97,7 +104,8 @@ def create_app(
     app.add_exception_handler(InvalidTokenError, _invalid_token)
     for error in INPUT_ERRORS:
         app.add_exception_handler(error, _input_error)
-    app.add_exception_handler(PlanNotFinishedError, _not_finished)
+    for error in CONFLICT_ERRORS:
+        app.add_exception_handler(error, _conflict)
     app.add_exception_handler(Exception, _unexpected_error)
 
     @app.exception_handler(RequestValidationError)

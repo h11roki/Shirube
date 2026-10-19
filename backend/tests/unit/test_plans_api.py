@@ -9,7 +9,7 @@ from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStage, PlanStatus
-from tests.builders import sample_conditions, sample_plan, sample_plan_asking
+from tests.builders import sample_conditions, sample_plan, sample_plan_asking, sample_sections
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
@@ -303,24 +303,25 @@ def test_another_users_plan_is_not_found() -> None:
     )
 
 
-def test_answering_taken_courses_returns_the_plan_placed_again() -> None:
+def test_a_course_is_marked_taken_and_unmarked_by_its_name() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
     plan = sample_plan_asking(uuid4(), users.id_of("google-a"))
     plans.add(plan)
-    courses = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6})
+    courses = (FakeCourseRepository(sample_sections()), courses_ranked_by({"科目A": 0.9})[1])
+    api = client(courses, plans, users)
 
-    response = client(courses, plans, users).put(
-        f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目A"]}
-    )
+    marked = api.put(f"/api/v1/plans/{plan.id}/taken-courses/科目A")
+    unmarked = api.delete(f"/api/v1/plans/{plan.id}/taken-courses/%E7%A7%91%E7%9B%AEA")
 
-    assert response.status_code == 200
-    result = response.json()["result"]
-    assert [course["name"] for course in result["taken"]] == ["科目A"]
-    assert result["offered_earlier"] == ["科目A", "科目B", "科目C", "科目D"]
+    assert marked.status_code == 200
+    assert [course["name"] for course in marked.json()["result"]["taken"]] == ["科目A"]
+    assert marked.json()["result"]["offered_earlier"] == ["科目A", "科目D"]
+    assert unmarked.status_code == 200
+    assert unmarked.json()["result"]["taken"] == []
 
 
-def test_answering_about_a_course_not_asked_or_on_an_unfinished_plan_is_refused() -> None:
+def test_answers_about_unasked_courses_unfinished_or_others_plans_are_refused() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
     owner = users.id_of("google-a")
@@ -330,18 +331,20 @@ def test_answering_about_a_course_not_asked_or_on_an_unfinished_plan_is_refused(
     plans.add(waiting)
     api = client(plans=plans, users=users)
 
-    unasked = api.put(f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目B"]})
-    unfinished = api.put(f"/api/v1/plans/{waiting.id}/taken-courses", json={"names": []})
-    others = client(plans=plans, users=users, token="token-b").put(
-        f"/api/v1/plans/{plan.id}/taken-courses", json={"names": ["科目A"]}
+    unasked = api.put(f"/api/v1/plans/{plan.id}/taken-courses/科目B")
+    unfinished = api.put(f"/api/v1/plans/{waiting.id}/taken-courses/科目A")
+    others = client(plans=plans, users=users, token="token-b").delete(
+        f"/api/v1/plans/{plan.id}/taken-courses/科目A"
     )
-    wrong_shape = api.put(f"/api/v1/plans/{plan.id}/taken-courses", json={"name": "科目A"})
+    too_long = api.put(f"/api/v1/plans/{plan.id}/taken-courses/{'科' * 101}")
 
     assert (unasked.status_code, unasked.json()) == (
         422,
         {"detail": "この道標でもう取ったかを聞いていない授業です: 科目B"},
     )
-    assert unfinished.status_code == 409
-    assert unfinished.json()["detail"].startswith("できあがっていない道標では答えられません")
+    assert (unfinished.status_code, unfinished.json()) == (
+        409,
+        {"detail": "完了した道標でないと答えられません: pending"},
+    )
     assert others.status_code == 404
-    assert wrong_shape.status_code == 422
+    assert too_long.status_code == 422

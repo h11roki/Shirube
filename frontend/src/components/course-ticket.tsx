@@ -1,12 +1,15 @@
 "use client";
 
+import { useContext } from "react";
+
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { useTakenAnswers } from "@/components/taken-answers";
+import { TakenAnswersContext } from "@/components/taken-answers";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
   classLabel,
+  markTakenLabel,
   roleLabel,
   slotsLabel,
   TRANSFER_WARNINGS,
@@ -41,7 +44,7 @@ export function CourseTicket({
   transfer?: Transfer;
 }) {
   const focusing = useTransferFocus();
-  const answering = useTakenAnswers();
+  const answering = useContext(TakenAnswersContext);
   const core = course.relevance === "core";
   const placed = "slots" in course;
   const warning = transfer ? TRANSFER_WARNINGS[transfer.order] : null;
@@ -90,8 +93,12 @@ export function CourseTicket({
           <button
             type="button"
             disabled={answering.busy}
-            onClick={() => answering.answer(course.name, true)}
-            aria-label={`${course.name}はもう取った`}
+            onClick={() => {
+              focusing?.hover(null);
+              focusing?.select(null);
+              answering.answer(course.name, "mark");
+            }}
+            aria-label={markTakenLabel(course.name)}
             className="mt-1 justify-self-start rounded-full border border-line bg-sheet px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
           >
             もう取った

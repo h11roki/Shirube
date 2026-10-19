@@ -123,6 +123,24 @@ def sample_plan(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     )
 
 
+def sample_sections() -> tuple[CourseSection, ...]:
+    later_only = (Audience(2020, 2026, frozenset({3, 4}), "専門"),)
+    return (
+        replace(course_section("10000"), name="科目A"),
+        replace(
+            course_section("10001", slots=(TimeSlot(Weekday.TUE, 1),)),
+            name="科目B",
+            audiences=later_only,
+        ),
+        replace(
+            course_section("10002", slots=(TimeSlot(Weekday.WED, 1),)),
+            name="科目C",
+            audiences=later_only,
+        ),
+        replace(course_section("10003", slots=(TimeSlot(Weekday.THU, 1),)), name="科目D"),
+    )
+
+
 def sample_plan_asking(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     plan = sample_plan(plan_id, owner_id)
     assert plan.result is not None

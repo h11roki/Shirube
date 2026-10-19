@@ -274,15 +274,23 @@ def test_a_running_plan_is_finished_once_with_its_result(
     assert finished_at is not None
 
 
-def test_only_a_succeeded_plan_is_placed_again(repository: SqlPlanRepository, owner: UUID) -> None:
+def test_a_succeeded_plan_is_placed_again_only_from_the_result_it_was_read_with(
+    repository: SqlPlanRepository, owner: UUID
+) -> None:
     plan = sample_plan(uuid4(), owner)
     repository.add(plan)
     pending = waiting(repository, owner)
     again = sample_plan_with_taken(plan.id, owner)
+    assert plan.result is not None
+    assert again.result is not None
 
-    assert repository.replace_result(again) is True
+    assert repository.replace_result(again, plan.result) is True
     assert repository.get(plan.id) == again
-    assert repository.replace_result(sample_plan_with_taken(pending.id, owner)) is False
+    assert repository.replace_result(plan, plan.result) is False
+    assert repository.get(plan.id) == again
+    assert (
+        repository.replace_result(sample_plan_with_taken(pending.id, owner), plan.result) is False
+    )
     assert repository.get(pending.id) == pending
 
 

@@ -110,6 +110,25 @@ export const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
   after: `${RELEVANCE_LABELS.core}より後の学期です。${NOT_EARLIER}`,
 };
 
+export type TakenChange = "mark" | "unmark";
+
+const TAKEN_VERBS: Record<TakenChange, string> = {
+  mark: "外して",
+  unmark: "戻して",
+};
+
+export function answeredLabel(name: string, change: TakenChange): string {
+  return `${name}を${TAKEN_VERBS[change]}置き直しました`;
+}
+
+export function markTakenLabel(name: string): string {
+  return `${name}はもう取った`;
+}
+
+export function unmarkTakenLabel(name: string): string {
+  return `${name}を道標に戻す`;
+}
+
 export function roleLabel(
   course: Pick<Course, "relevance" | "prerequisite_for">,
 ): string {

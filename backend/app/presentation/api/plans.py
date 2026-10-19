@@ -3,22 +3,33 @@ from datetime import date
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Request, Response, status
 
 from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.get_plan import GetPlan
 from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
+from app.domain.plan import Plan
 from app.domain.roadmap import Semester, term_on
 from app.presentation.schemas.errors import CONFLICT_RESPONSE, INVALID_RESPONSE, NOT_FOUND_RESPONSE
 from app.presentation.schemas.plans import (
+    MAX_NAME_LENGTH,
     PlanIn,
     PlanListOut,
     PlanOut,
     PlanSummaryOut,
-    TakenCoursesIn,
     plan_out,
 )
+
+TakenCourseName = Annotated[str, Path(max_length=MAX_NAME_LENGTH)]
+TAKEN_COURSE = "/plans/{plan_id}/taken-courses/{name:path}"
+TAKEN_RESPONSES = {**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE}
+
+
+def _found(plan_id: UUID, plan: Plan | None) -> PlanOut:
+    if plan is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+    return plan_out(plan)
 
 
 def plans_router(
@@ -73,23 +84,22 @@ def plans_router(
         responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE},
     )
     def show(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> PlanOut:
-        plan = get_plan.run(owner_id=user_id, plan_id=plan_id)
-        if plan is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
-        return plan_out(plan)
+        return _found(plan_id, get_plan.run(owner_id=user_id, plan_id=plan_id))
 
-    @router.put(
-        "/plans/{plan_id}/taken-courses",
-        responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE},
-    )
-    def answer_taken(
-        plan_id: UUID, body: TakenCoursesIn, user_id: Annotated[UUID, Depends(current_user)]
+    @router.put(TAKEN_COURSE, responses=TAKEN_RESPONSES)
+    def mark_taken(
+        plan_id: UUID, name: TakenCourseName, user_id: Annotated[UUID, Depends(current_user)]
     ) -> PlanOut:
-        plan = answer_taken_courses.run(
-            owner_id=user_id, plan_id=plan_id, taken=frozenset(body.names)
+        return _found(
+            plan_id, answer_taken_courses.mark(owner_id=user_id, plan_id=plan_id, name=name)
         )
-        if plan is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
-        return plan_out(plan)
+
+    @router.delete(TAKEN_COURSE, responses=TAKEN_RESPONSES)
+    def unmark_taken(
+        plan_id: UUID, name: TakenCourseName, user_id: Annotated[UUID, Depends(current_user)]
+    ) -> PlanOut:
+        return _found(
+            plan_id, answer_taken_courses.unmark(owner_id=user_id, plan_id=plan_id, name=name)
+        )
 
     return router

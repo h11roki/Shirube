@@ -1,15 +1,13 @@
 "use client";
 
-import { createContext, useContext } from "react";
+import { createContext } from "react";
+
+import type { TakenChange } from "@/lib/labels";
 
 export type TakenAnswers = {
   asked: ReadonlySet<string>;
   busy: boolean;
-  answer: (name: string, taken: boolean) => void;
+  answer: (name: string, change: TakenChange) => void;
 };
 
 export const TakenAnswersContext = createContext<TakenAnswers | null>(null);
-
-export function useTakenAnswers(): TakenAnswers | null {
-  return useContext(TakenAnswersContext);
-}

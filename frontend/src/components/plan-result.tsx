@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
 import { DestinationPlate } from "@/components/destination-plate";
@@ -17,13 +17,15 @@ import { TimetableBook } from "@/components/timetable-book";
 import {
   type Plan,
   type PlanResult as Result,
-  type TakenCoursesRequest,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
+  type TakenChange,
+  answeredLabel,
+  unmarkTakenLabel,
   goalStationLabel,
   semesterLabel,
 } from "@/lib/labels";
@@ -36,6 +38,10 @@ import {
 
 const VIEWS: ResultView[] = ["route", "timetable"];
 const ANSWERED_MS = 6000;
+const TAKEN_METHODS: Record<TakenChange, string> = {
+  mark: "PUT",
+  unmark: "DELETE",
+};
 
 type Answered = { message: string; failed: boolean; undo: string | null };
 
@@ -52,6 +58,7 @@ export function PlanResultView({
   const { view, semester } = readResultView(useSearchParams());
   const [busy, setBusy] = useState(false);
   const [answered, setAnswered] = useState<Answered>();
+  const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
   const { conditions } = plan;
   const last = result.semesters.at(-1);
@@ -65,36 +72,25 @@ export function PlanResultView({
     return () => clearTimeout(timer);
   }, [answered]);
 
-  async function answer(name: string, taken: boolean) {
-    const names = new Set(result.taken.map((course) => course.name));
-    if (taken) {
-      names.add(name);
-    } else {
-      names.delete(name);
-    }
+  async function answer(name: string, change: TakenChange) {
     setBusy(true);
     try {
       onAnswered(
         await requestJson<Plan>(
-          `/api/plans/${encodeURIComponent(plan.id)}/taken-courses`,
-          {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              names: [...names],
-            } satisfies TakenCoursesRequest),
-          },
+          `/api/plans/${encodeURIComponent(plan.id)}/taken-courses/${encodeURIComponent(name)}`,
+          { method: TAKEN_METHODS[change] },
         ),
       );
       setAnswered({
-        message: `${name}を${taken ? "外して" : "戻して"}置き直しました`,
+        message: answeredLabel(name, change),
         failed: false,
-        undo: taken ? name : null,
+        undo: change === "mark" ? name : null,
       });
     } catch (caught) {
       setAnswered({ message: messageOf(caught), failed: true, undo: null });
     } finally {
       setBusy(false);
+      notice.current?.focus({ preventScroll: true });
     }
   }
 
@@ -103,7 +99,7 @@ export function PlanResultView({
       value={{
         asked: new Set(result.offered_earlier),
         busy,
-        answer: (name, taken) => void answer(name, taken),
+        answer: (name, change) => void answer(name, change),
       }}
     >
       <div className="grid gap-8">
@@ -237,8 +233,8 @@ export function PlanResultView({
                   <button
                     type="button"
                     disabled={busy}
-                    onClick={() => void answer(course.name, false)}
-                    aria-label={`${course.name}を道標に戻す`}
+                    onClick={() => void answer(course.name, "unmark")}
+                    aria-label={unmarkTakenLabel(course.name)}
                     className="rounded-full border border-line px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
                   >
                     戻す
@@ -287,24 +283,30 @@ export function PlanResultView({
           </Link>
         </p>
       </div>
-      {answered && (
-        <div
-          role={answered.failed ? "alert" : "status"}
-          className={`fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 mx-auto flex w-fit max-w-[calc(100%-2rem)] flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
-        >
-          {answered.message}
-          {undo && (
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => void answer(undo, false)}
-              className={TEXT_LINK}
-            >
-              戻す
-            </button>
-          )}
-        </div>
-      )}
+      <div
+        ref={notice}
+        role="status"
+        tabIndex={-1}
+        className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4"
+      >
+        {answered && (
+          <p
+            className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
+          >
+            {answered.message}
+            {undo && (
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => void answer(undo, "unmark")}
+                className={TEXT_LINK}
+              >
+                戻す
+              </button>
+            )}
+          </p>
+        )}
+      </div>
     </TakenAnswersContext.Provider>
   );
 }

@@ -3,7 +3,6 @@ import type { components } from "@/lib/api/schema";
 type Schemas = components["schemas"];
 export type Plan = Schemas["PlanOut"];
 export type PlanRequest = Schemas["PlanIn"];
-export type TakenCoursesRequest = Schemas["TakenCoursesIn"];
 export type PlanList = Schemas["PlanListOut"];
 export type PlanSummary = Schemas["PlanSummaryOut"];
 export type PlanResult = Schemas["ResultOut"];

@@ -26,19 +26,21 @@ def test_a_subject_gets_one_user_that_is_created_on_first_use(
         assert connection.execute(select(func.count()).select_from(UserRow)).scalar_one() == 2
 
 
-def test_taken_courses_are_replaced_only_within_the_asked_ones_of_that_user(
+def test_taken_courses_are_added_and_removed_one_by_one_for_each_user(
     engine: Engine, users: SqlUserRepository
 ) -> None:
     user = users.id_of("google-a")
     other = users.id_of("google-b")
-    users.replace_taken(other, {"科目A"}, {"科目A"})
-    users.replace_taken(user, {"科目A", "科目B"}, {"科目A", "科目B"})
+    users.add_taken(other, "科目A")
+    users.add_taken(user, "科目A")
+    users.add_taken(user, "科目A")
+    users.add_taken(user, "科目B")
 
-    users.replace_taken(user, {"科目B", "科目C"}, {"科目C"})
-    users.replace_taken(user, {"科目C"}, {"科目C"})
+    users.remove_taken(user, "科目A")
+    users.remove_taken(user, "科目C")
 
     with engine.connect() as connection:
         rows = connection.execute(select(TakenCourseRow.user_id, TakenCourseRow.name)).all()
     assert sorted((str(user_id), name) for user_id, name in rows) == sorted(
-        [(str(other), "科目A"), (str(user), "科目A"), (str(user), "科目C")]
+        [(str(other), "科目A"), (str(user), "科目B")]
     )

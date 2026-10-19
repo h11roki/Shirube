@@ -102,13 +102,17 @@ class SqlPlanRepository:
             ).one_or_none()
         return finished is not None
 
-    def replace_result(self, plan: Plan) -> bool:
+    def replace_result(self, plan: Plan, previous: PlanResult) -> bool:
         if plan.result is None:
             raise ValueError(f"結果の無い道標は置き直せません: {plan.status}")
         with DbSession(self._engine) as db, db.begin():
             replaced = db.scalars(
                 update(PlanRow)
-                .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.SUCCEEDED)
+                .where(
+                    PlanRow.id == plan.id,
+                    PlanRow.status == PlanStatus.SUCCEEDED,
+                    PlanRow.result == result_json(previous),
+                )
                 .values(result=result_json(plan.result))
                 .returning(PlanRow.id)
                 .execution_options(synchronize_session=False)
