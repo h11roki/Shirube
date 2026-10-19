@@ -6,21 +6,24 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.application.get_plan import GetPlan
+from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
 from app.domain.roadmap import Semester, term_on
-from app.presentation.schemas.plans import PlanIn, PlanOut, plan_out
+from app.presentation.schemas.errors import INVALID_RESPONSE, NOT_FOUND_RESPONSE
+from app.presentation.schemas.plans import PlanIn, PlanListOut, PlanOut, PlanSummaryOut, plan_out
 
 
 def plans_router(
     request_plan: RequestPlan,
     get_plan: GetPlan,
+    list_plans: ListPlans,
     current_user: Callable[..., UUID],
     curriculum_year: int,
     today: Callable[[], date],
 ) -> APIRouter:
     router = APIRouter()
 
-    @router.post("/plans", status_code=status.HTTP_202_ACCEPTED)
+    @router.post("/plans", status_code=status.HTTP_202_ACCEPTED, responses=INVALID_RESPONSE)
     def create(
         body: PlanIn,
         user_id: Annotated[UUID, Depends(current_user)],
@@ -39,7 +42,27 @@ def plans_router(
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))
         return plan_out(plan)
 
-    @router.get("/plans/{plan_id}", name="show_plan")
+    @router.get("/plans")
+    def index(user_id: Annotated[UUID, Depends(current_user)]) -> PlanListOut:
+        return PlanListOut(
+            plans=[
+                PlanSummaryOut(
+                    id=summary.id,
+                    status=summary.status,
+                    occupation=summary.occupation,
+                    grade=summary.start.grade,
+                    term=summary.start.term,
+                    created_at=summary.created_at,
+                )
+                for summary in list_plans.run(user_id)
+            ]
+        )
+
+    @router.get(
+        "/plans/{plan_id}",
+        name="show_plan",
+        responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE},
+    )
     def show(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> PlanOut:
         plan = get_plan.run(owner_id=user_id, plan_id=plan_id)
         if plan is None:

@@ -68,3 +68,4 @@
 | [0027](0027-auth-backend.md) | バックエンドは HS256 の短い JWT で利用者を確かめ、users 表には Google の sub だけを持ち、他人の Plan は 404 にする | 承認 |
 | [0028](0028-auth-frontend.md) | フロントは Auth.js v5 の Google ログインを暗号化したクッキーで持ち、エンドポイントごとの Route Handler が JWT を作ってバックエンドへ転送する | 承認 |
 | [0029](0029-plan-jobs.md) | 道標は DB をキューにした worker が非同期に作り、API は状態を持つ Plan を 202 で受け付けてポーリングで返す | 承認 |
+| [0030](0030-screens.md) | 画面は Tailwind だけの部品で作り、Route Handler だけを呼び、型は生成物をコミットして CI で照合する | 承認 |

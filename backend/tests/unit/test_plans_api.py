@@ -141,6 +141,30 @@ def test_a_failed_plan_is_shown_with_its_fixed_message() -> None:
     )
 
 
+def test_the_list_shows_only_the_users_own_plans_newest_first_up_to_fifty() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    owner = users.id_of("google-a")
+    own = [Plan(uuid4(), owner, sample_conditions()) for _ in range(51)]
+    for plan in own:
+        plans.add(plan)
+    plans.add(Plan(uuid4(), users.id_of("google-b"), sample_conditions()))
+
+    listed = client(plans=plans, users=users).get("/api/v1/plans")
+
+    assert listed.status_code == 200
+    summaries = listed.json()["plans"]
+    assert [summary["id"] for summary in summaries] == [str(plan.id) for plan in own[:0:-1]]
+    assert summaries[0] == {
+        "id": str(own[-1].id),
+        "status": "pending",
+        "occupation": "職業",
+        "grade": 3,
+        "term": "spring",
+        "created_at": plans.created_at[own[-1].id].isoformat().replace("+00:00", "Z"),
+    }
+
+
 def test_an_unknown_plan_is_not_found() -> None:
     plan_id = uuid4()
 
@@ -228,7 +252,12 @@ def test_a_stored_plan_that_cannot_be_read_is_a_server_error() -> None:
 def test_plans_need_a_login() -> None:
     api = client(token=None)
 
-    for response in (api.post("/api/v1/plans", json=body()), api.get(f"/api/v1/plans/{uuid4()}")):
+    for response in (
+        api.post("/api/v1/plans", json=body()),
+        api.get(f"/api/v1/plans/{uuid4()}"),
+        api.get("/api/v1/plans"),
+        api.get("/api/v1/class-choices", params={"department": "情", "grade": 3}),
+    ):
         assert (response.status_code, response.json()) == (401, {"detail": "ログインしてください"})
         assert response.headers["www-authenticate"] == "Bearer"
 

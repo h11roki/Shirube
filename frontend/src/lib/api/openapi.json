@@ -1,0 +1,873 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "shirube",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_v1_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "type": "object",
+                  "title": "Response Health Api V1 Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index_api_v1_plans_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanListOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      },
+      "post": {
+        "summary": "Create",
+        "operationId": "create_api_v1_plans_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/plans/{plan_id}": {
+      "get": {
+        "summary": "Show Plan",
+        "operationId": "show_plan_api_v1_plans__plan_id__get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "無いか、ほかの利用者の道標",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/class-choices": {
+      "get": {
+        "summary": "Show",
+        "operationId": "show_api_v1_class_choices_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Department"
+            }
+          },
+          {
+            "name": "grade",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 4,
+              "minimum": 1,
+              "title": "Grade"
+            }
+          },
+          {
+            "name": "term",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/Term"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Term"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassChoicesOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClassChoiceOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "class_codes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Class Codes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "class_codes"
+        ],
+        "title": "ClassChoiceOut"
+      },
+      "ClassChoicesOut": {
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/ClassChoiceOut"
+            },
+            "type": "array",
+            "title": "Courses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "term",
+          "courses"
+        ],
+        "title": "ClassChoicesOut"
+      },
+      "ConditionsOut": {
+        "properties": {
+          "occupation": {
+            "type": "string",
+            "title": "Occupation"
+          },
+          "department": {
+            "type": "string",
+            "title": "Department"
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "grade": {
+            "type": "integer",
+            "title": "Grade"
+          },
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          },
+          "chosen_classes": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Chosen Classes"
+          },
+          "credit_limit": {
+            "type": "integer",
+            "title": "Credit Limit"
+          }
+        },
+        "type": "object",
+        "required": [
+          "occupation",
+          "department",
+          "year",
+          "grade",
+          "term",
+          "chosen_classes",
+          "credit_limit"
+        ],
+        "title": "ConditionsOut"
+      },
+      "CourseOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "relevance": {
+            "$ref": "#/components/schemas/Relevance"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "prerequisite_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prerequisite For"
+          },
+          "syllabus_code": {
+            "type": "string",
+            "title": "Syllabus Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "relevance",
+          "reason",
+          "prerequisite_for",
+          "syllabus_code"
+        ],
+        "title": "CourseOut"
+      },
+      "ErrorOut": {
+        "properties": {
+          "detail": {
+            "type": "string",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "required": [
+          "detail"
+        ],
+        "title": "ErrorOut"
+      },
+      "PlacedCourseOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "relevance": {
+            "$ref": "#/components/schemas/Relevance"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "prerequisite_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prerequisite For"
+          },
+          "syllabus_code": {
+            "type": "string",
+            "title": "Syllabus Code"
+          },
+          "section_code": {
+            "type": "string",
+            "title": "Section Code"
+          },
+          "class_code": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Class Code"
+          },
+          "slots": {
+            "items": {
+              "$ref": "#/components/schemas/SlotOut"
+            },
+            "type": "array",
+            "title": "Slots"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "class_confirmed": {
+            "type": "boolean",
+            "title": "Class Confirmed"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "relevance",
+          "reason",
+          "prerequisite_for",
+          "syllabus_code",
+          "section_code",
+          "class_code",
+          "slots",
+          "credits",
+          "class_confirmed"
+        ],
+        "title": "PlacedCourseOut"
+      },
+      "PlanIn": {
+        "properties": {
+          "occupation": {
+            "type": "string",
+            "maxLength": 100,
+            "title": "Occupation"
+          },
+          "grade": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Grade"
+          },
+          "term": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Term"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "department": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Department"
+          },
+          "chosen_classes": {
+            "additionalProperties": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "propertyNames": {
+              "maxLength": 100
+            },
+            "type": "object",
+            "maxProperties": 50,
+            "title": "Chosen Classes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "occupation",
+          "grade",
+          "department"
+        ],
+        "title": "PlanIn"
+      },
+      "PlanListOut": {
+        "properties": {
+          "plans": {
+            "items": {
+              "$ref": "#/components/schemas/PlanSummaryOut"
+            },
+            "type": "array",
+            "title": "Plans"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plans"
+        ],
+        "title": "PlanListOut"
+      },
+      "PlanOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          },
+          "conditions": {
+            "$ref": "#/components/schemas/ConditionsOut"
+          },
+          "result": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ResultOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "failure": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Failure"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "conditions",
+          "result",
+          "failure"
+        ],
+        "title": "PlanOut"
+      },
+      "PlanStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "running",
+          "succeeded",
+          "failed"
+        ],
+        "title": "PlanStatus"
+      },
+      "PlanSummaryOut": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "status": {
+            "$ref": "#/components/schemas/PlanStatus"
+          },
+          "occupation": {
+            "type": "string",
+            "title": "Occupation"
+          },
+          "grade": {
+            "type": "integer",
+            "title": "Grade"
+          },
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "occupation",
+          "grade",
+          "term",
+          "created_at"
+        ],
+        "title": "PlanSummaryOut"
+      },
+      "ProfileOut": {
+        "properties": {
+          "occupation": {
+            "type": "string",
+            "title": "Occupation"
+          },
+          "interpretation": {
+            "type": "string",
+            "title": "Interpretation"
+          },
+          "assumption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Assumption"
+          },
+          "skills": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Skills"
+          }
+        },
+        "type": "object",
+        "required": [
+          "occupation",
+          "interpretation",
+          "assumption",
+          "skills"
+        ],
+        "title": "ProfileOut"
+      },
+      "Relevance": {
+        "type": "string",
+        "enum": [
+          "core",
+          "foundation"
+        ],
+        "title": "Relevance"
+      },
+      "ResultOut": {
+        "properties": {
+          "profile": {
+            "$ref": "#/components/schemas/ProfileOut"
+          },
+          "semesters": {
+            "items": {
+              "$ref": "#/components/schemas/SemesterPlanOut"
+            },
+            "type": "array",
+            "title": "Semesters"
+          },
+          "unplaced": {
+            "items": {
+              "$ref": "#/components/schemas/CourseOut"
+            },
+            "type": "array",
+            "title": "Unplaced"
+          },
+          "unlinked": {
+            "items": {
+              "$ref": "#/components/schemas/UnlinkedOut"
+            },
+            "type": "array",
+            "title": "Unlinked"
+          }
+        },
+        "type": "object",
+        "required": [
+          "profile",
+          "semesters",
+          "unplaced",
+          "unlinked"
+        ],
+        "title": "ResultOut"
+      },
+      "SemesterPlanOut": {
+        "properties": {
+          "grade": {
+            "type": "integer",
+            "title": "Grade"
+          },
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/PlacedCourseOut"
+            },
+            "type": "array",
+            "title": "Courses"
+          },
+          "continuing": {
+            "items": {
+              "$ref": "#/components/schemas/PlacedCourseOut"
+            },
+            "type": "array",
+            "title": "Continuing"
+          }
+        },
+        "type": "object",
+        "required": [
+          "grade",
+          "term",
+          "credits",
+          "courses",
+          "continuing"
+        ],
+        "title": "SemesterPlanOut"
+      },
+      "SlotOut": {
+        "properties": {
+          "weekday": {
+            "$ref": "#/components/schemas/Weekday"
+          },
+          "period": {
+            "type": "integer",
+            "title": "Period"
+          }
+        },
+        "type": "object",
+        "required": [
+          "weekday",
+          "period"
+        ],
+        "title": "SlotOut"
+      },
+      "Term": {
+        "type": "string",
+        "enum": [
+          "spring",
+          "autumn"
+        ],
+        "title": "Term"
+      },
+      "UnlinkedOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "prerequisite_for": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Prerequisite For"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "reason",
+          "prerequisite_for"
+        ],
+        "title": "UnlinkedOut"
+      },
+      "Weekday": {
+        "type": "string",
+        "enum": [
+          "mon",
+          "tue",
+          "wed",
+          "thu",
+          "fri",
+          "sat",
+          "sun"
+        ],
+        "title": "Weekday"
+      }
+    },
+    "securitySchemes": {
+      "HTTPBearer": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

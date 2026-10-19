@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 from uuid import UUID
 
@@ -12,6 +13,10 @@ from app.domain.roadmap import PlacedCourse
 MAX_CHOSEN_CLASSES = 50
 MAX_NAME_LENGTH = 100
 
+DepartmentName = Annotated[
+    str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH)
+]
+
 
 class PlanIn(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -19,9 +24,7 @@ class PlanIn(BaseModel):
     occupation: Annotated[str, StringConstraints(strip_whitespace=True, max_length=MAX_NAME_LENGTH)]
     grade: int = Field(strict=True, ge=min(ALL_GRADES), le=max(ALL_GRADES))
     term: Term | None = None
-    department: Annotated[
-        str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH)
-    ]
+    department: DepartmentName
     chosen_classes: dict[
         Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
         Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
@@ -100,6 +103,19 @@ class PlanOut(BaseModel):
     conditions: ConditionsOut
     result: ResultOut | None
     failure: str | None
+
+
+class PlanSummaryOut(BaseModel):
+    id: UUID
+    status: PlanStatus
+    occupation: str
+    grade: int
+    term: Term
+    created_at: datetime
+
+
+class PlanListOut(BaseModel):
+    plans: list[PlanSummaryOut]
 
 
 def _course_out(course: RecommendedCourse) -> CourseOut:

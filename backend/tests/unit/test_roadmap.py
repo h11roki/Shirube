@@ -6,11 +6,13 @@ from app.domain.course import Audience, CourseSection, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import (
+    ClassChoice,
     PlacedCourse,
     Roadmap,
     RoadmapError,
     Semester,
     SemesterPlan,
+    class_choices,
     place,
     remaining_semesters,
     require_class_choices,
@@ -340,3 +342,39 @@ def test_a_roadmap_breaking_its_promises_is_rejected() -> None:
         Roadmap((SemesterPlan(spring, (other,)), SemesterPlan(autumn, (), (year_long,))), ())
     with pytest.raises(RoadmapError, match="置けなかった科目にもあります: 通年の科目"):
         Roadmap((SemesterPlan(spring, (year_long,)),), (course,))
+
+
+def test_only_courses_split_into_department_classes_in_one_semester_are_offered_as_choices() -> (
+    None
+):
+    own = frozenset({"情"})
+    sections = [
+        section("10000", "情報科学Ⅱ", class_code="TB", departments=own, slots=TUE_1),
+        section("10001", "情報科学Ⅱ", class_code="TA", departments=own),
+        section("10002", "情報科学Ⅱ", class_code="TC", departments=frozenset({"電"})),
+        section("10003", "記号なしと分かれた科目", class_code="", departments=own),
+        section("10004", "記号なしと分かれた科目", class_code="X", departments=own),
+        section("10005", "情報処理", class_code="6T", departments=own),
+        section("10006", "情報処理", class_code="6T", departments=own, term=Term.AUTUMN),
+        section(
+            "10007",
+            "前の回生だけ分かれた科目",
+            class_code="PA",
+            departments=own,
+            grades=frozenset({1}),
+        ),
+        section(
+            "10008",
+            "前の回生だけ分かれた科目",
+            class_code="PB",
+            departments=own,
+            grades=frozenset({1}),
+        ),
+        section("10009", "科目A"),
+    ]
+    later = remaining_semesters(Semester(2, Term.SPRING))
+
+    assert class_choices(sections, "情", 2026, later) == [
+        ClassChoice("情報科学Ⅱ", ("TA", "TB")),
+        ClassChoice("記号なしと分かれた科目", ("", "X")),
+    ]

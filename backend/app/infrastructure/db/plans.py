@@ -10,7 +10,7 @@ from sqlalchemy.orm import aliased
 from app.application.ports import PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus
+from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus, PlanSummary
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
@@ -107,6 +107,24 @@ class SqlPlanRepository:
             select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
         )
 
+    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(PlanRow.id, PlanRow.status, PlanRow.conditions, PlanRow.created_at)
+                .where(PlanRow.user_id == owner_id)
+                .order_by(PlanRow.created_at.desc(), PlanRow.id.desc())
+                .limit(limit)
+            ).all()
+        summaries = []
+        for plan_id, status, stored, created_at in rows:
+            conditions = _conditions(plan_id, stored)
+            summaries.append(
+                PlanSummary(
+                    plan_id, PlanStatus(status), conditions.occupation, conditions.start, created_at
+                )
+            )
+        return summaries
+
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
         with DbSession(self._engine, expire_on_commit=False) as db, db.begin():
             row = db.scalars(
@@ -129,10 +147,8 @@ def _plan(row: PlanRow) -> Plan:
     version = stored.get("version") if isinstance(stored, dict) else None
     if stored is not None and version != RESULT_JSON_VERSION:
         raise PlanFormatError(f"{row.id}: 読めない版の道標の結果です: {version}")
+    conditions = _conditions(row.id, row.conditions)
     try:
-        conditions = conditions_from_json(
-            CONDITIONS_JSON.validate_python(row.conditions, strict=True)
-        )
         result = (
             None
             if stored is None
@@ -141,6 +157,13 @@ def _plan(row: PlanRow) -> Plan:
         return Plan(row.id, row.user_id, conditions, PlanStatus(row.status), result, row.failure)
     except (KeyError, ValueError) as error:
         raise PlanFormatError(f"{row.id}: 保存した道標を読めません: {error!r}") from error
+
+
+def _conditions(plan_id: UUID, stored: object) -> PlanConditions:
+    try:
+        return conditions_from_json(CONDITIONS_JSON.validate_python(stored, strict=True))
+    except (KeyError, ValueError) as error:
+        raise PlanFormatError(f"{plan_id}: 保存した道標を読めません: {error!r}") from error
 
 
 def _semester_json(semester: Semester) -> SemesterJson:

@@ -9,13 +9,17 @@ from fastapi.responses import JSONResponse
 from app.application.build_plans import SERVER_FAILURE
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
+from app.application.list_class_choices import ListClassChoices
+from app.application.list_plans import ListPlans
 from app.application.ports import InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import NoCandidatesError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
+from app.presentation.api.class_choices import class_choices_router
 from app.presentation.api.plans import plans_router
+from app.presentation.schemas.errors import ERROR_RESPONSES
 
 API_PREFIX = "/api/v1"
 LOGIN_REQUIRED = "ログインしてください"
@@ -54,15 +58,24 @@ async def _unexpected_error(request: Request, error: Exception) -> JSONResponse:
 def create_app(
     request_plan: RequestPlan,
     get_plan: GetPlan,
+    list_plans: ListPlans,
+    list_class_choices: ListClassChoices,
     identify: IdentifyUser,
     curriculum_year: int,
     today: Callable[[], date],
 ) -> FastAPI:
+    user = current_user(identify)
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(
-        plans_router(request_plan, get_plan, current_user(identify), curriculum_year, today),
+        plans_router(request_plan, get_plan, list_plans, user, curriculum_year, today),
         prefix=API_PREFIX,
+        responses=ERROR_RESPONSES,
+    )
+    app.include_router(
+        class_choices_router(list_class_choices, user, curriculum_year, today),
+        prefix=API_PREFIX,
+        responses=ERROR_RESPONSES,
     )
     app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)

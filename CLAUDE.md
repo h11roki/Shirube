@@ -23,22 +23,23 @@ backend(`backend/` で実行)
 frontend(`frontend/` で実行)
 
 - `pnpm install`
-- `pnpm lint && pnpm typecheck && pnpm test && pnpm format:check`(CI と同じ。テストは Vitest)
+- `pnpm lint && pnpm typecheck && pnpm test && pnpm format:check`(CI と同じ。テストは Vitest。CI は先に `pnpm gen:api` で型を作り直し、差があれば落ちる)
+- API を変えたら、backend で `uv run python -m tests.openapi_document`(OpenAPI を `frontend/src/lib/api/openapi.json` に書き出す)、frontend で `pnpm gen:api`(`src/lib/api/schema.ts` を作る)を実行し、どちらもコミットする(ADR 0030)。backend のテストが OpenAPI の食い違いを見つける
 - compose の外で動かすときは `BACKEND_URL=http://localhost:8000 direnv exec . pnpm dev`(ログインと転送に `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET`、`AUTH_JWT_SECRET` が要る)
 
 全体
 
 - `docker compose up` で db(pgvector、5432)/ backend(8000)/ worker / frontend(3000)。ポートが塞がっていれば `FRONTEND_PORT=3001` のように変える。backend は起動に `OPENAI_API_KEY` と `AUTH_JWT_SECRET`(32 文字以上)が、worker は `OPENAI_API_KEY` が要り、frontend はログインに `AUTH_SECRET`、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` と、backend と同じ `AUTH_JWT_SECRET` が要る。compose が手元の環境変数を渡す(リポジトリ直下の `.envrc` に書く)
 - `DATABASE_URL=... uv run python -m app.presentation.worker`(`OPENAI_API_KEY` が要る)で、待ちの道標を古い順に 1 件ずつ取って作る(ADR 0029)。待ちが無ければ `WORKER_POLL_SECONDS`(既定 1)秒待ち、作成中のまま `PLAN_STALL_MINUTES`(既定 15)分を過ぎた道標を失敗にする。SIGTERM か Ctrl-C を受けたら作っている 1 件を終えて止まる(Ctrl-C をもう 1 回押すとすぐ止まる)。compose では worker のサービスが watchfiles の下で動かし、`app/` の Python を変えると読み直す。止める猶予は 1 件の最悪の所要時間に合わせて 11 分。CLI の `plan create` も始める前に止まった道標を失敗にする。15 分と 11 分は 1 件の最悪の所要時間(3 回の呼び出し × (2 回の試行 × `OPENAI_TIMEOUT_SECONDS` + `Retry-After` の 120 秒))から決めたので、`OPENAI_TIMEOUT_SECONDS` か `OPENAI_MAX_RETRIES` を変えたら `PLAN_STALL_MINUTES` と compose の猶予も見直す
-- API: `POST /api/v1/plans`(本文は occupation、grade、department、省ける term と chosen_classes。選べないクラスと候補の無いときは 422、そうでなければ待ちで保存して 202 と Location を返す)と `GET /api/v1/plans/{id}`(status が pending / running / succeeded / failed、完了なら result、失敗なら failure を返す。ADR 0029)。どちらも `Authorization: Bearer <JWT>` が要り(HS256、鍵は `AUTH_JWT_SECRET`、iss は shirube-frontend、aud は shirube-backend、5 分まで、ADR 0027)、無ければ 401、他人の Plan は 404。年度は設定 `CURRICULUM_YEAR`(既定 2026)、OpenAI のタイムアウトは `OPENAI_TIMEOUT_SECONDS`(既定 45)、再試行は `OPENAI_MAX_RETRIES`(既定 1)。CLI の `--year` も省けば `CURRICULUM_YEAR`。5xx は決まった文だけを返し、中身はログに出す。OpenAPI は `/docs`
+- API: `POST /api/v1/plans`(本文は occupation、grade、department、省ける term と chosen_classes。選べないクラスと候補の無いときは 422、そうでなければ待ちで保存して 202 と Location を返す)と `GET /api/v1/plans/{id}`(status が pending / running / succeeded / failed、完了なら result、失敗なら failure を返す。ADR 0029)。`GET /api/v1/plans` は自分の道標を新しい順に 50 件の要約で、`GET /api/v1/class-choices?department=&grade=&term=` は決めた始める学期と、残りの学期に学科で分かれたクラスのある科目と選べるクラスの記号を返す(画面はその学期を POST に送り返す。ADR 0030)。エラーはどれも `{"detail": 文}` で、OpenAPI にも ErrorOut として書く。この行の API はどれも `Authorization: Bearer <JWT>` が要り(HS256、鍵は `AUTH_JWT_SECRET`、iss は shirube-frontend、aud は shirube-backend、5 分まで、ADR 0027)、無ければ 401、他人の Plan は 404。年度は設定 `CURRICULUM_YEAR`(既定 2026)、OpenAI のタイムアウトは `OPENAI_TIMEOUT_SECONDS`(既定 45)、再試行は `OPENAI_MAX_RETRIES`(既定 1)。CLI の `--year` も省けば `CURRICULUM_YEAR`。5xx は決まった文だけを返し、中身はログに出す。OpenAPI は `/docs`
 - `OPENAI_API_KEY` は README の「起動」のとおりリポジトリ直下の `.envrc` から読む。worktree にこのファイルは無いが、`.claude/worktrees/` の下なら direnv が親をたどって読む。セッションの環境変数に無いときは `direnv exec . <コマンド>` で読み込んで実行する。キーの値はコマンドにも出力にも書かない
 
 ## 構成と依存の向き
 
 `backend/app` は4層。依存は presentation → application → domain の一方向で、infrastructure は application のポート(Protocol)を実装する。
 
-- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Semester, Roadmap, SemesterPlan, Plan, PlanResult)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
-- application: ユースケース(RequestPlan, BuildPlans, GetPlan, IdentifyUser, IngestTimetable, IngestSyllabi, FetchSyllabus, EmbedSyllabi, SearchCourses, EvaluateSearch, RecommendCourses, EvaluateSelection)とポート(`ports.py`)。ポートは差し替え先が実在するものだけ(時間割表の取得元、シラバスの取得元、LLM、埋め込み、科目リポジトリ、チャンクの保存、チャンクの検索、Plan リポジトリ、JWT の検証、利用者リポジトリ)
+- domain: エンティティ(CourseSection, Audience, TimeSlot, Syllabus, SyllabusChunk, OccupationProfile, Recommendation, Semester, Roadmap, SemesterPlan, ClassChoice, Plan, PlanResult, PlanSummary)と純粋ロジック(チャンクの組み立て、科目の順位付け、時間割生成)。標準ライブラリ以外を import しない
+- application: ユースケース(RequestPlan, BuildPlans, GetPlan, ListPlans, ListClassChoices, IdentifyUser, IngestTimetable, IngestSyllabi, FetchSyllabus, EmbedSyllabi, SearchCourses, EvaluateSearch, RecommendCourses, EvaluateSelection)とポート(`ports.py`)。ポートは差し替え先が実在するものだけ(時間割表の取得元、シラバスの取得元、LLM、埋め込み、科目リポジトリ、チャンクの保存、チャンクの検索、Plan リポジトリ、JWT の検証、利用者リポジトリ)
 - infrastructure: `db/`(SQLAlchemy, Alembic)、`llm/`(OpenAI, LangChain)、`curriculum/<university>/`(時間割表の解析)、`scrapers/<university>/`(シラバスの取得と解析)、`auth/`(JWT の検証、PyJWT)
 - presentation: `api/`(FastAPI ルータ、接頭辞 `/api/v1`)、`schemas/`(Pydantic DTO)、`cli/`
 

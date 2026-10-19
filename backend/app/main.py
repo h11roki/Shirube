@@ -2,7 +2,10 @@ import sys
 
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
+from app.application.list_class_choices import ListClassChoices
+from app.application.list_plans import ListPlans
 from app.infrastructure.auth.jwt_verifier import JwtVerifier
+from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.api.app import create_app
@@ -21,9 +24,12 @@ try:
 except ValueError as error:
     sys.exit(f"環境変数を確かめてください: AUTH_JWT_SECRET: {error}")
 engine = database_engine(settings)
+plans = SqlPlanRepository(engine)
 app = create_app(
     request_plan=request_plan(settings, engine),
-    get_plan=GetPlan(SqlPlanRepository(engine)),
+    get_plan=GetPlan(plans),
+    list_plans=ListPlans(plans),
+    list_class_choices=ListClassChoices(SqlCourseRepository(engine)),
     identify=IdentifyUser(verifier, SqlUserRepository(engine)),
     curriculum_year=settings.curriculum_year,
     today=university_today,

@@ -149,11 +149,38 @@ def require_class_choices(
     semesters: Sequence[Semester],
     chosen_classes: Mapping[str, str],
 ) -> None:
+    if not chosen_classes:
+        return
+    choosable = {
+        choice.name: choice.class_codes
+        for choice in class_choices(sections, department, year, semesters)
+    }
     for name, chosen in chosen_classes.items():
-        named = [section for section in sections if section.name == name]
-        _, choosable = _split_classes(named, department, year, semesters)
+        if name in choosable:
+            _require_choosable(name, chosen, choosable[name])
+
+
+@dataclass(frozen=True)
+class ClassChoice:
+    name: str
+    class_codes: tuple[str, ...]
+
+
+def class_choices(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+) -> list[ClassChoice]:
+    by_name: dict[str, list[CourseSection]] = defaultdict(list)
+    for section in sections:
+        by_name[section.name].append(section)
+    choices = []
+    for name in sorted(by_name):
+        _, choosable = _split_classes(by_name[name], department, year, semesters)
         if choosable:
-            _require_choosable(name, chosen, choosable)
+            choices.append(ClassChoice(name, tuple(choosable)))
+    return choices
 
 
 def _classes(

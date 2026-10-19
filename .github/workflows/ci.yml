@@ -50,6 +50,8 @@ jobs:
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - run: pnpm gen:api
+      - run: git add --intent-to-add src/lib/api && git diff --exit-code -- src/lib/api
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm test
