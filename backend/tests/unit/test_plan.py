@@ -101,7 +101,7 @@ def test_plan_needs_every_recommended_course_placed_or_unplaced_once() -> None:
     course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
     recommendation = Recommendation(PROFILE, (course,), ("科目A",))
 
-    with pytest.raises(PlanError, match="推薦の科目が、置いた科目か置けなかった科目に"):
+    with pytest.raises(PlanError, match="推薦の科目が、置いた科目、置けなかった科目、もう取った"):
         succeeded(recommendation, roadmap_from(START))
 
 
@@ -125,6 +125,22 @@ def test_class_choices_are_sorted_by_course_and_one_per_course(
 ) -> None:
     with pytest.raises(PlanError, match="クラスの選択は科目名の順に"):
         PlanConditions("職業", "情", 2026, START, chosen, 16)
+
+
+def test_a_finished_plan_is_placed_again_with_the_taken_course_left_out() -> None:
+    course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
+    recommendation = Recommendation(PROFILE, (course,), ("科目A",))
+    placed = PlacedCourse(course, replace(course_section("10000"), name="科目A"), True)
+    plan = succeeded(recommendation, roadmap_from(START, (placed,)))
+    taken = replace(roadmap_from(START), taken=(course,), offered_earlier=frozenset({"科目A"}))
+
+    again = plan.placed_again(taken)
+
+    assert again.result is not None
+    assert (again.id, again.result.recommendation) == (plan.id, recommendation)
+    assert again.result.roadmap.taken == (course,)
+    with pytest.raises(PlanError, match="完了していない道標は置き直せません: pending"):
+        Plan(uuid4(), uuid4(), CONDITIONS).placed_again(taken)
 
 
 RESULT = PlanResult(Recommendation(PROFILE, (), ()), roadmap_from(START))

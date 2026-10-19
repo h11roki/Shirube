@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 from datetime import date
 
@@ -83,6 +83,8 @@ class SemesterPlan:
 class Roadmap:
     semesters: tuple[SemesterPlan, ...]
     unplaced: tuple[RecommendedCourse, ...]
+    taken: tuple[RecommendedCourse, ...] = ()
+    offered_earlier: frozenset[str] = frozenset()
 
     def __post_init__(self) -> None:
         positions = [ALL_SEMESTERS.index(plan.semester) for plan in self.semesters]
@@ -92,9 +94,19 @@ class Roadmap:
         repeated = sorted(name for name, count in names.items() if count > 1)
         if repeated:
             raise RoadmapError(f"同じ科目が 2 つの学期にあります: {'、'.join(repeated)}")
-        both = sorted(names.keys() & {course.name for course in self.unplaced})
+        unplaced = {course.name for course in self.unplaced}
+        both = sorted(names.keys() & unplaced)
         if both:
             raise RoadmapError(f"置いた科目が置けなかった科目にもあります: {'、'.join(both)}")
+        taken = {course.name for course in self.taken}
+        kept = sorted(taken & (names.keys() | unplaced))
+        if kept:
+            raise RoadmapError(f"もう取った科目が道標にも残っています: {'、'.join(kept)}")
+        unasked = sorted(taken - self.offered_earlier)
+        if unasked:
+            raise RoadmapError(
+                f"前の学期に開講されていない科目を取ったことにしています: {'、'.join(unasked)}"
+            )
         year_long = {
             (plan.semester.grade, placed)
             for plan in self.semesters
@@ -208,6 +220,7 @@ def place(
     semesters: Sequence[Semester],
     credit_limit: int,
     chosen_classes: Mapping[str, str],
+    taken: Set[str] = frozenset(),
 ) -> Roadmap:
     if credit_limit <= 0:
         raise RoadmapError(f"単位の上限は 1 以上にしてください: {credit_limit}")
@@ -220,6 +233,17 @@ def place(
         name: _classes(name, by_name[name], department, year, semesters, chosen_classes)
         for name in names
     }
+    earlier = ALL_SEMESTERS[: ALL_SEMESTERS.index(semesters[0])] if semesters else ()
+    offered_earlier = frozenset(
+        name
+        for name in names
+        if any(
+            opens_in(section, department, year, semester)
+            for section in by_name[name]
+            for semester in earlier
+        )
+    )
+    skipped = offered_earlier & taken
     year_long: dict[int, list[PlacedCourse]] = defaultdict(list)
     placed: set[str] = set()
     plans = []
@@ -229,7 +253,7 @@ def place(
         credits = 0
         occupied = {slot for carried in continuing for slot in carried.section.slots}
         for course in recommendation.courses:
-            if course.name in placed:
+            if course.name in placed or course.name in skipped:
                 continue
             classes, confirmed = options[course.name]
             fitting = next(
@@ -252,5 +276,10 @@ def place(
             if fitting.term is None and fitting.slots:
                 year_long[semester.grade].append(placed_course)
         plans.append(SemesterPlan(semester, tuple(courses), continuing))
-    unplaced = tuple(course for course in recommendation.courses if course.name not in placed)
-    return Roadmap(tuple(plans), unplaced)
+    unplaced = tuple(
+        course
+        for course in recommendation.courses
+        if course.name not in placed and course.name not in skipped
+    )
+    left_out = tuple(course for course in recommendation.courses if course.name in skipped)
+    return Roadmap(tuple(plans), unplaced, left_out, offered_earlier)

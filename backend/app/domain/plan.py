@@ -77,9 +77,13 @@ class Plan:
         planned = [
             *(placed.course.name for plan in roadmap.semesters for placed in plan.courses),
             *(course.name for course in roadmap.unplaced),
+            *(course.name for course in roadmap.taken),
         ]
         if sorted(planned) != sorted(course.name for course in recommendation.courses):
-            raise PlanError("推薦の科目が、置いた科目か置けなかった科目に 1 回ずつ入っていません")
+            raise PlanError(
+                "推薦の科目が、置いた科目、置けなかった科目、もう取った科目のどれかに"
+                " 1 回ずつ入っていません"
+            )
         over = [
             str(plan.semester)
             for plan in roadmap.semesters
@@ -92,6 +96,11 @@ class Plan:
         if self.status is not PlanStatus.RUNNING:
             raise PlanError(f"作成中でない道標は完了にできません: {self.status}")
         return replace(self, status=PlanStatus.SUCCEEDED, result=result, stage=None)
+
+    def placed_again(self, roadmap: Roadmap) -> Self:
+        if self.result is None:
+            raise PlanError(f"完了していない道標は置き直せません: {self.status}")
+        return replace(self, result=replace(self.result, roadmap=roadmap))
 
     def failed(self, failure: str) -> Self:
         if self.status is not PlanStatus.RUNNING:

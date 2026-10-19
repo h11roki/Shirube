@@ -344,6 +344,63 @@ def test_a_roadmap_breaking_its_promises_is_rejected() -> None:
         Roadmap((SemesterPlan(spring, (year_long,)),), (course,))
 
 
+SECOND_AUTUMN = remaining_semesters(Semester(2, Term.AUTUMN))
+EARLIER_SECTIONS = [
+    section("10000", "一回生からの科目"),
+    section("10001", "二回生春だけの科目", slots=TUE_1, grades=frozenset({2})),
+    section("10002", "三回生からの科目", term=Term.AUTUMN, grades=frozenset({3, 4})),
+    section("10003", "同じコマの科目"),
+]
+
+
+def test_courses_open_in_a_semester_before_the_start_are_the_ones_that_may_be_taken() -> None:
+    roadmap = place(
+        recommend("一回生からの科目", "二回生春だけの科目", "三回生からの科目"),
+        EARLIER_SECTIONS,
+        "情",
+        2026,
+        SECOND_AUTUMN,
+        16,
+        {},
+    )
+
+    assert roadmap.offered_earlier == {"一回生からの科目", "二回生春だけの科目"}
+    assert [course.name for course in roadmap.unplaced] == ["二回生春だけの科目"]
+    assert roadmap.taken == ()
+
+
+def test_taken_courses_are_left_out_and_free_their_slot_for_the_next_course() -> None:
+    names = ("一回生からの科目", "同じコマの科目", "三回生からの科目")
+
+    before = place(recommend(*names), EARLIER_SECTIONS, "情", 2026, SECOND_AUTUMN, 16, {})
+    after = place(
+        recommend(*names),
+        EARLIER_SECTIONS,
+        "情",
+        2026,
+        SECOND_AUTUMN,
+        16,
+        {},
+        {"一回生からの科目", "三回生からの科目", "推薦に無い科目"},
+    )
+
+    assert placed_names(before.semesters[1]) == [("一回生からの科目", "6T")]
+    assert placed_names(before.semesters[3]) == [("同じコマの科目", "6T")]
+    assert placed_names(after.semesters[1]) == [("同じコマの科目", "6T")]
+    assert placed_names(after.semesters[2]) == [("三回生からの科目", "6T")]
+    assert [course.name for course in after.taken] == ["一回生からの科目"]
+
+
+def test_a_roadmap_cannot_keep_a_taken_course_or_take_one_never_offered_before() -> None:
+    course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
+    semesters = (SemesterPlan(Semester(3, Term.SPRING), ()),)
+
+    with pytest.raises(RoadmapError, match="もう取った科目が道標にも残っています: 科目A"):
+        Roadmap(semesters, (course,), (course,), frozenset({"科目A"}))
+    with pytest.raises(RoadmapError, match="前の学期に開講されていない科目を取ったことに"):
+        Roadmap(semesters, (), (course,))
+
+
 def test_only_courses_split_into_department_classes_in_one_semester_are_offered_as_choices() -> (
     None
 ):
