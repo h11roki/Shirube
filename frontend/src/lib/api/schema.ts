@@ -174,11 +174,17 @@ export interface components {
              */
             id: string;
             status: components["schemas"]["PlanStatus"];
+            stage: components["schemas"]["PlanStage"] | null;
             conditions: components["schemas"]["ConditionsOut"];
             result: components["schemas"]["ResultOut"] | null;
             /** Failure */
             failure: string | null;
         };
+        /**
+         * PlanStage
+         * @enum {string}
+         */
+        PlanStage: "analyzing" | "searching" | "selecting" | "placing";
         /**
          * PlanStatus
          * @enum {string}

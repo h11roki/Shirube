@@ -10,7 +10,14 @@ from sqlalchemy.orm import aliased
 from app.application.ports import PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions, PlanResult, PlanStatus, PlanSummary
+from app.domain.plan import (
+    Plan,
+    PlanConditions,
+    PlanResult,
+    PlanStage,
+    PlanStatus,
+    PlanSummary,
+)
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
@@ -48,6 +55,7 @@ class SqlPlanRepository:
                     conditions=conditions_json(plan.conditions),
                     result=None if plan.result is None else result_json(plan.result),
                     failure=plan.failure,
+                    stage=plan.stage,
                 )
             )
 
@@ -66,6 +74,15 @@ class SqlPlanRepository:
     def claim(self, plan_id: UUID) -> Plan | None:
         return self._claim(PlanRow.id == plan_id)
 
+    def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(
+                update(PlanRow)
+                .where(PlanRow.id == plan_id, PlanRow.status == PlanStatus.RUNNING)
+                .values(stage=stage)
+                .execution_options(synchronize_session=False)
+            )
+
     def finish(self, plan: Plan) -> bool:
         if plan.status not in FINISHED:
             raise ValueError(f"終わっていない道標は保存し直せません: {plan.status}")
@@ -77,6 +94,7 @@ class SqlPlanRepository:
                     status=plan.status,
                     result=None if plan.result is None else result_json(plan.result),
                     failure=plan.failure,
+                    stage=None,
                     finished_at=func.now(),
                 )
                 .returning(PlanRow.id)
@@ -93,7 +111,12 @@ class SqlPlanRepository:
                         PlanRow.status == PlanStatus.RUNNING,
                         PlanRow.claimed_at < func.now() - after,
                     )
-                    .values(status=PlanStatus.FAILED, failure=failure, finished_at=func.now())
+                    .values(
+                        status=PlanStatus.FAILED,
+                        failure=failure,
+                        stage=None,
+                        finished_at=func.now(),
+                    )
                     .returning(PlanRow.id)
                     .execution_options(synchronize_session=False)
                 )
@@ -130,7 +153,7 @@ class SqlPlanRepository:
             row = db.scalars(
                 update(PlanRow)
                 .where(which, PlanRow.status == PlanStatus.PENDING)
-                .values(status=PlanStatus.RUNNING, claimed_at=func.now())
+                .values(status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING, claimed_at=func.now())
                 .returning(PlanRow)
                 .execution_options(synchronize_session=False)
             ).one_or_none()
@@ -154,7 +177,15 @@ def _plan(row: PlanRow) -> Plan:
             if stored is None
             else result_from_json(RESULT_JSON.validate_python(stored, strict=True))
         )
-        return Plan(row.id, row.user_id, conditions, PlanStatus(row.status), result, row.failure)
+        return Plan(
+            row.id,
+            row.user_id,
+            conditions,
+            PlanStatus(row.status),
+            result,
+            row.failure,
+            None if row.stage is None else PlanStage(row.stage),
+        )
     except (KeyError, ValueError) as error:
         raise PlanFormatError(f"{row.id}: 保存した道標を読めません: {error!r}") from error
 

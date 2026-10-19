@@ -6,7 +6,14 @@ import pytest
 
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions, PlanError, PlanResult, PlanStatus
+from app.domain.plan import (
+    Plan,
+    PlanConditions,
+    PlanError,
+    PlanResult,
+    PlanStage,
+    PlanStatus,
+)
 from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import (
     PlacedCourse,
@@ -172,3 +179,12 @@ def test_only_a_running_plan_can_finish(status: PlanStatus) -> None:
         plan.succeeded(RESULT)
     with pytest.raises(PlanError, match=f"作成中でない道標は失敗にできません: {status}"):
         plan.failed("文")
+
+
+def test_only_a_running_plan_has_a_stage_and_finishing_clears_it() -> None:
+    running = Plan(uuid4(), uuid4(), CONDITIONS, PlanStatus.RUNNING, stage=PlanStage.SELECTING)
+
+    assert running.succeeded(RESULT).stage is None
+    assert running.failed("文").stage is None
+    with pytest.raises(PlanError, match="段を持つのは作成中の道標だけです: pending"):
+        Plan(uuid4(), uuid4(), CONDITIONS, stage=PlanStage.ANALYZING)

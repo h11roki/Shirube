@@ -21,7 +21,7 @@ from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanStatus, PlanSummary
+from app.domain.plan import Plan, PlanStage, PlanStatus, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -128,6 +128,7 @@ class FakePlanRepository:
         self.plans: dict[UUID, Plan] = {}
         self.created_at: dict[UUID, datetime] = {}
         self.stall_limits: list[timedelta] = []
+        self.stages: list[tuple[UUID, PlanStage]] = []
 
     def add(self, plan: Plan) -> None:
         self.plans[plan.id] = plan
@@ -158,8 +159,14 @@ class FakePlanRepository:
         plan = self.plans.get(plan_id)
         if plan is None or plan.status is not PlanStatus.PENDING:
             return None
-        self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING)
+        self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING)
         return self.plans[plan_id]
+
+    def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+        plan = self.plans.get(plan_id)
+        if plan is not None and plan.status is PlanStatus.RUNNING:
+            self.stages.append((plan_id, stage))
+            self.plans[plan_id] = replace(plan, stage=stage)
 
     def finish(self, plan: Plan) -> bool:
         if self.plans[plan.id].status is not PlanStatus.RUNNING:

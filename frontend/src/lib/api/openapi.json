@@ -591,6 +591,16 @@
           "status": {
             "$ref": "#/components/schemas/PlanStatus"
           },
+          "stage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanStage"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "conditions": {
             "$ref": "#/components/schemas/ConditionsOut"
           },
@@ -620,11 +630,22 @@
         "required": [
           "id",
           "status",
+          "stage",
           "conditions",
           "result",
           "failure"
         ],
         "title": "PlanOut"
+      },
+      "PlanStage": {
+        "type": "string",
+        "enum": [
+          "analyzing",
+          "searching",
+          "selecting",
+          "placing"
+        ],
+        "title": "PlanStage"
       },
       "PlanStatus": {
         "type": "string",

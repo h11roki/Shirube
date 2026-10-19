@@ -36,7 +36,9 @@ core か foundation か迷った授業は、\
 {REASON_LIMIT} 字以内で書きます。\
 foundation の理由には、prerequisite_for の授業のどの内容の前提になるかを、\
 両方の授業の抜粋に基づいて書きます。\
-抜粋の文をそのまま写さず、抜粋に書いていないことは書きません。"""
+抜粋の文をそのまま写さず、抜粋に書いていないことは書きません。\
+理由は学生が読む文なので、core、foundation、prerequisite_for などの英語の語を書かず、\
+授業は科目名で書きます。"""
 
 
 def _excerpt(text: str, limit: int) -> str:

@@ -1,5 +1,6 @@
 import logging
 from datetime import timedelta
+from typing import assert_never
 from uuid import UUID
 
 from app.application.ports import (
@@ -9,8 +10,8 @@ from app.application.ports import (
     OccupationAnalysisError,
     PlanRepository,
 )
-from app.application.recommend_courses import RecommendCourses
-from app.domain.plan import Plan, PlanResult
+from app.application.recommend_courses import RecommendCourses, RecommendStep
+from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import place, remaining_semesters
 
@@ -55,8 +56,13 @@ class BuildPlans:
             semesters = remaining_semesters(conditions.start)
             sections = self._courses.sections(conditions.year)
             recommendation = self._recommend.run(
-                conditions.occupation, conditions.year, conditions.department, semesters
+                conditions.occupation,
+                conditions.year,
+                conditions.department,
+                semesters,
+                lambda step: self._enter_step(plan, step),
             )
+            self._enter(plan, PlanStage.PLACING)
             roadmap = place(
                 recommendation,
                 sections,
@@ -77,3 +83,18 @@ class BuildPlans:
             return finished
         logger.warning("道標 %s は作っている間に作成中でなくなったので、結果を捨てました", plan.id)
         return self._plans.get(plan.id)
+
+    def _enter_step(self, plan: Plan, step: RecommendStep) -> None:
+        match step:
+            case RecommendStep.SEARCHING:
+                self._enter(plan, PlanStage.SEARCHING)
+            case RecommendStep.SELECTING:
+                self._enter(plan, PlanStage.SELECTING)
+            case _:
+                assert_never(step)
+
+    def _enter(self, plan: Plan, stage: PlanStage) -> None:
+        try:
+            self._plans.enter_stage(plan.id, stage)
+        except Exception:
+            logger.exception("道標 %s の段 %s を書けませんでした", plan.id, stage)

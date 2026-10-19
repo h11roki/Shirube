@@ -224,6 +224,11 @@ class PlanRow(Base):
         ),
         CheckConstraint("(status = 'succeeded') = (result IS NOT NULL)", name="ck_plans_result"),
         CheckConstraint("(status = 'failed') = (failure IS NOT NULL)", name="ck_plans_failure"),
+        CheckConstraint(
+            "stage IS NULL OR (status = 'running' "
+            "AND stage IN ('analyzing', 'searching', 'selecting', 'placing'))",
+            name="ck_plans_stage",
+        ),
         Index("ix_plans_pending", "created_at", postgresql_where=text("status = 'pending'")),
         Index("ix_plans_running", "claimed_at", postgresql_where=text("status = 'running'")),
     )
@@ -236,6 +241,7 @@ class PlanRow(Base):
     conditions: Mapped[ConditionsJson] = mapped_column(JSONB)
     result: Mapped[ResultJson | None] = mapped_column(JSONB(none_as_null=True))
     failure: Mapped[str | None]
+    stage: Mapped[str | None]
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

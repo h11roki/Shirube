@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
-from app.domain.plan import Plan, PlanResult, PlanStatus
+from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
 from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse
 
@@ -100,6 +100,7 @@ class ResultOut(BaseModel):
 class PlanOut(BaseModel):
     id: UUID
     status: PlanStatus
+    stage: PlanStage | None
     conditions: ConditionsOut
     result: ResultOut | None
     failure: str | None
@@ -150,6 +151,7 @@ def plan_out(plan: Plan) -> PlanOut:
     return PlanOut(
         id=plan.id,
         status=plan.status,
+        stage=plan.stage,
         conditions=ConditionsOut(
             occupation=conditions.occupation,
             department=conditions.department,
