@@ -6,9 +6,19 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { PlanResultView } from "@/components/plan-result";
 import { StatusBadge } from "@/components/status-badge";
-import { type Plan, requestJson } from "@/lib/api/client";
+import {
+  type Plan,
+  isTemporary,
+  messageOf,
+  requestJson,
+} from "@/lib/api/client";
 import { semesterLabel } from "@/lib/labels";
-import { POLL_INTERVAL_MS, type Watch, watchState } from "@/lib/polling";
+import {
+  POLL_INTERVAL_MS,
+  POLL_LIMIT_MS,
+  type Watch,
+  watchState,
+} from "@/lib/polling";
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
@@ -37,10 +47,13 @@ export function PlanView() {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (caught) {
-        if (active) {
-          setError(
-            caught instanceof Error ? caught.message : "読み込めませんでした",
-          );
+        if (!active) {
+          return;
+        }
+        if (isTemporary(caught) && Date.now() - startedAt < POLL_LIMIT_MS) {
+          timer = setTimeout(poll, POLL_INTERVAL_MS);
+        } else {
+          setError(messageOf(caught));
         }
       }
     }
@@ -68,8 +81,14 @@ export function PlanView() {
   if (!plan) {
     return <p className="text-sm text-stone-500">読み込んでいます</p>;
   }
-  if (plan.status === "succeeded" && plan.result) {
-    return <PlanResultView plan={plan} result={plan.result} />;
+  if (plan.status === "succeeded") {
+    return plan.result ? (
+      <PlanResultView plan={plan} result={plan.result} />
+    ) : (
+      <Notice title="道標の中身を読めませんでした">
+        <RetryButton onClick={retry} />
+      </Notice>
+    );
   }
   if (plan.status === "failed") {
     return (
@@ -94,8 +113,8 @@ export function PlanView() {
         </h1>
       </div>
       <p className="text-sm text-stone-600">
-        {semesterLabel(conditions.grade, conditions.term)}から 4 回生
-        秋学期までを組みます。
+        {semesterLabel(conditions.grade, conditions.term)}から
+        {semesterLabel(4, "autumn")}までを組みます。
       </p>
       {watch === "gave-up" ? (
         <div className="space-y-3 text-sm text-stone-700">

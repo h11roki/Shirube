@@ -1,6 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { ApiError, requestJson } from "@/lib/api/client";
+import {
+  ApiError,
+  isTemporary,
+  messageOf,
+  requestJson,
+} from "@/lib/api/client";
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -52,5 +57,32 @@ describe("requestJson", () => {
       status: 0,
       message: "道標のサーバーとやり取りできませんでした",
     });
+  });
+
+  it("treats a successful answer that is not JSON as an error instead of returning nothing", async () => {
+    respondWith(new Response("<html>", { status: 200 }));
+
+    await expect(requestJson("/api/plans")).rejects.toMatchObject({
+      status: 200,
+      message: "道標のサーバーとやり取りできませんでした",
+    });
+  });
+});
+
+describe("errors", () => {
+  it("are temporary when the network or the server failed, not when the request was wrong", () => {
+    expect(isTemporary(new ApiError(0, "届かない"))).toBe(true);
+    expect(isTemporary(new ApiError(502, "届かない"))).toBe(true);
+    expect(isTemporary(new ApiError(404, "無い"))).toBe(false);
+    expect(isTemporary(new TypeError("壊れた"))).toBe(false);
+  });
+
+  it("give their message, or the fixed sentence when they are not errors", () => {
+    expect(messageOf(new ApiError(422, "直してください"))).toBe(
+      "直してください",
+    );
+    expect(messageOf("文字列")).toBe(
+      "道標のサーバーとやり取りできませんでした",
+    );
   });
 });

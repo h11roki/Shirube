@@ -36,7 +36,12 @@ export async function requestJson<T>(
   } catch {
     throw new ApiError(0, UNREACHABLE);
   }
-  const body: unknown = await response.json().catch(() => null);
+  let body: unknown;
+  try {
+    body = await response.json();
+  } catch {
+    throw new ApiError(response.status, UNREACHABLE);
+  }
   if (!response.ok) {
     const detail =
       typeof body === "object" &&
@@ -48,4 +53,14 @@ export async function requestJson<T>(
     throw new ApiError(response.status, detail);
   }
   return body as T;
+}
+
+export function messageOf(error: unknown): string {
+  return error instanceof Error ? error.message : UNREACHABLE;
+}
+
+export function isTemporary(error: unknown): boolean {
+  return (
+    error instanceof ApiError && (error.status === 0 || error.status >= 500)
+  );
 }

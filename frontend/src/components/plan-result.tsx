@@ -10,7 +10,6 @@ import type {
 } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
-  TERM_LABELS,
   classLabel,
   semesterLabel,
   slotsLabel,
@@ -96,9 +95,9 @@ export function PlanResultView({
           ))}
         </ul>
         <p className="text-xs text-stone-500">
-          {conditions.grade} 回生 {TERM_LABELS[conditions.term]}から 4 回生
-          秋学期まで・1 学期 {conditions.credit_limit} 単位まで・
-          {conditions.year} 年度の時間割
+          {semesterLabel(conditions.grade, conditions.term)}から{" "}
+          {semesterLabel(4, "autumn")}まで・1 学期 {conditions.credit_limit}{" "}
+          単位まで・{conditions.year} 年度の時間割
         </p>
       </section>
 

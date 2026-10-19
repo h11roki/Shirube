@@ -4,7 +4,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
-import { type PlanList as Plans, requestJson } from "@/lib/api/client";
+import {
+  type PlanList as Plans,
+  messageOf,
+  requestJson,
+} from "@/lib/api/client";
 import { semesterLabel } from "@/lib/labels";
 
 const CREATED_AT = new Intl.DateTimeFormat("ja-JP", {
@@ -27,9 +31,7 @@ export function PlanList() {
       })
       .catch((caught: unknown) => {
         if (active) {
-          setError(
-            caught instanceof Error ? caught.message : "読み込めませんでした",
-          );
+          setError(messageOf(caught));
         }
       });
     return () => {

@@ -1,10 +1,8 @@
-import { connection } from "next/server";
-
-import { auth, signIn, signOut } from "@/auth";
+import { signIn, signOut } from "@/auth";
+import { currentSession } from "@/lib/session";
 
 export async function Account() {
-  await connection();
-  const session = await auth();
+  const session = await currentSession();
   if (!session?.googleSubject) {
     return <SignInButton />;
   }

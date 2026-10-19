@@ -1,12 +1,10 @@
-import { connection } from "next/server";
 import type { ReactNode } from "react";
 
-import { auth } from "@/auth";
 import { SignInButton } from "@/components/account";
+import { currentSession } from "@/lib/session";
 
 export async function LoginRequired({ children }: { children: ReactNode }) {
-  await connection();
-  const session = await auth();
+  const session = await currentSession();
   if (session?.googleSubject) {
     return children;
   }
