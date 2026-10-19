@@ -3,11 +3,12 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-import { CourseCard } from "@/components/course-card";
+import { CourseGrid } from "@/components/course-grid";
 import { Kicker } from "@/components/kicker";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
+import { TEXT_LINK } from "@/components/styles";
 import { Signpost } from "@/components/signpost";
 import { TimetableBook } from "@/components/timetable-book";
 import type { Plan, PlanResult as Result } from "@/lib/api/client";
@@ -134,16 +135,12 @@ export function PlanResultView({
       )}
 
       {result.unplaced.length > 0 && (
-        <section className="grid gap-3">
+        <section className="grid gap-3 rounded-lg border border-dashed border-line p-4 sm:p-5">
           <h2 className="font-serif text-lg font-bold">置けなかった授業</h2>
           <p className="text-sm text-sub">
             残りの学期で、コマが空いていて単位の上限にも収まるクラスが見つからなかった授業です。
           </p>
-          <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
-            {result.unplaced.map((course) => (
-              <CourseCard key={course.name} course={course} />
-            ))}
-          </div>
+          <CourseGrid courses={result.unplaced} />
         </section>
       )}
 
@@ -170,10 +167,7 @@ export function PlanResultView({
       )}
 
       <p>
-        <Link
-          href="/"
-          className="text-sm text-route underline underline-offset-4"
-        >
+        <Link href="/" className={`text-sm ${TEXT_LINK}`}>
           別の職業で作る
         </Link>
       </p>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { StatusBadge } from "@/components/status-badge";
+import { TEXT_LINK } from "@/components/styles";
 import {
   type PlanList as Plans,
   messageOf,
@@ -56,7 +57,7 @@ export function PlanList() {
     return (
       <p className="text-sm text-sub">
         まだ道標がありません。
-        <Link href="/" className="text-route underline underline-offset-4">
+        <Link href="/" className={TEXT_LINK}>
           道標を作る
         </Link>
       </p>

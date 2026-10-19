@@ -6,6 +6,7 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
+import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import {
   ApiError,
   type Plan,
@@ -21,9 +22,6 @@ import {
   watchAfterFailure,
   watchState,
 } from "@/lib/polling";
-
-const BUTTON_CLASS =
-  "rounded-full border border-line bg-sheet px-4 py-1.5 text-ink hover:border-ink";
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
@@ -100,7 +98,7 @@ export function PlanView() {
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className={BUTTON_CLASS}
+          className={OUTLINE_BUTTON}
         >
           ログインし直す
         </button>
@@ -131,7 +129,7 @@ export function PlanView() {
     return (
       <Notice title="道標を作れませんでした">
         <p>{plan.failure}</p>
-        <Link href="/" className="text-route underline underline-offset-4">
+        <Link href="/" className={TEXT_LINK}>
           もう一度作る
         </Link>
       </Notice>
@@ -145,10 +143,7 @@ export function PlanView() {
           <div className="grid justify-items-start gap-3 text-sm">
             <p>
               時間がかかっています。あとで
-              <Link
-                href="/plans"
-                className="text-route underline underline-offset-4"
-              >
+              <Link href="/plans" className={TEXT_LINK}>
                 一覧
               </Link>
               から見てください。
@@ -175,7 +170,7 @@ function Notice({ title, children }: { title: string; children: ReactNode }) {
 
 function RetryButton({ onClick }: { onClick: () => void }) {
   return (
-    <button type="button" onClick={onClick} className={BUTTON_CLASS}>
+    <button type="button" onClick={onClick} className={OUTLINE_BUTTON}>
       もう一度確かめる
     </button>
   );

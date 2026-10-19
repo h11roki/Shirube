@@ -2,7 +2,10 @@
 
 import type { ComponentProps, MouseEvent } from "react";
 
-type QueryLinkProps = Omit<ComponentProps<"a">, "href" | "onClick"> & {
+type QueryLinkProps = Omit<
+  ComponentProps<"a">,
+  "href" | "onClick" | "target"
+> & {
   href: string;
   onNavigate?: () => void;
 };
@@ -19,7 +22,13 @@ export function QueryLink({ href, onNavigate, ...rest }: QueryLinkProps) {
       return;
     }
     event.preventDefault();
-    window.history.pushState(null, "", href);
+    const target = new URL(href, window.location.href);
+    if (
+      target.pathname + target.search !==
+      window.location.pathname + window.location.search
+    ) {
+      window.history.pushState(null, "", href);
+    }
     onNavigate?.();
   }
 

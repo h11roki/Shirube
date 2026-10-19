@@ -2,8 +2,9 @@
 
 import { type ReactNode, useId, useState } from "react";
 
-import { CourseCard } from "@/components/course-card";
+import { CourseGrid } from "@/components/course-grid";
 import { QueryLink } from "@/components/query-link";
+import { TEXT_LINK } from "@/components/styles";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
 import {
@@ -66,18 +67,14 @@ function Station({
         {semesterLabel(semester.grade, semester.term)}
         <span className="font-sans text-xs font-medium text-sub">
           {semester.credits} 単位 ・ {semester.courses.length} 科目
+          {semester.continuing.length > 0 &&
+            ` ・ ${CONTINUING_LABEL} ${semester.continuing.length} 科目`}
         </span>
       </h2>
       {all.length === 0 && (
         <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>
       )}
-      {semester.courses.length > 0 && (
-        <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
-          {semester.courses.map((course) => (
-            <CourseCard key={course.section_code} course={course} />
-          ))}
-        </div>
-      )}
+      {semester.courses.length > 0 && <CourseGrid courses={semester.courses} />}
       {semester.continuing.length > 0 && (
         <p className="text-[13px] text-sub">
           {CONTINUING_LABEL}:{" "}
@@ -93,7 +90,7 @@ function Station({
             aria-expanded={open}
             aria-controls={weekId}
             onClick={() => setOpen(!open)}
-            className="text-route underline underline-offset-4"
+            className={TEXT_LINK}
           >
             {open ? "この学期の時間割を閉じる ▴" : "この学期の時間割を開く ▾"}
           </button>
@@ -107,7 +104,7 @@ function Station({
               onNavigate={() =>
                 document.getElementById(VIEWS_ANCHOR)?.scrollIntoView()
               }
-              className="text-route underline underline-offset-4"
+              className={TEXT_LINK}
             >
               時間割帳で見る →
             </QueryLink>

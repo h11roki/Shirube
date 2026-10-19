@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
+import { OUTLINE_BUTTON } from "@/components/styles";
 import {
   type ClassChoices,
   type Plan,
@@ -170,7 +171,7 @@ export function PlanForm() {
           <button
             type="button"
             onClick={() => setReloads((current) => current + 1)}
-            className="rounded-full border border-line bg-sheet px-4 py-1 text-ink hover:border-ink"
+            className={OUTLINE_BUTTON}
           >
             読み直す
           </button>

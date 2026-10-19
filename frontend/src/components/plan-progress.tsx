@@ -154,7 +154,7 @@ function StationDot({ state }: { state: StepState }) {
 }
 
 function WaitedTime({ since }: { since: number }) {
-  const [now, setNow] = useState(since);
+  const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);

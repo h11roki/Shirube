@@ -1,7 +1,5 @@
 import type { Relevance } from "@/lib/api/client";
 
-export const RELEVANCES: Relevance[] = ["core", "foundation"];
-
 export const RELEVANCE_TONES: Record<
   Relevance,
   { text: string; edge: string; fill: string; sticky: string }
@@ -19,3 +17,5 @@ export const RELEVANCE_TONES: Record<
     sticky: "rotate-[-0.4deg] bg-route-soft",
   },
 };
+
+export const RELEVANCES = Object.keys(RELEVANCE_TONES) as Relevance[];
