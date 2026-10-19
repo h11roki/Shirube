@@ -7,10 +7,12 @@ import type {
   Term,
 } from "@/lib/api/client";
 import {
+  graduationYear,
   pickSemester,
   routeTotals,
   semesterCourses,
   semesterKey,
+  transfers,
 } from "@/lib/roadmap";
 
 function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
@@ -74,5 +76,42 @@ describe("roadmap", () => {
       core: 2,
       foundation: 1,
     });
+  });
+
+  it("graduates in the March after the fourth year", () => {
+    expect(graduationYear({ year: 2026, grade: 3 })).toBe(2028);
+    expect(graduationYear({ year: 2026, grade: 1 })).toBe(2030);
+  });
+
+  it("transfers each foundation to the station of the pillar it supports", () => {
+    const pillar = placed("確率統計", "core");
+    const early = {
+      ...placed("基礎数学", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const late = {
+      ...placed("情報処理", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const orphan = {
+      ...placed("実験", "foundation"),
+      prerequisite_for: "置けなかった柱",
+    };
+    const route = [
+      semester(3, "spring", [early, pillar]),
+      semester(3, "autumn", [late, orphan]),
+    ];
+
+    const found = transfers(route);
+
+    expect(found.get("基礎数学")).toEqual({
+      pillar: "確率統計",
+      station: 0,
+      semester: route[0],
+      afterPillar: false,
+    });
+    expect(found.get("情報処理")?.afterPillar).toBe(true);
+    expect(found.has("実験")).toBe(false);
+    expect(found.has("確率統計")).toBe(false);
   });
 });

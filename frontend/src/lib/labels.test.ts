@@ -6,7 +6,9 @@ import {
   placementLabel,
   roleLabel,
   semesterLabel,
+  semesterReading,
   slotsLabel,
+  stationLabel,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -59,6 +61,13 @@ describe("labels", () => {
       }),
     ).toBe("月4 ・ クラス 6B ・ 2 単位");
     expect(placementLabel(withSlots([]))).toBe("コマなし ・ 2 単位");
+  });
+
+  it("reads a semester aloud and numbers its station", () => {
+    expect(semesterReading(3, "spring")).toBe("さんかいせい はるがっき");
+    expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
+    expect(stationLabel(0)).toBe("SH01");
+    expect(stationLabel(11)).toBe("SH12");
   });
 
   it("names a class without a code", () => {

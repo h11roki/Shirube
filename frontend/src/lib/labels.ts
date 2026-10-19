@@ -46,6 +46,20 @@ export const TERM_LABELS: Record<Term, string> = {
   autumn: "秋学期",
 };
 
+export const TERM_READINGS: Record<Term, string> = {
+  spring: "はるがっき",
+  autumn: "あきがっき",
+};
+
+const GRADE_READINGS: Record<number, string> = {
+  1: "いっかいせい",
+  2: "にかいせい",
+  3: "さんかいせい",
+  4: "よんかいせい",
+};
+
+const STATION_PREFIX = "SH";
+
 export const WEEKDAY_LABELS: Record<Weekday, string> = {
   mon: "月",
   tue: "火",
@@ -58,6 +72,14 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
 
 export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;
+}
+
+export function semesterReading(grade: number, term: Term): string {
+  return `${GRADE_READINGS[grade] ?? `${grade} かいせい`} ${TERM_READINGS[term]}`;
+}
+
+export function stationLabel(index: number): string {
+  return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
 }
 
 export function roleLabel(
