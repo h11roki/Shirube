@@ -61,7 +61,7 @@ export function PlanResultView({
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
   const { conditions } = plan;
-  const last = result.semesters.at(-1);
+  const last = result.semesters[result.semesters.length - 1];
   const undo = answered?.undo ?? null;
 
   useEffect(() => {
@@ -196,10 +196,7 @@ export function PlanResultView({
             planPath={pathname}
             withStrip
             destination={profile.interpretation}
-            endNote={
-              last &&
-              `${semesterLabel(last.grade, last.term)}のあと、道標はここで終わります。`
-            }
+            endNote={`${semesterLabel(last.grade, last.term)}のあと、道標はここで終わります。`}
           />
         ) : (
           <TimetableBook

@@ -78,7 +78,7 @@ describe("roadmap", () => {
     });
   });
 
-  it("transfers each foundation to the station of the pillar it supports", () => {
+  it("transfers each foundation, before, with or after its pillar, to the pillar's station", () => {
     const pillar = placed("確率統計", "core");
     const early = {
       ...placed("基礎数学", "foundation"),
@@ -114,8 +114,11 @@ describe("roadmap", () => {
       station: 1,
       semester: route[1],
     });
-    expect(found.get("情報処理")?.station).toBe(1);
-    expect(found.get("同時の礎")?.station).toBe(1);
+    expect(
+      ["基礎数学", "同時の礎", "情報処理"].map(
+        (name) => found.get(name)?.station,
+      ),
+    ).toEqual([1, 1, 1]);
     expect(found.has("実験")).toBe(false);
     expect(found.has("確率統計")).toBe(false);
     expect(found.has("機械学習")).toBe(false);

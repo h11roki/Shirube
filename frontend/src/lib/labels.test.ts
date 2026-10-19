@@ -11,6 +11,7 @@ import {
   stationLabel,
   transferLabel,
   answeredLabel,
+  routeEndLabel,
   failedAnswerLabel,
   forgetTakenLabel,
   markTakenLabel,
@@ -65,6 +66,13 @@ describe("labels", () => {
     expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
     expect(stationLabel(0)).toBe("SH01");
     expect(stationLabel(11)).toBe("SH12");
+  });
+
+  it("ends the route at the destination, or says it continues when cut short", () => {
+    expect(routeEndLabel("組込みエンジニア", 4, 4)).toBe("組込みエンジニアへ");
+    expect(routeEndLabel("組込みエンジニア", 2, 4)).toBe(
+      "組込みエンジニアへ続きます",
+    );
   });
 
   it("writes a transfer to the pillar's station", () => {

@@ -2,7 +2,6 @@
 
 import {
   type CSSProperties,
-  type ReactNode,
   useCallback,
   useEffect,
   useId,
@@ -25,6 +24,7 @@ import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
   EMPTY_SEMESTER_LABEL,
+  routeEndLabel,
   semesterShortLabel,
   slotsLabel,
   stationLabel,
@@ -54,7 +54,7 @@ export function RouteMap({
   planPath?: string;
   withStrip?: boolean;
   destination: string;
-  endNote: ReactNode;
+  endNote: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
   const visible = semesters.slice(0, shown);
@@ -158,7 +158,9 @@ export function RouteMap({
             className="relative min-w-0 scroll-mt-28 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             <div className="grid min-h-24 content-center gap-1">
-              <p className="font-serif text-2xl font-bold">{destination}へ</p>
+              <h2 className="font-serif text-2xl font-bold">
+                {routeEndLabel(destination, shown, semesters.length)}
+              </h2>
               <p className="text-sm text-sub">{endNote}</p>
             </div>
           </li>
@@ -213,7 +215,6 @@ function RouteStrip({
                 type="button"
                 onClick={() => onPick(index)}
                 aria-current={index === active ? "location" : undefined}
-                title={goal ? stop.name : undefined}
                 className="grid justify-items-center gap-0.5 px-1.5 text-[11px] leading-tight"
               >
                 <span
@@ -224,7 +225,7 @@ function RouteStrip({
                   <span className="font-bold tabular-nums">{stop.station}</span>
                 )}
                 <span
-                  className={`whitespace-nowrap ${goal ? "max-w-[10em] truncate" : ""} ${index === active ? "text-ink" : "text-sub"}`}
+                  className={`${goal ? "max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
                 >
                   {stop.name}
                 </span>
