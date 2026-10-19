@@ -63,7 +63,9 @@ export function TimetableBook({
                 {CONTINUING_LABEL}(単位は春学期に数えます)
               </p>
             )}
-            <CourseGrid courses={semester.continuing} transfers={found} />
+            {semester.continuing.length > 0 && (
+              <CourseGrid courses={semester.continuing} transfers={found} />
+            )}
           </div>
         ) : (
           <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>

@@ -17,9 +17,9 @@ import type { Plan, PlanResult as Result } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
+  semesterLabel,
   stationLabel,
 } from "@/lib/labels";
-import { routeTotals } from "@/lib/roadmap";
 import {
   type ResultView,
   VIEWS_ANCHOR,
@@ -40,7 +40,7 @@ export function PlanResultView({
   const { view, semester } = readResultView(useSearchParams());
   const { profile } = result;
   const { conditions } = plan;
-  const totals = routeTotals(result.semesters);
+  const last = result.semesters.at(-1);
   return (
     <div className="grid gap-8">
       <section className="grid gap-4">
@@ -112,11 +112,12 @@ export function PlanResultView({
               />
               <div className="grid gap-1">
                 <h2 className="font-serif text-2xl font-bold">卒業駅</h2>
-                <p className="text-sm text-sub">
-                  ここまで {totals.credits} 単位。{RELEVANCE_LABELS.core}{" "}
-                  {totals.core} 科目と{RELEVANCE_LABELS.foundation}{" "}
-                  {totals.foundation} 科目を通ります。
-                </p>
+                {last && (
+                  <p className="text-sm text-sub">
+                    {semesterLabel(last.grade, last.term)}
+                    のあと、道標はここで終わります。
+                  </p>
+                )}
               </div>
             </div>
           }

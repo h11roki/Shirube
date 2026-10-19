@@ -46,7 +46,7 @@ export function RouteMap({
           key={semesterKey(semester)}
           index={index}
           semesters={semesters}
-          transfers={found}
+          found={found}
           planPath={planPath}
           delayMs={index * STAGGER_MS}
         />
@@ -69,13 +69,13 @@ export function RouteMap({
 function Station({
   index,
   semesters,
-  transfers,
+  found,
   planPath,
   delayMs,
 }: {
   index: number;
   semesters: SemesterPlan[];
-  transfers: Map<string, Transfer>;
+  found: Map<string, Transfer>;
   planPath?: string;
   delayMs: number;
 }) {
@@ -108,7 +108,7 @@ function Station({
         <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>
       )}
       {semester.courses.length > 0 && (
-        <CourseGrid courses={semester.courses} transfers={transfers} />
+        <CourseGrid courses={semester.courses} transfers={found} />
       )}
       {semester.continuing.length > 0 && (
         <p className="text-[13px] text-sub">

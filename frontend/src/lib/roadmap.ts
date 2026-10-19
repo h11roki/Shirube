@@ -16,7 +16,7 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
   const pillars = new Map<string, number>();
   semesters.forEach((semester, station) => {
     for (const course of semester.courses) {
-      if (course.relevance === "core") {
+      if (course.relevance === "core" && !pillars.has(course.name)) {
         pillars.set(course.name, station);
       }
     }

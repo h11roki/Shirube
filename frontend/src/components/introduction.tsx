@@ -1,4 +1,5 @@
 import { SignInButton } from "@/components/account";
+import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { RouteMap } from "@/components/route-map";
@@ -56,13 +57,12 @@ export function Introduction() {
       <section className="grid gap-5">
         <div className="grid gap-1">
           <Kicker>見本 ── {conditions.occupation}</Kicker>
-          <h2 className="font-serif text-2xl font-extrabold text-balance">
-            {result.profile.interpretation}への道標
-          </h2>
+          <h2 className="sr-only">{result.profile.interpretation}への道標</h2>
+          <DestinationPlate destination={result.profile.interpretation} />
           <p className="text-sm text-sub">
             {conditions.year} 年度の時間割から作った、実際の出力です(
             {semesterLabel(conditions.grade, conditions.term)}
-            から)。上の要約は卒業までのもので、道のりは最初の {
+            から)。要約は卒業までのもので、道のりは最初の {
               SAMPLE_SEMESTERS
             }{" "}
             学期だけを載せています。

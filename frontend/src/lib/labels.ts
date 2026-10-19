@@ -46,7 +46,7 @@ export const TERM_LABELS: Record<Term, string> = {
   autumn: "秋学期",
 };
 
-export const TERM_READINGS: Record<Term, string> = {
+const TERM_READINGS: Record<Term, string> = {
   spring: "はるがっき",
   autumn: "あきがっき",
 };
