@@ -1,11 +1,13 @@
+from collections.abc import Sequence, Set
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
 from typing import Self
 from uuid import UUID
 
+from app.domain.course import CourseSection
 from app.domain.recommendation import Recommendation
-from app.domain.roadmap import Roadmap, Semester, remaining_semesters
+from app.domain.roadmap import Roadmap, Semester, place, remaining_semesters
 
 
 class PlanError(ValueError):
@@ -39,6 +41,23 @@ class PlanConditions:
         names = [name for name, _ in self.chosen_classes]
         if names != sorted(set(names)):
             raise PlanError("クラスの選択は科目名の順に、科目ごとに 1 つにしてください")
+
+    def roadmap(
+        self,
+        recommendation: Recommendation,
+        sections: Sequence[CourseSection],
+        taken: Set[str] = frozenset(),
+    ) -> Roadmap:
+        return place(
+            recommendation,
+            sections,
+            self.department,
+            self.year,
+            remaining_semesters(self.start),
+            self.credit_limit,
+            dict(self.chosen_classes),
+            taken,
+        )
 
 
 @dataclass(frozen=True)

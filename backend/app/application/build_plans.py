@@ -13,7 +13,7 @@ from app.application.ports import (
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
-from app.domain.roadmap import place, remaining_semesters
+from app.domain.roadmap import remaining_semesters
 
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 STALLED = "道標を作る途中で止まりました"
@@ -63,15 +63,7 @@ class BuildPlans:
                 lambda step: self._enter_step(plan, step),
             )
             self._enter(plan, PlanStage.PLACING)
-            roadmap = place(
-                recommendation,
-                sections,
-                conditions.department,
-                conditions.year,
-                semesters,
-                conditions.credit_limit,
-                dict(conditions.chosen_classes),
-            )
+            roadmap = conditions.roadmap(recommendation, sections)
             finished = plan.succeeded(PlanResult(recommendation, roadmap))
         except UPSTREAM_ERRORS:
             logger.exception("道標 %s の推薦で外部のサービスの呼び出しに失敗しました", plan.id)

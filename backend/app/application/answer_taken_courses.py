@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.application.ports import CourseRepository, PlanRepository, UserRepository
 from app.domain.plan import Plan
-from app.domain.roadmap import ClassChoiceError, place, remaining_semesters
+from app.domain.roadmap import ClassChoiceError
 
 OUTDATED = "時間割表が変わったので、この道標は置き直せません。道標を作り直してください"
 CONFLICTED = "ほかの画面で答えが変わりました。読み込み直してから答えてください"
@@ -61,14 +61,9 @@ class AnswerTakenCourses:
             raise UnaskedCourseError(f"この道標でもう取ったかを聞いていない授業です: {name}")
         conditions = plan.conditions
         try:
-            again = place(
+            again = conditions.roadmap(
                 plan.result.recommendation,
                 self._courses.sections(conditions.year),
-                conditions.department,
-                conditions.year,
-                remaining_semesters(conditions.start),
-                conditions.credit_limit,
-                dict(conditions.chosen_classes),
                 change(frozenset(course.name for course in roadmap.taken)),
             )
         except ClassChoiceError as error:

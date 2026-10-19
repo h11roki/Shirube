@@ -111,7 +111,8 @@ class SqlPlanRepository:
                 .where(
                     PlanRow.id == plan.id,
                     PlanRow.status == PlanStatus.SUCCEEDED,
-                    PlanRow.result == result_json(previous),
+                    PlanRow.result[("roadmap", "taken")]
+                    == [course.name for course in previous.roadmap.taken],
                 )
                 .values(result=result_json(plan.result))
                 .returning(PlanRow.id)
