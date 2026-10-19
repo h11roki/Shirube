@@ -1,4 +1,7 @@
+"use client";
+
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
+import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
@@ -10,8 +13,18 @@ import {
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
 
+const EMPHASIS = {
+  self: "ring-2 ring-ink/20",
+  linked:
+    "ring-2 ring-route shadow-[0_0_0_6px_color-mix(in_srgb,var(--route)_18%,transparent)]",
+};
+
 const NOTCH =
   "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
+
+function transferLabel(transfer: Transfer): string {
+  return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
+}
 
 export function CourseTicket({
   course,
@@ -20,10 +33,24 @@ export function CourseTicket({
   course: Course | PlacedCourse;
   transfer?: Transfer;
 }) {
+  const focusing = useTransferFocus();
   const core = course.relevance === "core";
   const placed = "slots" in course;
+  const emphasis =
+    focusing?.focus === course.name
+      ? EMPHASIS.self
+      : focusing?.linked.has(course.name)
+        ? EMPHASIS.linked
+        : "";
   return (
-    <article className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper">
+    <article
+      id={placed ? `ticket-${course.section_code}` : undefined}
+      onPointerEnter={() => focusing?.hover(course.name)}
+      onPointerLeave={() => focusing?.hover(null)}
+      onFocus={() => focusing?.hover(course.name)}
+      onBlur={() => focusing?.hover(null)}
+      className={`relative grid min-w-0 scroll-mt-28 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
+    >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
           className={`text-[11px] font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
@@ -36,8 +63,17 @@ export function CourseTicket({
         <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
         {transfer && (
           <p className="text-xs text-route">
-            乗換 → {transfer.pillar}({stationLabel(transfer.station)}{" "}
-            {semesterLabel(transfer.semester.grade, transfer.semester.term)})
+            {focusing ? (
+              <button
+                type="button"
+                onClick={() => focusing.follow(course.name, transfer)}
+                className="text-left underline underline-offset-4"
+              >
+                {transferLabel(transfer)}
+              </button>
+            ) : (
+              transferLabel(transfer)
+            )}
           </p>
         )}
         {transfer && transfer.order !== "before" && (

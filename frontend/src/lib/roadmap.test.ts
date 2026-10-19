@@ -10,6 +10,7 @@ import {
   pickSemester,
   routeTotals,
   semesterCourses,
+  linkedNames,
   semesterKey,
   transfers,
 } from "@/lib/roadmap";
@@ -109,6 +110,7 @@ describe("roadmap", () => {
 
     expect(found.get("基礎数学")).toEqual({
       pillar: "確率統計",
+      pillarSection: "確率統計",
       station: 1,
       semester: route[1],
       order: "before",
@@ -118,5 +120,28 @@ describe("roadmap", () => {
     expect(found.has("実験")).toBe(false);
     expect(found.has("確率統計")).toBe(false);
     expect(found.has("機械学習")).toBe(false);
+  });
+
+  it("links a foundation to its pillar and a pillar to all its foundations", () => {
+    const pillar = placed("確率統計", "core");
+    const early = {
+      ...placed("基礎数学", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const late = {
+      ...placed("情報処理", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const found = transfers([
+      semester(3, "spring", [early, pillar]),
+      semester(3, "autumn", [late]),
+    ]);
+
+    expect([...linkedNames(found, "基礎数学")]).toEqual(["確率統計"]);
+    expect([...linkedNames(found, "確率統計")].sort()).toEqual(
+      ["基礎数学", "情報処理"].sort(),
+    );
+    expect(linkedNames(found, null).size).toBe(0);
+    expect(linkedNames(found, "関係のない授業").size).toBe(0);
   });
 });

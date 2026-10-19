@@ -6,6 +6,7 @@ import {
   roleLabel,
   semesterLabel,
   semesterReading,
+  semesterShortLabel,
   slotsLabel,
   stationLabel,
   goalStationLabel,
@@ -55,6 +56,7 @@ describe("labels", () => {
 
   it("reads a semester aloud and numbers its station", () => {
     expect(semesterReading(3, "spring")).toBe("さんかいせい はるがっき");
+    expect(semesterShortLabel(3, "spring")).toBe("3回生 春");
     expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
     expect(stationLabel(0)).toBe("SH01");
     expect(stationLabel(11)).toBe("SH12");

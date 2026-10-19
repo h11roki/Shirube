@@ -104,6 +104,7 @@ export function PlanResultView({
         <RouteMap
           semesters={result.semesters}
           planPath={pathname}
+          withStrip
           end={
             <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
               <span

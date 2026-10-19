@@ -9,17 +9,18 @@ export type TransferOrder = "before" | "same" | "after";
 
 export type Transfer = {
   pillar: string;
+  pillarSection: string;
   station: number;
   semester: SemesterPlan;
   order: TransferOrder;
 };
 
 export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
-  const pillars = new Map<string, number>();
+  const pillars = new Map<string, { station: number; section: string }>();
   semesters.forEach((semester, station) => {
     for (const course of semester.courses) {
       if (course.relevance === "core" && !pillars.has(course.name)) {
-        pillars.set(course.name, station);
+        pillars.set(course.name, { station, section: course.section_code });
       }
     }
   });
@@ -28,16 +29,17 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
     for (const course of semester.courses) {
       const pillar =
         course.relevance === "foundation" ? course.prerequisite_for : null;
-      const pillarStation = pillar === null ? undefined : pillars.get(pillar);
-      if (pillar !== null && pillarStation !== undefined) {
+      const target = pillar === null ? undefined : pillars.get(pillar);
+      if (pillar !== null && target !== undefined) {
         found.set(course.name, {
           pillar,
-          station: pillarStation,
-          semester: semesters[pillarStation],
+          pillarSection: target.section,
+          station: target.station,
+          semester: semesters[target.station],
           order:
-            station < pillarStation
+            station < target.station
               ? "before"
-              : station === pillarStation
+              : station === target.station
                 ? "same"
                 : "after",
         });
@@ -45,6 +47,26 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
     }
   });
   return found;
+}
+
+export function linkedNames(
+  found: Map<string, Transfer>,
+  focus: string | null,
+): Set<string> {
+  const linked = new Set<string>();
+  if (focus === null) {
+    return linked;
+  }
+  const own = found.get(focus);
+  if (own) {
+    linked.add(own.pillar);
+  }
+  for (const [name, transfer] of found) {
+    if (transfer.pillar === focus) {
+      linked.add(name);
+    }
+  }
+  return linked;
 }
 
 export function semesterKey(semester: { grade: number; term: Term }): string {
