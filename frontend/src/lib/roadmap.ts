@@ -5,14 +5,11 @@ import type {
   Term,
 } from "@/lib/api/client";
 
-export type TransferOrder = "before" | "same" | "after";
-
 export type Transfer = {
   pillar: string;
   pillarSection: string;
   station: number;
   semester: SemesterPlan;
-  order: TransferOrder;
 };
 
 export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
@@ -25,7 +22,7 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
     }
   });
   const found = new Map<string, Transfer>();
-  semesters.forEach((semester, station) => {
+  for (const semester of semesters) {
     for (const course of semester.courses) {
       const pillar =
         course.relevance === "foundation" ? course.prerequisite_for : null;
@@ -36,16 +33,10 @@ export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
           pillarSection: target.section,
           station: target.station,
           semester: semesters[target.station],
-          order:
-            station < target.station
-              ? "before"
-              : station === target.station
-                ? "same"
-                : "after",
         });
       }
     }
-  });
+  }
   return found;
 }
 

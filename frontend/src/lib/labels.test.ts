@@ -10,9 +10,8 @@ import {
   slotsLabel,
   stationLabel,
   transferLabel,
-  TRANSFER_WARNINGS,
-  goalStationLabel,
   answeredLabel,
+  routeEndLabel,
   failedAnswerLabel,
   forgetTakenLabel,
   markTakenLabel,
@@ -67,10 +66,16 @@ describe("labels", () => {
     expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
     expect(stationLabel(0)).toBe("SH01");
     expect(stationLabel(11)).toBe("SH12");
-    expect(goalStationLabel(4)).toBe("SH05");
   });
 
-  it("writes a transfer to the pillar's station and warns when it is not earlier", () => {
+  it("ends the route at the destination, or says it continues when cut short", () => {
+    expect(routeEndLabel("組込みエンジニア", 4, 4)).toBe("組込みエンジニアへ");
+    expect(routeEndLabel("組込みエンジニア", 2, 4)).toBe(
+      "組込みエンジニアへ続きます",
+    );
+  });
+
+  it("writes a transfer to the pillar's station", () => {
     expect(
       transferLabel({
         pillar: "確率統計",
@@ -84,13 +89,6 @@ describe("labels", () => {
         },
       }),
     ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
-    expect(TRANSFER_WARNINGS.before).toBeNull();
-    expect(TRANSFER_WARNINGS.same).toBe(
-      "柱と同じ学期です。柱より前の学期には置けませんでした",
-    );
-    expect(TRANSFER_WARNINGS.after).toBe(
-      "柱より後の学期です。柱より前の学期には置けませんでした",
-    );
   });
 
   it("tells what an answer about a taken course did and names its buttons", () => {

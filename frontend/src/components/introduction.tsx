@@ -68,18 +68,16 @@ export function Introduction() {
             学期だけを載せています。
           </p>
         </div>
-        <JourneySummary semesters={result.semesters} conditions={conditions} />
+        <JourneySummary
+          semesters={result.semesters}
+          conditions={conditions}
+          destination={result.profile.interpretation}
+        />
         <RouteMap
           semesters={result.semesters}
           shown={SAMPLE_SEMESTERS}
-          end={
-            <div className="flex min-h-24 flex-col justify-center">
-              <h3 className="font-serif text-xl font-bold">卒業まで続きます</h3>
-              <p className="text-sm text-sub">
-                ログインすると、自分の職業と回生で作れます。
-              </p>
-            </div>
-          }
+          destination={result.profile.interpretation}
+          endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
         />
       </section>
 

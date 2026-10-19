@@ -9,11 +9,13 @@ export function StationBoard({
   semester,
   previous,
   next,
+  destination,
 }: {
   index: number;
   semester: SemesterPlan;
   previous?: SemesterPlan;
   next?: SemesterPlan;
+  destination: string;
 }) {
   return (
     <div className="grid w-full max-w-lg grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-line bg-sheet shadow-paper">
@@ -40,7 +42,7 @@ export function StationBoard({
       <span aria-hidden className="col-start-2 h-2 bg-route" />
       <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-[11.5px] text-sub">
         <span>{previous && `← ${label(previous)}`}</span>
-        <span>{next ? `${label(next)} →` : "卒業 →"}</span>
+        <span>{next ? label(next) : destination} →</span>
       </p>
     </div>
   );
