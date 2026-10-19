@@ -5,6 +5,7 @@ export type Plan = Schemas["PlanOut"];
 export type PlanRequest = Schemas["PlanIn"];
 export type PlanList = Schemas["PlanListOut"];
 export type PlanSummary = Schemas["PlanSummaryOut"];
+export type TakenCourses = Schemas["TakenCoursesOut"];
 export type PlanResult = Schemas["ResultOut"];
 export type ClassChoices = Schemas["ClassChoicesOut"];
 export type SemesterPlan = Schemas["SemesterPlanOut"];

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { OUTLINE_BUTTON } from "@/components/styles";
+import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
   type Plan,
@@ -224,6 +225,8 @@ export function PlanForm() {
           </div>
         </details>
       )}
+
+      <TakenCourseList />
 
       {submitError && (
         <p role="alert" className="text-sm text-danger">

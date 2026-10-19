@@ -134,6 +134,10 @@ export function markTakenLabel(name: string): string {
   return `${name}はもう取った`;
 }
 
+export function forgetTakenLabel(name: string): string {
+  return `${name}を取り消す`;
+}
+
 export function unmarkTakenLabel(name: string): string {
   return `${name}を道標に戻す`;
 }
