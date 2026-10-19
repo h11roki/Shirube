@@ -12,7 +12,7 @@ from sqlalchemy import Engine, delete, insert, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 from app.application.ports import PlanFormatError
-from app.domain.plan import Plan, PlanStatus
+from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.infrastructure.db.models import PlanRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
@@ -267,6 +267,46 @@ def test_a_running_plan_is_finished_once_with_its_result(
     assert finished_at is not None
 
 
+def test_a_running_plan_keeps_the_stage_it_entered_until_it_finishes(
+    repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = waiting(repository, owner)
+    repository.enter_stage(plan.id, PlanStage.ANALYZING)
+    assert repository.get(plan.id) == plan
+    running = repository.claim(plan.id)
+    assert running is not None
+
+    repository.enter_stage(plan.id, PlanStage.SELECTING)
+    entered = repository.get(plan.id)
+    assert entered is not None
+    assert entered.stage is PlanStage.SELECTING
+    repository.finish(entered.failed("文"))
+
+    finished = repository.get(plan.id)
+    assert finished is not None
+    assert (finished.status, finished.stage) == (PlanStatus.FAILED, None)
+
+
+def test_a_stalled_plan_loses_its_stage(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = waiting(repository, owner)
+    repository.claim(plan.id)
+    repository.enter_stage(plan.id, PlanStage.SEARCHING)
+    with engine.begin() as connection:
+        connection.execute(
+            update(PlanRow)
+            .where(PlanRow.id == plan.id)
+            .values(claimed_at=text("now() - interval '16 minutes'"))
+        )
+
+    repository.fail_stalled(STALL_LIMIT, "止まりました")
+
+    stalled = repository.get(plan.id)
+    assert stalled is not None
+    assert (stalled.status, stalled.stage) == (PlanStatus.FAILED, None)
+
+
 def test_a_plan_that_has_not_finished_cannot_be_saved_as_finished(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
@@ -308,6 +348,8 @@ def test_plans_running_past_the_limit_fail_and_recent_ones_keep_running(
         {"status": "pending", "result": {"version": 2}, "failure": None},
         {"status": "failed", "result": None, "failure": None},
         {"status": "running", "result": None, "failure": "文"},
+        {"status": "pending", "result": None, "failure": None, "stage": "analyzing"},
+        {"status": "running", "result": None, "failure": None, "stage": "resting"},
     ],
     ids=[
         "unknown-status",
@@ -315,6 +357,8 @@ def test_plans_running_past_the_limit_fail_and_recent_ones_keep_running(
         "pending-with-result",
         "failed-without-failure",
         "running-with-failure",
+        "pending-with-stage",
+        "unknown-stage",
     ],
 )
 def test_the_table_refuses_a_status_that_does_not_match_its_result_and_failure(

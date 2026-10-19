@@ -8,7 +8,7 @@ from app.application.build_plans import SERVER_FAILURE
 from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
-from app.domain.plan import Plan, PlanStatus
+from app.domain.plan import Plan, PlanStage, PlanStatus
 from tests.builders import sample_conditions, sample_plan
 from tests.fakes import (
     FakeChunkSearch,
@@ -57,6 +57,7 @@ def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_lo
     assert response.json() == {
         "id": str(plan_id),
         "status": "pending",
+        "stage": None,
         "conditions": {
             "occupation": "職業",
             "department": "情",
@@ -84,6 +85,23 @@ def test_a_waiting_plan_is_shown_as_it_was_accepted() -> None:
     response = api.get(f"/api/v1/plans/{accepted['id']}")
 
     assert (response.status_code, response.json()) == (200, accepted)
+
+
+def test_a_running_plan_is_shown_with_its_stage() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = Plan(
+        uuid4(),
+        users.id_of("google-a"),
+        sample_conditions(),
+        PlanStatus.RUNNING,
+        stage=PlanStage.SELECTING,
+    )
+    plans.add(plan)
+
+    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+
+    assert (shown["status"], shown["stage"]) == ("running", "selecting")
 
 
 def test_a_succeeded_plan_is_shown_with_its_result() -> None:

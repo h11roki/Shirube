@@ -15,7 +15,7 @@ from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanConditions, PlanStatus
+from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
 from app.domain.recommendation import CourseChoice, Relevance
 from app.domain.roadmap import Semester
 from tests.fakes import (
@@ -96,6 +96,13 @@ def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() 
     assert [course.name for course in built.result.roadmap.unplaced] == ["科目C"]
     assert plans.plans[oldest.id] == built
     assert plans.plans[newer.id].status is PlanStatus.PENDING
+    assert plans.stages == [
+        (oldest.id, PlanStage.ANALYZING),
+        (oldest.id, PlanStage.SEARCHING),
+        (oldest.id, PlanStage.SELECTING),
+        (oldest.id, PlanStage.PLACING),
+    ]
+    assert built.stage is None
 
 
 def test_nothing_is_built_when_no_plan_is_waiting() -> None:

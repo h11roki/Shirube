@@ -10,7 +10,7 @@ from app.application.ports import (
     PlanRepository,
 )
 from app.application.recommend_courses import RecommendCourses
-from app.domain.plan import Plan, PlanResult
+from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import place, remaining_semesters
 
@@ -55,8 +55,13 @@ class BuildPlans:
             semesters = remaining_semesters(conditions.start)
             sections = self._courses.sections(conditions.year)
             recommendation = self._recommend.run(
-                conditions.occupation, conditions.year, conditions.department, semesters
+                conditions.occupation,
+                conditions.year,
+                conditions.department,
+                semesters,
+                lambda stage: self._plans.enter_stage(plan.id, stage),
             )
+            self._plans.enter_stage(plan.id, PlanStage.PLACING)
             roadmap = place(
                 recommendation,
                 sections,

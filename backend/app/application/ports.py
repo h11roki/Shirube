@@ -7,7 +7,7 @@ from uuid import UUID
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanSummary
+from app.domain.plan import Plan, PlanStage, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -88,6 +88,8 @@ class PlanRepository(Protocol):
     def claim_next(self) -> Plan | None: ...
 
     def claim(self, plan_id: UUID) -> Plan | None: ...
+
+    def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None: ...
 
     def finish(self, plan: Plan) -> bool: ...
 
