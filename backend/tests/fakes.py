@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
+from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
@@ -21,7 +22,7 @@ from app.application.search_courses import SearchCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanStage, PlanStatus, PlanSummary
+from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus, PlanSummary
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -174,6 +175,13 @@ class FakePlanRepository:
         self.plans[plan.id] = plan
         return True
 
+    def replace_result(self, plan: Plan, previous: PlanResult) -> bool:
+        stored = self.plans[plan.id]
+        if stored.status is not PlanStatus.SUCCEEDED or stored.result != previous:
+            return False
+        self.plans[plan.id] = plan
+        return True
+
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
         self.stall_limits.append(after)
         running = [plan for plan in self.plans.values() if plan.status is PlanStatus.RUNNING]
@@ -205,9 +213,16 @@ class FakeTokenVerifier:
 class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
+        self.taken: dict[UUID, set[str]] = {}
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
+
+    def add_taken(self, user_id: UUID, name: str) -> None:
+        self.taken.setdefault(user_id, set()).add(name)
+
+    def remove_taken(self, user_id: UUID, name: str) -> None:
+        self.taken.setdefault(user_id, set()).discard(name)
 
 
 def chat_answering(
@@ -281,12 +296,14 @@ def plan_app(
 ) -> FastAPI:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     stored = plans or FakePlanRepository()
-    identify = IdentifyUser(FakeTokenVerifier(TOKENS), users or FakeUserRepository())
+    known = users or FakeUserRepository()
+    identify = IdentifyUser(FakeTokenVerifier(TOKENS), known)
     return create_app(
         RequestPlan(search, courses, stored, 16),
         GetPlan(stored),
         ListPlans(stored),
         ListClassChoices(courses),
+        AnswerTakenCourses(stored, known, courses),
         identify,
         2026,
         lambda: today,

@@ -6,6 +6,13 @@ from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
+from app.application.answer_taken_courses import (
+    AnswerConflictError,
+    AnswerTakenCourses,
+    PlanNotFinishedError,
+    PlanOutdatedError,
+    UnaskedCourseError,
+)
 from app.application.build_plans import SERVER_FAILURE
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
@@ -23,13 +30,26 @@ from app.presentation.schemas.errors import ERROR_RESPONSES
 
 API_PREFIX = "/api/v1"
 LOGIN_REQUIRED = "ログインしてください"
-INPUT_ERRORS: tuple[type[Exception], ...] = (ClassChoiceError, NoCandidatesError)
+INPUT_ERRORS: tuple[type[Exception], ...] = (
+    ClassChoiceError,
+    NoCandidatesError,
+    UnaskedCourseError,
+)
+CONFLICT_ERRORS: tuple[type[Exception], ...] = (
+    PlanNotFinishedError,
+    PlanOutdatedError,
+    AnswerConflictError,
+)
 
 logger = logging.getLogger(__name__)
 
 
 async def _input_error(request: Request, error: Exception) -> JSONResponse:
     return JSONResponse({"detail": str(error)}, status_code=status.HTTP_422_UNPROCESSABLE_CONTENT)
+
+
+async def _conflict(request: Request, error: Exception) -> JSONResponse:
+    return JSONResponse({"detail": str(error)}, status_code=status.HTTP_409_CONFLICT)
 
 
 def _unauthorized(challenge: str) -> JSONResponse:
@@ -60,6 +80,7 @@ def create_app(
     get_plan: GetPlan,
     list_plans: ListPlans,
     list_class_choices: ListClassChoices,
+    answer_taken_courses: AnswerTakenCourses,
     identify: IdentifyUser,
     curriculum_year: int,
     today: Callable[[], date],
@@ -68,7 +89,9 @@ def create_app(
     app = FastAPI(title="shirube")
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(
-        plans_router(request_plan, get_plan, list_plans, user, curriculum_year, today),
+        plans_router(
+            request_plan, get_plan, list_plans, answer_taken_courses, user, curriculum_year, today
+        ),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,
     )
@@ -81,6 +104,8 @@ def create_app(
     app.add_exception_handler(InvalidTokenError, _invalid_token)
     for error in INPUT_ERRORS:
         app.add_exception_handler(error, _input_error)
+    for error in CONFLICT_ERRORS:
+        app.add_exception_handler(error, _conflict)
     app.add_exception_handler(Exception, _unexpected_error)
 
     @app.exception_handler(RequestValidationError)

@@ -12,6 +12,10 @@ import {
   transferLabel,
   TRANSFER_WARNINGS,
   goalStationLabel,
+  answeredLabel,
+  failedAnswerLabel,
+  markTakenLabel,
+  unmarkTakenLabel,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -80,8 +84,27 @@ describe("labels", () => {
       }),
     ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
     expect(TRANSFER_WARNINGS.before).toBeNull();
-    expect(TRANSFER_WARNINGS.same).toBe("柱と同じ学期です");
-    expect(TRANSFER_WARNINGS.after).toBe("柱より後の学期です");
+    expect(TRANSFER_WARNINGS.same).toBe(
+      "柱と同じ学期です。柱より前の学期には置けませんでした",
+    );
+    expect(TRANSFER_WARNINGS.after).toBe(
+      "柱より後の学期です。柱より前の学期には置けませんでした",
+    );
+  });
+
+  it("tells what an answer about a taken course did and names its buttons", () => {
+    expect(answeredLabel("情報処理", "mark")).toBe(
+      "情報処理を外して置き直しました",
+    );
+    expect(answeredLabel("情報処理", "unmark")).toBe(
+      "情報処理を戻して置き直しました",
+    );
+    expect(failedAnswerLabel("答えられません", null)).toBe("答えられません");
+    expect(failedAnswerLabel("答えられません", "届きません")).toBe(
+      "答えられません(道標も読み直せませんでした: 届きません)",
+    );
+    expect(markTakenLabel("情報処理")).toBe("情報処理はもう取った");
+    expect(unmarkTakenLabel("情報処理")).toBe("情報処理を道標に戻す");
   });
 
   it("names a class without a code", () => {

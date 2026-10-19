@@ -86,6 +86,9 @@ def render(plan: Plan) -> str:
     if result.roadmap.unplaced:
         names = "、".join(course.name for course in result.roadmap.unplaced)
         lines.append(f"置けなかった科目: {names}")
+    if result.roadmap.taken:
+        names = "、".join(course.name for course in result.roadmap.taken)
+        lines.append(f"もう取った科目: {names}")
     lines += unlinked_lines(result.recommendation.unlinked)
     return "\n".join(lines)
 

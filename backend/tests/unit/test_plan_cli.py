@@ -2,7 +2,7 @@ from uuid import UUID
 
 from app.domain.plan import Plan, PlanStatus
 from app.presentation.cli.plan import render
-from tests.builders import SAMPLE_OWNER, sample_conditions, sample_plan
+from tests.builders import SAMPLE_OWNER, sample_conditions, sample_plan, sample_plan_with_taken
 
 PLAN_ID = UUID("8888666a-9ab0-48db-ba61-cf526a15dc0d")
 
@@ -27,6 +27,13 @@ def test_render_lists_each_semester_with_slots_classes_and_reasons() -> None:
         "置けなかった科目: 科目D\n"
         "中心につながらず外した土台: 科目E(→ 科目F)"
     )
+
+
+def test_render_lists_the_courses_left_out_as_taken() -> None:
+    lines = render(sample_plan_with_taken(PLAN_ID)).splitlines()
+
+    assert "もう取った科目: 科目D" in lines
+    assert not any(line.startswith("置けなかった科目") for line in lines)
 
 
 def test_render_shows_the_conditions_of_a_plan_without_a_result() -> None:

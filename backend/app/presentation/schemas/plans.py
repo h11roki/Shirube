@@ -94,6 +94,8 @@ class ResultOut(BaseModel):
     profile: ProfileOut
     semesters: list[SemesterPlanOut]
     unplaced: list[CourseOut]
+    taken: list[CourseOut]
+    offered_earlier: list[str]
     unlinked: list[UnlinkedOut]
 
 
@@ -186,6 +188,8 @@ def _result_out(result: PlanResult) -> ResultOut:
             for semester_plan in result.roadmap.semesters
         ],
         unplaced=[_course_out(course) for course in result.roadmap.unplaced],
+        taken=[_course_out(course) for course in result.roadmap.taken],
+        offered_earlier=sorted(result.roadmap.offered_earlier),
         unlinked=[
             UnlinkedOut(
                 name=choice.name, reason=choice.reason, prerequisite_for=choice.prerequisite_for

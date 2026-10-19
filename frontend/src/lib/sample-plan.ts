@@ -214,6 +214,8 @@ export const SAMPLE_PLAN = {
       },
     ],
     unplaced: [],
+    taken: [],
+    offered_earlier: [],
     unlinked: [],
   },
   failure: null,
