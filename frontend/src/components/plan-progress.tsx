@@ -29,12 +29,8 @@ export function PlanProgress({
   stalled?: ReactNode;
 }) {
   const { conditions } = plan;
-  const waited = useWaitedSeconds();
   return (
-    <section
-      aria-live="polite"
-      className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8"
-    >
+    <section className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1.5">
           <p className="text-xs font-bold tracking-[0.28em] text-pillar">
@@ -53,22 +49,20 @@ export function PlanProgress({
           className="w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
         />
       </div>
-      {plan.status === "pending" && (
-        <p className="flex items-center gap-2.5 text-sm font-bold">
-          <span
-            aria-hidden
-            className="size-3.5 rounded-full border-[3px] border-pillar motion-safe:animate-beacon"
-          />
-          {WAITING_LABEL}
-        </p>
-      )}
-      <StepLine steps={progressSteps(plan.status, plan.stage)} />
-      {stalled ?? (
-        <p className="text-xs text-sub">
-          <span className="tabular-nums">待ち時間 {waited} 秒</span> ・ ふだん
-          10〜30 秒で終わります。このページを開いたままお待ちください。
-        </p>
-      )}
+      <div aria-live="polite" className="grid gap-6">
+        {plan.status === "pending" && (
+          <p className="flex items-center gap-2.5 text-sm font-bold">
+            <span
+              aria-hidden
+              className="size-3.5 rounded-full border-[3px] border-pillar motion-safe:animate-beacon"
+            />
+            {WAITING_LABEL}
+          </p>
+        )}
+        <StepLine steps={progressSteps(plan.status, plan.stage)} />
+        {stalled}
+      </div>
+      {!stalled && <WaitedTime />}
     </section>
   );
 }
@@ -152,12 +146,19 @@ function StationDot({ state }: { state: StepState }) {
   );
 }
 
-function useWaitedSeconds(): number {
+function WaitedTime() {
   const [startedAt] = useState(Date.now);
   const [now, setNow] = useState(startedAt);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
-  return Math.floor((now - startedAt) / TICK_MS);
+  return (
+    <p className="text-xs text-sub">
+      <span className="tabular-nums">
+        待ち時間 {Math.floor((now - startedAt) / TICK_MS)} 秒
+      </span>{" "}
+      ・ ふだん 10〜30 秒で終わります。このページを開いたままお待ちください。
+    </p>
+  );
 }

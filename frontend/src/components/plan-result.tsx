@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
 import { CourseCard } from "@/components/course-card";
+import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
 import { Signpost } from "@/components/signpost";
 import { TimetableBook } from "@/components/timetable-book";
@@ -98,14 +99,15 @@ export function PlanResultView({
           ))}
         </nav>
         <p className="flex gap-4 text-xs text-sub">
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden className="size-2.5 rounded-xs bg-pillar" />
-            {RELEVANCE_LABELS.core}の授業
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span aria-hidden className="size-2.5 rounded-xs bg-route" />
-            {RELEVANCE_LABELS.foundation}の授業
-          </span>
+          {RELEVANCES.map((relevance) => (
+            <span key={relevance} className="flex items-center gap-1.5">
+              <span
+                aria-hidden
+                className={`size-2.5 rounded-xs ${RELEVANCE_TONES[relevance].fill}`}
+              />
+              {RELEVANCE_LABELS[relevance]}の授業
+            </span>
+          ))}
         </p>
       </div>
 

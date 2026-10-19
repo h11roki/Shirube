@@ -1,6 +1,7 @@
 import { SignInButton } from "@/components/account";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
+import { STAGGER_MS } from "@/lib/motion";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 const SAMPLE_SEMESTERS = 2;
@@ -29,7 +30,7 @@ export function Introduction() {
         {STEPS.map((step, index) => (
           <li
             key={step.title}
-            style={{ animationDelay: `${index * 120}ms` }}
+            style={{ animationDelay: `${index * STAGGER_MS}ms` }}
             className="relative grid content-start gap-1.5 pl-12 motion-safe:animate-rise sm:pt-12 sm:pl-0"
           >
             <span

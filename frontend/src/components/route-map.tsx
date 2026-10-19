@@ -7,10 +7,9 @@ import { CourseCard } from "@/components/course-card";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
 import { semesterLabel, slotsLabel } from "@/lib/labels";
+import { STAGGER_MS } from "@/lib/motion";
 import { semesterKey } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, resultViewHref } from "@/lib/result-view";
-
-const STAGGER_MS = 120;
 
 export function RouteMap({
   semesters,
@@ -64,14 +63,15 @@ function Station({
           {semester.credits} 単位 ・ {semester.courses.length} 科目
         </span>
       </h2>
-      {semester.courses.length > 0 ? (
+      {all.length === 0 && (
+        <p className="text-sm text-sub">この学期に置いた授業はありません。</p>
+      )}
+      {semester.courses.length > 0 && (
         <div className="grid gap-2.5 sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
           {semester.courses.map((course) => (
             <CourseCard key={course.section_code} course={course} />
           ))}
         </div>
-      ) : (
-        <p className="text-sm text-sub">この学期に置いた授業はありません。</p>
       )}
       {semester.continuing.length > 0 && (
         <p className="text-[13px] text-sub">
@@ -107,7 +107,7 @@ function Station({
         hidden={!open}
         className="min-w-0 rounded-lg border border-line bg-note p-3.5 motion-safe:animate-rise"
       >
-        <WeekTable courses={all} />
+        {open && <WeekTable courses={all} />}
       </div>
     </li>
   );

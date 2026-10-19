@@ -1,8 +1,9 @@
 import Link from "next/link";
 
+import { CourseCard } from "@/components/course-card";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
-import { placementLabel, roleLabel, semesterLabel } from "@/lib/labels";
+import { semesterLabel } from "@/lib/labels";
 import { pickSemester, semesterKey } from "@/lib/roadmap";
 import { resultViewHref } from "@/lib/result-view";
 
@@ -19,10 +20,7 @@ export function TimetableBook({
   if (!semester) {
     return <p className="text-sm text-sub">学期がありません。</p>;
   }
-  const notes = [
-    ...semester.courses.map((course) => ({ course, continuing: false })),
-    ...semester.continuing.map((course) => ({ course, continuing: true })),
-  ];
+  const all = [...semester.courses, ...semester.continuing];
   return (
     <div className="grid gap-4 motion-safe:animate-rise">
       <nav aria-label="学期" className="flex flex-wrap gap-1.5">
@@ -43,35 +41,22 @@ export function TimetableBook({
       </nav>
       <div className="grid items-start gap-4 lg:grid-cols-[1.55fr_1fr]">
         <div className="min-w-0 rounded-lg border border-line bg-note p-3.5">
-          <WeekTable courses={notes.map((note) => note.course)} />
+          <WeekTable courses={all} />
         </div>
-        {notes.length > 0 ? (
-          <ul className="grid min-w-0 gap-2.5">
-            {notes.map(({ course, continuing }) => (
-              <li
-                key={course.section_code}
-                className="grid gap-1 rounded-lg border border-line bg-note px-3.5 py-3"
-              >
-                <p className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                  <span
-                    className={`rounded-sm px-1.5 text-[11px] font-bold text-paper ${course.relevance === "core" ? "bg-pillar" : "bg-route"}`}
-                  >
-                    {roleLabel(course)}
-                  </span>
-                  <span className="font-bold">{course.name}</span>
-                </p>
-                <p className="text-[13px] leading-relaxed text-sub">
-                  {course.reason}
-                </p>
-                <p className="text-xs text-sub tabular-nums">
-                  {continuing ? "春学期からの続き" : placementLabel(course)}
-                  {!course.class_confirmed && (
-                    <span className="text-pillar"> ・ クラス未確定</span>
-                  )}
-                </p>
-              </li>
+        {all.length > 0 ? (
+          <div className="grid min-w-0 gap-2.5">
+            {semester.courses.map((course) => (
+              <CourseCard key={course.section_code} course={course} />
             ))}
-          </ul>
+            {semester.continuing.length > 0 && (
+              <p className="pt-1 text-xs font-bold text-sub">
+                春学期からの続き
+              </p>
+            )}
+            {semester.continuing.map((course) => (
+              <CourseCard key={course.section_code} course={course} />
+            ))}
+          </div>
         ) : (
           <p className="text-sm text-sub">この学期に置いた授業はありません。</p>
         )}

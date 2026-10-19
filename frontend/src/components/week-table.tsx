@@ -1,11 +1,7 @@
-import type { PlacedCourse, Relevance } from "@/lib/api/client";
+import { RELEVANCE_TONES } from "@/components/relevance-tones";
+import type { PlacedCourse } from "@/lib/api/client";
 import { RELEVANCE_LABELS, WEEKDAY_LABELS, classLabel } from "@/lib/labels";
 import { weekTable } from "@/lib/timetable";
-
-const STICKY_STYLES: Record<Relevance, string> = {
-  core: "rotate-[0.4deg] bg-pillar-soft",
-  foundation: "rotate-[-0.4deg] bg-route-soft",
-};
 
 export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
   const table = weekTable(courses);
@@ -42,7 +38,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
                       <span
                         key={course.section_code}
                         title={course.reason}
-                        className={`mb-1 block rounded-sm px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${STICKY_STYLES[course.relevance]}`}
+                        className={`mb-1 block rounded-sm px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${RELEVANCE_TONES[course.relevance].sticky}`}
                       >
                         {course.name}
                         <span className="mt-0.5 block text-[10.5px] font-medium text-sub">

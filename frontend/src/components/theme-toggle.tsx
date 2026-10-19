@@ -17,26 +17,20 @@ function isDark() {
   return document.documentElement.dataset.theme === DARK_THEME;
 }
 
-function remember(dark: boolean) {
-  try {
-    if (dark) {
-      localStorage.setItem(THEME_STORAGE_KEY, DARK_THEME);
-    } else {
-      localStorage.removeItem(THEME_STORAGE_KEY);
-    }
-  } catch {}
-}
-
 export function ThemeToggle() {
   const dark = useSyncExternalStore(subscribe, isDark, () => false);
 
   function toggle() {
-    if (dark) {
-      delete document.documentElement.dataset.theme;
-    } else {
-      document.documentElement.dataset.theme = DARK_THEME;
-    }
-    remember(!dark);
+    const root = document.documentElement;
+    try {
+      if (dark) {
+        delete root.dataset.theme;
+        localStorage.removeItem(THEME_STORAGE_KEY);
+      } else {
+        root.dataset.theme = DARK_THEME;
+        localStorage.setItem(THEME_STORAGE_KEY, DARK_THEME);
+      }
+    } catch {}
   }
 
   return (

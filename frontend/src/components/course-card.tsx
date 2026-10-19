@@ -1,15 +1,14 @@
+import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import { placementLabel, roleLabel } from "@/lib/labels";
 
 export function CourseCard({ course }: { course: Course | PlacedCourse }) {
-  const core = course.relevance === "core";
+  const tone = RELEVANCE_TONES[course.relevance];
   return (
     <article
-      className={`grid min-w-0 content-start gap-1 rounded-sm border border-l-4 border-line bg-sheet px-3.5 py-3 shadow-paper ${core ? "border-l-pillar" : "border-l-route"}`}
+      className={`grid min-w-0 content-start gap-1 rounded-sm border border-l-4 border-line bg-sheet px-3.5 py-3 shadow-paper ${tone.edge}`}
     >
-      <p
-        className={`text-[11px] font-bold tracking-[0.14em] ${core ? "text-pillar" : "text-route"}`}
-      >
+      <p className={`text-[11px] font-bold tracking-[0.14em] ${tone.text}`}>
         {roleLabel(course)}
       </p>
       <h3 className="leading-snug font-bold">{course.name}</h3>
