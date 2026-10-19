@@ -16,6 +16,9 @@ export type Term = Schemas["Term"];
 export type Weekday = Schemas["Weekday"];
 
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
+const SIGNED_OUT =
+  "ログインが切れました。ページを読み直してログインしてください";
+export const UNAUTHORIZED = 401;
 
 export class ApiError extends Error {
   constructor(
@@ -40,7 +43,10 @@ export async function requestJson<T>(
   try {
     body = await response.json();
   } catch {
-    throw new ApiError(response.status, UNREACHABLE);
+    throw new ApiError(
+      init?.signal?.aborted ? 0 : response.status,
+      UNREACHABLE,
+    );
   }
   if (!response.ok) {
     const detail =
@@ -56,6 +62,9 @@ export async function requestJson<T>(
 }
 
 export function messageOf(error: unknown): string {
+  if (error instanceof ApiError && error.status === UNAUTHORIZED) {
+    return SIGNED_OUT;
+  }
   return error instanceof Error ? error.message : UNREACHABLE;
 }
 

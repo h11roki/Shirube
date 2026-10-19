@@ -12,3 +12,13 @@ export function watchState(status: PlanStatus, elapsedMs: number): Watch {
   }
   return elapsedMs >= POLL_LIMIT_MS ? "gave-up" : "waiting";
 }
+
+export function watchAfterFailure(
+  temporary: boolean,
+  elapsedMs: number,
+): Watch | "failed" {
+  if (!temporary) {
+    return "failed";
+  }
+  return elapsedMs >= POLL_LIMIT_MS ? "gave-up" : "waiting";
+}

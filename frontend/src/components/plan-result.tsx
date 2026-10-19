@@ -3,7 +3,6 @@ import Link from "next/link";
 import { WeekTable } from "@/components/week-table";
 import type {
   Course,
-  PlacedCourse,
   Plan,
   PlanResult as Result,
   Relevance,
@@ -35,25 +34,6 @@ function CourseHeading({ course }: { course: Course }) {
         </span>
       )}
     </div>
-  );
-}
-
-function PlacedCourseCard({ course }: { course: PlacedCourse }) {
-  return (
-    <li className="rounded-lg border border-stone-200 bg-white p-3">
-      <CourseHeading course={course} />
-      <p className="mt-1.5 text-sm text-stone-700">{course.reason}</p>
-      <p className="mt-1.5 text-xs text-stone-500">
-        {[
-          slotsLabel(course),
-          ...(course.class_code === null
-            ? []
-            : [`クラス ${classLabel(course.class_code)}`]),
-          ...(course.class_confirmed ? [] : ["クラス未確定"]),
-          `${course.credits} 単位`,
-        ].join("・")}
-      </p>
-    </li>
   );
 }
 
@@ -90,9 +70,15 @@ export function PlanResultView({
           ))}
         </ul>
         <p className="text-xs text-stone-500">
-          {semesterLabel(conditions.grade, conditions.term)}から{" "}
-          {last && `${semesterLabel(last.grade, last.term)}まで`}・1 学期{" "}
-          {conditions.credit_limit} 単位まで・{conditions.year} 年度の時間割
+          {[
+            ...(last
+              ? [
+                  `${semesterLabel(conditions.grade, conditions.term)}から ${semesterLabel(last.grade, last.term)}まで`,
+                ]
+              : []),
+            `1 学期 ${conditions.credit_limit} 単位まで`,
+            `${conditions.year} 年度の時間割`,
+          ].join("・")}
         </p>
       </section>
 
@@ -118,7 +104,25 @@ export function PlanResultView({
               />
               <ul className="grid gap-3 sm:grid-cols-2">
                 {semester.courses.map((course) => (
-                  <PlacedCourseCard key={course.section_code} course={course} />
+                  <li
+                    key={course.section_code}
+                    className="rounded-lg border border-stone-200 bg-white p-3"
+                  >
+                    <CourseHeading course={course} />
+                    <p className="mt-1.5 text-sm text-stone-700">
+                      {course.reason}
+                    </p>
+                    <p className="mt-1.5 text-xs text-stone-500">
+                      {[
+                        slotsLabel(course),
+                        ...(course.class_code === null
+                          ? []
+                          : [`クラス ${classLabel(course.class_code)}`]),
+                        ...(course.class_confirmed ? [] : ["クラス未確定"]),
+                        `${course.credits} 単位`,
+                      ].join("・")}
+                    </p>
+                  </li>
                 ))}
               </ul>
               {semester.continuing.length > 0 && (

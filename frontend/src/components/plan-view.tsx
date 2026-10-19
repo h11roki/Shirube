@@ -9,6 +9,7 @@ import { StatusBadge } from "@/components/status-badge";
 import {
   ApiError,
   type Plan,
+  UNAUTHORIZED,
   isTemporary,
   messageOf,
   requestJson,
@@ -16,13 +17,11 @@ import {
 import { semesterLabel } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
-  POLL_LIMIT_MS,
   POLL_REQUEST_TIMEOUT_MS,
   type Watch,
+  watchAfterFailure,
   watchState,
 } from "@/lib/polling";
-
-const UNAUTHORIZED = 401;
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
@@ -33,18 +32,26 @@ export function PlanView() {
 
   useEffect(() => {
     let active = true;
+    let seen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    const leaving = new AbortController();
     const startedAt = Date.now();
     async function poll() {
       try {
         const latest = await requestJson<Plan>(
           `/api/plans/${encodeURIComponent(id)}`,
-          { signal: AbortSignal.timeout(POLL_REQUEST_TIMEOUT_MS) },
+          {
+            signal: AbortSignal.any([
+              leaving.signal,
+              AbortSignal.timeout(POLL_REQUEST_TIMEOUT_MS),
+            ]),
+          },
         );
         if (!active) {
           return;
         }
         const state = watchState(latest.status, Date.now() - startedAt);
+        seen = true;
         setPlan(latest);
         setWatch(state);
         setError(undefined);
@@ -55,8 +62,14 @@ export function PlanView() {
         if (!active) {
           return;
         }
-        if (isTemporary(caught) && Date.now() - startedAt < POLL_LIMIT_MS) {
+        const next = watchAfterFailure(
+          isTemporary(caught),
+          Date.now() - startedAt,
+        );
+        if (next === "waiting") {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
+        } else if (next === "gave-up" && seen) {
+          setWatch(next);
         } else {
           setError({
             message: messageOf(caught),
@@ -69,6 +82,7 @@ export function PlanView() {
     return () => {
       active = false;
       clearTimeout(timer);
+      leaving.abort();
     };
   }, [id, round]);
 

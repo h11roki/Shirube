@@ -59,6 +59,26 @@ describe("requestJson", () => {
     });
   });
 
+  it("treats a body cut off by the time limit as a network failure", async () => {
+    const controller = new AbortController();
+    const stalled = new Response(
+      new ReadableStream({
+        start(stream) {
+          controller.signal.addEventListener("abort", () =>
+            stream.error(new DOMException("timed out", "TimeoutError")),
+          );
+        },
+      }),
+      { status: 200 },
+    );
+    respondWith(stalled);
+
+    const answer = requestJson("/api/plans", { signal: controller.signal });
+    controller.abort();
+
+    await expect(answer).rejects.toMatchObject({ status: 0 });
+  });
+
   it("treats a successful answer that is not JSON as an error instead of returning nothing", async () => {
     respondWith(new Response("<html>", { status: 200 }));
 
@@ -75,6 +95,12 @@ describe("errors", () => {
     expect(isTemporary(new ApiError(502, "届かない"))).toBe(true);
     expect(isTemporary(new ApiError(404, "無い"))).toBe(false);
     expect(isTemporary(new TypeError("壊れた"))).toBe(false);
+  });
+
+  it("ask to log in again when the login has run out", () => {
+    expect(messageOf(new ApiError(401, "ログインしてください"))).toBe(
+      "ログインが切れました。ページを読み直してログインしてください",
+    );
   });
 
   it("give their message, or the fixed sentence when they are not errors", () => {

@@ -11,6 +11,7 @@ import {
   messageOf,
   requestJson,
 } from "@/lib/api/client";
+import { offeredClasses } from "@/lib/class-choices";
 import { TERM_LABELS, classLabel } from "@/lib/labels";
 
 const DEPARTMENT = "情";
@@ -46,6 +47,7 @@ export function PlanForm() {
   const choices = loaded?.query === query ? loaded.answer : undefined;
   const loadError = failed?.query === query ? failed.message : undefined;
   const loading = !choices && !loadError;
+  const term = chosenTerm ?? loaded?.answer.term;
 
   useEffect(() => {
     let active = true;
@@ -68,24 +70,18 @@ export function PlanForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!occupation.trim()) {
+      setSubmitError("なりたい職業を入れてください");
+      return;
+    }
     setSubmitting(true);
     setSubmitError(undefined);
-    const offered = new Map(
-      (choices?.courses ?? []).map((course) => [
-        course.name,
-        course.class_codes,
-      ]),
-    );
     const request: PlanRequest = {
-      occupation,
+      occupation: occupation.trim(),
       grade,
-      term: chosenTerm ?? choices?.term,
+      term,
       department: DEPARTMENT,
-      chosen_classes: Object.fromEntries(
-        Object.entries(chosenClasses).filter(([name, code]) =>
-          offered.get(name)?.includes(code),
-        ),
-      ),
+      chosen_classes: offeredClasses(choices, chosenClasses),
     };
     try {
       const plan = await requestJson<Plan>("/api/plans", {
@@ -145,14 +141,12 @@ export function PlanForm() {
           <select
             id="term"
             className={fieldClass}
-            value={chosenTerm ?? choices?.term ?? loaded?.answer.term ?? ""}
+            value={term ?? ""}
             onChange={(event) =>
               setChosenTerm(TERMS.find((value) => value === event.target.value))
             }
           >
-            {!chosenTerm && !loaded && (
-              <option value="">今日の日付から決める</option>
-            )}
+            {!term && <option value="">今日の日付から決める</option>}
             {TERMS.map((value) => (
               <option key={value} value={value}>
                 {TERM_LABELS[value]}
@@ -171,7 +165,8 @@ export function PlanForm() {
       {loadError && (
         <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
           <p className="text-red-700">
-            クラスの選択を読み込めませんでした: {loadError}
+            クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます):{" "}
+            {loadError}
           </p>
           <button
             type="button"
