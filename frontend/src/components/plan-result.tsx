@@ -27,7 +27,6 @@ import {
   answeredLabel,
   failedAnswerLabel,
   unmarkTakenLabel,
-  goalStationLabel,
   semesterLabel,
 } from "@/lib/labels";
 import {
@@ -146,6 +145,7 @@ export function PlanResultView({
           <JourneySummary
             semesters={result.semesters}
             conditions={conditions}
+            destination={profile.interpretation}
           />
           <p className="text-xs text-sub">
             1 学期 {conditions.credit_limit} 単位まで ・ {conditions.year}{" "}
@@ -195,33 +195,18 @@ export function PlanResultView({
             semesters={result.semesters}
             planPath={pathname}
             withStrip
+            destination={profile.interpretation}
             end={
-              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-                <span
-                  aria-hidden
-                  className="relative grid size-24 shrink-0 rotate-[-8deg] place-items-center rounded-full border-[3px] border-pillar text-center leading-tight text-pillar before:absolute before:inset-1.5 before:rounded-full before:border-[1.5px] before:border-dashed before:border-pillar motion-safe:animate-press motion-safe:[animation-delay:var(--arrive,0ms)]"
-                >
-                  <span className="grid">
-                    <span className="text-[9px] tracking-[0.2em]">
-                      しるべ線
-                    </span>
-                    <span className="font-serif text-2xl font-extrabold tracking-[0.1em]">
-                      卒業
-                    </span>
-                    <span className="text-[9.5px] tracking-[0.1em] tabular-nums">
-                      {goalStationLabel(result.semesters.length)}
-                    </span>
-                  </span>
-                </span>
-                <div className="grid gap-1">
-                  <h2 className="font-serif text-2xl font-bold">卒業駅</h2>
-                  {last && (
-                    <p className="text-sm text-sub">
-                      {semesterLabel(last.grade, last.term)}
-                      のあと、道標はここで終わります。
-                    </p>
-                  )}
-                </div>
+              <div className="grid min-h-24 content-center gap-1">
+                <h2 className="font-serif text-2xl font-bold">
+                  {profile.interpretation}へ
+                </h2>
+                {last && (
+                  <p className="text-sm text-sub">
+                    {semesterLabel(last.grade, last.term)}
+                    のあと、道標はここで終わります。
+                  </p>
+                )}
               </div>
             }
           />

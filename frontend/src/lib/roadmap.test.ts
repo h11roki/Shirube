@@ -113,10 +113,9 @@ describe("roadmap", () => {
       pillarSection: "確率統計",
       station: 1,
       semester: route[1],
-      order: "before",
     });
-    expect(found.get("情報処理")?.order).toBe("after");
-    expect(found.get("同時の礎")?.order).toBe("same");
+    expect(found.get("情報処理")?.station).toBe(1);
+    expect(found.get("同時の礎")?.station).toBe(1);
     expect(found.has("実験")).toBe(false);
     expect(found.has("確率統計")).toBe(false);
     expect(found.has("機械学習")).toBe(false);

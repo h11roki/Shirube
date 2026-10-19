@@ -8,7 +8,7 @@ import type {
   Weekday,
 } from "@/lib/api/client";
 import type { ResultView } from "@/lib/result-view";
-import type { Transfer, TransferOrder } from "@/lib/roadmap";
+import type { Transfer } from "@/lib/roadmap";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -92,23 +92,11 @@ export function stationLabel(index: number): string {
   return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
 }
 
-export function goalStationLabel(semesterCount: number): string {
-  return stationLabel(semesterCount);
-}
-
 export function transferLabel(
   transfer: Pick<Transfer, "pillar" | "station" | "semester">,
 ): string {
   return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
 }
-
-const NOT_EARLIER = `${RELEVANCE_LABELS.core}より前の学期には置けませんでした`;
-
-export const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
-  before: null,
-  same: `${RELEVANCE_LABELS.core}と同じ学期です。${NOT_EARLIER}`,
-  after: `${RELEVANCE_LABELS.core}より後の学期です。${NOT_EARLIER}`,
-};
 
 export type TakenChange = "mark" | "unmark";
 

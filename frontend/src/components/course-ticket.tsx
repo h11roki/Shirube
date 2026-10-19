@@ -12,7 +12,6 @@ import {
   markTakenLabel,
   roleLabel,
   slotsLabel,
-  TRANSFER_WARNINGS,
   transferLabel,
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
@@ -47,7 +46,6 @@ export function CourseTicket({
   const answering = useContext(TakenAnswersContext);
   const core = course.relevance === "core";
   const placed = "slots" in course;
-  const warning = transfer ? TRANSFER_WARNINGS[transfer.order] : null;
   const emphasis =
     focusing?.focus === course.name
       ? EMPHASIS.self
@@ -88,7 +86,6 @@ export function CourseTicket({
             )}
           </p>
         )}
-        {warning && <p className="text-xs font-bold text-pillar">{warning}</p>}
         {answering?.asked.has(course.name) && (
           <button
             type="button"

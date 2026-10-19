@@ -25,7 +25,6 @@ import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
   EMPTY_SEMESTER_LABEL,
-  goalStationLabel,
   semesterShortLabel,
   slotsLabel,
   stationLabel,
@@ -39,7 +38,6 @@ import {
 } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
 
-const GOAL_PRESS_MS = 300;
 const LINE_DELAY_MS = 250;
 const PICK_HOLD_MS = 1200;
 
@@ -48,12 +46,14 @@ export function RouteMap({
   shown = semesters.length,
   planPath,
   withStrip = false,
+  destination,
   end,
 }: {
   semesters: SemesterPlan[];
   shown?: number;
   planPath?: string;
   withStrip?: boolean;
+  destination: string;
   end: ReactNode;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
@@ -133,7 +133,12 @@ export function RouteMap({
     <TransferFocusContext.Provider value={focusing}>
       <div ref={root} className="grid gap-6">
         {withStrip && (
-          <RouteStrip semesters={visible} active={active} onPick={pick} />
+          <RouteStrip
+            semesters={visible}
+            destination={destination}
+            active={active}
+            onPick={pick}
+          />
         )}
         <ol className="relative grid gap-9 pl-12">
           {visible.map((semester, index) => (
@@ -143,17 +148,13 @@ export function RouteMap({
               semesters={semesters}
               found={found}
               planPath={planPath}
+              destination={destination}
               delayMs={index * STAGGER_MS}
             />
           ))}
           <li
             data-station
-            style={
-              {
-                animationDelay: `${arrive}ms`,
-                "--arrive": `${arrive + GOAL_PRESS_MS}ms`,
-              } as CSSProperties
-            }
+            style={{ animationDelay: `${arrive}ms` }}
             className="relative min-w-0 scroll-mt-28 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             {end}
@@ -166,10 +167,12 @@ export function RouteMap({
 
 function RouteStrip({
   semesters,
+  destination,
   active,
   onPick,
 }: {
   semesters: SemesterPlan[];
+  destination: string;
   active: number;
   onPick: (index: number) => void;
 }) {
@@ -179,11 +182,7 @@ function RouteStrip({
       station: stationLabel(index),
       name: semesterShortLabel(semester.grade, semester.term),
     })),
-    {
-      key: "goal",
-      station: goalStationLabel(semesters.length),
-      name: "卒業",
-    },
+    { key: "goal", station: null, name: destination },
   ];
   const strip = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -202,7 +201,7 @@ function RouteStrip({
       aria-label="路線図"
       className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-4 py-2 shadow-paper backdrop-blur"
     >
-      <ol className="flex w-max min-w-full items-center justify-between">
+      <ol className="flex w-max min-w-full items-start justify-between">
         {stops.map((stop, index) => {
           const goal = index === stops.length - 1;
           return (
@@ -217,7 +216,9 @@ function RouteStrip({
                   aria-hidden
                   className={`size-3 rounded-full border-2 transition ${goal ? "border-pillar" : "border-route"} ${index <= active ? (goal ? "bg-pillar" : "bg-route") : "bg-sheet"} ${index === active ? "scale-125 shadow-[0_0_0_4px_color-mix(in_srgb,var(--route)_20%,transparent)]" : ""}`}
                 />
-                <span className="font-bold tabular-nums">{stop.station}</span>
+                {stop.station && (
+                  <span className="font-bold tabular-nums">{stop.station}</span>
+                )}
                 <span
                   className={`whitespace-nowrap ${index === active ? "text-ink" : "text-sub"}`}
                 >
@@ -243,12 +244,14 @@ function Station({
   semesters,
   found,
   planPath,
+  destination,
   delayMs,
 }: {
   index: number;
   semesters: SemesterPlan[];
   found: Map<string, Transfer>;
   planPath?: string;
+  destination: string;
   delayMs: number;
 }) {
   const [open, setOpen] = useState(false);
@@ -271,6 +274,7 @@ function Station({
         semester={semester}
         previous={semesters[index - 1]}
         next={semesters[index + 1]}
+        destination={destination}
       />
       <p className="text-xs text-sub">
         {semester.credits} 単位 ・ {semester.courses.length} 科目
