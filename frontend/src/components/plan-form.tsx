@@ -4,11 +4,11 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import {
-  ApiError,
   type ClassChoices,
   type Plan,
   type PlanRequest,
   type Term,
+  messageOf,
   requestJson,
 } from "@/lib/api/client";
 import { TERM_LABELS, classLabel } from "@/lib/labels";
@@ -27,54 +27,57 @@ export function PlanForm() {
   const [occupation, setOccupation] = useState("");
   const [grade, setGrade] = useState(GRADES[0]);
   const [chosenTerm, setChosenTerm] = useState<Term>();
-  const [choices, setChoices] = useState<ClassChoices>();
+  const [loaded, setLoaded] = useState<{
+    query: string;
+    answer: ClassChoices;
+  }>();
   const [chosenClasses, setChosenClasses] = useState<Record<string, string>>(
     {},
   );
   const [loadError, setLoadError] = useState<string>();
+  const [reloads, setReloads] = useState(0);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const query = new URLSearchParams({
+    department: DEPARTMENT,
+    grade: String(grade),
+    ...(chosenTerm ? { term: chosenTerm } : {}),
+  }).toString();
+  const choices = loaded?.query === query ? loaded.answer : undefined;
 
   useEffect(() => {
     let active = true;
-    const query = new URLSearchParams({
-      department: DEPARTMENT,
-      grade: String(grade),
-      ...(chosenTerm ? { term: chosenTerm } : {}),
-    });
     requestJson<ClassChoices>(`/api/class-choices?${query}`)
       .then((answer) => {
         if (active) {
-          setChoices(answer);
+          setLoaded({ query, answer });
           setLoadError(undefined);
         }
       })
       .catch((error: unknown) => {
         if (active) {
-          setLoadError(
-            error instanceof Error ? error.message : "読み込めませんでした",
-          );
+          setLoadError(messageOf(error));
         }
       });
     return () => {
       active = false;
     };
-  }, [grade, chosenTerm]);
+  }, [query, reloads]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!choices) {
-      return;
-    }
     setSubmitting(true);
     setSubmitError(undefined);
     const offered = new Map(
-      choices.courses.map((course) => [course.name, course.class_codes]),
+      (choices?.courses ?? []).map((course) => [
+        course.name,
+        course.class_codes,
+      ]),
     );
     const request: PlanRequest = {
       occupation,
       grade,
-      term: choices.term,
+      term: chosenTerm ?? choices?.term,
       department: DEPARTMENT,
       chosen_classes: Object.fromEntries(
         Object.entries(chosenClasses).filter(([name, code]) =>
@@ -90,9 +93,7 @@ export function PlanForm() {
       });
       router.push(`/plans/${plan.id}`);
     } catch (error) {
-      setSubmitError(
-        error instanceof ApiError ? error.message : "道標を作れませんでした",
-      );
+      setSubmitError(messageOf(error));
       setSubmitting(false);
     }
   }
@@ -146,9 +147,10 @@ export function PlanForm() {
             onChange={(event) =>
               setChosenTerm(TERMS.find((value) => value === event.target.value))
             }
-            disabled={!choices}
           >
-            {!choices && <option value="">読み込み中</option>}
+            {!chosenTerm && !choices && (
+              <option value="">今日の日付から決める</option>
+            )}
             {TERMS.map((value) => (
               <option key={value} value={value}>
                 {TERM_LABELS[value]}
@@ -164,10 +166,19 @@ export function PlanForm() {
         </div>
       </div>
 
-      {loadError && (
-        <p role="alert" className="text-sm text-red-700">
-          クラスの選択を読み込めませんでした: {loadError}
-        </p>
+      {loadError && !choices && (
+        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+          <p className="text-red-700">
+            クラスの選択を読み込めませんでした: {loadError}
+          </p>
+          <button
+            type="button"
+            onClick={() => setReloads((current) => current + 1)}
+            className="rounded-md border border-stone-300 bg-white px-3 py-1 text-stone-800 hover:bg-stone-100"
+          >
+            読み直す
+          </button>
+        </div>
       )}
 
       {choices && choices.courses.length > 0 && (
@@ -226,7 +237,7 @@ export function PlanForm() {
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={!choices || submitting}
+          disabled={submitting}
           className="rounded-md bg-teal-700 px-5 py-2.5 font-medium text-white hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-stone-400"
         >
           {submitting ? "受け付けています" : "道標を作る"}
