@@ -9,7 +9,7 @@ from app.application.ports import (
     OccupationAnalysisError,
     PlanRepository,
 )
-from app.application.recommend_courses import RecommendCourses
+from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
 from app.domain.roadmap import place, remaining_semesters
@@ -17,6 +17,10 @@ from app.domain.roadmap import place, remaining_semesters
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
 STALLED = "道標を作る途中で止まりました"
 SERVER_FAILURE = "サーバーで道標を扱えませんでした"
+STAGE_OF_STEP = {
+    RecommendStep.SEARCHING: PlanStage.SEARCHING,
+    RecommendStep.SELECTING: PlanStage.SELECTING,
+}
 UPSTREAM_ERRORS: tuple[type[Exception], ...] = (
     EmbeddingError,
     OccupationAnalysisError,
@@ -59,9 +63,9 @@ class BuildPlans:
                 conditions.year,
                 conditions.department,
                 semesters,
-                lambda stage: self._plans.enter_stage(plan.id, stage),
+                lambda step: self._enter(plan, STAGE_OF_STEP[step]),
             )
-            self._plans.enter_stage(plan.id, PlanStage.PLACING)
+            self._enter(plan, PlanStage.PLACING)
             roadmap = place(
                 recommendation,
                 sections,
@@ -82,3 +86,9 @@ class BuildPlans:
             return finished
         logger.warning("道標 %s は作っている間に作成中でなくなったので、結果を捨てました", plan.id)
         return self._plans.get(plan.id)
+
+    def _enter(self, plan: Plan, stage: PlanStage) -> None:
+        try:
+            self._plans.enter_stage(plan.id, stage)
+        except Exception:
+            logger.warning("道標 %s の段 %s を書けませんでした", plan.id, stage, exc_info=True)

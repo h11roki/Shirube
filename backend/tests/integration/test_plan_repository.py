@@ -275,6 +275,7 @@ def test_a_running_plan_keeps_the_stage_it_entered_until_it_finishes(
     assert repository.get(plan.id) == plan
     running = repository.claim(plan.id)
     assert running is not None
+    assert running.stage is PlanStage.ANALYZING
 
     repository.enter_stage(plan.id, PlanStage.SELECTING)
     entered = repository.get(plan.id)

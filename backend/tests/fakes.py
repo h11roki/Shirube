@@ -159,13 +159,14 @@ class FakePlanRepository:
         plan = self.plans.get(plan_id)
         if plan is None or plan.status is not PlanStatus.PENDING:
             return None
-        self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING)
+        self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING)
         return self.plans[plan_id]
 
     def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
         self.stages.append((plan_id, stage))
-        if self.plans[plan_id].status is PlanStatus.RUNNING:
-            self.plans[plan_id] = replace(self.plans[plan_id], stage=stage)
+        plan = self.plans.get(plan_id)
+        if plan is not None and plan.status is PlanStatus.RUNNING:
+            self.plans[plan_id] = replace(plan, stage=stage)
 
     def finish(self, plan: Plan) -> bool:
         if self.plans[plan.id].status is not PlanStatus.RUNNING:

@@ -153,7 +153,7 @@ class SqlPlanRepository:
             row = db.scalars(
                 update(PlanRow)
                 .where(which, PlanRow.status == PlanStatus.PENDING)
-                .values(status=PlanStatus.RUNNING, claimed_at=func.now())
+                .values(status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING, claimed_at=func.now())
                 .returning(PlanRow)
                 .execution_options(synchronize_session=False)
             ).one_or_none()

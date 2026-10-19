@@ -1,14 +1,19 @@
 from collections.abc import Callable, Sequence
+from enum import Enum
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses, SearchError
-from app.domain.plan import PlanStage
 from app.domain.recommendation import (
     CandidateCourse,
     Recommendation,
     arrange,
 )
 from app.domain.roadmap import Semester
+
+
+class RecommendStep(Enum):
+    SEARCHING = "searching"
+    SELECTING = "selecting"
 
 
 class RecommendCourses:
@@ -32,12 +37,11 @@ class RecommendCourses:
         year: int,
         department: str,
         semesters: Sequence[Semester],
-        enter: Callable[[PlanStage], None] = lambda stage: None,
+        enter: Callable[[RecommendStep], None] = lambda step: None,
     ) -> Recommendation:
         candidates = self._search.candidates(year, department, semesters)
-        enter(PlanStage.ANALYZING)
         profile = self._analyzer.analyze(occupation)
-        enter(PlanStage.SEARCHING)
+        enter(RecommendStep.SEARCHING)
         [matches] = candidates.rank([profile.query], self._candidate_limit)
         if not matches:
             return Recommendation(profile, (), ())
@@ -47,5 +51,5 @@ class RecommendCourses:
         if missing:
             raise SearchError(f"シラバスが DB にありません: {'、'.join(missing)}")
         offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
-        enter(PlanStage.SELECTING)
+        enter(RecommendStep.SELECTING)
         return arrange(profile, matches, self._selector.select(profile, offered))

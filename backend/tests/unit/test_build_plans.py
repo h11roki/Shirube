@@ -97,7 +97,6 @@ def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() 
     assert plans.plans[oldest.id] == built
     assert plans.plans[newer.id].status is PlanStatus.PENDING
     assert plans.stages == [
-        (oldest.id, PlanStage.ANALYZING),
         (oldest.id, PlanStage.SEARCHING),
         (oldest.id, PlanStage.SELECTING),
         (oldest.id, PlanStage.PLACING),
@@ -220,3 +219,22 @@ def test_plans_running_past_the_limit_fail_as_stalled(caplog: pytest.LogCaptureF
     )
     assert plans.plans[untouched.id].status is PlanStatus.PENDING
     assert str(stuck.id) in caplog.text
+
+
+def test_a_stage_that_cannot_be_written_does_not_fail_the_plan(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class StagesFail(FakePlanRepository):
+        def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+            raise RuntimeError("接続が切れました")
+
+    plans = StagesFail()
+    plan = waiting(plans)
+
+    with caplog.at_level(logging.WARNING):
+        built = builder(courses_ranked_by({"科目A": 0.9}), plans).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.SUCCEEDED
+    assert plans.plans[plan.id] == built
+    assert "の段" in caplog.text
