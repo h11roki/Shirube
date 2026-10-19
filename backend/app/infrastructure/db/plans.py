@@ -35,7 +35,7 @@ from app.infrastructure.db.models import (
     SemesterPlanJson,
 )
 
-RESULT_JSON_VERSION = 2
+RESULT_JSON_VERSION = 3
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -101,6 +101,19 @@ class SqlPlanRepository:
                 .execution_options(synchronize_session=False)
             ).one_or_none()
         return finished is not None
+
+    def replace_result(self, plan: Plan) -> bool:
+        if plan.result is None:
+            raise ValueError(f"結果の無い道標は置き直せません: {plan.status}")
+        with DbSession(self._engine) as db, db.begin():
+            replaced = db.scalars(
+                update(PlanRow)
+                .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.SUCCEEDED)
+                .values(result=result_json(plan.result))
+                .returning(PlanRow.id)
+                .execution_options(synchronize_session=False)
+            ).one_or_none()
+        return replaced is not None
 
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
         with DbSession(self._engine) as db, db.begin():
@@ -284,6 +297,8 @@ def result_json(result: PlanResult) -> ResultJson:
                 for semester_plan in result.roadmap.semesters
             ],
             unplaced=[course.name for course in result.roadmap.unplaced],
+            taken=[course.name for course in result.roadmap.taken],
+            offered_earlier=sorted(result.roadmap.offered_earlier),
         ),
     )
 
@@ -330,7 +345,11 @@ def result_from_json(data: ResultJson) -> PlanResult:
             placed_by_grade[(semester.grade, name)] for name in stored_plan["continuing"]
         )
         semester_plans.append(SemesterPlan(semester, placed, continuing))
+    stored_roadmap = data["roadmap"]
     roadmap = Roadmap(
-        tuple(semester_plans), tuple(courses[name] for name in data["roadmap"]["unplaced"])
+        tuple(semester_plans),
+        tuple(courses[name] for name in stored_roadmap["unplaced"]),
+        tuple(courses[name] for name in stored_roadmap["taken"]),
+        frozenset(stored_roadmap["offered_earlier"]),
     )
     return PlanResult(recommendation, roadmap)

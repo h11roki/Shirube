@@ -123,5 +123,19 @@ def sample_plan(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     )
 
 
+def sample_plan_with_taken(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
+    plan = sample_plan(plan_id, owner_id)
+    assert plan.result is not None
+    roadmap = plan.result.roadmap
+    return plan.placed_again(
+        replace(
+            roadmap,
+            unplaced=(),
+            taken=roadmap.unplaced,
+            offered_earlier=frozenset({"科目A", "科目D"}),
+        )
+    )
+
+
 def sample_conditions() -> PlanConditions:
     return PlanConditions("職業", "情", 2026, Semester(3, Term.SPRING), (("科目Z", "6B"),), 16)

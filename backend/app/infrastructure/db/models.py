@@ -100,6 +100,8 @@ class SemesterPlanJson(TypedDict):
 class RoadmapJson(TypedDict):
     semesters: list[SemesterPlanJson]
     unplaced: list[str]
+    taken: list[str]
+    offered_earlier: list[str]
 
 
 class ResultJson(TypedDict):
@@ -213,6 +215,16 @@ class UserRow(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     subject: Mapped[str] = mapped_column(unique=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class TakenCourseRow(Base):
+    __tablename__ = "taken_courses"
+
+    user_id: Mapped[UUID] = mapped_column(
+        ForeignKey("users.id", name="fk_taken_courses_user_id_users"), primary_key=True
+    )
+    name: Mapped[str] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

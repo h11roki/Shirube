@@ -174,6 +174,12 @@ class FakePlanRepository:
         self.plans[plan.id] = plan
         return True
 
+    def replace_result(self, plan: Plan) -> bool:
+        if self.plans[plan.id].status is not PlanStatus.SUCCEEDED:
+            return False
+        self.plans[plan.id] = plan
+        return True
+
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]:
         self.stall_limits.append(after)
         running = [plan for plan in self.plans.values() if plan.status is PlanStatus.RUNNING]
@@ -205,9 +211,15 @@ class FakeTokenVerifier:
 class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
+        self.taken: dict[UUID, set[str]] = {}
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
+
+    def replace_taken(self, user_id: UUID, asked: Set[str], taken: Set[str]) -> None:
+        names = self.taken.setdefault(user_id, set())
+        names -= asked - taken
+        names |= taken
 
 
 def chat_answering(

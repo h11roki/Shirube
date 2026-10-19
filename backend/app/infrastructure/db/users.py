@@ -1,10 +1,11 @@
+from collections.abc import Set
 from uuid import UUID, uuid4
 
-from sqlalchemy import Engine, select
+from sqlalchemy import Engine, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session as DbSession
 
-from app.infrastructure.db.models import UserRow
+from app.infrastructure.db.models import TakenCourseRow, UserRow
 
 
 class SqlUserRepository:
@@ -26,3 +27,18 @@ class SqlUserRepository:
             ).scalar_one()
             db.commit()
             return user_id
+
+    def replace_taken(self, user_id: UUID, asked: Set[str], taken: Set[str]) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(
+                delete(TakenCourseRow).where(
+                    TakenCourseRow.user_id == user_id,
+                    TakenCourseRow.name.in_(sorted(asked - taken)),
+                )
+            )
+            if taken:
+                db.execute(
+                    insert(TakenCourseRow)
+                    .values([{"user_id": user_id, "name": name} for name in sorted(taken)])
+                    .on_conflict_do_nothing()
+                )
