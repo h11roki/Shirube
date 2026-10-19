@@ -1,43 +1,27 @@
-import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { auth, signIn, signOut } from "@/auth";
-
-async function Account() {
-  await connection();
-  const session = await auth();
-  if (!session?.googleSubject) {
-    return (
-      <form
-        action={async () => {
-          "use server";
-          await signIn("google");
-        }}
-      >
-        <button type="submit">Google でログイン</button>
-      </form>
-    );
-  }
-  return (
-    <form
-      action={async () => {
-        "use server";
-        await signOut();
-      }}
-    >
-      <p>{session.user?.name ?? "Google のアカウント"} でログインしています</p>
-      <button type="submit">ログアウト</button>
-    </form>
-  );
-}
+import { LoginRequired } from "@/components/login-required";
+import { PlanForm } from "@/components/plan-form";
 
 export default function Home() {
   return (
-    <main>
-      <h1>shirube</h1>
-      <Suspense>
-        <Account />
+    <div className="space-y-6">
+      <div className="space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight text-balance">
+          なりたい職業から、卒業までの道標を作る
+        </h1>
+        <p className="text-sm text-stone-600">
+          職業に要るスキルを読み取り、シラバスから関係の深い授業を選んで、4
+          回生の秋学期までの時間割に並べます。
+        </p>
+      </div>
+      <Suspense
+        fallback={<p className="text-sm text-stone-500">読み込んでいます</p>}
+      >
+        <LoginRequired>
+          <PlanForm />
+        </LoginRequired>
       </Suspense>
-    </main>
+    </div>
   );
 }

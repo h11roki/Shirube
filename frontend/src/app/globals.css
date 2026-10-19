@@ -1,1 +1,7 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans:
+    "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Noto Sans JP",
+    "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+}
