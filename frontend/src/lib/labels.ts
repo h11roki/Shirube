@@ -8,6 +8,7 @@ import type {
   Weekday,
 } from "@/lib/api/client";
 import type { ResultView } from "@/lib/result-view";
+import type { Transfer, TransferOrder } from "@/lib/roadmap";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -46,6 +47,20 @@ export const TERM_LABELS: Record<Term, string> = {
   autumn: "秋学期",
 };
 
+const TERM_READINGS: Record<Term, string> = {
+  spring: "はるがっき",
+  autumn: "あきがっき",
+};
+
+const GRADE_READINGS: Record<number, string> = {
+  1: "いっかいせい",
+  2: "にかいせい",
+  3: "さんかいせい",
+  4: "よんかいせい",
+};
+
+const STATION_PREFIX = "SH";
+
 export const WEEKDAY_LABELS: Record<Weekday, string> = {
   mon: "月",
   tue: "火",
@@ -59,6 +74,39 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
 export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;
 }
+
+const TERM_SHORT_LABELS: Record<Term, string> = {
+  spring: "春",
+  autumn: "秋",
+};
+
+export function semesterShortLabel(grade: number, term: Term): string {
+  return `${grade}回生 ${TERM_SHORT_LABELS[term]}`;
+}
+
+export function semesterReading(grade: number, term: Term): string {
+  return `${GRADE_READINGS[grade] ?? `${grade} かいせい`} ${TERM_READINGS[term]}`;
+}
+
+export function stationLabel(index: number): string {
+  return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
+}
+
+export function goalStationLabel(semesterCount: number): string {
+  return stationLabel(semesterCount);
+}
+
+export function transferLabel(
+  transfer: Pick<Transfer, "pillar" | "station" | "semester">,
+): string {
+  return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
+}
+
+export const TRANSFER_WARNINGS: Record<TransferOrder, string | null> = {
+  before: null,
+  same: `${RELEVANCE_LABELS.core}と同じ学期です`,
+  after: `${RELEVANCE_LABELS.core}より後の学期です`,
+};
 
 export function roleLabel(
   course: Pick<Course, "relevance" | "prerequisite_for">,
@@ -75,16 +123,6 @@ export function slotsLabel(course: PlacedCourse): string {
       .map((slot) => `${WEEKDAY_LABELS[slot.weekday]}${slot.period}`)
       .join("・") || "コマなし"
   );
-}
-
-export function placementLabel(course: PlacedCourse): string {
-  return [
-    slotsLabel(course),
-    ...(course.class_code === null
-      ? []
-      : [`クラス ${classLabel(course.class_code)}`]),
-    `${course.credits} 単位`,
-  ].join(" ・ ");
 }
 
 export function classLabel(classCode: string): string {

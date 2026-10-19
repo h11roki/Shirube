@@ -3,10 +3,15 @@ import { describe, expect, it } from "vitest";
 import type { PlacedCourse } from "@/lib/api/client";
 import {
   classLabel,
-  placementLabel,
   roleLabel,
   semesterLabel,
+  semesterReading,
+  semesterShortLabel,
   slotsLabel,
+  stationLabel,
+  transferLabel,
+  TRANSFER_WARNINGS,
+  goalStationLabel,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -51,14 +56,32 @@ describe("labels", () => {
     );
   });
 
-  it("writes where a placed course sits, its class, and its credits", () => {
+  it("reads a semester aloud and numbers its station", () => {
+    expect(semesterReading(3, "spring")).toBe("さんかいせい はるがっき");
+    expect(semesterShortLabel(3, "spring")).toBe("3回生 春");
+    expect(semesterReading(4, "autumn")).toBe("よんかいせい あきがっき");
+    expect(stationLabel(0)).toBe("SH01");
+    expect(stationLabel(11)).toBe("SH12");
+    expect(goalStationLabel(4)).toBe("SH05");
+  });
+
+  it("writes a transfer to the pillar's station and warns when it is not earlier", () => {
     expect(
-      placementLabel({
-        ...withSlots([{ weekday: "mon", period: 4 }]),
-        class_code: "6B",
+      transferLabel({
+        pillar: "確率統計",
+        station: 0,
+        semester: {
+          grade: 3,
+          term: "spring",
+          credits: 2,
+          courses: [],
+          continuing: [],
+        },
       }),
-    ).toBe("月4 ・ クラス 6B ・ 2 単位");
-    expect(placementLabel(withSlots([]))).toBe("コマなし ・ 2 単位");
+    ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
+    expect(TRANSFER_WARNINGS.before).toBeNull();
+    expect(TRANSFER_WARNINGS.same).toBe("柱と同じ学期です");
+    expect(TRANSFER_WARNINGS.after).toBe("柱より後の学期です");
   });
 
   it("names a class without a code", () => {

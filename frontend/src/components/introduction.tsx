@@ -1,4 +1,6 @@
 import { SignInButton } from "@/components/account";
+import { DestinationPlate } from "@/components/destination-plate";
+import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
@@ -55,24 +57,28 @@ export function Introduction() {
       <section className="grid gap-5">
         <div className="grid gap-1">
           <Kicker>見本 ── {conditions.occupation}</Kicker>
-          <h2 className="font-serif text-2xl font-extrabold text-balance">
-            {result.profile.interpretation}への道標
-          </h2>
+          <h2 className="sr-only">{result.profile.interpretation}への道標</h2>
+          <DestinationPlate destination={result.profile.interpretation} />
           <p className="text-sm text-sub">
             {conditions.year} 年度の時間割から作った、実際の出力です(
             {semesterLabel(conditions.grade, conditions.term)}
-            から)。最初の {SAMPLE_SEMESTERS} 学期だけを載せています。
+            から)。要約は卒業までのもので、道のりは最初の {
+              SAMPLE_SEMESTERS
+            }{" "}
+            学期だけを載せています。
           </p>
         </div>
+        <JourneySummary semesters={result.semesters} conditions={conditions} />
         <RouteMap
-          semesters={result.semesters.slice(0, SAMPLE_SEMESTERS)}
+          semesters={result.semesters}
+          shown={SAMPLE_SEMESTERS}
           end={
-            <>
+            <div className="flex min-h-24 flex-col justify-center">
               <h3 className="font-serif text-xl font-bold">卒業まで続きます</h3>
               <p className="text-sm text-sub">
                 ログインすると、自分の職業と回生で作れます。
               </p>
-            </>
+            </div>
           }
         />
       </section>

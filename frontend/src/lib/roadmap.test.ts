@@ -10,7 +10,9 @@ import {
   pickSemester,
   routeTotals,
   semesterCourses,
+  linkedNames,
   semesterKey,
+  transfers,
 } from "@/lib/roadmap";
 
 function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
@@ -74,5 +76,72 @@ describe("roadmap", () => {
       core: 2,
       foundation: 1,
     });
+  });
+
+  it("transfers each foundation to the station of the pillar it supports", () => {
+    const pillar = placed("確率統計", "core");
+    const early = {
+      ...placed("基礎数学", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const late = {
+      ...placed("情報処理", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const orphan = {
+      ...placed("実験", "foundation"),
+      prerequisite_for: "置けなかった柱",
+    };
+    const linkedPillar = {
+      ...placed("機械学習", "core"),
+      prerequisite_for: "確率統計",
+    };
+    const together = {
+      ...placed("同時の礎", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const route = [
+      semester(2, "autumn", [early]),
+      semester(3, "spring", [pillar, together]),
+      semester(3, "autumn", [late, orphan, linkedPillar]),
+    ];
+
+    const found = transfers(route);
+
+    expect(found.get("基礎数学")).toEqual({
+      pillar: "確率統計",
+      pillarSection: "確率統計",
+      station: 1,
+      semester: route[1],
+      order: "before",
+    });
+    expect(found.get("情報処理")?.order).toBe("after");
+    expect(found.get("同時の礎")?.order).toBe("same");
+    expect(found.has("実験")).toBe(false);
+    expect(found.has("確率統計")).toBe(false);
+    expect(found.has("機械学習")).toBe(false);
+  });
+
+  it("links a foundation to its pillar and a pillar to all its foundations", () => {
+    const pillar = placed("確率統計", "core");
+    const early = {
+      ...placed("基礎数学", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const late = {
+      ...placed("情報処理", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const found = transfers([
+      semester(3, "spring", [early, pillar]),
+      semester(3, "autumn", [late]),
+    ]);
+
+    expect([...linkedNames(found, "基礎数学")]).toEqual(["確率統計"]);
+    expect([...linkedNames(found, "確率統計")].sort()).toEqual(
+      ["基礎数学", "情報処理"].sort(),
+    );
+    expect(linkedNames(found, null).size).toBe(0);
+    expect(linkedNames(found, "関係のない授業").size).toBe(0);
   });
 });

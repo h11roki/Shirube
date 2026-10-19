@@ -2,7 +2,7 @@
 
 import { type ReactNode, useEffect, useState } from "react";
 
-import { Kicker } from "@/components/kicker";
+import { DestinationPlate } from "@/components/destination-plate";
 import { Signpost } from "@/components/signpost";
 import type { Plan } from "@/lib/api/client";
 import { STAGE_LABELS, WAITING_LABEL, semesterLabel } from "@/lib/labels";
@@ -37,9 +37,10 @@ export function PlanProgress({
     <section className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1.5">
-          <Kicker>目的地 ── {conditions.occupation}</Kicker>
+          <DestinationPlate destination={conditions.occupation} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
-            {conditions.occupation}への道標を作っています
+            <span className="sr-only">{conditions.occupation}への</span>
+            道標を作っています
           </h1>
           <p className="text-sm text-sub">
             {semesterLabel(conditions.grade, conditions.term)}
