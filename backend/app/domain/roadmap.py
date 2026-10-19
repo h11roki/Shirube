@@ -149,6 +149,8 @@ def require_class_choices(
     semesters: Sequence[Semester],
     chosen_classes: Mapping[str, str],
 ) -> None:
+    if not chosen_classes:
+        return
     choosable = {
         choice.name: choice.class_codes
         for choice in class_choices(sections, department, year, semesters)

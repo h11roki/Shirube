@@ -149,6 +149,13 @@ def test_the_owners_plans_are_listed_newest_first_up_to_the_limit(
     repository.add(middle)
     newest = waiting(repository, owner)
     waiting(repository, SqlUserRepository(engine).id_of("google-b"))
+    with engine.begin() as connection:
+        for minutes, plan in enumerate((oldest, middle, newest)):
+            connection.execute(
+                update(PlanRow)
+                .where(PlanRow.id == plan.id)
+                .values(created_at=text(f"now() + interval '{minutes} minutes'"))
+            )
 
     listed = repository.list_owned_by(owner, 2)
 
