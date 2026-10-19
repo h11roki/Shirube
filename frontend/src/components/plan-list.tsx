@@ -17,6 +17,9 @@ const CREATED_AT = new Intl.DateTimeFormat("ja-JP", {
   timeStyle: "short",
 });
 
+const STAGGER_MS = 60;
+const STAGGERED_ROWS = 10;
+
 export function PlanList() {
   const [plans, setPlans] = useState<Plans>();
   const [error, setError] = useState<string>();
@@ -41,42 +44,56 @@ export function PlanList() {
 
   if (error) {
     return (
-      <p role="alert" className="text-sm text-red-700">
+      <p role="alert" className="text-sm text-danger">
         一覧を読み込めませんでした: {error}
       </p>
     );
   }
   if (!plans) {
-    return <p className="text-sm text-stone-500">読み込んでいます</p>;
+    return <p className="text-sm text-sub">読み込んでいます</p>;
   }
   if (plans.plans.length === 0) {
     return (
-      <p className="text-sm text-stone-600">
+      <p className="text-sm text-sub">
         まだ道標がありません。
-        <Link href="/" className="text-teal-800 underline">
+        <Link href="/" className="text-route underline underline-offset-4">
           道標を作る
         </Link>
       </p>
     );
   }
   return (
-    <ul className="divide-y divide-stone-200 overflow-hidden rounded-xl border border-stone-200 bg-white">
-      {plans.plans.map((plan) => (
-        <li key={plan.id}>
+    <ul className="grid gap-3">
+      {plans.plans.map((plan, index) => (
+        <li
+          key={plan.id}
+          style={{
+            animationDelay: `${Math.min(index, STAGGERED_ROWS) * STAGGER_MS}ms`,
+          }}
+          className="motion-safe:animate-rise"
+        >
           <Link
             href={`/plans/${plan.id}`}
-            className="flex flex-wrap items-center justify-between gap-2 px-4 py-3 hover:bg-stone-50"
+            className="group flex flex-wrap items-center justify-between gap-3 rounded-lg border border-l-4 border-line border-l-route bg-sheet px-5 py-4 shadow-paper transition-colors hover:border-l-pillar"
           >
-            <span className="min-w-0">
-              <span className="block truncate font-medium">
+            <span className="grid min-w-0 gap-0.5">
+              <span className="truncate font-serif text-lg font-bold">
                 {plan.occupation}
               </span>
-              <span className="text-xs text-stone-500">
-                {semesterLabel(plan.grade, plan.term)}から・
+              <span className="text-xs text-sub">
+                {semesterLabel(plan.grade, plan.term)}から ・{" "}
                 {CREATED_AT.format(new Date(plan.created_at))}
               </span>
             </span>
-            <StatusBadge status={plan.status} />
+            <span className="flex items-center gap-3">
+              <StatusBadge status={plan.status} />
+              <span
+                aria-hidden
+                className="text-route transition-transform group-hover:translate-x-1"
+              >
+                →
+              </span>
+            </span>
           </Link>
         </li>
       ))}
