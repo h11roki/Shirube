@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { progressSteps } from "@/lib/progress";
+import { progressSteps, travelled } from "@/lib/progress";
 
 function states(...args: Parameters<typeof progressSteps>) {
   return progressSteps(...args).map((step) => `${step.stage}:${step.state}`);
@@ -32,5 +32,14 @@ describe("progressSteps", () => {
       "selecting:later",
       "placing:later",
     ]);
+  });
+});
+
+describe("travelled", () => {
+  it("runs the line from the first station to the current one", () => {
+    expect(travelled(progressSteps("pending", null))).toBe(0);
+    expect(travelled(progressSteps("running", "analyzing"))).toBe(0);
+    expect(travelled(progressSteps("running", "selecting"))).toBeCloseTo(2 / 3);
+    expect(travelled(progressSteps("running", "placing"))).toBe(1);
   });
 });

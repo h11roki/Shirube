@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
+import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
-import { ProgressSteps } from "@/components/progress-steps";
 import {
   ApiError,
   type Plan,
@@ -14,7 +14,6 @@ import {
   messageOf,
   requestJson,
 } from "@/lib/api/client";
-import { semesterLabel } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_REQUEST_TIMEOUT_MS,
@@ -138,45 +137,27 @@ export function PlanView() {
       </Notice>
     );
   }
-  const { conditions } = plan;
   return (
-    <section
-      aria-live="polite"
-      className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8"
-    >
-      <div className="grid gap-1.5">
-        <p className="text-xs font-bold tracking-[0.28em] text-pillar">
-          目的地 ── {conditions.occupation}
-        </p>
-        <h1 className="font-serif text-2xl font-extrabold text-balance">
-          {conditions.occupation}への道標を作っています
-        </h1>
-        <p className="text-sm text-sub">
-          {semesterLabel(conditions.grade, conditions.term)}
-          から卒業までを組みます。
-        </p>
-      </div>
-      <ProgressSteps status={plan.status} stage={plan.stage} />
-      {watch === "gave-up" ? (
-        <div className="grid justify-items-start gap-3 text-sm">
-          <p>
-            時間がかかっています。あとで
-            <Link
-              href="/plans"
-              className="text-route underline underline-offset-4"
-            >
-              一覧
-            </Link>
-            から見てください。
-          </p>
-          <RetryButton onClick={retry} />
-        </div>
-      ) : (
-        <p className="text-xs text-sub">
-          ふだん 10〜30 秒かかります。このページを開いたままお待ちください。
-        </p>
-      )}
-    </section>
+    <PlanProgress
+      plan={plan}
+      stalled={
+        watch === "gave-up" ? (
+          <div className="grid justify-items-start gap-3 text-sm">
+            <p>
+              時間がかかっています。あとで
+              <Link
+                href="/plans"
+                className="text-route underline underline-offset-4"
+              >
+                一覧
+              </Link>
+              から見てください。
+            </p>
+            <RetryButton onClick={retry} />
+          </div>
+        ) : undefined
+      }
+    />
   );
 }
 

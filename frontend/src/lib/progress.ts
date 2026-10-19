@@ -17,3 +17,8 @@ export function progressSteps(
     state: index < current ? "done" : index === current ? "now" : "later",
   }));
 }
+
+export function travelled(steps: Step[]): number {
+  const current = steps.findIndex((step) => step.state === "now");
+  return current <= 0 ? 0 : current / (steps.length - 1);
+}
