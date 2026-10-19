@@ -2,8 +2,11 @@ from collections import defaultdict
 from collections.abc import Mapping, Sequence, Set
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
+from app.domain.course import left_out_codes
 from app.domain.ranking import CourseMatch, rank_courses
 from app.domain.roadmap import Semester, opens_in
+
+EXCLUDED_NOTE = "(もう取ったと答えた授業は除いています)"
 
 
 class SearchError(ValueError):
@@ -56,20 +59,32 @@ class SearchCourses:
         self._chunks = chunks
         self._embedder = embedder
 
-    def candidates(self, year: int, department: str, semesters: Sequence[Semester]) -> Candidates:
+    def candidates(
+        self,
+        year: int,
+        department: str,
+        semesters: Sequence[Semester],
+        excluded: Set[str] = frozenset(),
+    ) -> Candidates:
         page_of = self._courses.syllabus_codes(year)
         sections = self._courses.sections(year)
         if not page_of or not sections:
             raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
+        left_out = left_out_codes(sections, page_of, department, excluded)
         names_of_page: dict[str, set[str]] = defaultdict(set)
+        removed = False
         for section in sections:
             offered = any(opens_in(section, department, year, semester) for semester in semesters)
-            if offered and section.code in page_of:
-                names_of_page[page_of[section.code]].add(section.name)
+            if not offered or section.code not in page_of:
+                continue
+            if section.code in left_out:
+                removed = True
+                continue
+            names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:
             raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
-                "候補の科目がありません"
+                "候補の科目がありません" + (EXCLUDED_NOTE if removed else "")
             )
         model = self._embedder.model
         if not self._chunks.is_embedded(year, model):

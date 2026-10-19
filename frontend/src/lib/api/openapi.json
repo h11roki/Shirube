@@ -232,6 +232,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
               "maxLength": 100,
               "title": "Name"
             }
@@ -325,6 +326,7 @@
             "required": true,
             "schema": {
               "type": "string",
+              "minLength": 1,
               "maxLength": 100,
               "title": "Name"
             }
@@ -450,6 +452,115 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClassChoicesOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/taken-courses": {
+      "get": {
+        "summary": "Index",
+        "operationId": "index_api_v1_taken_courses_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TakenCoursesOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ]
+      }
+    },
+    "/api/v1/taken-courses/{name}": {
+      "delete": {
+        "summary": "Forget",
+        "operationId": "forget_api_v1_taken_courses__name__delete",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TakenCoursesOut"
                 }
               }
             }
@@ -1035,6 +1146,22 @@
           "period"
         ],
         "title": "SlotOut"
+      },
+      "TakenCoursesOut": {
+        "properties": {
+          "names": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Names"
+          }
+        },
+        "type": "object",
+        "required": [
+          "names"
+        ],
+        "title": "TakenCoursesOut"
       },
       "Term": {
         "type": "string",

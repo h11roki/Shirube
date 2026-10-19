@@ -1,4 +1,5 @@
 import re
+from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 from enum import Enum
 
@@ -50,11 +51,31 @@ class CourseSection:
     registration: str
     note: str | None
 
+    def for_department(self, department: str) -> bool:
+        return self.departments is None or department in self.departments
+
     def offered_to(self, department: str, grade: int, year: int) -> bool:
         cohort_in_grade = year - grade + 1
-        in_department = self.departments is None or department in self.departments
-        return in_department and any(
+        return self.for_department(department) and any(
             grade in audience.eligible_grades
             and audience.entry_year_from <= cohort_in_grade <= audience.entry_year_to
             for audience in self.audiences
         )
+
+
+def left_out_codes(
+    sections: Sequence[CourseSection],
+    page_of: Mapping[str, str],
+    department: str,
+    taken: Set[str],
+) -> frozenset[str]:
+    taken_pages = {
+        page_of[section.code]
+        for section in sections
+        if section.name in taken and section.code in page_of and section.for_department(department)
+    }
+    return frozenset(
+        section.code
+        for section in sections
+        if section.name in taken or page_of.get(section.code) in taken_pages
+    )

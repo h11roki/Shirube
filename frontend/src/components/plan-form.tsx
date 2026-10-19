@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
 import { OUTLINE_BUTTON } from "@/components/styles";
+import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
   type Plan,
@@ -39,6 +40,7 @@ export function PlanForm() {
   const [reloads, setReloads] = useState(0);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [takenRefresh, setTakenRefresh] = useState(0);
   const query = new URLSearchParams({
     department: DEPARTMENT,
     grade: String(grade),
@@ -93,6 +95,7 @@ export function PlanForm() {
     } catch (error) {
       setSubmitError(messageOf(error));
       setSubmitting(false);
+      setTakenRefresh((current) => current + 1);
     }
   }
 
@@ -224,6 +227,15 @@ export function PlanForm() {
           </div>
         </details>
       )}
+
+      <TakenCourseList
+        refresh={takenRefresh}
+        onForget={() => {
+          setSubmitError(undefined);
+          setFailed(undefined);
+          setReloads((current) => current + 1);
+        }}
+      />
 
       {submitError && (
         <p role="alert" className="text-sm text-danger">

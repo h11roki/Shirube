@@ -19,6 +19,7 @@ from app.application.list_plans import ListPlans
 from app.application.ports import EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.application.taken_courses import TakenCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
@@ -213,16 +214,19 @@ class FakeTokenVerifier:
 class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
-        self.taken: dict[UUID, set[str]] = {}
+        self.remembered: dict[UUID, set[str]] = {}
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
 
+    def taken(self, user_id: UUID) -> frozenset[str]:
+        return frozenset(self.remembered.get(user_id, set()))
+
     def add_taken(self, user_id: UUID, name: str) -> None:
-        self.taken.setdefault(user_id, set()).add(name)
+        self.remembered.setdefault(user_id, set()).add(name)
 
     def remove_taken(self, user_id: UUID, name: str) -> None:
-        self.taken.setdefault(user_id, set()).discard(name)
+        self.remembered.setdefault(user_id, set()).discard(name)
 
 
 def chat_answering(
@@ -299,11 +303,12 @@ def plan_app(
     known = users or FakeUserRepository()
     identify = IdentifyUser(FakeTokenVerifier(TOKENS), known)
     return create_app(
-        RequestPlan(search, courses, stored, 16),
+        RequestPlan(search, courses, stored, known, 16),
         GetPlan(stored),
         ListPlans(stored),
-        ListClassChoices(courses),
+        ListClassChoices(courses, known),
         AnswerTakenCourses(stored, known, courses),
+        TakenCourses(known),
         identify,
         2026,
         lambda: today,

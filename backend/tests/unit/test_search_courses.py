@@ -113,3 +113,45 @@ def test_a_year_without_timetable_or_syllabi_is_a_search_error_not_a_lack_of_can
     ) as raised:
         search.candidates(2026, "情", ALL_SEMESTERS)
     assert not isinstance(raised.value, NoCandidatesError)
+
+
+def test_a_taken_name_leaves_the_candidates_with_every_name_of_its_joint_page() -> None:
+    joint = FakeCourseRepository(
+        sections=(
+            replace(course_section("50001"), name="合併の科目甲"),
+            replace(course_section("50002"), name="合併の科目乙"),
+            replace(course_section("30001"), name="論理回路"),
+        ),
+        syllabi=(
+            syllabus("50001", aliases=(CourseName("50002", "合併の科目乙"),)),
+            syllabus("30001"),
+        ),
+    )
+    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
+
+    assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {"論理回路"}
+    with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
+        search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目乙", "論理回路"})
+
+
+def test_the_note_about_taken_courses_is_added_only_when_they_emptied_the_candidates() -> None:
+    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder())
+    autumns = (Semester(3, Term.AUTUMN), Semester(4, Term.AUTUMN))
+
+    with pytest.raises(NoCandidatesError) as unrelated:
+        search.candidates(2026, "情", autumns, {"論理回路"})
+
+    assert "除いています" not in str(unrelated.value)
+
+
+def test_a_taken_name_from_another_department_does_not_remove_a_joint_page() -> None:
+    joint = FakeCourseRepository(
+        sections=(
+            replace(course_section("70001", departments=frozenset({"機"})), name="機の科目"),
+            replace(course_section("70002"), name="情も取れる別名"),
+        ),
+        syllabi=(syllabus("70001", aliases=(CourseName("70002", "情も取れる別名"),)),),
+    )
+    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
+
+    assert search.candidates(2026, "情", ALL_SEMESTERS, {"機の科目"}).names == {"情も取れる別名"}

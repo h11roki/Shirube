@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Set
 from enum import Enum, auto
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
@@ -38,8 +38,9 @@ class RecommendCourses:
         department: str,
         semesters: Sequence[Semester],
         enter: Callable[[RecommendStep], None] = lambda step: None,
+        excluded: Set[str] = frozenset(),
     ) -> Recommendation:
-        candidates = self._search.candidates(year, department, semesters)
+        candidates = self._search.candidates(year, department, semesters, excluded)
         profile = self._analyzer.analyze(occupation)
         enter(RecommendStep.SEARCHING)
         [matches] = candidates.rank([profile.query], self._candidate_limit)

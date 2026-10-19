@@ -27,6 +27,12 @@ class SqlUserRepository:
             db.commit()
             return user_id
 
+    def taken(self, user_id: UUID) -> frozenset[str]:
+        with DbSession(self._engine) as db:
+            return frozenset(
+                db.scalars(select(TakenCourseRow.name).where(TakenCourseRow.user_id == user_id))
+            )
+
     def add_taken(self, user_id: UUID, name: str) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(

@@ -14,6 +14,7 @@ import {
   goalStationLabel,
   answeredLabel,
   failedAnswerLabel,
+  forgetTakenLabel,
   markTakenLabel,
   unmarkTakenLabel,
 } from "@/lib/labels";
@@ -105,6 +106,7 @@ describe("labels", () => {
     );
     expect(markTakenLabel("情報処理")).toBe("情報処理はもう取った");
     expect(unmarkTakenLabel("情報処理")).toBe("情報処理を道標に戻す");
+    expect(forgetTakenLabel("情報処理")).toBe("情報処理を取り消す");
   });
 
   it("names a class without a code", () => {

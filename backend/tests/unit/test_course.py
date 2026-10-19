@@ -1,6 +1,6 @@
 from dataclasses import replace
 
-from app.domain.course import Audience, CourseSection
+from app.domain.course import Audience, CourseSection, left_out_codes
 from tests.builders import course_section
 
 
@@ -37,3 +37,25 @@ def test_department_must_match_unless_the_course_is_for_every_department() -> No
 
     assert not with_audiences(first_year).offered_to("機", 1, 2026)
     assert replace(with_audiences(first_year), departments=None).offered_to("機", 1, 2026)
+
+
+def test_a_taken_name_leaves_out_its_classes_and_its_joint_pages_in_the_department() -> None:
+    sections = [
+        replace(course_section("10001"), name="合併の科目甲"),
+        replace(course_section("10002"), name="合併の科目乙"),
+        replace(course_section("20001", departments=frozenset({"機"})), name="機の科目"),
+        replace(course_section("20002"), name="機と合併の別名"),
+        replace(course_section("30001"), name="論理回路"),
+        replace(course_section("30002"), name="論理回路"),
+    ]
+    pages = {
+        "10001": "10001",
+        "10002": "10001",
+        "20001": "20001",
+        "20002": "20001",
+        "30001": "30001",
+    }
+
+    left_out = left_out_codes(sections, pages, "情", {"合併の科目甲", "機の科目", "論理回路"})
+
+    assert left_out == {"10001", "10002", "20001", "30001", "30002"}
