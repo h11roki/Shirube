@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { OUTLINE_BUTTON } from "@/components/styles";
 import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
 import { forgetTakenLabel } from "@/lib/labels";
 
@@ -10,6 +11,7 @@ export function TakenCourseList() {
   const [busy, setBusy] = useState(false);
   const [failure, setFailure] = useState<string>();
   const [forgotten, setForgotten] = useState(false);
+  const [reloads, setReloads] = useState(0);
   const summary = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -18,6 +20,7 @@ export function TakenCourseList() {
       .then((answer) => {
         if (active) {
           setNames(answer.names);
+          setFailure(undefined);
         }
       })
       .catch((error: unknown) => {
@@ -28,7 +31,7 @@ export function TakenCourseList() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [reloads]);
 
   async function forget(name: string) {
     setBusy(true);
@@ -50,9 +53,19 @@ export function TakenCourseList() {
 
   if (!names) {
     return failure ? (
-      <p role="alert" className="text-sm text-danger">
-        もう取ったと答えた授業を読み込めませんでした: {failure}
-      </p>
+      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+        <p className="text-danger">
+          もう取ったと答えた授業を読み込めませんでした(道標は作れます):{" "}
+          {failure}
+        </p>
+        <button
+          type="button"
+          onClick={() => setReloads((current) => current + 1)}
+          className={OUTLINE_BUTTON}
+        >
+          読み直す
+        </button>
+      </div>
     ) : null;
   }
   if (names.length === 0 && !forgotten && !failure) {
