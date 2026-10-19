@@ -3,6 +3,7 @@
 import {
   type CSSProperties,
   type ReactNode,
+  useCallback,
   useEffect,
   useId,
   useMemo,
@@ -15,8 +16,8 @@ import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
 import { TEXT_LINK } from "@/components/styles";
 import {
-  type TransferFocus,
   TransferFocusContext,
+  useTransferFocusValue,
 } from "@/components/transfer-focus";
 import { WeekTable } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
@@ -31,7 +32,6 @@ import {
 import { STAGGER_MS } from "@/lib/motion";
 import {
   type Transfer,
-  linkedNames,
   semesterCourses,
   semesterKey,
   transfers,
@@ -40,7 +40,6 @@ import { VIEWS_ANCHOR, resultViewHref } from "@/lib/result-view";
 
 const GOAL_PRESS_MS = 300;
 const LINE_DELAY_MS = 250;
-const FOLLOW_MS = 2500;
 const IN_VIEW = 0.4;
 
 export function RouteMap({
@@ -61,28 +60,16 @@ export function RouteMap({
   const arrive = visible.length * STAGGER_MS;
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
-  const [hovered, setHovered] = useState<string | null>(null);
-  const [followed, setFollowed] = useState<string | null>(null);
-  const release = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const focus = followed ?? hovered;
-  const focusing = useMemo<TransferFocus>(
-    () => ({
-      focus,
-      linked: linkedNames(found, focus),
-      hover: setHovered,
-      follow: (from, transfer) => {
-        clearTimeout(release.current);
-        setFollowed(from);
-        document
-          .getElementById(`ticket-${transfer.pillarSection}`)
-          ?.scrollIntoView({ block: "center" });
-        release.current = setTimeout(() => setFollowed(null), FOLLOW_MS);
-      },
-    }),
-    [found, focus],
+  const reachable = useCallback(
+    (transfer: Transfer) => transfer.station < shown,
+    [shown],
   );
-
-  useEffect(() => () => clearTimeout(release.current), []);
+  const go = useCallback((transfer: Transfer) => {
+    document
+      .getElementById(`ticket-${transfer.pillarSection}`)
+      ?.scrollIntoView({ block: "center" });
+  }, []);
+  const focusing = useTransferFocusValue(found, reachable, go);
 
   useEffect(() => {
     if (!withStrip) {
@@ -98,7 +85,9 @@ export function RouteMap({
           current = index;
         }
       });
-      setActive(current);
+      const bottom =
+        scrollY + innerHeight >= document.documentElement.scrollHeight - 2;
+      setActive(bottom ? stations.length - 1 : current);
     }
     function schedule() {
       if (!frame) {
@@ -115,6 +104,7 @@ export function RouteMap({
   }, [withStrip, visible.length]);
 
   function pick(index: number) {
+    setActive(index);
     root.current
       ?.querySelectorAll("[data-station]")
       [index]?.scrollIntoView({ block: "start" });

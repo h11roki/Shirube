@@ -47,8 +47,8 @@ export function CourseTicket({
       id={placed ? `ticket-${course.section_code}` : undefined}
       onPointerEnter={() => focusing?.hover(course.name)}
       onPointerLeave={() => focusing?.hover(null)}
-      onFocus={() => focusing?.hover(course.name)}
-      onBlur={() => focusing?.hover(null)}
+      onFocus={() => focusing?.select(course.name)}
+      onBlur={() => focusing?.select(null)}
       className={`relative grid min-w-0 scroll-mt-28 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
@@ -63,7 +63,7 @@ export function CourseTicket({
         <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
         {transfer && (
           <p className="text-xs text-route">
-            {focusing ? (
+            {focusing?.reachable(transfer) ? (
               <button
                 type="button"
                 onClick={() => focusing.follow(course.name, transfer)}

@@ -39,7 +39,8 @@ export function PlanProgress({
         <div className="grid min-w-0 gap-1.5">
           <DestinationPlate destination={conditions.occupation} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
-            {conditions.occupation}への道標を作っています
+            <span className="sr-only">{conditions.occupation}への</span>
+            道標を作っています
           </h1>
           <p className="text-sm text-sub">
             {semesterLabel(conditions.grade, conditions.term)}

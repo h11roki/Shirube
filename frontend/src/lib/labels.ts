@@ -74,8 +74,13 @@ export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;
 }
 
+const TERM_SHORT_LABELS: Record<Term, string> = {
+  spring: "春",
+  autumn: "秋",
+};
+
 export function semesterShortLabel(grade: number, term: Term): string {
-  return `${grade}回生 ${term === "spring" ? "春" : "秋"}`;
+  return `${grade}回生 ${TERM_SHORT_LABELS[term]}`;
 }
 
 export function semesterReading(grade: number, term: Term): string {
