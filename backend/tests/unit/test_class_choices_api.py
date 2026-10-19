@@ -2,7 +2,7 @@ from dataclasses import replace
 from datetime import date
 
 from app.domain.course import Audience, TimeSlot, Weekday
-from tests.fakes import courses_ranked_by, plan_api
+from tests.fakes import FakeUserRepository, courses_ranked_by, plan_api
 
 OWN = frozenset({"情"})
 
@@ -77,3 +77,23 @@ def test_a_query_of_the_wrong_shape_is_unprocessable() -> None:
         response = api.get("/api/v1/class-choices", params=params)
         assert response.status_code == 422
         assert response.json()["detail"].startswith("リクエストを確かめてください: ")
+
+
+def test_courses_the_user_has_taken_are_not_offered_as_choices() -> None:
+    courses, search = courses_ranked_by({"情報科学Ⅱ": 0.9, "科目B": 0.8})
+    split, other = courses.stored_sections
+    courses.stored_sections = [
+        replace(split, class_code="TA", departments=OWN),
+        replace(
+            split, code="10002", class_code="TB", departments=OWN, slots=(TimeSlot(Weekday.TUE, 1),)
+        ),
+        other,
+    ]
+    users = FakeUserRepository()
+    users.add_taken(users.id_of("google-a"), "情報科学Ⅱ")
+
+    response = plan_api((courses, search), users=users).get(
+        "/api/v1/class-choices", params={"department": "情", "grade": 3, "term": "spring"}
+    )
+
+    assert response.json() == {"term": "spring", "courses": []}

@@ -21,10 +21,11 @@ def class_choices_router(
 ) -> APIRouter:
     router = APIRouter()
 
-    @router.get("/class-choices", dependencies=[Depends(current_user)], responses=INVALID_RESPONSE)
+    @router.get("/class-choices", responses=INVALID_RESPONSE)
     def show(
         department: Annotated[DepartmentName, Query()],
         grade: Annotated[int, Query(ge=min(ALL_GRADES), le=max(ALL_GRADES))],
+        user_id: Annotated[UUID, Depends(current_user)],
         term: Term | None = None,
     ) -> ClassChoicesOut:
         start = Semester(grade, term or term_on(today()))
@@ -32,7 +33,7 @@ def class_choices_router(
             term=start.term,
             courses=[
                 ClassChoiceOut(name=choice.name, class_codes=list(choice.class_codes))
-                for choice in list_class_choices.run(department, curriculum_year, start)
+                for choice in list_class_choices.run(user_id, department, curriculum_year, start)
             ],
         )
 

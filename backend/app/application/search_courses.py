@@ -75,16 +75,18 @@ class SearchCourses:
             page = page_of.get(section.code)
             if page is None:
                 continue
-            if section.name in excluded:
+            in_department = section.departments is None or department in section.departments
+            if section.name in excluded and in_department:
                 taken_pages.add(page)
             if any(opens_in(section, department, year, semester) for semester in semesters):
                 names_of_page[page].add(section.name)
+        removed = bool(taken_pages & names_of_page.keys())
         for page in taken_pages:
             names_of_page.pop(page, None)
         if not names_of_page:
             raise NoCandidatesError(
                 f"{year} 年度の {department} に、指定した学期に開講されシラバスのある"
-                "候補の科目がありません" + (EXCLUDED_NOTE if excluded else "")
+                "候補の科目がありません" + (EXCLUDED_NOTE if removed else "")
             )
         model = self._embedder.model
         if not self._chunks.is_embedded(year, model):

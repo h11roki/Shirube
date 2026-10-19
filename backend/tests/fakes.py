@@ -306,7 +306,7 @@ def plan_app(
         RequestPlan(search, courses, stored, known, 16),
         GetPlan(stored),
         ListPlans(stored),
-        ListClassChoices(courses),
+        ListClassChoices(courses, known),
         AnswerTakenCourses(stored, known, courses),
         TakenCourses(known),
         identify,

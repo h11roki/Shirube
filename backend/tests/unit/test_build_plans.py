@@ -258,3 +258,17 @@ def test_courses_the_owner_has_taken_are_left_out_of_the_candidates() -> None:
     assert built.status is PlanStatus.SUCCEEDED
     [(_, candidates)] = selector.calls
     assert [candidate.name for candidate in candidates] == ["科目A", "科目C"]
+
+
+def test_a_plan_whose_candidates_all_became_taken_fails_with_the_reason() -> None:
+    users = FakeUserRepository()
+    users.add_taken(OWNER, "科目A")
+    plans = FakePlanRepository()
+    waiting(plans)
+
+    built = builder(courses_ranked_by({"科目A": 0.9}), plans, users=users).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.FAILED
+    assert built.failure is not None
+    assert "もう取ったと答えた授業は除いています" in built.failure

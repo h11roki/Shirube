@@ -12,6 +12,7 @@ from app.application.ports import (
     UserRepository,
 )
 from app.application.recommend_courses import RecommendCourses, RecommendStep
+from app.application.search_courses import NoCandidatesError
 from app.domain.plan import Plan, PlanResult, PlanStage
 from app.domain.recommendation import RecommendationError
 
@@ -73,6 +74,9 @@ class BuildPlans:
         except UPSTREAM_ERRORS:
             logger.exception("道標 %s の推薦で外部のサービスの呼び出しに失敗しました", plan.id)
             finished = plan.failed(UPSTREAM_FAILURE)
+        except NoCandidatesError as error:
+            logger.warning("道標 %s の推薦の候補がありませんでした: %s", plan.id, error)
+            finished = plan.failed(str(error))
         except Exception:
             logger.exception("道標 %s を作れませんでした", plan.id)
             finished = plan.failed(SERVER_FAILURE)
