@@ -13,6 +13,7 @@ import {
   TRANSFER_WARNINGS,
   goalStationLabel,
   answeredLabel,
+  failedAnswerLabel,
   markTakenLabel,
   unmarkTakenLabel,
 } from "@/lib/labels";
@@ -97,6 +98,10 @@ describe("labels", () => {
     );
     expect(answeredLabel("情報処理", "unmark")).toBe(
       "情報処理を戻して置き直しました",
+    );
+    expect(failedAnswerLabel("答えられません", null)).toBe("答えられません");
+    expect(failedAnswerLabel("答えられません", "届きません")).toBe(
+      "答えられません(道標も読み直せませんでした: 届きません)",
     );
     expect(markTakenLabel("情報処理")).toBe("情報処理はもう取った");
     expect(unmarkTakenLabel("情報処理")).toBe("情報処理を道標に戻す");

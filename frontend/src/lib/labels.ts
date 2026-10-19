@@ -121,6 +121,15 @@ export function answeredLabel(name: string, change: TakenChange): string {
   return `${name}を${TAKEN_VERBS[change]}置き直しました`;
 }
 
+export function failedAnswerLabel(
+  answering: string,
+  reloading: string | null,
+): string {
+  return reloading
+    ? `${answering}(道標も読み直せませんでした: ${reloading})`
+    : answering;
+}
+
 export function markTakenLabel(name: string): string {
   return `${name}はもう取った`;
 }

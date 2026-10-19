@@ -25,6 +25,7 @@ import {
   RESULT_VIEW_LABELS,
   type TakenChange,
   answeredLabel,
+  failedAnswerLabel,
   unmarkTakenLabel,
   goalStationLabel,
   semesterLabel,
@@ -49,12 +50,10 @@ export function PlanResultView({
   plan,
   result,
   onAnswered,
-  onReload,
 }: {
   plan: Plan;
   result: Result;
   onAnswered: (plan: Plan) => void;
-  onReload: () => void;
 }) {
   const pathname = usePathname();
   const { view, semester } = readResultView(useSearchParams());
@@ -79,12 +78,23 @@ export function PlanResultView({
     return () => clearTimeout(timer);
   }, [answered]);
 
+  const planApi = `/api/plans/${encodeURIComponent(plan.id)}`;
+
+  async function reloadFailure(): Promise<string | null> {
+    try {
+      onAnswered(await requestJson<Plan>(planApi));
+      return null;
+    } catch (caught) {
+      return messageOf(caught);
+    }
+  }
+
   async function answer(name: string, change: TakenChange) {
     setBusy(true);
     try {
       onAnswered(
         await requestJson<Plan>(
-          `/api/plans/${encodeURIComponent(plan.id)}/taken-courses/${encodeURIComponent(name)}`,
+          `${planApi}/taken-courses/${encodeURIComponent(name)}`,
           { method: TAKEN_METHODS[change] },
         ),
       );
@@ -94,8 +104,11 @@ export function PlanResultView({
         undo: change === "mark" ? name : null,
       });
     } catch (caught) {
-      setAnswered({ message: messageOf(caught), failed: true, undo: null });
-      onReload();
+      setAnswered({
+        message: failedAnswerLabel(messageOf(caught), await reloadFailure()),
+        failed: true,
+        undo: null,
+      });
     } finally {
       setBusy(false);
       notice.current?.focus({ preventScroll: true });
@@ -138,7 +151,7 @@ export function PlanResultView({
             1 学期 {conditions.credit_limit} 単位まで ・ {conditions.year}{" "}
             年度の時間割
           </p>
-          {result.offered_earlier.length > 0 && (
+          {result.offered_earlier.length > result.taken.length && (
             <p className="max-w-2xl text-xs text-sub">
               前の学期にも開講された授業は、もう取っていれば切符の「もう取った」を押してください。道標から外して置き直します。
             </p>
