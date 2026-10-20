@@ -63,18 +63,19 @@ class OpenAIOccupationAnalyzer:
         unreadable: list[str] = []
         for attempt in range(1, READ_ATTEMPTS + 1):
             profile = self._profile(occupation)
-            if not profile.unreadable_parts:
+            parts = profile.unreadable_parts
+            if not parts:
                 return profile
-            unreadable.extend(profile.unreadable_parts)
+            unreadable.extend(parts)
             if attempt < READ_ATTEMPTS:
                 logger.warning(
                     "%s: LLM の答えに使えない文字が混ざっていたので聞き直します: %s",
                     occupation,
-                    profile.unreadable_parts,
+                    parts,
                 )
-        parts = "、".join(dict.fromkeys(unreadable))
+        listed = "、".join(dict.fromkeys(unreadable))
         raise OccupationAnalysisError(
-            f"{occupation}: LLM の答えに使えない文字が混ざっています: {parts}"
+            f"{occupation}: LLM の答えに使えない文字が混ざっています: {listed}"
         )
 
     def _profile(self, occupation: str) -> OccupationProfile:
