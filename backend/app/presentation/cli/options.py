@@ -2,6 +2,7 @@ import argparse
 from pathlib import Path
 
 from app.domain.occupation import is_single_line
+from app.presentation.schemas.plans import MAX_NAME_LENGTH
 from app.settings import CurriculumSettings
 
 DEFAULT_DEPARTMENT = "情"
@@ -10,8 +11,10 @@ DEFAULT_ROOT = Path("data/raw")
 
 def _occupation(text: str) -> str:
     occupation = text.strip()
-    if not is_single_line(occupation):
-        raise argparse.ArgumentTypeError(f"職業名は空でない 1 行にしてください: {text!r}")
+    if not is_single_line(occupation) or len(occupation) > MAX_NAME_LENGTH:
+        raise argparse.ArgumentTypeError(
+            f"職業名は空でない {MAX_NAME_LENGTH} 字以内の 1 行にしてください: {text!r}"
+        )
     return occupation
 
 
