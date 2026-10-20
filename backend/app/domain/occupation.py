@@ -5,9 +5,9 @@ from typing import Self
 
 SKILL_COUNT = range(3, 7)
 READABLE = re.compile(
-    "[\u0020-\u007e\u00a0-\u00ac\u00ae-\u00ff\u0300-\u03ff\u2010-\u2027\u2030-\u205e"
-    "\u2070-\u23ff\u2460-\u24ff\u25a0-\u27bf\u3000-\u30ff\u3200-\u4dbf\u4e00-\u9fff"
-    "\uf900-\ufaff\uff00-\uffef\U00020000-\U0003134f]*"
+    "[\u0020-\u007e\u00a0-\u00ac\u00ae-\u017f\u0300-\u03ff\u2010-\u2027\u2030-\u205e"
+    "\u2070-\u23ff\u2460-\u27bf\u3000-\u30ff\u31f0-\u4dbf\u4e00-\u9fff"
+    "\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\U00020000-\U0003134f]*"
 )
 
 
@@ -17,10 +17,6 @@ class OccupationProfileError(ValueError):
 
 def is_single_line(text: str) -> bool:
     return bool(text.strip()) and text.splitlines() == [text]
-
-
-def is_readable(text: str) -> bool:
-    return READABLE.fullmatch(text) is not None
 
 
 def search_query(occupation: str, skills: Sequence[str]) -> str:
@@ -74,7 +70,7 @@ class OccupationProfile:
         return tuple(
             text
             for text in written
-            if not is_readable("".join(letter for letter in text if letter not in typed))
+            if READABLE.fullmatch("".join(letter for letter in text if letter not in typed)) is None
         )
 
     @property

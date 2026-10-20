@@ -1,9 +1,9 @@
 import pytest
 
 from app.domain.occupation import (
+    READABLE,
     OccupationProfile,
     OccupationProfileError,
-    is_readable,
     search_query,
 )
 
@@ -80,6 +80,7 @@ def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:
         ("回路の温度特性(℃)と O(n²)", True),
         ("① 計測 ○ ★", True),
         ("品質管理✓ ㈱ ㎜ 𠮷野 e\u0301", True),
+        ("制御─計測 Tōkyō ㇰ", True),
         ("\u202e逆さの文字", False),
         ("見え\u00adない", False),
         ("コンピュータグラフィिक्स", False),
@@ -88,7 +89,7 @@ def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:
     ],
 )
 def test_readable_text_is_japanese_ascii_and_common_symbols(text: str, readable: bool) -> None:
-    assert is_readable(text) is readable
+    assert (READABLE.fullmatch(text) is not None) is readable
 
 
 def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None:
@@ -104,7 +105,7 @@ def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None
 def test_letters_the_user_typed_are_readable_anywhere_in_the_answer() -> None:
     broken = OccupationProfile("職業", "職業", None, ("甲", "乙", "ग्राफ"))
     quoted = OccupationProfile(
-        "フロント✨", "ITエンジニア", "フロント✨を広く読んだ", ("甲", "乙", "丙")
+        "フロント🎮", "ITエンジニア", "フロント🎮を広く読んだ", ("甲", "乙", "丙")
     )
     renamed = OccupationProfile("職業", "職業🎮", "広く読んだ", ("甲", "乙", "丙"))
 
