@@ -34,13 +34,13 @@ services:
 
   worker:
     build: ./backend
-    command: uv run --no-sync watchfiles --filter python --sigint-timeout 900 "python -m app.presentation.worker" app
+    command: uv run --no-sync watchfiles --filter python --sigint-timeout 960 "python -m app.presentation.worker" app
     environment:
       DATABASE_URL: postgresql+psycopg://shirube:shirube@db:5432/shirube
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
       - ./backend:/app
-    stop_grace_period: 15m
+    stop_grace_period: 17m
     depends_on:
       db:
         condition: service_healthy
