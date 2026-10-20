@@ -18,7 +18,11 @@ from app.presentation.cli.labels import (
     unlinked_lines,
     with_prerequisite,
 )
-from app.presentation.cli.options import add_department_option, add_year_option
+from app.presentation.cli.options import (
+    add_department_option,
+    add_occupation_argument,
+    add_year_option,
+)
 from app.presentation.composition import (
     build_plans,
     database_engine,
@@ -104,7 +108,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="道標を作って保存する、保存した道標を表示する")
     commands = parser.add_subparsers(dest="command", required=True)
     create = commands.add_parser("create", help="職業と回生から道標を作って保存する")
-    create.add_argument("occupation")
+    add_occupation_argument(create)
     create.add_argument("--grade", type=int, choices=sorted(ALL_GRADES), required=True)
     create.add_argument(
         "--term",
@@ -145,7 +149,7 @@ def main() -> None:
             builder.fail_stalled(timedelta(minutes=settings.plan_stall_minutes))
             requested = request_plan(settings, engine).run(
                 SqlUserRepository(engine).id_of(CLI_SUBJECT),
-                args.occupation.strip(),
+                args.occupation,
                 args.department,
                 args.year,
                 Semester(args.grade, Term(args.term)),
