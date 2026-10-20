@@ -134,6 +134,18 @@ def test_unreadable_letters_in_both_answers_are_an_analysis_error() -> None:
         interpretation="ゲームクリエイター", assumption=None, skills=["甲", "乙", "ग्राफ"]
     )
 
-    with pytest.raises(OccupationAnalysisError, match="使えない文字が混ざっています"):
+    with pytest.raises(OccupationAnalysisError, match="使えない文字が混ざっています: ग्राफ"):
         analyzer_answering(broken, requests).analyze("ゲームクリエイター")
     assert len(requests) == 2
+
+
+def test_letters_the_user_typed_are_not_a_reason_to_ask_again() -> None:
+    requests: list[dict[str, Any]] = []
+    analyzer = analyzer_answering(
+        answer(interpretation="ゲーム開発者", assumption=None, skills=["甲", "乙", "丙"]), requests
+    )
+
+    profile = analyzer.analyze("ゲーム開発者🎮")
+
+    assert profile.interpretation == "ゲーム開発者🎮"
+    assert len(requests) == 1

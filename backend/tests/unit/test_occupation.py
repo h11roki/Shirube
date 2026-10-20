@@ -77,6 +77,8 @@ def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:
         ("C 言語と Python", True),
         ("α-β 法・データ構造(基礎)", True),
         ("Ｗｅｂ の仕組み → 応用", True),
+        ("回路の温度特性(℃)と O(n²)", True),
+        ("① 計測 ○ ★", True),
         ("コンピュータグラフィिक्स", False),
         ("데이터 분석", False),
         ("การเขียนโปรแกรม", False),
@@ -96,8 +98,11 @@ def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None
     assert broadened.interpretation == "ITエンジニア"
 
 
-def test_a_profile_with_unreadable_letters_is_not_readable() -> None:
-    profile = OccupationProfile("職業", "職業", None, ("甲", "乙", "ग्राफ"))
+def test_only_the_parts_the_llm_wrote_are_checked_for_unreadable_letters() -> None:
+    broken = OccupationProfile("職業", "職業", None, ("甲", "乙", "ग्राफ"))
+    as_typed = OccupationProfile("ゲーム開発者🎮", "ゲーム開発者🎮", None, ("甲", "乙", "丙"))
+    renamed = OccupationProfile("職業", "職業🎮", "広く読んだ", ("甲", "乙", "丙"))
 
-    assert profile.readable is False
-    assert OccupationProfile("職業", "職業", None, ("甲", "乙", "丙")).readable is True
+    assert broken.unreadable_parts == ("ग्राफ",)
+    assert as_typed.unreadable_parts == ()
+    assert renamed.unreadable_parts == ("職業🎮",)

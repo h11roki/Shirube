@@ -1,3 +1,4 @@
+import logging
 from typing import Self
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -10,6 +11,8 @@ from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import SKILL_COUNT, OccupationProfile
 
 READ_ATTEMPTS = 2
+
+logger = logging.getLogger(__name__)
 
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
@@ -56,11 +59,18 @@ class OpenAIOccupationAnalyzer:
         return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def analyze(self, occupation: str) -> OccupationProfile:
+        unreadable: tuple[str, ...] = ()
         for _ in range(READ_ATTEMPTS):
             profile = self._profile(occupation)
-            if profile.readable:
+            unreadable = profile.unreadable_parts
+            if not unreadable:
                 return profile
-        raise OccupationAnalysisError(f"{occupation}: LLM の答えに使えない文字が混ざっています")
+            logger.warning(
+                "%s: LLM の答えに使えない文字が混ざっています: %s", occupation, unreadable
+            )
+        raise OccupationAnalysisError(
+            f"{occupation}: LLM の答えに使えない文字が混ざっています: {'、'.join(unreadable)}"
+        )
 
     def _profile(self, occupation: str) -> OccupationProfile:
         try:

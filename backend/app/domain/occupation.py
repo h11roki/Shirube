@@ -5,7 +5,7 @@ from typing import Self
 
 SKILL_COUNT = range(3, 7)
 READABLE = re.compile(
-    "[\u0020-\u007e\u00a0-\u00ff\u0370-\u03ff\u2010-\u206f\u2150-\u218f\u2190-\u22ff"
+    "[\u0020-\u007e\u00a0-\u00ff\u0370-\u03ff\u2010-\u22ff\u2460-\u24ff\u25a0-\u26ff"
     "\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]*"
 )
 
@@ -63,10 +63,13 @@ class OccupationProfile:
         return cls(occupation, interpretation if assumption else occupation, assumption, skills)
 
     @property
-    def readable(self) -> bool:
-        return all(
-            is_readable(text) for text in (self.interpretation, self.assumption or "", *self.skills)
+    def unreadable_parts(self) -> tuple[str, ...]:
+        written = (
+            *((self.interpretation,) if self.interpretation != self.occupation else ()),
+            *((self.assumption,) if self.assumption else ()),
+            *self.skills,
         )
+        return tuple(text for text in written if not is_readable(text))
 
     @property
     def query(self) -> str:

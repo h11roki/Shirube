@@ -145,7 +145,7 @@ def main() -> None:
             builder.fail_stalled(timedelta(minutes=settings.plan_stall_minutes))
             requested = request_plan(settings, engine).run(
                 SqlUserRepository(engine).id_of(CLI_SUBJECT),
-                args.occupation,
+                args.occupation.strip(),
                 args.department,
                 args.year,
                 Semester(args.grade, Term(args.term)),

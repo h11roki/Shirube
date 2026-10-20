@@ -236,13 +236,14 @@ def chat_answering(
     then: Sequence[dict[str, Any]] = (),
 ) -> ChatOpenAI:
     answers = [message, *then]
-    asked: list[dict[str, Any]] = []
+    calls = 0
 
     def respond(request: httpx.Request) -> httpx.Response:
-        asked.append(json.loads(request.content))
+        nonlocal calls
+        calls += 1
         if requests is not None:
-            requests.append(asked[-1])
-        reply = answers[min(len(asked), len(answers)) - 1]
+            requests.append(json.loads(request.content))
+        reply = answers[min(calls, len(answers)) - 1]
         return httpx.Response(
             200,
             json={
