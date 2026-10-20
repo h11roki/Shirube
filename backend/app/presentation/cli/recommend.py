@@ -22,7 +22,11 @@ from app.presentation.cli.labels import (
     unlinked_lines,
     with_prerequisite,
 )
-from app.presentation.cli.options import add_department_option, add_year_option
+from app.presentation.cli.options import (
+    add_department_option,
+    add_occupation_argument,
+    add_year_option,
+)
 from app.presentation.composition import database_engine, load_settings, recommend_courses
 
 
@@ -42,7 +46,7 @@ def render(recommendation: Recommendation) -> str:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="職業から取るべき科目と理由を推薦する")
-    parser.add_argument("occupation")
+    add_occupation_argument(parser)
     add_year_option(parser)
     add_department_option(parser)
     parser.add_argument(

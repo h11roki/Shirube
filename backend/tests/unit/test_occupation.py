@@ -1,6 +1,11 @@
 import pytest
 
-from app.domain.occupation import OccupationProfile, OccupationProfileError, search_query
+from app.domain.occupation import (
+    READABLE,
+    OccupationProfile,
+    OccupationProfileError,
+    search_query,
+)
 
 
 def test_query_joins_the_interpretation_and_the_skills() -> None:
@@ -63,3 +68,47 @@ def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:
         skills = tuple(f"スキル{number}" for number in range(count))
 
         assert OccupationProfile("職業", "職業", None, skills).skills == skills
+
+
+@pytest.mark.parametrize(
+    ("text", "readable"),
+    [
+        ("情報科学Ⅱ", True),
+        ("C 言語と Python", True),
+        ("α-β 法・データ構造(基礎)", True),
+        ("Ｗｅｂ の仕組み → 応用", True),
+        ("回路の温度特性(℃)と O(n²)", True),
+        ("① 計測 ○ ★", True),
+        ("品質管理✓ ㈱ ㎜ 𠮷野 e\u0301", True),
+        ("制御─計測 Tōkyō ㇰ", True),
+        ("\u202e逆さの文字", False),
+        ("見え\u00adない", False),
+        ("コンピュータグラフィिक्स", False),
+        ("데이터 분석", False),
+        ("การเขียนโปรแกรม", False),
+    ],
+)
+def test_readable_text_is_japanese_ascii_and_common_symbols(text: str, readable: bool) -> None:
+    assert (READABLE.fullmatch(text) is not None) is readable
+
+
+def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None:
+    skills = ("確率統計", "機械学習", "データベース")
+
+    kept = OccupationProfile.read("データサイエンティスト", "データ分析エンジニア", None, skills)
+    broadened = OccupationProfile.read("Webエンジニア", "ITエンジニア", "広く読んだ", skills)
+
+    assert kept.interpretation == "データサイエンティスト"
+    assert broadened.interpretation == "ITエンジニア"
+
+
+def test_letters_the_user_typed_are_readable_anywhere_in_the_answer() -> None:
+    broken = OccupationProfile("職業", "職業", None, ("甲", "乙", "ग्राफ"))
+    quoted = OccupationProfile(
+        "フロント🎮", "ITエンジニア", "フロント🎮を広く読んだ", ("甲", "乙", "丙")
+    )
+    renamed = OccupationProfile("職業", "職業🎮", "広く読んだ", ("甲", "乙", "丙"))
+
+    assert broken.unreadable_parts == ("ग्राफ",)
+    assert quoted.unreadable_parts == ()
+    assert renamed.unreadable_parts == ("職業🎮",)

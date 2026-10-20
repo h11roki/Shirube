@@ -10,9 +10,11 @@ from tests.fakes import chat_answering, chat_failing
 
 
 def analyzer_answering(
-    message: dict[str, Any], requests: list[dict[str, Any]] | None = None
+    message: dict[str, Any],
+    requests: list[dict[str, Any]] | None = None,
+    then: tuple[dict[str, Any], ...] = (),
 ) -> OpenAIOccupationAnalyzer:
-    return OpenAIOccupationAnalyzer(chat_answering(message, requests))
+    return OpenAIOccupationAnalyzer(chat_answering(message, requests, then=then))
 
 
 def answer(**fields: Any) -> dict[str, Any]:
@@ -93,3 +95,60 @@ def test_a_failed_api_call_is_an_analysis_error() -> None:
 
     with pytest.raises(OccupationAnalysisError, match="職業: OpenAI の API 呼び出しに失敗しました"):
         analyzer.analyze("職業")
+
+
+def test_a_name_changed_without_an_assumption_stays_as_the_user_wrote_it() -> None:
+    analyzer = analyzer_answering(
+        answer(
+            interpretation="データ分析・機械学習エンジニア",
+            assumption=None,
+            skills=["確率統計", "機械学習", "データベース"],
+        )
+    )
+
+    assert analyzer.analyze("データサイエンティスト").interpretation == "データサイエンティスト"
+
+
+def test_an_answer_with_unreadable_letters_is_asked_once_more() -> None:
+    requests: list[dict[str, Any]] = []
+    broken = answer(
+        interpretation="ゲームクリエイター",
+        assumption=None,
+        skills=["プログラミング", "コンピュータグラフィिक्स", "数学"],
+    )
+    fixed = answer(
+        interpretation="ゲームクリエイター",
+        assumption=None,
+        skills=["プログラミング", "コンピュータグラフィックス", "数学"],
+    )
+
+    profile = analyzer_answering(broken, requests, then=(fixed,)).analyze("ゲームクリエイター")
+
+    assert profile.skills == ("プログラミング", "コンピュータグラフィックス", "数学")
+    assert len(requests) == 2
+
+
+def test_unreadable_letters_in_both_answers_are_an_analysis_error_naming_them() -> None:
+    requests: list[dict[str, Any]] = []
+    first = answer(
+        interpretation="ゲームクリエイター", assumption=None, skills=["甲", "乙", "ग्राफ"]
+    )
+    second = answer(
+        interpretation="ゲームクリエイター", assumption=None, skills=["甲", "乙", "그래픽"]
+    )
+
+    with pytest.raises(OccupationAnalysisError, match="使えない文字が混ざっています: ग्राफ、그래픽"):
+        analyzer_answering(first, requests, then=(second,)).analyze("ゲームクリエイター")
+    assert len(requests) == 2
+
+
+def test_letters_the_user_typed_are_not_a_reason_to_ask_again() -> None:
+    requests: list[dict[str, Any]] = []
+    analyzer = analyzer_answering(
+        answer(interpretation="ゲーム開発者", assumption=None, skills=["甲", "乙", "丙"]), requests
+    )
+
+    profile = analyzer.analyze("ゲーム開発者🎮")
+
+    assert profile.interpretation == "ゲーム開発者🎮"
+    assert len(requests) == 1

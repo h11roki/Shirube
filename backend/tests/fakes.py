@@ -1,5 +1,5 @@
 import json
-from collections.abc import Set
+from collections.abc import Sequence, Set
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -233,10 +233,17 @@ def chat_answering(
     message: dict[str, Any],
     requests: list[dict[str, Any]] | None = None,
     finish_reason: str = "stop",
+    then: Sequence[dict[str, Any]] = (),
 ) -> ChatOpenAI:
+    answers = [message, *then]
+    calls = 0
+
     def respond(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
         if requests is not None:
             requests.append(json.loads(request.content))
+        reply = answers[min(calls, len(answers)) - 1]
         return httpx.Response(
             200,
             json={
@@ -248,7 +255,7 @@ def chat_answering(
                     {
                         "index": 0,
                         "finish_reason": finish_reason,
-                        "message": {"role": "assistant", **message},
+                        "message": {"role": "assistant", **reply},
                     }
                 ],
                 "usage": {"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},

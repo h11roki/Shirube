@@ -1,3 +1,4 @@
+import logging
 from typing import Self
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -9,13 +10,17 @@ from pydantic import BaseModel, Field, SecretStr
 from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import SKILL_COUNT, OccupationProfile
 
+READ_ATTEMPTS = 2
+
+logger = logging.getLogger(__name__)
+
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
 入力された職業名について、次の 3 つを答えてください。
 
 - interpretation: その職業名をどの職業と解釈したか。解釈した職業名を短く 1 行で書く。\
 電子情報工学科の授業がそのまま備える職業(組込み、半導体、通信、制御、データ分析など)は、\
-そのまま解釈する。職業名が、学科の授業に無い応用分野や、授業で扱わない道具や製品で決まる\
+そのまま解釈し、入力された職業名をそのまま書く。職業名が、学科の授業に無い応用分野や、授業で扱わない道具や製品で決まる\
 細かい職種(Webエンジニア、フロントエンドエンジニア、スマホアプリ開発者、クラウドエンジニアなど)\
 のときだけ、学科の授業で備えられる広い職業として解釈する。\
 例えば「Webエンジニア」は「ITエンジニア」と読む
@@ -32,7 +37,8 @@ INSTRUCTIONS = f"""\
 (例: React ではなく Web の仕組みとプログラミング)。\
 C 言語や Python のように授業で使うプログラミング言語は、名前で書いてよい
 
-入力が職業名でないときも、最も近い職業として解釈して答えてください。"""
+入力が職業名でないときも、最も近い職業として解釈し、\
+そう解釈したという前提を assumption に 1 文で書いてください。"""
 
 
 class _Profile(BaseModel):
@@ -54,12 +60,31 @@ class OpenAIOccupationAnalyzer:
         return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def analyze(self, occupation: str) -> OccupationProfile:
+        unreadable: list[str] = []
+        for attempt in range(1, READ_ATTEMPTS + 1):
+            profile = self._profile(occupation)
+            parts = profile.unreadable_parts
+            if not parts:
+                return profile
+            unreadable.extend(parts)
+            if attempt < READ_ATTEMPTS:
+                logger.warning(
+                    "%s: LLM の答えに使えない文字が混ざっていたので聞き直します: %s",
+                    occupation,
+                    parts,
+                )
+        listed = "、".join(dict.fromkeys(unreadable))
+        raise OccupationAnalysisError(
+            f"{occupation}: LLM の答えに使えない文字が混ざっています: {listed}"
+        )
+
+    def _profile(self, occupation: str) -> OccupationProfile:
         try:
             output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
             if not isinstance(output, _Profile):
                 raise TypeError(f"答えの形が違います: {output!r}")
             assumption = output.assumption.strip() if output.assumption else None
-            return OccupationProfile(
+            return OccupationProfile.read(
                 occupation,
                 output.interpretation.strip(),
                 assumption or None,

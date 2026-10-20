@@ -1,7 +1,14 @@
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Self
 
 SKILL_COUNT = range(3, 7)
+READABLE = re.compile(
+    "[\u0020-\u007e\u00a0-\u00ac\u00ae-\u017f\u0300-\u03ff\u2010-\u2027\u2030-\u205e"
+    "\u2070-\u23ff\u2460-\u27bf\u3000-\u30ff\u31f0-\u4dbf\u4e00-\u9fff"
+    "\uf900-\ufaff\ufe30-\ufe4f\uff00-\uffef\U00020000-\U0003134f]*"
+)
 
 
 class OccupationProfileError(ValueError):
@@ -41,6 +48,30 @@ class OccupationProfile:
             raise OccupationProfileError(f"{self.occupation}: スキルは空でない 1 行にしてください")
         if len({skill.strip() for skill in self.skills}) != len(self.skills):
             raise OccupationProfileError(f"{self.occupation}: スキルが重複しています")
+
+    @classmethod
+    def read(
+        cls,
+        occupation: str,
+        interpretation: str,
+        assumption: str | None,
+        skills: tuple[str, ...],
+    ) -> Self:
+        return cls(occupation, interpretation if assumption else occupation, assumption, skills)
+
+    @property
+    def unreadable_parts(self) -> tuple[str, ...]:
+        typed = set(self.occupation)
+        written = (
+            self.interpretation,
+            *((self.assumption,) if self.assumption else ()),
+            *self.skills,
+        )
+        return tuple(
+            text
+            for text in written
+            if READABLE.fullmatch("".join(letter for letter in text if letter not in typed)) is None
+        )
 
     @property
     def query(self) -> str:
