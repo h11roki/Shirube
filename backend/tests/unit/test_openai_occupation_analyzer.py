@@ -128,14 +128,17 @@ def test_an_answer_with_unreadable_letters_is_asked_once_more() -> None:
     assert len(requests) == 2
 
 
-def test_unreadable_letters_in_both_answers_are_an_analysis_error() -> None:
+def test_unreadable_letters_in_both_answers_are_an_analysis_error_naming_them() -> None:
     requests: list[dict[str, Any]] = []
-    broken = answer(
+    first = answer(
         interpretation="ゲームクリエイター", assumption=None, skills=["甲", "乙", "ग्राफ"]
     )
+    second = answer(
+        interpretation="ゲームクリエイター", assumption=None, skills=["甲", "乙", "그래픽"]
+    )
 
-    with pytest.raises(OccupationAnalysisError, match="使えない文字が混ざっています: ग्राफ"):
-        analyzer_answering(broken, requests).analyze("ゲームクリエイター")
+    with pytest.raises(OccupationAnalysisError, match="使えない文字が混ざっています: ग्राफ、그래픽"):
+        analyzer_answering(first, requests, then=(second,)).analyze("ゲームクリエイター")
     assert len(requests) == 2
 
 

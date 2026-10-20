@@ -59,17 +59,21 @@ class OpenAIOccupationAnalyzer:
         return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def analyze(self, occupation: str) -> OccupationProfile:
-        unreadable: tuple[str, ...] = ()
-        for _ in range(READ_ATTEMPTS):
+        unreadable: list[str] = []
+        for attempt in range(1, READ_ATTEMPTS + 1):
             profile = self._profile(occupation)
-            unreadable = profile.unreadable_parts
-            if not unreadable:
+            if not profile.unreadable_parts:
                 return profile
-            logger.warning(
-                "%s: LLM の答えに使えない文字が混ざっています: %s", occupation, unreadable
-            )
+            unreadable.extend(profile.unreadable_parts)
+            if attempt < READ_ATTEMPTS:
+                logger.warning(
+                    "%s: LLM の答えに使えない文字が混ざっていたので聞き直します: %s",
+                    occupation,
+                    profile.unreadable_parts,
+                )
+        parts = "、".join(dict.fromkeys(unreadable))
         raise OccupationAnalysisError(
-            f"{occupation}: LLM の答えに使えない文字が混ざっています: {'、'.join(unreadable)}"
+            f"{occupation}: LLM の答えに使えない文字が混ざっています: {parts}"
         )
 
     def _profile(self, occupation: str) -> OccupationProfile:
