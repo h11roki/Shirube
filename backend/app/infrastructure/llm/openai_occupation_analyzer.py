@@ -9,13 +9,15 @@ from pydantic import BaseModel, Field, SecretStr
 from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import SKILL_COUNT, OccupationProfile
 
+READ_ATTEMPTS = 2
+
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
 入力された職業名について、次の 3 つを答えてください。
 
 - interpretation: その職業名をどの職業と解釈したか。解釈した職業名を短く 1 行で書く。\
 電子情報工学科の授業がそのまま備える職業(組込み、半導体、通信、制御、データ分析など)は、\
-そのまま解釈する。職業名が、学科の授業に無い応用分野や、授業で扱わない道具や製品で決まる\
+そのまま解釈し、入力された職業名をそのまま書く。職業名が、学科の授業に無い応用分野や、授業で扱わない道具や製品で決まる\
 細かい職種(Webエンジニア、フロントエンドエンジニア、スマホアプリ開発者、クラウドエンジニアなど)\
 のときだけ、学科の授業で備えられる広い職業として解釈する。\
 例えば「Webエンジニア」は「ITエンジニア」と読む
@@ -54,12 +56,19 @@ class OpenAIOccupationAnalyzer:
         return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
 
     def analyze(self, occupation: str) -> OccupationProfile:
+        for _ in range(READ_ATTEMPTS):
+            profile = self._profile(occupation)
+            if profile.readable:
+                return profile
+        raise OccupationAnalysisError(f"{occupation}: LLM の答えに使えない文字が混ざっています")
+
+    def _profile(self, occupation: str) -> OccupationProfile:
         try:
             output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
             if not isinstance(output, _Profile):
                 raise TypeError(f"答えの形が違います: {output!r}")
             assumption = output.assumption.strip() if output.assumption else None
-            return OccupationProfile(
+            return OccupationProfile.read(
                 occupation,
                 output.interpretation.strip(),
                 assumption or None,

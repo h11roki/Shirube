@@ -1,7 +1,13 @@
+import re
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Self
 
 SKILL_COUNT = range(3, 7)
+READABLE = re.compile(
+    "[\u0020-\u007e\u00a0-\u00ff\u0370-\u03ff\u2010-\u206f\u2150-\u218f\u2190-\u22ff"
+    "\u3000-\u30ff\u3400-\u4dbf\u4e00-\u9fff\uff00-\uffef]*"
+)
 
 
 class OccupationProfileError(ValueError):
@@ -10,6 +16,10 @@ class OccupationProfileError(ValueError):
 
 def is_single_line(text: str) -> bool:
     return bool(text.strip()) and text.splitlines() == [text]
+
+
+def is_readable(text: str) -> bool:
+    return READABLE.fullmatch(text) is not None
 
 
 def search_query(occupation: str, skills: Sequence[str]) -> str:
@@ -41,6 +51,22 @@ class OccupationProfile:
             raise OccupationProfileError(f"{self.occupation}: スキルは空でない 1 行にしてください")
         if len({skill.strip() for skill in self.skills}) != len(self.skills):
             raise OccupationProfileError(f"{self.occupation}: スキルが重複しています")
+
+    @classmethod
+    def read(
+        cls,
+        occupation: str,
+        interpretation: str,
+        assumption: str | None,
+        skills: tuple[str, ...],
+    ) -> Self:
+        return cls(occupation, interpretation if assumption else occupation, assumption, skills)
+
+    @property
+    def readable(self) -> bool:
+        return all(
+            is_readable(text) for text in (self.interpretation, self.assumption or "", *self.skills)
+        )
 
     @property
     def query(self) -> str:
