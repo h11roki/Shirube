@@ -158,3 +158,17 @@ export function slotsLabel(course: PlacedCourse): string {
 export function classLabel(classCode: string): string {
   return classCode || "記号なし";
 }
+
+export const PLAN_CAUTION =
+  "非公式の参考です。必修、卒業要件、履修の前提は見ていません。授業は AI が選ぶので、誤りや作るたびの違いがあります。履修登録の前に、大学の履修要項とシラバスで確かめてください。";
+
+export const SYLLABUS_SITE =
+  "https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja";
+
+export function syllabusLinkLabel(name: string): string {
+  return `${name}のシラバスを新しいタブで開く`;
+}
+
+export function sourceNote(year: number): string {
+  return `授業の情報は、立命館大学の ${year} 年度のシラバスと時間割表によります。来年度以降の学期も、${year} 年度の時間割で組んでいます。`;
+}

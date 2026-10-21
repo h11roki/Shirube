@@ -3,6 +3,7 @@
 import { useContext } from "react";
 
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
+import { TEXT_LINK } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
@@ -12,6 +13,7 @@ import {
   markTakenLabel,
   roleLabel,
   slotsLabel,
+  syllabusLinkLabel,
   transferLabel,
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
@@ -71,6 +73,18 @@ export function CourseTicket({
           {course.name}
         </h3>
         <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
+        {course.syllabus_url && (
+          <a
+            href={course.syllabus_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={syllabusLinkLabel(course.name)}
+            className={`justify-self-start text-xs ${TEXT_LINK}`}
+          >
+            シラバス
+            <span aria-hidden> ↗</span>
+          </a>
+        )}
         {transfer && (
           <p className="text-xs text-route">
             {focusing?.reachable(transfer) ? (
