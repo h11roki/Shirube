@@ -6,6 +6,7 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import ArgumentError
 
 from app.application.build_plans import BuildPlans
+from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
@@ -115,6 +116,10 @@ def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
         SqlPlanRepository(engine),
         SqlUserRepository(engine),
     )
+
+
+def forget_deleted_plans(engine: Engine) -> ForgetDeletedPlans:
+    return ForgetDeletedPlans(SqlPlanRepository(engine), now)
 
 
 def now() -> datetime:

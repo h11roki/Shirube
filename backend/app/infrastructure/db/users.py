@@ -1,13 +1,14 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import Engine, delete, func, select
+from sqlalchemy import Engine, delete, func, null, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session as DbSession
 
+from app.application.ports import Deletion
 from app.domain.plan import PlanStatus
-from app.infrastructure.db.models import DeletedPlanRow, PlanRow, TakenCourseRow, UserRow
-from app.infrastructure.db.plans import ADMISSION_LOCK
+from app.infrastructure.db.deletion import ADMISSION_LOCK, keep_deleted_times
+from app.infrastructure.db.models import PlanRow, TakenCourseRow, UserRow
 
 
 class SqlUserRepository:
@@ -42,24 +43,17 @@ class SqlUserRepository:
                 insert(TakenCourseRow).values(user_id=user_id, name=name).on_conflict_do_nothing()
             )
 
-    def delete(self, user_id: UUID, since: datetime) -> bool:
+    def delete(self, user_id: UUID, since: datetime) -> Deletion:
         with DbSession(self._engine) as db, db.begin():
             db.execute(select(func.pg_advisory_xact_lock(ADMISSION_LOCK)))
             statuses = db.scalars(
                 select(PlanRow.status).where(PlanRow.user_id == user_id).with_for_update()
             ).all()
             if PlanStatus.RUNNING in statuses:
-                return False
-            db.execute(
-                insert(DeletedPlanRow).from_select(
-                    ["id", "user_id", "created_at"],
-                    select(PlanRow.id, PlanRow.user_id, PlanRow.created_at).where(
-                        PlanRow.user_id == user_id, PlanRow.created_at >= since
-                    ),
-                )
-            )
+                return Deletion.RUNNING
+            keep_deleted_times(db, PlanRow.user_id == user_id, since, null())
             db.execute(delete(UserRow).where(UserRow.id == user_id))
-        return True
+        return Deletion.DELETED
 
     def remove_taken(self, user_id: UUID, name: str) -> None:
         with DbSession(self._engine) as db, db.begin():

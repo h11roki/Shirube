@@ -2,12 +2,8 @@ from collections.abc import Callable
 from datetime import datetime
 from uuid import UUID
 
-from app.application.ports import Deletion, PlanRepository
+from app.application.ports import Deletion, PlanRepository, PlanRunningError
 from app.domain.quota import day_start
-
-
-class PlanRunningError(ValueError):
-    pass
 
 
 class DeletePlan:

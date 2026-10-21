@@ -5,7 +5,8 @@ from uuid import uuid4
 import pytest
 
 from app.application.delete_account import DeleteAccount
-from app.application.delete_plan import DeletePlan, PlanRunningError
+from app.application.delete_plan import DeletePlan
+from app.application.ports import PlanRunningError
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from tests.builders import sample_conditions, sample_plan
 from tests.fakes import FIRST_CREATED_AT, FakePlanRepository, FakeUserRepository

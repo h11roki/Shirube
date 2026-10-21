@@ -1,24 +1,34 @@
 import logging
 import signal
 import threading
-from datetime import UTC, datetime, timedelta
+from datetime import timedelta
 from types import FrameType
 
 from app.application.build_plans import BuildPlans
+from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import PlanFormatError
-from app.presentation.composition import build_plans, database_engine, load_settings
+from app.presentation.composition import (
+    build_plans,
+    database_engine,
+    forget_deleted_plans,
+    load_settings,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def work(
-    builder: BuildPlans, stall_limit: timedelta, poll_seconds: float, stop: threading.Event
+    builder: BuildPlans,
+    forgetting: ForgetDeletedPlans,
+    stall_limit: timedelta,
+    poll_seconds: float,
+    stop: threading.Event,
 ) -> None:
     while not stop.is_set():
         try:
-            builder.forget_deleted(datetime.now(UTC))
+            forgetting.run()
         except Exception:
-            logger.exception("削除した道標の日時を消せませんでした。次の回にやり直します")
+            logger.exception("消した道標の日時を消せませんでした。しばらくしてやり直します")
         try:
             builder.fail_stalled(stall_limit)
             built = None if stop.is_set() else builder.build_next()
@@ -50,6 +60,7 @@ def main() -> None:
     try:
         work(
             build_plans(settings, engine),
+            forget_deleted_plans(engine),
             timedelta(minutes=settings.plan_stall_minutes),
             settings.worker_poll_seconds,
             stop,

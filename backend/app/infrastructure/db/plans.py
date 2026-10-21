@@ -23,6 +23,7 @@ from app.domain.quota import PlanCounts
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
+from app.infrastructure.db.deletion import ADMISSION_LOCK, COUNTED_OWNER, keep_deleted_times
 from app.infrastructure.db.models import (
     ChoiceJson,
     ConditionsJson,
@@ -39,7 +40,6 @@ from app.infrastructure.db.models import (
 )
 
 RESULT_JSON_VERSION = 3
-ADMISSION_LOCK = 380038
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -55,21 +55,25 @@ class SqlPlanRepository:
             mine = PlanRow.user_id == plan.owner_id
             unfinished = mine & PlanRow.status.in_(IN_PROGRESS)
             today = PlanRow.created_at >= since
-            in_progress, owner_plans, all_plans = db.execute(
+            deleted_today = DeletedPlanRow.created_at >= since
+            owner_deleted = (
+                select(func.count())
+                .where(deleted_today, DeletedPlanRow.user_id == plan.owner_id)
+                .scalar_subquery()
+            )
+            all_deleted = select(func.count()).where(deleted_today).scalar_subquery()
+            in_progress, owner_plans, all_plans, owner_gone, all_gone = db.execute(
                 select(
                     func.count().filter(unfinished),
                     func.count().filter(mine & today & (PlanRow.status != PlanStatus.FAILED)),
                     func.count().filter(today),
+                    owner_deleted,
+                    all_deleted,
                 )
                 .select_from(PlanRow)
                 .where(today | unfinished)
             ).one()
-            owner_deleted, all_deleted = db.execute(
-                select(func.count().filter(DeletedPlanRow.user_id == plan.owner_id), func.count())
-                .select_from(DeletedPlanRow)
-                .where(DeletedPlanRow.created_at >= since)
-            ).one()
-            admit(PlanCounts(in_progress, owner_plans + owner_deleted, all_plans + all_deleted))
+            admit(PlanCounts(in_progress, owner_plans + owner_gone, all_plans + all_gone))
             db.add(
                 PlanRow(
                     id=plan.id,
@@ -166,18 +170,15 @@ class SqlPlanRepository:
     def delete_owned_by(self, plan_id: UUID, owner_id: UUID, since: datetime) -> Deletion:
         with DbSession(self._engine) as db, db.begin():
             row = db.execute(
-                select(PlanRow.status, PlanRow.created_at)
+                select(PlanRow.status)
                 .where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
                 .with_for_update()
             ).one_or_none()
             if row is None:
                 return Deletion.MISSING
-            status, created_at = row
-            if status == PlanStatus.RUNNING:
+            if row.status == PlanStatus.RUNNING:
                 return Deletion.RUNNING
-            if created_at >= since:
-                counted = None if status == PlanStatus.FAILED else owner_id
-                db.add(DeletedPlanRow(id=plan_id, user_id=counted, created_at=created_at))
+            keep_deleted_times(db, PlanRow.id == plan_id, since, COUNTED_OWNER)
             db.execute(delete(PlanRow).where(PlanRow.id == plan_id))
         return Deletion.DELETED
 

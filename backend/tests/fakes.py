@@ -281,12 +281,12 @@ class FakeUserRepository:
     def remove_taken(self, user_id: UUID, name: str) -> None:
         self.remembered.setdefault(user_id, set()).discard(name)
 
-    def delete(self, user_id: UUID, since: datetime) -> bool:
+    def delete(self, user_id: UUID, since: datetime) -> Deletion:
         if user_id in self.building:
-            return False
+            return Deletion.RUNNING
         self.users = {subject: known for subject, known in self.users.items() if known != user_id}
         self.remembered.pop(user_id, None)
-        return True
+        return Deletion.DELETED
 
 
 def chat_answering(

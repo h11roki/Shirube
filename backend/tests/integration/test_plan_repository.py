@@ -627,7 +627,7 @@ def test_leaving_keeps_ownerless_times_of_todays_plans_and_deletes_the_rest(
         repository.add(plan, ANY_DAY, allow)
     users.add_taken(owner, "情報処理")
 
-    assert users.delete(owner, TODAY) is True
+    assert users.delete(owner, TODAY) is Deletion.DELETED
 
     assert repository.get(mine.id) is None
     assert repository.get(theirs.id) == theirs
@@ -646,5 +646,5 @@ def test_a_user_with_a_plan_being_built_cannot_leave(
     repository.claim(plan.id)
     users = SqlUserRepository(engine)
 
-    assert users.delete(owner, TODAY) is False
+    assert users.delete(owner, TODAY) is Deletion.RUNNING
     assert users.id_of("google-a") == owner

@@ -1,6 +1,6 @@
 import logging
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import timedelta
 from uuid import UUID, uuid4
 
 import pytest
@@ -272,18 +272,3 @@ def test_a_plan_whose_candidates_all_became_taken_fails_with_the_reason() -> Non
     assert built.status is PlanStatus.FAILED
     assert built.failure is not None
     assert "もう取ったと答えた授業は除いています" in built.failure
-
-
-def test_deleted_plans_made_before_today_in_japan_are_forgotten_once_a_day() -> None:
-    plans = FakePlanRepository()
-    yesterday, today = waiting(plans), waiting(plans)
-    plans.created_at[yesterday.id] = datetime.fromisoformat("2026-10-20T23:59+09:00")
-    plans.created_at[today.id] = datetime.fromisoformat("2026-10-21T00:00+09:00")
-    plans.deleted = {yesterday.id: OWNER, today.id: OWNER}
-    forgetting = builder(courses_ranked_by({"科目A": 0.9}), plans)
-
-    for moment in ("2026-10-21T09:00+09:00", "2026-10-21T23:59+09:00"):
-        forgetting.forget_deleted(datetime.fromisoformat(moment))
-
-    assert list(plans.deleted) == [today.id]
-    assert plans.purges == [datetime.fromisoformat("2026-10-21T00:00+09:00")]

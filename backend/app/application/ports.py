@@ -78,6 +78,16 @@ class TokenVerifier(Protocol):
     def subject_of(self, token: str) -> str: ...
 
 
+class Deletion(Enum):
+    DELETED = "deleted"
+    MISSING = "missing"
+    RUNNING = "running"
+
+
+class PlanRunningError(ValueError):
+    pass
+
+
 class UserRepository(Protocol):
     def id_of(self, subject: str) -> UUID: ...
 
@@ -87,17 +97,11 @@ class UserRepository(Protocol):
 
     def remove_taken(self, user_id: UUID, name: str) -> None: ...
 
-    def delete(self, user_id: UUID, since: datetime) -> bool: ...
+    def delete(self, user_id: UUID, since: datetime) -> Deletion: ...
 
 
 class PlanFormatError(ValueError):
     pass
-
-
-class Deletion(Enum):
-    DELETED = "deleted"
-    MISSING = "missing"
-    RUNNING = "running"
 
 
 class PlanRepository(Protocol):
