@@ -11,7 +11,7 @@ from app.infrastructure.scrapers.ritsumeikan.listing import PageCount, parse_pag
 from app.infrastructure.scrapers.ritsumeikan.site import BASE_URL, detail_url
 
 HOME_PATH = "/syllabus/s/?language=ja"
-USER_AGENT = "shirube/0.1 (+https://github.com/h11roki/Shirube; takahashi.hiroki@baseconnect.in)"
+USER_AGENT = "shirube/0.1 (+https://github.com/h11roki/Shirube)"
 FACULTY = "理工学部"
 TERMS_WITH_SLOTS = ("春学期", "秋学期", "通年")
 TERMS_WITHOUT_SLOTS = ("夏期集中", "冬期集中")
