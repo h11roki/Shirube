@@ -19,22 +19,17 @@ function loggedInAs(googleSubject: string): Session {
   };
 }
 
-function getRequest(): Request {
-  return new Request("http://frontend.test/api/plans/abc");
+function getRequest(headers: Record<string, string> = {}): Request {
+  return new Request("http://frontend.test/api/plans/abc", { headers });
 }
 
-function postRequest(body: string): Request {
+function postRequest(
+  body: string,
+  headers: Record<string, string> = {},
+): Request {
   return new Request("http://frontend.test/api/plans", {
     method: "POST",
     body,
-    headers: { "Content-Type": "application/json" },
-  });
-}
-
-function sentFrom(headers: Record<string, string>, method = "POST"): Request {
-  return new Request("http://frontend.test/api/plans", {
-    method,
-    body: method === "GET" ? undefined : "{}",
     headers: { "Content-Type": "application/json", ...headers },
   });
 }
@@ -140,7 +135,7 @@ describe("forwardToBackend", () => {
 
       const response = await forwardToBackend(
         "/plans",
-        sentFrom({ "Sec-Fetch-Site": fetchSite }),
+        postRequest("{}", { "Sec-Fetch-Site": fetchSite }),
       );
 
       expect(response.status).toBe(403);
@@ -159,7 +154,7 @@ describe("forwardToBackend", () => {
 
       const response = await forwardToBackend(
         "/plans",
-        sentFrom({ Origin: origin, Host: "frontend.test" }),
+        postRequest("{}", { Origin: origin, Host: "frontend.test" }),
       );
 
       expect(response.status).toBe(403);
@@ -174,7 +169,12 @@ describe("forwardToBackend", () => {
     {
       Origin: "https://shirube.example",
       Host: "frontend:3000",
-      "X-Forwarded-Host": "shirube.example",
+      "X-Forwarded-Host": "Shirube.Example",
+    },
+    {
+      Origin: "https://shirube.example",
+      Host: "shirube.example",
+      "X-Forwarded-Host": "",
     },
     {},
   ])(
@@ -183,7 +183,10 @@ describe("forwardToBackend", () => {
       auth.mockResolvedValue(loggedInAs("google-subject"));
       const fetchMock = backendReturns(new Response("{}", { status: 202 }));
 
-      const response = await forwardToBackend("/plans", sentFrom(headers));
+      const response = await forwardToBackend(
+        "/plans",
+        postRequest("{}", headers),
+      );
 
       expect(response.status).toBe(202);
       expect(fetchMock).toHaveBeenCalledOnce();
@@ -196,7 +199,7 @@ describe("forwardToBackend", () => {
 
     const response = await forwardToBackend(
       "/plans",
-      sentFrom({ "Sec-Fetch-Site": "cross-site" }, "GET"),
+      getRequest({ "Sec-Fetch-Site": "cross-site" }),
     );
 
     expect(response.status).toBe(200);
@@ -237,9 +240,9 @@ describe("forwardToBackend", () => {
     expect(refused.status).toBe(413);
     expect(forwarded.status).toBe(202);
     expect(fetchMock).toHaveBeenCalledOnce();
-    expect(
-      new TextDecoder().decode(sentRequest(fetchMock).init.body as ArrayBuffer),
-    ).toBe(atLimit);
+    expect(await (sentRequest(fetchMock).init.body as Blob).text()).toBe(
+      atLimit,
+    );
   });
 
   it("passes the backend status, body and content type through", async () => {

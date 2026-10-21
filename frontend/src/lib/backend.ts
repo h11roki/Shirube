@@ -30,16 +30,15 @@ function isCrossSite(request: Request): boolean {
   if (origin === null) {
     return false;
   }
-  const host =
-    request.headers.get("X-Forwarded-Host")?.split(",")[0].trim() ??
-    request.headers.get("Host") ??
-    new URL(request.url).host;
+  const host = (
+    request.headers.get("X-Forwarded-Host")?.split(",")[0].trim() ||
+    request.headers.get("Host") ||
+    new URL(request.url).host
+  ).toLowerCase();
   return !URL.canParse(origin) || new URL(origin).host !== host;
 }
 
-async function readLimitedBody(
-  request: Request,
-): Promise<ArrayBuffer | undefined> {
+async function readLimitedBody(request: Request): Promise<Blob | undefined> {
   if (!request.body) {
     return undefined;
   }
@@ -58,7 +57,7 @@ async function readLimitedBody(
     }
     chunks.push(read.value);
   }
-  return new Blob(chunks).arrayBuffer();
+  return new Blob(chunks);
 }
 
 function requiredEnv(name: string): string {
@@ -91,7 +90,7 @@ export async function forwardToBackend(
   if (requestType) {
     headers.set("Content-Type", requestType);
   }
-  let body: ArrayBuffer | undefined;
+  let body: Blob | undefined;
   try {
     body = await readLimitedBody(incoming);
   } catch (error) {
