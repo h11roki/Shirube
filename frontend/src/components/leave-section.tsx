@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { ConfirmButton } from "@/components/confirm-button";
 import { OUTLINE_BUTTON } from "@/components/styles";
@@ -18,43 +18,58 @@ import {
 } from "@/lib/labels";
 import { signOutToTop } from "@/lib/sign-out";
 
-export function LeaveSection({ plans }: { plans: number }) {
+export function LeaveSection({
+  plans,
+  onLeft,
+}: {
+  plans: number;
+  onLeft: () => void;
+}) {
   const [taken, setTaken] = useState<number>();
-  const [left, setLeft] = useState(false);
+  const asked = useRef(0);
 
   function countTaken() {
+    const ask = (asked.current += 1);
     setTaken(undefined);
-    requestJson<TakenCourses>("/api/taken-courses").then(
-      (answer) => setTaken(answer.names.length),
-      () => setTaken(undefined),
-    );
+    void requestJson<TakenCourses>("/api/taken-courses")
+      .then(
+        (answer) => answer.names.length,
+        () => undefined,
+      )
+      .then((count) => {
+        if (ask === asked.current) {
+          setTaken(count);
+        }
+      });
   }
 
   return (
     <section className="grid justify-items-start gap-3 border-t border-line pt-6">
       <h2 className="font-serif text-lg font-bold">退会する</h2>
-      {left ? (
-        <form action={signOutToTop} className="grid justify-items-start gap-3">
-          <p role="status" className="text-sm">
-            {LEFT_NOTICE}
-          </p>
-          <button type="submit" className={OUTLINE_BUTTON}>
-            ログアウト
-          </button>
-        </form>
-      ) : (
-        <ConfirmButton
-          label={LEAVE_LABEL}
-          note={`${leaveSummary(plans, taken)}${LEAVE_KEEPS}`}
-          confirmLabel={CONFIRM_LEAVE_LABEL}
-          onOpen={countTaken}
-          onConfirm={async () => {
-            await requestNothing("/api/me", { method: "DELETE" });
-            setLeft(true);
-            await signOutToTop();
-          }}
-        />
-      )}
+      <ConfirmButton
+        label={LEAVE_LABEL}
+        note={`${leaveSummary(plans, taken)}${LEAVE_KEEPS}`}
+        confirmLabel={CONFIRM_LEAVE_LABEL}
+        onOpen={countTaken}
+        onConfirm={async () => {
+          await requestNothing("/api/me", { method: "DELETE" });
+          onLeft();
+          await signOutToTop();
+        }}
+      />
     </section>
+  );
+}
+
+export function LeftNotice() {
+  return (
+    <form action={signOutToTop} className="grid justify-items-start gap-3">
+      <p role="status" className="text-sm">
+        {LEFT_NOTICE}
+      </p>
+      <button type="submit" className={OUTLINE_BUTTON}>
+        ログアウト
+      </button>
+    </form>
   );
 }

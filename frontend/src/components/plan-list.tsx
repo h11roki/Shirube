@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 import { ConfirmButton } from "@/components/confirm-button";
-import { LeaveSection } from "@/components/leave-section";
+import { LeaveSection, LeftNotice } from "@/components/leave-section";
 import { StatusBadge } from "@/components/status-badge";
 import { TEXT_LINK } from "@/components/styles";
 import {
@@ -16,7 +16,7 @@ import {
 import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_NOTE,
-  deletable,
+  DELETE_ROW_LABEL,
   deletePlanLabel,
   deletedPlanLabel,
   semesterLabel,
@@ -34,8 +34,9 @@ const STAGGERED_ROWS = 10;
 export function PlanList() {
   const [plans, setPlans] = useState<Plans>();
   const [error, setError] = useState<string>();
-  const [reloads, setReloads] = useState(0);
   const [deleted, setDeleted] = useState<string>();
+  const [deletions, setDeletions] = useState(0);
+  const [left, setLeft] = useState(false);
   const notice = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -54,13 +55,13 @@ export function PlanList() {
     return () => {
       active = false;
     };
-  }, [reloads]);
+  }, []);
 
   useEffect(() => {
-    if (deleted) {
+    if (deletions > 0) {
       notice.current?.focus();
     }
-  }, [deleted]);
+  }, [deletions]);
 
   if (error) {
     return (
@@ -72,10 +73,20 @@ export function PlanList() {
   if (!plans) {
     return <p className="text-sm text-sub">読み込んでいます</p>;
   }
+  if (left) {
+    return <LeftNotice />;
+  }
   async function remove(id: string, occupation: string) {
     await deletePlan(id);
+    setPlans(
+      (current) =>
+        current && {
+          plans: current.plans.filter((plan) => plan.id !== id),
+          total: current.total - 1,
+        },
+    );
     setDeleted(deletedPlanLabel(occupation));
-    setReloads((current) => current + 1);
+    setDeletions((current) => current + 1);
   }
 
   return (
@@ -128,20 +139,18 @@ export function PlanList() {
                   </span>
                 </span>
               </Link>
-              {deletable(plan.status) && (
-                <ConfirmButton
-                  label="消す"
-                  name={deletePlanLabel(plan.occupation)}
-                  note={DELETE_PLAN_NOTE}
-                  confirmLabel={CONFIRM_DELETE_LABEL}
-                  onConfirm={() => remove(plan.id, plan.occupation)}
-                />
-              )}
+              <ConfirmButton
+                label={DELETE_ROW_LABEL}
+                name={deletePlanLabel(plan.occupation)}
+                note={DELETE_PLAN_NOTE}
+                confirmLabel={CONFIRM_DELETE_LABEL}
+                onConfirm={() => remove(plan.id, plan.occupation)}
+              />
             </li>
           ))}
         </ul>
       )}
-      <LeaveSection plans={plans.total} />
+      <LeaveSection plans={plans.total} onLeft={() => setLeft(true)} />
     </div>
   );
 }

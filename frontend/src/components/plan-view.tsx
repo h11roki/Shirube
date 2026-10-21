@@ -16,7 +16,6 @@ import {
   messageOf,
   requestJson,
 } from "@/lib/api/client";
-import { deletable } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_REQUEST_TIMEOUT_MS,
@@ -31,8 +30,12 @@ export function PlanView() {
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
+    if (deleting) {
+      return;
+    }
     let active = true;
     let seen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -86,7 +89,7 @@ export function PlanView() {
       clearTimeout(timer);
       leaving.abort();
     };
-  }, [id, round]);
+  }, [id, round, deleting]);
 
   function retry() {
     setError(undefined);
@@ -157,11 +160,9 @@ export function PlanView() {
           ) : undefined
         }
       />
-      {deletable(plan.status) && (
-        <div className="mx-auto w-full max-w-xl">
-          <DeletePlanButton id={plan.id} />
-        </div>
-      )}
+      <div className="mx-auto w-full max-w-xl">
+        <DeletePlanButton id={plan.id} onDeleting={setDeleting} />
+      </div>
     </div>
   );
 }

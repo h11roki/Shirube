@@ -10,7 +10,13 @@ import {
   DELETE_PLAN_NOTE,
 } from "@/lib/labels";
 
-export function DeletePlanButton({ id }: { id: string }) {
+export function DeletePlanButton({
+  id,
+  onDeleting,
+}: {
+  id: string;
+  onDeleting?: (deleting: boolean) => void;
+}) {
   const router = useRouter();
   return (
     <ConfirmButton
@@ -18,7 +24,11 @@ export function DeletePlanButton({ id }: { id: string }) {
       note={DELETE_PLAN_NOTE}
       confirmLabel={CONFIRM_DELETE_LABEL}
       onConfirm={async () => {
-        await deletePlan(id);
+        onDeleting?.(true);
+        await deletePlan(id).catch((error: unknown) => {
+          onDeleting?.(false);
+          throw error;
+        });
         router.replace("/plans");
       }}
     />

@@ -172,6 +172,8 @@ export function sourceNote(year: number): string {
 
 export const DELETE_PLAN_LABEL = "この道標を消す";
 
+export const DELETE_ROW_LABEL = "消す";
+
 export const CONFIRM_DELETE_LABEL = "本当に消す";
 
 export const CANCEL_LABEL = "やめる";
@@ -195,10 +197,6 @@ export const LEFT_NOTICE =
 
 export function deletedPlanLabel(occupation: string): string {
   return `${occupation}の道標を消しました`;
-}
-
-export function deletable(status: PlanStatus): boolean {
-  return status !== "running";
 }
 
 export function leaveSummary(plans: number, taken: number | undefined): string {

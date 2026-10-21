@@ -18,7 +18,6 @@ import {
   unmarkTakenLabel,
   sourceNote,
   syllabusLinkLabel,
-  deletable,
   deletePlanLabel,
   deletedPlanLabel,
   leaveSummary,
@@ -141,12 +140,5 @@ describe("labels", () => {
     expect(leaveSummary(0, undefined)).toBe(
       "作った道標 0 件と、もう取ったと答えた授業を全て消し、ログアウトします。",
     );
-  });
-
-  it("lets every plan but one being built be deleted", () => {
-    expect(deletable("pending")).toBe(true);
-    expect(deletable("running")).toBe(false);
-    expect(deletable("succeeded")).toBe(true);
-    expect(deletable("failed")).toBe(true);
   });
 });

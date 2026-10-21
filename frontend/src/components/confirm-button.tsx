@@ -38,6 +38,9 @@ export function ConfirmButton({
   }, [asking]);
 
   async function confirm() {
+    if (busy) {
+      return;
+    }
     setBusy(true);
     setFailure(undefined);
     try {
@@ -76,17 +79,21 @@ export function ConfirmButton({
         <button
           ref={cancel}
           type="button"
-          disabled={busy}
-          onClick={() => setAsking(false)}
-          className={OUTLINE_BUTTON}
+          aria-disabled={busy}
+          onClick={() => {
+            if (!busy) {
+              setAsking(false);
+            }
+          }}
+          className={`${OUTLINE_BUTTON} aria-disabled:opacity-50`}
         >
           {CANCEL_LABEL}
         </button>
         <button
           type="button"
-          disabled={busy}
+          aria-disabled={busy}
           onClick={() => void confirm()}
-          className="rounded-full bg-danger px-4 py-1.5 font-medium text-paper hover:opacity-90 disabled:opacity-50"
+          className="rounded-full bg-danger px-4 py-1.5 font-medium text-paper hover:opacity-90 aria-disabled:opacity-50"
         >
           {confirmLabel}
         </button>
