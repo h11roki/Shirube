@@ -8,7 +8,11 @@ import { signOutToTop } from "@/lib/sign-out";
 export async function Account() {
   const session = await currentSession();
   if (!session?.googleSubject) {
-    return null;
+    return (
+      <Link href="/login" className="hover:text-ink">
+        ログイン
+      </Link>
+    );
   }
   return (
     <form className="flex items-center gap-3" action={signOutToTop}>
