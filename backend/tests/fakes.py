@@ -1,5 +1,5 @@
 import json
-from collections.abc import Sequence, Set
+from collections.abc import Callable, Sequence, Set
 from dataclasses import replace
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
@@ -24,6 +24,7 @@ from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus, PlanSummary
+from app.domain.quota import PlanCounts, PlanQuota
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -32,6 +33,8 @@ from tests.builders import course_section, syllabus
 
 FAKE_MODEL = "fake-embedding"
 FIRST_CREATED_AT = datetime(2026, 10, 19, 9, 0, tzinfo=UTC)
+IN_PROGRESS = (PlanStatus.PENDING, PlanStatus.RUNNING)
+QUOTA = PlanQuota(3, 30)
 
 
 class FakeEmbedder:
@@ -132,9 +135,27 @@ class FakePlanRepository:
         self.stall_limits: list[timedelta] = []
         self.stages: list[tuple[UUID, PlanStage]] = []
 
-    def add(self, plan: Plan) -> None:
+    def store(self, plan: Plan) -> None:
         self.plans[plan.id] = plan
         self.created_at[plan.id] = FIRST_CREATED_AT + timedelta(minutes=len(self.created_at))
+
+    def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None:
+        counted = [
+            stored
+            for stored in self.plans.values()
+            if self.created_at[stored.id] >= since and stored.status is not PlanStatus.FAILED
+        ]
+        admit(
+            PlanCounts(
+                sum(
+                    stored.owner_id == plan.owner_id and stored.status in IN_PROGRESS
+                    for stored in self.plans.values()
+                ),
+                sum(stored.owner_id == plan.owner_id for stored in counted),
+                len(counted),
+            )
+        )
+        self.store(plan)
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
         owned = sorted(
@@ -310,7 +331,7 @@ def plan_app(
     known = users or FakeUserRepository()
     identify = IdentifyUser(FakeTokenVerifier(TOKENS), known)
     return create_app(
-        RequestPlan(search, courses, stored, known, 16),
+        RequestPlan(search, courses, stored, known, 16, QUOTA, lambda: FIRST_CREATED_AT),
         GetPlan(stored),
         ListPlans(stored),
         ListClassChoices(courses, known),

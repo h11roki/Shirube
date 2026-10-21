@@ -122,6 +122,34 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "作っている道標がある",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "1 人か全体の、1 日に作れる数に達した",
+            "headers": {
+              "Retry-After": {
+                "description": "次の日本時間の 0 時までの秒数",
+                "schema": {
+                  "type": "integer"
+                }
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
           }
         },
         "security": [

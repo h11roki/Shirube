@@ -1,6 +1,6 @@
-from collections.abc import Set
+from collections.abc import Callable, Set
 from dataclasses import dataclass
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Protocol
 from uuid import UUID
 
@@ -8,6 +8,7 @@ from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanSummary
+from app.domain.quota import PlanCounts
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
 from app.domain.syllabus import Syllabus
@@ -89,7 +90,7 @@ class PlanFormatError(ValueError):
 
 
 class PlanRepository(Protocol):
-    def add(self, plan: Plan) -> None: ...
+    def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None: ...
 
     def claim_next(self) -> Plan | None: ...
 

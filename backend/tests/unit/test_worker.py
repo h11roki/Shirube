@@ -62,7 +62,7 @@ def builder(plans: FakePlanRepository) -> BuildPlans:
 def waiting(plans: FakePlanRepository) -> Plan:
     conditions = PlanConditions("職業", "情", 2026, Semester(3, Term.SPRING), (), 16)
     plan = Plan(uuid4(), uuid4(), conditions)
-    plans.add(plan)
+    plans.store(plan)
     return plan
 
 

@@ -24,3 +24,5 @@ class Settings(CurriculumSettings):
     openai_max_retries: Annotated[int, Field(ge=0)] = 1
     worker_poll_seconds: Annotated[float, Field(gt=0)] = 1
     plan_stall_minutes: Annotated[int, Field(gt=0)] = 20
+    daily_plan_limit_per_user: Annotated[int, Field(gt=0)] = 3
+    daily_plan_limit_total: Annotated[int, Field(gt=0)] = 30
