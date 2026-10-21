@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, Engine, Select, func, select, update
+from sqlalchemy import ColumnElement, Engine, Select, delete, func, select, update
 from sqlalchemy.orm import Session as DbSession
 from sqlalchemy.orm import aliased
 
@@ -39,6 +39,7 @@ from app.infrastructure.db.models import (
 
 RESULT_JSON_VERSION = 3
 ADMISSION_LOCK = 380038
+DELETED = "deleted"
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -157,19 +158,50 @@ class SqlPlanRepository:
                 )
             )
 
+    def delete_owned_by(self, plan_id: UUID, owner_id: UUID) -> bool:
+        with DbSession(self._engine) as db, db.begin():
+            deleted = db.scalars(
+                update(PlanRow)
+                .where(
+                    PlanRow.id == plan_id, PlanRow.user_id == owner_id, PlanRow.status != DELETED
+                )
+                .values(
+                    status=DELETED,
+                    conditions=None,
+                    result=None,
+                    failure=None,
+                    stage=None,
+                    finished_at=func.now(),
+                )
+                .returning(PlanRow.id)
+                .execution_options(synchronize_session=False)
+            ).one_or_none()
+        return deleted is not None
+
+    def purge_deleted(self, before: datetime) -> int:
+        with DbSession(self._engine) as db, db.begin():
+            purged = db.scalars(
+                delete(PlanRow)
+                .where(PlanRow.status == DELETED, PlanRow.created_at < before)
+                .returning(PlanRow.id)
+            ).all()
+        return len(purged)
+
     def get(self, plan_id: UUID) -> Plan | None:
-        return self._first(select(PlanRow).where(PlanRow.id == plan_id))
+        return self._first(select(PlanRow).where(PlanRow.id == plan_id, PlanRow.status != DELETED))
 
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
         return self._first(
-            select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
+            select(PlanRow).where(
+                PlanRow.id == plan_id, PlanRow.user_id == owner_id, PlanRow.status != DELETED
+            )
         )
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
         with DbSession(self._engine) as db:
             rows = db.execute(
                 select(PlanRow.id, PlanRow.status, PlanRow.conditions, PlanRow.created_at)
-                .where(PlanRow.user_id == owner_id)
+                .where(PlanRow.user_id == owner_id, PlanRow.status != DELETED)
                 .order_by(PlanRow.created_at.desc(), PlanRow.id.desc())
                 .limit(limit)
             ).all()

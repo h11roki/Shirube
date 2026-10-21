@@ -1,7 +1,7 @@
 import logging
 import signal
 import threading
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from types import FrameType
 
 from app.application.build_plans import BuildPlans
@@ -17,6 +17,7 @@ def work(
     while not stop.is_set():
         try:
             builder.fail_stalled(stall_limit)
+            builder.forget_deleted(datetime.now(UTC))
             built = None if stop.is_set() else builder.build_next()
         except PlanFormatError:
             logger.exception("取った道標を読めないので、止まった道標として失敗になるまで残します")

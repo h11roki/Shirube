@@ -1,5 +1,5 @@
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import assert_never
 from uuid import UUID
 
@@ -14,6 +14,7 @@ from app.application.ports import (
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import NoCandidatesError
 from app.domain.plan import Plan, PlanResult, PlanStage
+from app.domain.quota import day_start
 from app.domain.recommendation import RecommendationError
 
 UPSTREAM_FAILURE = "推薦に使う外部のサービスの呼び出しに失敗しました"
@@ -47,6 +48,11 @@ class BuildPlans:
         for plan_id in stalled:
             logger.warning("作成中のまま止まった道標を失敗にしました: %s", plan_id)
         return stalled
+
+    def forget_deleted(self, now: datetime) -> None:
+        purged = self._plans.purge_deleted(day_start(now))
+        if purged:
+            logger.info("前の日までに削除した道標 %d 件の日時を消しました", purged)
 
     def build_next(self) -> Plan | None:
         claimed = self._plans.claim_next()

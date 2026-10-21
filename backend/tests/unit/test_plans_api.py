@@ -288,6 +288,8 @@ def test_plans_need_a_login() -> None:
         api.get(f"/api/v1/plans/{uuid4()}"),
         api.get("/api/v1/plans"),
         api.get("/api/v1/class-choices", params={"department": "情", "grade": 3}),
+        api.delete(f"/api/v1/plans/{uuid4()}"),
+        api.delete("/api/v1/me"),
     ):
         assert (response.status_code, response.json()) == (401, {"detail": "ログインしてください"})
         assert response.headers["www-authenticate"] == "Bearer"
@@ -404,3 +406,31 @@ def test_a_user_with_a_plan_in_progress_is_refused_as_a_conflict() -> None:
 
     assert response.status_code == 409
     assert "作っている道標ができてから" in response.json()["detail"]
+
+
+def test_a_plan_is_deleted_only_by_its_owner_and_then_not_found() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = sample_plan(uuid4(), users.id_of("google-a"))
+    plans.store(plan)
+
+    refused = client(plans=plans, users=users, token="token-b").delete(f"/api/v1/plans/{plan.id}")
+    api = client(plans=plans, users=users)
+    deleted = api.delete(f"/api/v1/plans/{plan.id}")
+
+    assert refused.status_code == 404
+    assert (deleted.status_code, deleted.content) == (204, b"")
+    assert api.get(f"/api/v1/plans/{plan.id}").status_code == 404
+    assert api.delete(f"/api/v1/plans/{plan.id}").status_code == 404
+
+
+def test_leaving_deletes_the_user() -> None:
+    users = FakeUserRepository()
+    user_id = users.id_of("google-a")
+    users.add_taken(user_id, "情報処理")
+
+    response = client(users=users).delete("/api/v1/me")
+
+    assert (response.status_code, response.content) == (204, b"")
+    assert users.taken(user_id) == frozenset()
+    assert "google-a" not in users.users

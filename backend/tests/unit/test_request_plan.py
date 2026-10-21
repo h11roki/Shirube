@@ -144,3 +144,13 @@ def test_all_plans_today_including_failed_ones_are_counted_against_the_total() -
 
     with pytest.raises(DailyLimitError, match="全体で作れる 2 件に達しました"):
         request_with(plans, PlanQuota(per_user=3, total=2))
+
+
+def test_deleted_plans_still_count_against_the_day() -> None:
+    plans = FakePlanRepository()
+    for _ in range(3):
+        plans.store(sample_plan(uuid4(), OWNER))
+    plans.delete_owned_by(next(iter(plans.plans)), OWNER)
+
+    with pytest.raises(DailyLimitError, match="1 人 1 日 3 件まで"):
+        request_with(plans)

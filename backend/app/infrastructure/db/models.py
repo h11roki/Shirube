@@ -223,7 +223,8 @@ class TakenCourseRow(Base):
     __tablename__ = "taken_courses"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_taken_courses_user_id_users"), primary_key=True
+        ForeignKey("users.id", name="fk_taken_courses_user_id_users", ondelete="CASCADE"),
+        primary_key=True,
     )
     name: Mapped[str] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -233,8 +234,10 @@ class PlanRow(Base):
     __tablename__ = "plans"
     __table_args__ = (
         CheckConstraint(
-            "status IN ('pending', 'running', 'succeeded', 'failed')", name="ck_plans_status"
+            "status IN ('pending', 'running', 'succeeded', 'failed', 'deleted')",
+            name="ck_plans_status",
         ),
+        CheckConstraint("(status = 'deleted') = (conditions IS NULL)", name="ck_plans_conditions"),
         CheckConstraint("(status = 'succeeded') = (result IS NOT NULL)", name="ck_plans_result"),
         CheckConstraint("(status = 'failed') = (failure IS NOT NULL)", name="ck_plans_failure"),
         CheckConstraint(
@@ -244,14 +247,15 @@ class PlanRow(Base):
         ),
         Index("ix_plans_pending", "created_at", postgresql_where=text("status = 'pending'")),
         Index("ix_plans_running", "claimed_at", postgresql_where=text("status = 'running'")),
+        Index("ix_plans_deleted", "created_at", postgresql_where=text("status = 'deleted'")),
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_plans_user_id_users"), index=True
+        ForeignKey("users.id", name="fk_plans_user_id_users", ondelete="CASCADE"), index=True
     )
     status: Mapped[str]
-    conditions: Mapped[ConditionsJson] = mapped_column(JSONB)
+    conditions: Mapped[ConditionsJson | None] = mapped_column(JSONB(none_as_null=True))
     result: Mapped[ResultJson | None] = mapped_column(JSONB(none_as_null=True))
     failure: Mapped[str | None]
     stage: Mapped[str | None]

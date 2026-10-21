@@ -39,6 +39,10 @@ class SqlUserRepository:
                 insert(TakenCourseRow).values(user_id=user_id, name=name).on_conflict_do_nothing()
             )
 
+    def delete(self, user_id: UUID) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(delete(UserRow).where(UserRow.id == user_id))
+
     def remove_taken(self, user_id: UUID, name: str) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(
