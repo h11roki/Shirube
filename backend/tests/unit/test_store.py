@@ -47,7 +47,9 @@ def test_a_broken_listing_page_is_named_in_the_error(tmp_path: Path) -> None:
     store.save_listing(
         "a",
         [
-            "<table><tbody><tr><th><a href='/r-syllabus/x/202610001'>10001:甲</a></th></tr></tbody></table>"
+            "<table><tbody><tr><th>"
+            "<a href='/r-syllabus/x/202610001'>10001:甲</a>"
+            "</th></tr></tbody></table>"
         ],
     )
 
