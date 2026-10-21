@@ -45,3 +45,4 @@ class Syllabus:
     grading_note: str
     advice: str
     remarks: str
+    url: str | None = None

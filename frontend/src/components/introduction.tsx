@@ -2,6 +2,7 @@ import { SignInButton } from "@/components/account";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
+import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
@@ -68,6 +69,7 @@ export function Introduction() {
             学期だけを載せています。
           </p>
         </div>
+        <PlanCaution />
         <JourneySummary
           semesters={result.semesters}
           conditions={conditions}
@@ -79,6 +81,7 @@ export function Introduction() {
           destination={result.profile.interpretation}
           endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
         />
+        <SourceNote year={conditions.year} />
       </section>
 
       <section className="grid justify-items-start gap-4 rounded-lg border border-line bg-sheet p-6 shadow-paper sm:p-8">

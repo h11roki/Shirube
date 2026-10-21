@@ -11,6 +11,7 @@ from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
 )
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
+from app.infrastructure.scrapers.ritsumeikan.listing import ListingFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
 from app.presentation.cli.options import add_raw_store_options, add_year_option
@@ -40,7 +41,16 @@ def main() -> None:
             f"シラバス {report.pages} ページ、時間割表でシラバス無し "
             f"{len(report.codes_without_syllabus)} 件: {' '.join(report.codes_without_syllabus)}"
         )
-    except (IngestError, TimetableFormatError, SyllabusFormatError) as error:
+        print(
+            f"原ページの URL が無いページ {len(report.pages_without_url)} 件: "
+            f"{' '.join(report.pages_without_url)}"
+        )
+    except (
+        IngestError,
+        TimetableFormatError,
+        SyllabusFormatError,
+        ListingFormatError,
+    ) as error:
         sys.exit(f"取り込みを止めました: {error}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")

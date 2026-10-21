@@ -5,6 +5,7 @@ from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
+from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.infrastructure.auth.jwt_verifier import JwtVerifier
 from app.infrastructure.db.courses import SqlCourseRepository
@@ -35,6 +36,7 @@ app = create_app(
     list_plans=ListPlans(plans),
     list_class_choices=ListClassChoices(courses, users),
     answer_taken_courses=AnswerTakenCourses(plans, users, courses),
+    syllabus_links=SyllabusLinks(courses),
     taken_courses=TakenCourses(users),
     identify=IdentifyUser(verifier, users),
     curriculum_year=settings.curriculum_year,

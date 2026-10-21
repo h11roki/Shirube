@@ -171,6 +171,8 @@ export interface components {
             prerequisite_for: string | null;
             /** Syllabus Code */
             syllabus_code: string;
+            /** Syllabus Url */
+            syllabus_url: string | null;
         };
         /** ErrorOut */
         ErrorOut: {
@@ -188,6 +190,8 @@ export interface components {
             prerequisite_for: string | null;
             /** Syllabus Code */
             syllabus_code: string;
+            /** Syllabus Url */
+            syllabus_url: string | null;
             /** Section Code */
             section_code: string;
             /** Class Code */

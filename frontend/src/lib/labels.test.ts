@@ -16,6 +16,8 @@ import {
   forgetTakenLabel,
   markTakenLabel,
   unmarkTakenLabel,
+  sourceNote,
+  syllabusLinkLabel,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -25,6 +27,7 @@ function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
     reason: "理由",
     prerequisite_for: null,
     syllabus_code: "10000",
+    syllabus_url: null,
     section_code: "10000",
     class_code: null,
     slots,
@@ -110,5 +113,14 @@ describe("labels", () => {
   it("names a class without a code", () => {
     expect(classLabel("")).toBe("記号なし");
     expect(classLabel("TA")).toBe("TA");
+  });
+
+  it("names the syllabus link and the source with the year of the timetable", () => {
+    expect(syllabusLinkLabel("情報処理")).toBe(
+      "情報処理のシラバスを新しいタブで開く",
+    );
+    expect(sourceNote(2026)).toBe(
+      "授業の情報は、立命館大学の 2026 年度のシラバスと時間割表によります。来年度以降の学期も、2026 年度の時間割で組んでいます。",
+    );
   });
 });

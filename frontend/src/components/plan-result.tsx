@@ -8,6 +8,7 @@ import { CourseGrid } from "@/components/course-grid";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
+import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
@@ -132,6 +133,7 @@ export function PlanResultView({
               前提: {profile.assumption}
             </p>
           )}
+          <PlanCaution />
           <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-sub">
             {profile.skills.map((skill) => (
               <li key={skill}>
@@ -271,6 +273,7 @@ export function PlanResultView({
           </section>
         )}
 
+        <SourceNote year={conditions.year} />
         <p>
           <Link href="/" className={`text-sm ${TEXT_LINK}`}>
             別の職業で作る

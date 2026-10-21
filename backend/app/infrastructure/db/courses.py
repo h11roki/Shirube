@@ -72,6 +72,15 @@ class SqlCourseRepository:
             )
             return {code: syllabus_code for code, syllabus_code in rows}
 
+    def syllabus_urls(self, year: int, primary_codes: Set[str]) -> dict[str, str]:
+        with DbSession(self._engine) as db:
+            rows = db.execute(
+                select(SyllabusRow.code, SyllabusRow.url).where(
+                    SyllabusRow.year == year, SyllabusRow.code.in_(primary_codes)
+                )
+            )
+            return {code: url for code, url in rows if url is not None}
+
 
 def _load_syllabi(
     db: DbSession, year: int, primary_codes: Set[str] | None = None
@@ -190,6 +199,7 @@ def _syllabus_row(year: int, syllabus: Syllabus) -> SyllabusRow:
         grading_note=syllabus.grading_note,
         advice=syllabus.advice,
         remarks=syllabus.remarks,
+        url=syllabus.url,
     )
 
 
@@ -217,4 +227,5 @@ def _syllabus(row: SyllabusRow, aliases: tuple[CourseName, ...]) -> Syllabus:
         grading_note=row.grading_note,
         advice=row.advice,
         remarks=row.remarks,
+        url=row.url,
     )

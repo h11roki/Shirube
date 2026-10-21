@@ -49,6 +49,15 @@ def test_row_with_too_few_cells_is_an_error() -> None:
         parse_listing(html)
 
 
+@pytest.mark.parametrize(
+    "href",
+    ["https://other.example/r-syllabus/x/202610001", "@other.example/r-syllabus/x/202610001"],
+)
+def test_a_link_that_is_not_a_path_on_the_site_is_an_error(href: str) -> None:
+    with pytest.raises(ListingFormatError, match="一覧の行"):
+        parse_listing(listing_page(("10001:a", href)))
+
+
 def test_title_without_a_leading_course_code_is_an_error() -> None:
     html = listing_page(("科目 § 10001:a", "/syllabus/s/r-syllabus/x/202610001"))
 

@@ -23,6 +23,8 @@ from tests.fakes import (
     plan_api,
 )
 
+SYLLABUS_URL = "https://syllabus.test/10000"
+
 
 class UnreadablePlans(FakePlanRepository):
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
@@ -112,8 +114,12 @@ def test_a_succeeded_plan_is_shown_with_its_result() -> None:
     users = FakeUserRepository()
     plan = sample_plan(uuid4(), users.id_of("google-a"))
     plans.store(plan)
+    courses, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    courses.stored_syllabi[0] = replace(courses.stored_syllabi[0], url=SYLLABUS_URL)
 
-    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+    shown = (
+        client((courses, search), plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+    )
 
     assert (shown["status"], shown["failure"]) == ("succeeded", None)
     result = shown["result"]
@@ -130,13 +136,16 @@ def test_a_succeeded_plan_is_shown_with_its_result() -> None:
         "reason": "理由A",
         "prerequisite_for": None,
         "syllabus_code": "10000",
+        "syllabus_url": SYLLABUS_URL,
         "section_code": "10000",
         "class_code": "6T",
         "slots": [{"weekday": "mon", "period": 1}, {"weekday": "mon", "period": 2}],
         "credits": 2,
         "class_confirmed": True,
     }
-    assert [course["name"] for course in result["semesters"][1]["continuing"]] == ["科目B"]
+    assert [
+        (course["name"], course["syllabus_url"]) for course in result["semesters"][1]["continuing"]
+    ] == [("科目B", None)]
     assert [course["name"] for course in result["unplaced"]] == ["科目D"]
     assert (result["taken"], result["offered_earlier"]) == ([], [])
     assert result["unlinked"] == [{"name": "科目E", "reason": "理由E", "prerequisite_for": "科目F"}]

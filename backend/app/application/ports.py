@@ -37,6 +37,8 @@ class CourseRepository(Protocol):
 
     def syllabus_codes(self, year: int) -> dict[str, str]: ...
 
+    def syllabus_urls(self, year: int, primary_codes: Set[str]) -> dict[str, str]: ...
+
 
 class Embedder(Protocol):
     @property

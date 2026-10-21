@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from dataclasses import replace
 
 import pytest
 from sqlalchemy import Engine, func, select
@@ -83,3 +84,14 @@ def test_replacing_a_year_keeps_the_other_years(repository: SqlCourseRepository)
 
     assert [section.code for section in repository.sections(YEAR + 1)] == ["20001"]
     assert repository.syllabi_of(YEAR + 1, {"20001"}) == {"20001": syllabus("20001", year=YEAR + 1)}
+
+
+def test_page_urls_are_kept_and_looked_up_by_primary_code(repository: SqlCourseRepository) -> None:
+    linked = replace(syllabus("10001", year=YEAR), url="https://syllabus.test/10001")
+    repository.replace_syllabi(YEAR, [linked, syllabus("10003", year=YEAR)])
+
+    assert repository.syllabi_of(YEAR, {"10001"}) == {"10001": linked}
+    assert repository.syllabus_urls(YEAR, {"10001", "10003", "99999"}) == {
+        "10001": "https://syllabus.test/10001"
+    }
+    assert repository.syllabus_urls(YEAR + 1, {"10001"}) == {}

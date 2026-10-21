@@ -51,7 +51,7 @@ def parse_listing(html: str) -> list[ListingRow]:
             continue
         href = link.get("href")
         cells = [cell.get_text(" ", strip=True) for cell in _cells_after_link(tr)]
-        if not isinstance(href, str) or len(cells) < CELL_COUNT:
+        if not isinstance(href, str) or not href.startswith("/") or len(cells) < CELL_COUNT:
             raise ListingFormatError(f"一覧の行を読めません: {tr.get_text(' ', strip=True)[:80]!r}")
         try:
             primary, *aliases = split_titles(link.get_text(strip=True))

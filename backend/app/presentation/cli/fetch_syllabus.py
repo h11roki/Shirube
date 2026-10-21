@@ -1,9 +1,11 @@
 import argparse
 import json
 import logging
+import sys
 from pathlib import Path
 
 from app.application.fetch_syllabus import FetchSyllabus
+from app.infrastructure.scrapers.ritsumeikan.listing import ListingFormatError
 from app.infrastructure.scrapers.ritsumeikan.portal import SyllabusPortal
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.presentation.cli.options import add_raw_store_options
@@ -24,14 +26,17 @@ def main() -> None:
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    with SyllabusPortal(args.year) as portal:
-        fetch = FetchSyllabus(portal, RawStore(args.root, args.year))
-        if args.command == "listings":
-            fetch.listings()
-            return
-        codes = _codes_in(args.codes_from)
-        missing = fetch.details(codes)
-        print(f"対象 {len(codes)} 件、見つからない {len(missing)} 件: {' '.join(missing)}")
+    try:
+        with SyllabusPortal(args.year) as portal:
+            fetch = FetchSyllabus(portal, RawStore(args.root, args.year))
+            if args.command == "listings":
+                fetch.listings()
+                return
+            codes = _codes_in(args.codes_from)
+            missing = fetch.details(codes)
+            print(f"対象 {len(codes)} 件、見つからない {len(missing)} 件: {' '.join(missing)}")
+    except ListingFormatError as error:
+        sys.exit(f"検索結果のページを読めません: {error}")
 
 
 def _codes_in(path: Path) -> list[str]:

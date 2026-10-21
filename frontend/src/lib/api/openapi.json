@@ -742,6 +742,17 @@
           "syllabus_code": {
             "type": "string",
             "title": "Syllabus Code"
+          },
+          "syllabus_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syllabus Url"
           }
         },
         "type": "object",
@@ -750,7 +761,8 @@
           "relevance",
           "reason",
           "prerequisite_for",
-          "syllabus_code"
+          "syllabus_code",
+          "syllabus_url"
         ],
         "title": "CourseOut"
       },
@@ -795,6 +807,17 @@
             "type": "string",
             "title": "Syllabus Code"
           },
+          "syllabus_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Syllabus Url"
+          },
           "section_code": {
             "type": "string",
             "title": "Section Code"
@@ -833,6 +856,7 @@
           "reason",
           "prerequisite_for",
           "syllabus_code",
+          "syllabus_url",
           "section_code",
           "class_code",
           "slots",
