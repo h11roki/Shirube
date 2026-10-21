@@ -6,10 +6,63 @@ const BACKEND_UNREACHABLE = { detail: "道標のサーバーに届きません�
 const BACKEND_TIMED_OUT = {
   detail: "道標のサーバーが時間内に返りませんでした",
 };
+const CROSS_SITE = { detail: "ほかのサイトからの要求は受け付けません" };
+const TOO_LARGE = { detail: "要求の本文が大きすぎます" };
 const BACKEND_TIMEOUT_MS = 290_000;
+const MAX_BODY_BYTES = 64 * 1024;
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+const TRUSTED_FETCH_SITES = new Set(["same-origin", "none"]);
 const PASSED_HEADERS = ["Content-Type", "Retry-After"];
 const BACKEND_PREFIX = "/api/v1";
 const FRONTEND_PREFIX = "/api";
+
+class BodyTooLargeError extends Error {}
+
+function isCrossSite(request: Request): boolean {
+  if (SAFE_METHODS.has(request.method)) {
+    return false;
+  }
+  const fetchSite = request.headers.get("Sec-Fetch-Site");
+  if (fetchSite !== null) {
+    return !TRUSTED_FETCH_SITES.has(fetchSite);
+  }
+  const origin = request.headers.get("Origin");
+  if (origin === null) {
+    return false;
+  }
+  const site = `http://${
+    request.headers.get("X-Forwarded-Host")?.split(",")[0].trim() ||
+    request.headers.get("Host") ||
+    new URL(request.url).host
+  }`;
+  return (
+    !URL.canParse(origin) ||
+    !URL.canParse(site) ||
+    new URL(origin).hostname !== new URL(site).hostname
+  );
+}
+
+async function readLimitedBody(request: Request): Promise<Blob | undefined> {
+  if (!request.body) {
+    return undefined;
+  }
+  if (Number(request.headers.get("Content-Length")) > MAX_BODY_BYTES) {
+    await request.body.cancel();
+    throw new BodyTooLargeError();
+  }
+  const reader = request.body.getReader();
+  const chunks: Uint8Array<ArrayBuffer>[] = [];
+  let size = 0;
+  for (let read = await reader.read(); !read.done; read = await reader.read()) {
+    size += read.value.byteLength;
+    if (size > MAX_BODY_BYTES) {
+      await reader.cancel();
+      throw new BodyTooLargeError();
+    }
+    chunks.push(read.value);
+  }
+  return new Blob(chunks);
+}
 
 function requiredEnv(name: string): string {
   const value = process.env[name];
@@ -23,6 +76,9 @@ export async function forwardToBackend(
   path: string,
   incoming: Request,
 ): Promise<Response> {
+  if (isCrossSite(incoming)) {
+    return Response.json(CROSS_SITE, { status: 403 });
+  }
   const session = await auth();
   if (!session?.googleSubject) {
     return Response.json(LOGIN_REQUIRED, { status: 401 });
@@ -38,7 +94,15 @@ export async function forwardToBackend(
   if (requestType) {
     headers.set("Content-Type", requestType);
   }
-  const body = incoming.body ? await incoming.arrayBuffer() : undefined;
+  let body: Blob | undefined;
+  try {
+    body = await readLimitedBody(incoming);
+  } catch (error) {
+    if (error instanceof BodyTooLargeError) {
+      return Response.json(TOO_LARGE, { status: 413 });
+    }
+    throw error;
+  }
   let backend: Response;
   let backendBody: ArrayBuffer | null;
   try {

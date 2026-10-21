@@ -19,15 +19,18 @@ function loggedInAs(googleSubject: string): Session {
   };
 }
 
-function getRequest(): Request {
-  return new Request("http://frontend.test/api/plans/abc");
+function getRequest(headers: Record<string, string> = {}): Request {
+  return new Request("http://frontend.test/api/plans/abc", { headers });
 }
 
-function postRequest(body: string): Request {
+function postRequest(
+  body: string,
+  headers: Record<string, string> = {},
+): Request {
   return new Request("http://frontend.test/api/plans", {
     method: "POST",
     body,
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...headers },
   });
 }
 
@@ -123,6 +126,159 @@ describe("forwardToBackend", () => {
     await forwardToBackend("/plans/abc", getRequest());
 
     expect(sentRequest(fetchMock).init.redirect).toBe("manual");
+  });
+
+  it.each(["cross-site", "same-site"])(
+    "refuses a POST that the browser says came from %s without asking for the session",
+    async (fetchSite) => {
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend(
+        "/plans",
+        postRequest("{}", { "Sec-Fetch-Site": fetchSite }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        detail: "ほかのサイトからの要求は受け付けません",
+      });
+      expect(auth).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each<Record<string, string>>([
+    { Origin: "https://evil.test", Host: "frontend.test" },
+    { Origin: "null", Host: "frontend.test" },
+    {
+      Origin: "https://frontend:3000",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "shirube.example",
+    },
+  ])(
+    "refuses a POST without Sec-Fetch-Site whose Origin is not this site: %o",
+    async (headers) => {
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend(
+        "/plans",
+        postRequest("{}", headers),
+      );
+
+      expect(response.status).toBe(403);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each<Record<string, string>>([
+    { "Sec-Fetch-Site": "same-origin" },
+    { "Sec-Fetch-Site": "none" },
+    { Origin: "http://frontend.test", Host: "frontend.test" },
+    {
+      Origin: "https://shirube.example",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "Shirube.Example",
+    },
+    {
+      Origin: "https://shirube.example",
+      Host: "shirube.example",
+      "X-Forwarded-Host": "",
+    },
+    {
+      Origin: "https://shirube.example",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "shirube.example:443",
+    },
+    {},
+  ])(
+    "forwards a POST from this site or not from a browser: %o",
+    async (headers) => {
+      auth.mockResolvedValue(loggedInAs("google-subject"));
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend(
+        "/plans",
+        postRequest("{}", headers),
+      );
+
+      expect(response.status).toBe(202);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("forwards a GET whatever site it came from", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 200 }));
+
+    const response = await forwardToBackend(
+      "/plans",
+      getRequest({ "Sec-Fetch-Site": "cross-site" }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a body declared over 64KB and stops its upload", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    const request = new Request("http://frontend.test/api/plans", {
+      method: "POST",
+      body: "{}",
+      headers: { "Content-Length": String(64 * 1024 + 1) },
+    });
+
+    const response = await forwardToBackend("/plans", request);
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      detail: "要求の本文が大きすぎます",
+    });
+    expect(request.body?.locked).toBe(false);
+    expect(request.bodyUsed).toBe(true);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stops pulling a streamed body once it goes over 64KB", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    let pulled = 0;
+    const kilobytes = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new Uint8Array(1024));
+      },
+    });
+    const request = new Request("http://frontend.test/api/plans", {
+      method: "POST",
+      body: kilobytes,
+      duplex: "half",
+    } as RequestInit);
+
+    const response = await forwardToBackend("/plans", request);
+
+    expect(response.status).toBe(413);
+    expect(pulled).toBeLessThan(70);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a body over 64KB and forwards one at the limit", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    const atLimit = "x".repeat(64 * 1024);
+
+    const refused = await forwardToBackend(
+      "/plans",
+      postRequest(`${atLimit}x`),
+    );
+    const forwarded = await forwardToBackend("/plans", postRequest(atLimit));
+
+    expect(refused.status).toBe(413);
+    expect(forwarded.status).toBe(202);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(await (sentRequest(fetchMock).init.body as Blob).text()).toBe(
+      atLimit,
+    );
   });
 
   it("passes the backend status, body and content type through", async () => {
