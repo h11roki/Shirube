@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from app.domain.course import UNIVERSITY_TIME
 from app.domain.plan import PlanError
-from app.domain.roadmap import UNIVERSITY_TIME
 
 IN_PROGRESS_LIMIT = 1
 REOPENS = "明日の 0 時(日本時間)からまた作れます"

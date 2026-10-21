@@ -1,10 +1,12 @@
 import re
 from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
+from datetime import timedelta, timezone
 from enum import Enum
 
 COURSE_CODE = re.compile(r"^\d{5}$")
 ALL_GRADES = frozenset({1, 2, 3, 4})
+UNIVERSITY_TIME = timezone(timedelta(hours=9), "JST")
 
 
 class Term(Enum):

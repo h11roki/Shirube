@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
+from app.domain.course import UNIVERSITY_TIME
 from app.domain.quota import (
     DailyLimitError,
     PlanCounts,
@@ -9,7 +10,6 @@ from app.domain.quota import (
     PlanQuota,
     day_start,
 )
-from app.domain.roadmap import UNIVERSITY_TIME
 
 QUOTA = PlanQuota(per_user=3, total=30)
 EVENING = datetime(2026, 10, 21, 10, 30, tzinfo=UTC)

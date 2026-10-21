@@ -9,8 +9,8 @@ from app.application.build_plans import BuildPlans
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.domain.course import UNIVERSITY_TIME
 from app.domain.quota import PlanQuota
-from app.domain.roadmap import UNIVERSITY_TIME
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
