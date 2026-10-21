@@ -169,3 +169,38 @@ export function syllabusLinkLabel(name: string): string {
 export function sourceNote(year: number): string {
   return `授業の情報は、立命館大学の ${year} 年度のシラバスと時間割表によります。来年度以降の学期も、${year} 年度の時間割で組んでいます。`;
 }
+
+export const DELETE_PLAN_LABEL = "この道標を消す";
+
+export const CONFIRM_DELETE_LABEL = "本当に消す";
+
+export const CANCEL_LABEL = "やめる";
+
+export const DELETE_PLAN_NOTE =
+  "消した道標は戻せません。今日作った道標は、1 日に作れる数を数えるため、作った日時だけを翌日の 0 時まで残します。";
+
+export const LISTED_PLANS = 50;
+
+export const LEAVE_LABEL = "退会してデータを全て消す";
+
+export const CONFIRM_LEAVE_LABEL = "本当に退会する";
+
+export const LEAVE_KEEPS =
+  "今日作った道標は、1 日に作れる数を数えるため、作った日時だけを誰のものか分からない形で翌日の 0 時まで残します。";
+
+export function deletePlanLabel(occupation: string): string {
+  return `${occupation}の道標を消す`;
+}
+
+export function leaveSummary(
+  plans: number,
+  listed: number,
+  taken: number | undefined,
+): string {
+  const planCount = plans >= listed ? `${listed} 件以上` : `${plans} 件`;
+  const takenCount =
+    taken === undefined
+      ? "もう取ったと答えた授業"
+      : `もう取ったと答えた授業 ${taken} 科目`;
+  return `作った道標 ${planCount}と、${takenCount}を全て消し、ログアウトします。`;
+}

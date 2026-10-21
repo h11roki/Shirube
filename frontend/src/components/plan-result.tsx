@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import { ConfirmButton } from "@/components/confirm-button";
 import { CourseGrid } from "@/components/course-grid";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
@@ -18,10 +19,14 @@ import { TimetableBook } from "@/components/timetable-book";
 import {
   type Plan,
   type PlanResult as Result,
+  deletePlan,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
 import {
+  CONFIRM_DELETE_LABEL,
+  DELETE_PLAN_LABEL,
+  DELETE_PLAN_NOTE,
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
   type TakenChange,
@@ -56,6 +61,7 @@ export function PlanResultView({
   onAnswered: (plan: Plan) => void;
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const { view, semester } = readResultView(useSearchParams());
   const [busy, setBusy] = useState(false);
   const [answered, setAnswered] = useState<Answered>();
@@ -274,11 +280,20 @@ export function PlanResultView({
         )}
 
         <SourceNote year={conditions.year} />
-        <p>
+        <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
           <Link href="/" className={`text-sm ${TEXT_LINK}`}>
             別の職業で作る
           </Link>
-        </p>
+          <ConfirmButton
+            label={DELETE_PLAN_LABEL}
+            note={DELETE_PLAN_NOTE}
+            confirmLabel={CONFIRM_DELETE_LABEL}
+            onConfirm={async () => {
+              await deletePlan(plan.id);
+              router.push("/plans");
+            }}
+          />
+        </div>
       </div>
       <div
         ref={notice}
