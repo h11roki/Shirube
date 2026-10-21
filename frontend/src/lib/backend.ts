@@ -30,12 +30,16 @@ function isCrossSite(request: Request): boolean {
   if (origin === null) {
     return false;
   }
-  const host = (
+  const site = `http://${
     request.headers.get("X-Forwarded-Host")?.split(",")[0].trim() ||
     request.headers.get("Host") ||
     new URL(request.url).host
-  ).toLowerCase();
-  return !URL.canParse(origin) || new URL(origin).host !== host;
+  }`;
+  return (
+    !URL.canParse(origin) ||
+    !URL.canParse(site) ||
+    new URL(origin).hostname !== new URL(site).hostname
+  );
 }
 
 async function readLimitedBody(request: Request): Promise<Blob | undefined> {

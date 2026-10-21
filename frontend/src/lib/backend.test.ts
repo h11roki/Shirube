@@ -147,14 +147,22 @@ describe("forwardToBackend", () => {
     },
   );
 
-  it.each(["https://evil.test", "null"])(
-    "refuses a POST without Sec-Fetch-Site whose Origin is not this host: %s",
-    async (origin) => {
+  it.each<Record<string, string>>([
+    { Origin: "https://evil.test", Host: "frontend.test" },
+    { Origin: "null", Host: "frontend.test" },
+    {
+      Origin: "https://frontend:3000",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "shirube.example",
+    },
+  ])(
+    "refuses a POST without Sec-Fetch-Site whose Origin is not this site: %o",
+    async (headers) => {
       const fetchMock = backendReturns(new Response("{}", { status: 202 }));
 
       const response = await forwardToBackend(
         "/plans",
-        postRequest("{}", { Origin: origin, Host: "frontend.test" }),
+        postRequest("{}", headers),
       );
 
       expect(response.status).toBe(403);
@@ -175,6 +183,11 @@ describe("forwardToBackend", () => {
       Origin: "https://shirube.example",
       Host: "shirube.example",
       "X-Forwarded-Host": "",
+    },
+    {
+      Origin: "https://shirube.example",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "shirube.example:443",
     },
     {},
   ])(
@@ -226,7 +239,30 @@ describe("forwardToBackend", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("stops reading a body once it goes over 64KB and forwards one at the limit", async () => {
+  it("stops pulling a streamed body once it goes over 64KB", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    let pulled = 0;
+    const kilobytes = new ReadableStream<Uint8Array>({
+      pull(controller) {
+        pulled += 1;
+        controller.enqueue(new Uint8Array(1024));
+      },
+    });
+    const request = new Request("http://frontend.test/api/plans", {
+      method: "POST",
+      body: kilobytes,
+      duplex: "half",
+    } as RequestInit);
+
+    const response = await forwardToBackend("/plans", request);
+
+    expect(response.status).toBe(413);
+    expect(pulled).toBeLessThan(70);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("refuses a body over 64KB and forwards one at the limit", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     const fetchMock = backendReturns(new Response("{}", { status: 202 }));
     const atLimit = "x".repeat(64 * 1024);
