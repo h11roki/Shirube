@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
@@ -32,11 +33,16 @@ TAKEN_COURSE = "/plans/{plan_id}/taken-courses/{name:path}"
 TAKEN_RESPONSES = {**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE}
 
 
+def _not_found(plan_id: UUID) -> HTTPException:
+    return HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+
+
 def plans_router(
     request_plan: RequestPlan,
     get_plan: GetPlan,
     list_plans: ListPlans,
     answer_taken_courses: AnswerTakenCourses,
+    delete_plan: DeletePlan,
     syllabus_links: SyllabusLinks,
     current_user: Callable[..., UUID],
     curriculum_year: int,
@@ -46,7 +52,7 @@ def plans_router(
 
     def found(plan_id: UUID, plan: Plan | None) -> PlanOut:
         if plan is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+            raise _not_found(plan_id)
         return plan_out(plan, syllabus_links.of(plan))
 
     @router.post(
@@ -95,6 +101,15 @@ def plans_router(
     )
     def show(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> PlanOut:
         return found(plan_id, get_plan.run(owner_id=user_id, plan_id=plan_id))
+
+    @router.delete(
+        "/plans/{plan_id}",
+        status_code=status.HTTP_204_NO_CONTENT,
+        responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **BUSY_RESPONSE},
+    )
+    def remove(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> None:
+        if not delete_plan.run(owner_id=user_id, plan_id=plan_id):
+            raise _not_found(plan_id)
 
     @router.put(TAKEN_COURSE, responses=TAKEN_RESPONSES)
     def mark_taken(

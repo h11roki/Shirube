@@ -50,7 +50,8 @@ export interface paths {
         get: operations["show_plan_api_v1_plans__plan_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Remove */
+        delete: operations["remove_api_v1_plans__plan_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -120,6 +121,23 @@ export interface paths {
         post?: never;
         /** Forget */
         delete: operations["forget_api_v1_taken_courses__name__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Leave */
+        delete: operations["leave_api_v1_me_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -535,6 +553,71 @@ export interface operations {
             };
         };
     };
+    remove_api_v1_plans__plan_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 無いか、ほかの利用者の道標 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 作っている道標がある */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
     mark_taken_api_v1_plans__plan_id__taken_courses__name__put: {
         parameters: {
             query?: never;
@@ -791,6 +874,51 @@ export interface operations {
             };
             /** @description リクエストを直せば通る誤り */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    leave_api_v1_me_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 作っている道標がある */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

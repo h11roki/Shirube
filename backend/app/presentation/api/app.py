@@ -15,11 +15,13 @@ from app.application.answer_taken_courses import (
     UnaskedCourseError,
 )
 from app.application.build_plans import SERVER_FAILURE
+from app.application.delete_account import DeleteAccount
+from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
-from app.application.ports import InvalidTokenError
+from app.application.ports import InvalidTokenError, PlanRunningError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import NoCandidatesError
 from app.application.syllabus_links import SyllabusLinks
@@ -29,6 +31,7 @@ from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.class_choices import class_choices_router
+from app.presentation.api.me import me_router
 from app.presentation.api.plans import plans_router
 from app.presentation.api.taken_courses import taken_courses_router
 from app.presentation.schemas.errors import ERROR_RESPONSES
@@ -42,6 +45,7 @@ INPUT_ERRORS: tuple[type[Exception], ...] = (
 )
 CONFLICT_ERRORS: tuple[type[Exception], ...] = (
     PlanInProgressError,
+    PlanRunningError,
     PlanNotFinishedError,
     PlanOutdatedError,
     AnswerConflictError,
@@ -87,8 +91,10 @@ def create_app(
     list_plans: ListPlans,
     list_class_choices: ListClassChoices,
     answer_taken_courses: AnswerTakenCourses,
+    delete_plan: DeletePlan,
     syllabus_links: SyllabusLinks,
     taken_courses: TakenCourses,
+    delete_account: DeleteAccount,
     identify: IdentifyUser,
     curriculum_year: int,
     today: Callable[[], date],
@@ -102,6 +108,7 @@ def create_app(
             get_plan,
             list_plans,
             answer_taken_courses,
+            delete_plan,
             syllabus_links,
             user,
             curriculum_year,
@@ -119,6 +126,9 @@ def create_app(
         taken_courses_router(taken_courses, user),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,
+    )
+    app.include_router(
+        me_router(delete_account, user), prefix=API_PREFIX, responses=ERROR_RESPONSES
     )
     app.add_exception_handler(MissingTokenError, _missing_token)
     app.add_exception_handler(InvalidTokenError, _invalid_token)

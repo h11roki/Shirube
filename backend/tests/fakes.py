@@ -12,11 +12,13 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.delete_account import DeleteAccount
+from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
-from app.application.ports import EmbeddingError, InvalidTokenError
+from app.application.ports import Deletion, EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
 from app.application.syllabus_links import SyllabusLinks
@@ -138,6 +140,8 @@ class FakeCourseRepository:
 class FakePlanRepository:
     def __init__(self) -> None:
         self.plans: dict[UUID, Plan] = {}
+        self.deleted: dict[UUID, UUID | None] = {}
+        self.purges: list[datetime] = []
         self.created_at: dict[UUID, datetime] = {}
         self.stall_limits: list[timedelta] = []
         self.stages: list[tuple[UUID, PlanStage]] = []
@@ -149,17 +153,39 @@ class FakePlanRepository:
     def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None:
         mine = [stored for stored in self.plans.values() if stored.owner_id == plan.owner_id]
         today = [stored for stored in self.plans.values() if self.created_at[stored.id] >= since]
+        deleted_today = [
+            owner for plan_id, owner in self.deleted.items() if self.created_at[plan_id] >= since
+        ]
         admit(
             PlanCounts(
                 sum(stored.status in IN_PROGRESS for stored in mine),
                 sum(
                     stored.owner_id == plan.owner_id and stored.status is not PlanStatus.FAILED
                     for stored in today
-                ),
-                len(today),
+                )
+                + deleted_today.count(plan.owner_id),
+                len(today) + len(deleted_today),
             )
         )
         self.store(plan)
+
+    def delete_owned_by(self, plan_id: UUID, owner_id: UUID, since: datetime) -> Deletion:
+        plan = self.plans.get(plan_id)
+        if plan is None or plan.owner_id != owner_id:
+            return Deletion.MISSING
+        if plan.status is PlanStatus.RUNNING:
+            return Deletion.RUNNING
+        del self.plans[plan_id]
+        if self.created_at[plan_id] >= since:
+            self.deleted[plan_id] = None if plan.status is PlanStatus.FAILED else owner_id
+        return Deletion.DELETED
+
+    def purge_deleted(self, before: datetime) -> int:
+        self.purges.append(before)
+        purged = [plan_id for plan_id in self.deleted if self.created_at[plan_id] < before]
+        for plan_id in purged:
+            del self.deleted[plan_id]
+        return len(purged)
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
         owned = sorted(
@@ -196,7 +222,8 @@ class FakePlanRepository:
             self.plans[plan_id] = replace(plan, stage=stage)
 
     def finish(self, plan: Plan) -> bool:
-        if self.plans[plan.id].status is not PlanStatus.RUNNING:
+        stored = self.plans.get(plan.id)
+        if stored is None or stored.status is not PlanStatus.RUNNING:
             return False
         self.plans[plan.id] = plan
         return True
@@ -240,6 +267,7 @@ class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
         self.remembered: dict[UUID, set[str]] = {}
+        self.building: set[UUID] = set()
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
@@ -252,6 +280,13 @@ class FakeUserRepository:
 
     def remove_taken(self, user_id: UUID, name: str) -> None:
         self.remembered.setdefault(user_id, set()).discard(name)
+
+    def delete(self, user_id: UUID, since: datetime) -> Deletion:
+        if user_id in self.building:
+            return Deletion.RUNNING
+        self.users = {subject: known for subject, known in self.users.items() if known != user_id}
+        self.remembered.pop(user_id, None)
+        return Deletion.DELETED
 
 
 def chat_answering(
@@ -340,8 +375,10 @@ def plan_app(
         ListPlans(stored),
         ListClassChoices(courses, known),
         AnswerTakenCourses(stored, known, courses),
+        DeletePlan(stored, lambda: FIRST_CREATED_AT),
         SyllabusLinks(courses),
         TakenCourses(known),
+        DeleteAccount(known, lambda: FIRST_CREATED_AT),
         identify,
         2026,
         lambda: today,

@@ -1,6 +1,8 @@
 import sys
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.delete_account import DeleteAccount
+from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
@@ -15,6 +17,7 @@ from app.presentation.api.app import create_app
 from app.presentation.composition import (
     database_engine,
     load_settings,
+    now,
     request_plan,
     university_today,
 )
@@ -36,8 +39,10 @@ app = create_app(
     list_plans=ListPlans(plans),
     list_class_choices=ListClassChoices(courses, users),
     answer_taken_courses=AnswerTakenCourses(plans, users, courses),
+    delete_plan=DeletePlan(plans, now),
     syllabus_links=SyllabusLinks(courses),
     taken_courses=TakenCourses(users),
+    delete_account=DeleteAccount(users, now),
     identify=IdentifyUser(verifier, users),
     curriculum_year=settings.curriculum_year,
     today=university_today,

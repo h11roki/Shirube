@@ -223,7 +223,8 @@ class TakenCourseRow(Base):
     __tablename__ = "taken_courses"
 
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_taken_courses_user_id_users"), primary_key=True
+        ForeignKey("users.id", name="fk_taken_courses_user_id_users", ondelete="CASCADE"),
+        primary_key=True,
     )
     name: Mapped[str] = mapped_column(primary_key=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -248,7 +249,7 @@ class PlanRow(Base):
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
     user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_plans_user_id_users"), index=True
+        ForeignKey("users.id", name="fk_plans_user_id_users", ondelete="CASCADE"), index=True
     )
     status: Mapped[str]
     conditions: Mapped[ConditionsJson] = mapped_column(JSONB)
@@ -258,3 +259,14 @@ class PlanRow(Base):
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class DeletedPlanRow(Base):
+    __tablename__ = "deleted_plans"
+
+    id: Mapped[UUID] = mapped_column(primary_key=True)
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_deleted_plans_user_id_users", ondelete="SET NULL"),
+        index=True,
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
