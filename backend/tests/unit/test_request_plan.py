@@ -126,7 +126,7 @@ def test_a_user_who_made_three_plans_today_is_refused_until_midnight_in_japan() 
     assert len(plans.plans) == 3
 
 
-def test_failed_plans_and_plans_before_today_are_not_counted() -> None:
+def test_the_users_failed_plans_and_plans_before_today_are_not_counted() -> None:
     plans = FakePlanRepository()
     for _ in range(3):
         plans.store(failed(OWNER))
@@ -137,10 +137,10 @@ def test_failed_plans_and_plans_before_today_are_not_counted() -> None:
     assert request_with(plans).status is PlanStatus.PENDING
 
 
-def test_plans_of_all_users_today_are_counted_against_the_total() -> None:
+def test_all_plans_today_including_failed_ones_are_counted_against_the_total() -> None:
     plans = FakePlanRepository()
     plans.store(sample_plan(uuid4(), OTHER))
-    plans.store(sample_plan(uuid4(), OTHER))
+    plans.store(failed(OTHER))
 
     with pytest.raises(DailyLimitError, match="全体で作れる 2 件に達しました"):
         request_with(plans, PlanQuota(per_user=3, total=2))

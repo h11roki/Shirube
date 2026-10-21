@@ -21,6 +21,9 @@ class PlanStatus(StrEnum):
     FAILED = "failed"
 
 
+IN_PROGRESS = frozenset({PlanStatus.PENDING, PlanStatus.RUNNING})
+
+
 class PlanStage(StrEnum):
     ANALYZING = "analyzing"
     SEARCHING = "searching"

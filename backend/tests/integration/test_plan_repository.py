@@ -480,7 +480,7 @@ def failed(owner: UUID) -> Plan:
     )
 
 
-def test_adding_counts_plans_in_progress_and_plans_since_the_day_without_failures(
+def test_adding_counts_plans_in_progress_the_users_successes_and_all_plans_since_the_day(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     other = SqlUserRepository(engine).id_of("google-b")
@@ -498,7 +498,7 @@ def test_adding_counts_plans_in_progress_and_plans_since_the_day_without_failure
     )
 
     assert seen == [
-        PlanCounts(in_progress=1, owner_today=2, all_today=3),
+        PlanCounts(in_progress=1, owner_today=2, all_today=4),
         PlanCounts(in_progress=0, owner_today=0, all_today=0),
     ]
 
