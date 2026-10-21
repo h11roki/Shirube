@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from app.application.ports import ListingConflictError
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
@@ -77,7 +78,7 @@ def test_a_page_missing_from_the_listings_has_no_url(tmp_path: Path) -> None:
     assert syllabus.url is None
 
 
-def test_a_page_listed_with_two_links_has_no_url(tmp_path: Path) -> None:
+def test_a_page_listed_with_two_links_stops_reading(tmp_path: Path) -> None:
     store = saved_store(tmp_path, with_listing=True)
     store.save_listing(
         "b",
@@ -88,4 +89,5 @@ def test_a_page_listed_with_two_links_has_no_url(tmp_path: Path) -> None:
         ],
     )
 
-    assert [page.url for page in StoredSyllabi(store).syllabi()] == [None]
+    with pytest.raises(ListingConflictError, match="16806 が複数のページに現れます"):
+        StoredSyllabi(store).syllabi()

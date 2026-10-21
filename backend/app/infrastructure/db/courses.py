@@ -76,9 +76,7 @@ class SqlCourseRepository:
         with DbSession(self._engine) as db:
             rows = db.execute(
                 select(SyllabusRow.code, SyllabusRow.url).where(
-                    SyllabusRow.year == year,
-                    SyllabusRow.code.in_(primary_codes),
-                    SyllabusRow.url.is_not(None),
+                    SyllabusRow.year == year, SyllabusRow.code.in_(primary_codes)
                 )
             )
             return {code: url for code, url in rows if url is not None}

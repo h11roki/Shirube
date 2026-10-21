@@ -12,6 +12,7 @@ def test_links_are_the_urls_of_the_courses_in_the_result() -> None:
         syllabi=(
             replace(syllabus("10000"), url="https://syllabus.test/10000"),
             syllabus("10001"),
+            replace(syllabus("10002", year=2025), url="https://syllabus.test/2025/10002"),
             replace(syllabus("99999"), url="https://syllabus.test/99999"),
         )
     )

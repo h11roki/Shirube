@@ -138,7 +138,12 @@ def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseO
     course = placed.course
     section = placed.section
     return PlacedCourseOut(
-        **_course_out(course, links).model_dump(),
+        name=course.name,
+        relevance=course.relevance,
+        reason=course.reason,
+        prerequisite_for=course.prerequisite_for,
+        syllabus_code=course.syllabus_code,
+        syllabus_url=links.get(course.syllabus_code),
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],

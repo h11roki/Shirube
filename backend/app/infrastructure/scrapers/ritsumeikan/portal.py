@@ -7,12 +7,8 @@ from playwright.sync_api import Browser, Page, Playwright, sync_playwright
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 
 from app.application.ports import ListingQuery
-from app.infrastructure.scrapers.ritsumeikan.listing import (
-    BASE_URL,
-    PageCount,
-    detail_url,
-    parse_page_count,
-)
+from app.infrastructure.scrapers.ritsumeikan.listing import PageCount, parse_page_count
+from app.infrastructure.scrapers.ritsumeikan.site import BASE_URL, detail_url
 
 HOME_PATH = "/syllabus/s/?language=ja"
 USER_AGENT = "shirube/0.1 (+https://github.com/h11roki/Shirube; takahashi.hiroki@baseconnect.in)"

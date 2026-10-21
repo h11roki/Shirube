@@ -131,7 +131,7 @@ class FakeCourseRepository:
         return {
             page.code: page.url
             for page in self.stored_syllabi
-            if page.code in primary_codes and page.url is not None
+            if page.year == year and page.code in primary_codes and page.url is not None
         }
 
 
