@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from app.application.ports import DetailLink, ListingConflictError
+from app.infrastructure.scrapers.ritsumeikan.listing import ListingFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from tests.unit.listing_page import listing_page
 
@@ -39,3 +40,16 @@ def test_conflict_is_also_detected_while_listings_are_being_saved(tmp_path: Path
     assert store.has_listing("b")
     with pytest.raises(ListingConflictError, match="10002"):
         store.detail_link("10002")
+
+
+def test_a_broken_listing_page_is_named_in_the_error(tmp_path: Path) -> None:
+    store = RawStore(tmp_path, 2026)
+    store.save_listing(
+        "a",
+        [
+            "<table><tbody><tr><th><a href='/r-syllabus/x/202610001'>10001:甲</a></th></tr></tbody></table>"
+        ],
+    )
+
+    with pytest.raises(ListingFormatError, match=r"a/1\.html: "):
+        store.detail_link("10001")

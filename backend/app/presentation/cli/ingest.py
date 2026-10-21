@@ -5,7 +5,6 @@ from pathlib import Path
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ingest_courses import IngestError, IngestSyllabi, IngestTimetable
-from app.application.ports import ListingConflictError
 from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
     RitsumeikanTimetablePdf,
     TimetableFormatError,
@@ -42,12 +41,15 @@ def main() -> None:
             f"シラバス {report.pages} ページ、時間割表でシラバス無し "
             f"{len(report.codes_without_syllabus)} 件: {' '.join(report.codes_without_syllabus)}"
         )
+        print(
+            f"原ページの URL が無いページ {len(report.pages_without_url)} 件: "
+            f"{' '.join(report.pages_without_url)}"
+        )
     except (
         IngestError,
         TimetableFormatError,
         SyllabusFormatError,
         ListingFormatError,
-        ListingConflictError,
     ) as error:
         sys.exit(f"取り込みを止めました: {error}")
     except OperationalError as error:

@@ -92,16 +92,19 @@ def test_previous_year_timetable_mixed_with_this_year_is_rejected() -> None:
     assert repository.section_calls == []
 
 
-def test_syllabi_are_stored_and_codes_without_a_page_are_reported() -> None:
+def test_syllabi_are_stored_and_codes_without_a_page_or_a_url_are_reported() -> None:
     shared = syllabus("10001", aliases=(CourseName("10002", "別名(6T)"),))
+    linked = replace(syllabus("10004"), url="https://syllabus.test/10004")
     repository = FakeCourseRepository(
         sections=(course_section("10001"), course_section("10002"), course_section("10003"))
     )
 
-    report = IngestSyllabi(FakeSyllabi(shared), repository).run(2026)
+    report = IngestSyllabi(FakeSyllabi(shared, linked), repository).run(2026)
 
-    assert report == SyllabusReport(pages=1, codes_without_syllabus=("10003",))
-    assert repository.syllabus_calls == [(2026, [shared])]
+    assert report == SyllabusReport(
+        pages=2, codes_without_syllabus=("10003",), pages_without_url=("10001",)
+    )
+    assert repository.syllabus_calls == [(2026, [shared, linked])]
 
 
 @pytest.mark.parametrize(

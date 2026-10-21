@@ -13,6 +13,7 @@ class IngestError(ValueError):
 class SyllabusReport:
     pages: int
     codes_without_syllabus: tuple[str, ...]
+    pages_without_url: tuple[str, ...]
 
 
 class IngestTimetable:
@@ -70,4 +71,5 @@ class IngestSyllabi:
             for section in self._repository.sections(year)
             if section.code not in page_of
         )
-        return SyllabusReport(len(syllabi), missing)
+        without_url = tuple(syllabus.code for syllabus in syllabi if syllabus.url is None)
+        return SyllabusReport(len(syllabi), missing, without_url)
