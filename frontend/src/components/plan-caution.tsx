@@ -1,7 +1,6 @@
 import { TEXT_LINK } from "@/components/styles";
 import { PLAN_CAUTION, sourceNote } from "@/lib/labels";
-
-const SYLLABUS_SITE = "https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja";
+import { SYLLABUS_SITE } from "@/lib/site";
 
 export function PlanCaution() {
   return (

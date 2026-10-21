@@ -41,7 +41,7 @@
 |---|---|---|
 | [0001](0001-monorepo.md) | フロントとバックエンドを1つのリポジトリで管理する | 承認 |
 | [0002](0002-clean-architecture.md) | バックエンドをクリーンアーキテクチャの4層で構成する | 承認 |
-| [0003](0003-playwright-scraping.md) | シラバスは Playwright で描画後の HTML を保存してから解析する | 承認(User-Agent の連絡先は 0042 でリポジトリの URL だけにした) |
+| [0003](0003-playwright-scraping.md) | シラバスは Playwright で描画後の HTML を保存してから解析する | 承認(「連絡先を含む User-Agent」は 0042 でリポジトリの URL だけに置き換えた) |
 | [0004](0004-pgvector.md) | ベクトル検索に pgvector を使う | 承認 |
 | [0005](0005-section-chunking.md) | シラバスはセクション単位でチャンク分割する | 承認 |
 | [0006](0006-embedding-model.md) | 埋め込みモデルは text-embedding-3-small を使う | 承認 |

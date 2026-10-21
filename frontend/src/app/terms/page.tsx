@@ -3,7 +3,7 @@ import Link from "next/link";
 
 import { ContactSection, LegalDocument } from "@/components/legal-document";
 import { TEXT_LINK } from "@/components/styles";
-import { OPERATOR } from "@/lib/site";
+import { OPERATOR, SYLLABUS_SITE } from "@/lib/site";
 
 export const metadata: Metadata = { title: "利用規約" };
 
@@ -30,7 +30,16 @@ export default function TermsPage() {
       <section>
         <h2>2. 授業の情報の出典</h2>
         <p>
-          授業の情報は、立命館大学が公開しているシラバスと時間割表によります。その内容の権利は大学にあります。このアプリは、短い引用と原ページへのリンクにとどめます。
+          授業の情報は、立命館大学が公開している
+          <a
+            href={SYLLABUS_SITE}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={TEXT_LINK}
+          >
+            シラバス
+          </a>
+          と時間割表によります。その内容の権利は大学にあります。このアプリは、短い引用と原ページへのリンクにとどめます。
         </p>
       </section>
       <section>
