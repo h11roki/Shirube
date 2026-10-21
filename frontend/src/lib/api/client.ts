@@ -31,36 +31,56 @@ export class ApiError extends Error {
   }
 }
 
-export async function requestJson<T>(
-  path: string,
-  init?: RequestInit,
-): Promise<T> {
-  let response: Response;
+async function send(path: string, init?: RequestInit): Promise<Response> {
   try {
-    response = await fetch(path, { ...init, cache: "no-store" });
+    return await fetch(path, { ...init, cache: "no-store" });
   } catch {
     throw new ApiError(0, UNREACHABLE);
   }
-  let body: unknown;
+}
+
+async function bodyOf(response: Response, init?: RequestInit) {
   try {
-    body = await response.json();
+    return (await response.json()) as unknown;
   } catch {
     throw new ApiError(
       init?.signal?.aborted ? 0 : response.status,
       UNREACHABLE,
     );
   }
+}
+
+async function refusal(response: Response, init?: RequestInit) {
+  const body = await bodyOf(response, init);
+  const detail =
+    typeof body === "object" &&
+    body !== null &&
+    "detail" in body &&
+    typeof body.detail === "string"
+      ? body.detail
+      : UNREACHABLE;
+  return new ApiError(response.status, detail);
+}
+
+export async function requestJson<T>(
+  path: string,
+  init?: RequestInit,
+): Promise<T> {
+  const response = await send(path, init);
   if (!response.ok) {
-    const detail =
-      typeof body === "object" &&
-      body !== null &&
-      "detail" in body &&
-      typeof body.detail === "string"
-        ? body.detail
-        : UNREACHABLE;
-    throw new ApiError(response.status, detail);
+    throw await refusal(response, init);
   }
-  return body as T;
+  return (await bodyOf(response, init)) as T;
+}
+
+export async function requestNothing(
+  path: string,
+  init?: RequestInit,
+): Promise<void> {
+  const response = await send(path, init);
+  if (!response.ok) {
+    throw await refusal(response, init);
+  }
 }
 
 export function messageOf(error: unknown): string {
@@ -74,4 +94,10 @@ export function isTemporary(error: unknown): boolean {
   return (
     error instanceof ApiError && (error.status === 0 || error.status >= 500)
   );
+}
+
+export function deletePlan(id: string): Promise<void> {
+  return requestNothing(`/api/plans/${encodeURIComponent(id)}`, {
+    method: "DELETE",
+  });
 }
