@@ -2,17 +2,20 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from app.domain.course import UNIVERSITY_TIME
-from app.domain.plan import PlanError
 
 IN_PROGRESS_LIMIT = 1
 REOPENS = "明日の 0 時(日本時間)からまた作れます"
 
 
-class PlanInProgressError(PlanError):
+class PlanRefusedError(ValueError):
     pass
 
 
-class DailyLimitError(PlanError):
+class PlanInProgressError(PlanRefusedError):
+    pass
+
+
+class DailyLimitError(PlanRefusedError):
     def __init__(self, message: str, retry_after: timedelta) -> None:
         super().__init__(message)
         self.retry_after = retry_after
@@ -32,9 +35,7 @@ class PlanQuota:
 
     def admit(self, counts: PlanCounts, now: datetime) -> None:
         if counts.in_progress >= IN_PROGRESS_LIMIT:
-            raise PlanInProgressError(
-                "作っている道標ができてから、次の道標を作れます。作っている道標は一覧から開けます"
-            )
+            raise PlanInProgressError("作っている道標ができてから、次の道標を作れます")
         retry_after = day_start(now) + timedelta(days=1) - now
         if counts.owner_today >= self.per_user:
             raise DailyLimitError(

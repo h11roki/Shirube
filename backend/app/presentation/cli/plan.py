@@ -9,6 +9,7 @@ from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchError
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.plan import Plan, PlanError, PlanStatus
+from app.domain.quota import PlanRefusedError
 from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
@@ -164,6 +165,8 @@ def main() -> None:
             print(render(plan))
             if plan.status is PlanStatus.FAILED:
                 sys.exit(1)
+    except PlanRefusedError as error:
+        sys.exit(f"道標を受け付けませんでした: {error}")
     except (SearchError, RoadmapError, PlanError, PlanFormatError) as error:
         sys.exit(f"道標を止めました: {error}")
     except OperationalError as error:
