@@ -22,6 +22,7 @@ from app.application.list_plans import ListPlans
 from app.application.ports import InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import NoCandidatesError
+from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.domain.quota import DailyLimitError, PlanInProgressError
 from app.domain.roadmap import ClassChoiceError
@@ -86,6 +87,7 @@ def create_app(
     list_plans: ListPlans,
     list_class_choices: ListClassChoices,
     answer_taken_courses: AnswerTakenCourses,
+    syllabus_links: SyllabusLinks,
     taken_courses: TakenCourses,
     identify: IdentifyUser,
     curriculum_year: int,
@@ -96,7 +98,14 @@ def create_app(
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(
         plans_router(
-            request_plan, get_plan, list_plans, answer_taken_courses, user, curriculum_year, today
+            request_plan,
+            get_plan,
+            list_plans,
+            answer_taken_courses,
+            syllabus_links,
+            user,
+            curriculum_year,
+            today,
         ),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,

@@ -10,6 +10,7 @@ function course(name: string, slots: PlacedCourse["slots"]): PlacedCourse {
     reason: `${name}の理由`,
     prerequisite_for: null,
     syllabus_code: "10000",
+    syllabus_url: null,
     section_code: "10000",
     class_code: "6T",
     slots,

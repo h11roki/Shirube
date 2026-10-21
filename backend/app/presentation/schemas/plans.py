@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from datetime import datetime
 from typing import Annotated
 from uuid import UUID
@@ -49,6 +50,7 @@ class CourseOut(BaseModel):
     reason: str
     prerequisite_for: str | None
     syllabus_code: str
+    syllabus_url: str | None
 
 
 class PlacedCourseOut(CourseOut):
@@ -121,25 +123,22 @@ class PlanListOut(BaseModel):
     plans: list[PlanSummaryOut]
 
 
-def _course_out(course: RecommendedCourse) -> CourseOut:
+def _course_out(course: RecommendedCourse, links: Mapping[str, str]) -> CourseOut:
     return CourseOut(
         name=course.name,
         relevance=course.relevance,
         reason=course.reason,
         prerequisite_for=course.prerequisite_for,
         syllabus_code=course.syllabus_code,
+        syllabus_url=links.get(course.syllabus_code),
     )
 
 
-def _placed_out(placed: PlacedCourse) -> PlacedCourseOut:
+def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseOut:
     course = placed.course
     section = placed.section
     return PlacedCourseOut(
-        name=course.name,
-        relevance=course.relevance,
-        reason=course.reason,
-        prerequisite_for=course.prerequisite_for,
-        syllabus_code=course.syllabus_code,
+        **_course_out(course, links).model_dump(),
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
@@ -148,7 +147,7 @@ def _placed_out(placed: PlacedCourse) -> PlacedCourseOut:
     )
 
 
-def plan_out(plan: Plan) -> PlanOut:
+def plan_out(plan: Plan, links: Mapping[str, str]) -> PlanOut:
     conditions = plan.conditions
     return PlanOut(
         id=plan.id,
@@ -163,12 +162,12 @@ def plan_out(plan: Plan) -> PlanOut:
             chosen_classes=dict(conditions.chosen_classes),
             credit_limit=conditions.credit_limit,
         ),
-        result=None if plan.result is None else _result_out(plan.result),
+        result=None if plan.result is None else _result_out(plan.result, links),
         failure=plan.failure,
     )
 
 
-def _result_out(result: PlanResult) -> ResultOut:
+def _result_out(result: PlanResult, links: Mapping[str, str]) -> ResultOut:
     profile = result.recommendation.profile
     return ResultOut(
         profile=ProfileOut(
@@ -182,13 +181,13 @@ def _result_out(result: PlanResult) -> ResultOut:
                 grade=semester_plan.semester.grade,
                 term=semester_plan.semester.term,
                 credits=semester_plan.credits,
-                courses=[_placed_out(placed) for placed in semester_plan.courses],
-                continuing=[_placed_out(placed) for placed in semester_plan.continuing],
+                courses=[_placed_out(placed, links) for placed in semester_plan.courses],
+                continuing=[_placed_out(placed, links) for placed in semester_plan.continuing],
             )
             for semester_plan in result.roadmap.semesters
         ],
-        unplaced=[_course_out(course) for course in result.roadmap.unplaced],
-        taken=[_course_out(course) for course in result.roadmap.taken],
+        unplaced=[_course_out(course, links) for course in result.roadmap.unplaced],
+        taken=[_course_out(course, links) for course in result.roadmap.taken],
         offered_earlier=sorted(result.roadmap.offered_earlier),
         unlinked=[
             UnlinkedOut(

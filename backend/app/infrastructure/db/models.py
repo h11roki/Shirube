@@ -168,6 +168,7 @@ class SyllabusRow(Base):
     grading_note: Mapped[str]
     advice: Mapped[str]
     remarks: Mapped[str]
+    url: Mapped[str | None]
 
 
 class SyllabusCodeRow(Base):

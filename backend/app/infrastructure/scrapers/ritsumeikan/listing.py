@@ -11,6 +11,7 @@ from app.infrastructure.scrapers.ritsumeikan.text import (
     split_titles,
 )
 
+BASE_URL = "https://syllabus.ritsumei.ac.jp"
 DETAIL_LINK = "a[href*='r-syllabus']"
 CELL_COUNT = 7
 PAGE_COUNT = re.compile(r"全\s*(\d+)\s*件（\s*(\d+)\s*/\s*(\d+)\s*ページ）")
@@ -90,3 +91,7 @@ def parse_page_count(text: str) -> PageCount | None:
         return None
     total_rows, current, last = (int(group) for group in matched.groups())
     return PageCount(total_rows=total_rows, current=current, last=last)
+
+
+def detail_url(href: str) -> str:
+    return f"{BASE_URL}{href}?language=ja"

@@ -19,6 +19,7 @@ from app.application.list_plans import ListPlans
 from app.application.ports import EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
@@ -124,6 +125,13 @@ class FakeCourseRepository:
             code: page.code
             for page in self.stored_syllabi
             for code in (page.code, *(alias.code for alias in page.aliases))
+        }
+
+    def syllabus_urls(self, year: int, primary_codes: Set[str]) -> dict[str, str]:
+        return {
+            page.code: page.url
+            for page in self.stored_syllabi
+            if page.code in primary_codes and page.url is not None
         }
 
 
@@ -332,6 +340,7 @@ def plan_app(
         ListPlans(stored),
         ListClassChoices(courses, known),
         AnswerTakenCourses(stored, known, courses),
+        SyllabusLinks(courses),
         TakenCourses(known),
         identify,
         2026,

@@ -59,3 +59,33 @@ def test_unreadable_page_is_named_in_the_error(tmp_path: Path) -> None:
 
     with pytest.raises(SyllabusFormatError, match="^10001: 科目の見出し表"):
         StoredSyllabi(store).syllabi()
+
+
+def test_the_page_url_comes_from_its_link_in_the_listings(tmp_path: Path) -> None:
+    syllabus = StoredSyllabi(saved_store(tmp_path, with_listing=True)).syllabus("16807")
+
+    assert syllabus is not None
+    assert syllabus.url == (
+        "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/x/202616806?language=ja"
+    )
+
+
+def test_a_page_missing_from_the_listings_has_no_url(tmp_path: Path) -> None:
+    syllabus = StoredSyllabi(saved_store(tmp_path, with_listing=False)).syllabus("16806")
+
+    assert syllabus is not None
+    assert syllabus.url is None
+
+
+def test_a_page_listed_with_two_links_has_no_url(tmp_path: Path) -> None:
+    store = saved_store(tmp_path, with_listing=True)
+    store.save_listing(
+        "b",
+        [
+            listing_page(
+                ("16806:平和人権フィールドスタディ (GR)", "/syllabus/s/r-syllabus/y/202616806")
+            )
+        ],
+    )
+
+    assert [page.url for page in StoredSyllabi(store).syllabi()] == [None]

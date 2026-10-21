@@ -22,6 +22,7 @@ function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
     reason: "理由",
     prerequisite_for: null,
     syllabus_code: name,
+    syllabus_url: null,
     section_code: name,
     class_code: null,
     slots: [],
