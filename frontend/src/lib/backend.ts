@@ -30,7 +30,10 @@ function isCrossSite(request: Request): boolean {
   if (origin === null) {
     return false;
   }
-  const host = request.headers.get("Host") ?? new URL(request.url).host;
+  const host =
+    request.headers.get("X-Forwarded-Host")?.split(",")[0].trim() ??
+    request.headers.get("Host") ??
+    new URL(request.url).host;
   return !URL.canParse(origin) || new URL(origin).host !== host;
 }
 
@@ -41,6 +44,7 @@ async function readLimitedBody(
     return undefined;
   }
   if (Number(request.headers.get("Content-Length")) > MAX_BODY_BYTES) {
+    await request.body.cancel();
     throw new BodyTooLargeError();
   }
   const reader = request.body.getReader();

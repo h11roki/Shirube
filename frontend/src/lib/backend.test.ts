@@ -171,6 +171,11 @@ describe("forwardToBackend", () => {
     { "Sec-Fetch-Site": "same-origin" },
     { "Sec-Fetch-Site": "none" },
     { Origin: "http://frontend.test", Host: "frontend.test" },
+    {
+      Origin: "https://shirube.example",
+      Host: "frontend:3000",
+      "X-Forwarded-Host": "shirube.example",
+    },
     {},
   ])(
     "forwards a POST from this site or not from a browser: %o",
@@ -198,7 +203,7 @@ describe("forwardToBackend", () => {
     expect(fetchMock).toHaveBeenCalledOnce();
   });
 
-  it("refuses a body declared over 64KB without reading it", async () => {
+  it("refuses a body declared over 64KB and stops its upload", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     const fetchMock = backendReturns(new Response("{}", { status: 202 }));
     const request = new Request("http://frontend.test/api/plans", {
@@ -213,7 +218,8 @@ describe("forwardToBackend", () => {
     expect(await response.json()).toEqual({
       detail: "要求の本文が大きすぎます",
     });
-    expect(request.bodyUsed).toBe(false);
+    expect(request.body?.locked).toBe(false);
+    expect(request.bodyUsed).toBe(true);
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
