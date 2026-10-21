@@ -5,7 +5,6 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { DeletePlanButton } from "@/components/delete-plan-button";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
@@ -275,12 +274,11 @@ export function PlanResultView({
         )}
 
         <SourceNote year={conditions.year} />
-        <div className="flex flex-wrap items-start gap-x-6 gap-y-3">
+        <p>
           <Link href="/" className={`text-sm ${TEXT_LINK}`}>
             別の職業で作る
           </Link>
-          <DeletePlanButton id={plan.id} />
-        </div>
+        </p>
       </div>
       <div
         ref={notice}

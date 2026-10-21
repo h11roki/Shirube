@@ -6,6 +6,7 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { OUTLINE_BUTTON } from "@/components/styles";
 import {
   type TakenCourses,
+  messageOf,
   requestJson,
   requestNothing,
 } from "@/lib/api/client";
@@ -14,6 +15,7 @@ import {
   LEAVE_KEEPS,
   LEAVE_LABEL,
   LEFT_NOTICE,
+  type TakenCount,
   leaveSummary,
 } from "@/lib/labels";
 import { signOutToTop } from "@/lib/sign-out";
@@ -25,7 +27,7 @@ export function LeaveSection({
   plans: number;
   onLeft: () => void;
 }) {
-  const [taken, setTaken] = useState<number>();
+  const [taken, setTaken] = useState<TakenCount>();
   const asked = useRef(0);
 
   function countTaken() {
@@ -33,12 +35,12 @@ export function LeaveSection({
     setTaken(undefined);
     void requestJson<TakenCourses>("/api/taken-courses")
       .then(
-        (answer) => answer.names.length,
-        () => undefined,
+        (answer): TakenCount => ({ count: answer.names.length }),
+        (caught: unknown): TakenCount => ({ failure: messageOf(caught) }),
       )
-      .then((count) => {
+      .then((counted) => {
         if (ask === asked.current) {
-          setTaken(count);
+          setTaken(counted);
         }
       });
   }

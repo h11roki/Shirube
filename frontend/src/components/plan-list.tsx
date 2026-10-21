@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 
 import { ConfirmButton } from "@/components/confirm-button";
 import { LeaveSection, LeftNotice } from "@/components/leave-section";
@@ -34,8 +35,8 @@ const STAGGERED_ROWS = 10;
 export function PlanList() {
   const [plans, setPlans] = useState<Plans>();
   const [error, setError] = useState<string>();
+  const [loads, setLoads] = useState(0);
   const [deleted, setDeleted] = useState<string>();
-  const [deletions, setDeletions] = useState(0);
   const [left, setLeft] = useState(false);
   const notice = useRef<HTMLParagraphElement>(null);
 
@@ -45,6 +46,7 @@ export function PlanList() {
       .then((answer) => {
         if (active) {
           setPlans(answer);
+          setError(undefined);
         }
       })
       .catch((caught: unknown) => {
@@ -55,50 +57,48 @@ export function PlanList() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [loads]);
 
-  useEffect(() => {
-    if (deletions > 0) {
-      notice.current?.focus();
-    }
-  }, [deletions]);
-
-  if (error) {
-    return (
+  if (!plans) {
+    return error ? (
       <p role="alert" className="text-sm text-danger">
         一覧を読み込めませんでした: {error}
       </p>
+    ) : (
+      <p className="text-sm text-sub">読み込んでいます</p>
     );
-  }
-  if (!plans) {
-    return <p className="text-sm text-sub">読み込んでいます</p>;
   }
   if (left) {
     return <LeftNotice />;
   }
-  async function remove(id: string, occupation: string) {
+  const remove = async (id: string, occupation: string) => {
     await deletePlan(id);
-    setPlans(
-      (current) =>
-        current && {
-          plans: current.plans.filter((plan) => plan.id !== id),
-          total: current.total - 1,
-        },
-    );
-    setDeleted(deletedPlanLabel(occupation));
-    setDeletions((current) => current + 1);
-  }
+    flushSync(() => {
+      setPlans(
+        (current) =>
+          current && {
+            plans: current.plans.filter((plan) => plan.id !== id),
+            total: current.total - 1,
+          },
+      );
+      setDeleted(deletedPlanLabel(occupation));
+    });
+    notice.current?.focus();
+    if (plans.total > plans.plans.length) {
+      setLoads((current) => current + 1);
+    }
+  };
 
   return (
     <div className="grid gap-10">
-      <p
-        ref={notice}
-        role="status"
-        tabIndex={-1}
-        className="text-sm text-sub empty:hidden"
-      >
+      <p ref={notice} tabIndex={-1} className="text-sm text-sub empty:hidden">
         {deleted}
       </p>
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          一覧を読み直せませんでした: {error}
+        </p>
+      )}
       {plans.plans.length === 0 ? (
         <p className="text-sm text-sub">
           まだ道標がありません。

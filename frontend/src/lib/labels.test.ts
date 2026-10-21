@@ -134,11 +134,14 @@ describe("labels", () => {
     expect(deletedPlanLabel("組込みエンジニア")).toBe(
       "組込みエンジニアの道標を消しました",
     );
-    expect(leaveSummary(55, 2)).toBe(
+    expect(leaveSummary(55, { count: 2 })).toBe(
       "作った道標 55 件と、もう取ったと答えた授業 2 科目を全て消し、ログアウトします。",
     );
     expect(leaveSummary(0, undefined)).toBe(
       "作った道標 0 件と、もう取ったと答えた授業を全て消し、ログアウトします。",
+    );
+    expect(leaveSummary(3, { failure: "サーバーに届きませんでした" })).toBe(
+      "作った道標 3 件と、もう取ったと答えた授業を全て消し、ログアウトします。もう取ったと答えた授業の数は確かめられませんでした(サーバーに届きませんでした)。",
     );
   });
 });

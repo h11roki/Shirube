@@ -199,10 +199,19 @@ export function deletedPlanLabel(occupation: string): string {
   return `${occupation}の道標を消しました`;
 }
 
-export function leaveSummary(plans: number, taken: number | undefined): string {
+export type TakenCount = { count: number } | { failure: string };
+
+export function leaveSummary(
+  plans: number,
+  taken: TakenCount | undefined,
+): string {
   const takenCount =
-    taken === undefined
-      ? "もう取ったと答えた授業"
-      : `もう取ったと答えた授業 ${taken} 科目`;
-  return `作った道標 ${plans} 件と、${takenCount}を全て消し、ログアウトします。`;
+    taken && "count" in taken
+      ? `もう取ったと答えた授業 ${taken.count} 科目`
+      : "もう取ったと答えた授業";
+  const failure =
+    taken && "failure" in taken
+      ? `もう取ったと答えた授業の数は確かめられませんでした(${taken.failure})。`
+      : "";
+  return `作った道標 ${plans} 件と、${takenCount}を全て消し、ログアウトします。${failure}`;
 }

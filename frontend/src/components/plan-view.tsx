@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { type ReactNode, useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 
-import { DeletePlanButton } from "@/components/delete-plan-button";
+import { ConfirmButton } from "@/components/confirm-button";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
@@ -12,10 +12,16 @@ import {
   ApiError,
   type Plan,
   UNAUTHORIZED,
+  deletePlan,
   isTemporary,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
+import {
+  CONFIRM_DELETE_LABEL,
+  DELETE_PLAN_LABEL,
+  DELETE_PLAN_NOTE,
+} from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_REQUEST_TIMEOUT_MS,
@@ -26,16 +32,14 @@ import {
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [plan, setPlan] = useState<Plan>();
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
-  const [deleting, setDeleting] = useState(false);
+  const deleted = useRef(false);
 
   useEffect(() => {
-    if (deleting) {
-      return;
-    }
     let active = true;
     let seen = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -52,7 +56,7 @@ export function PlanView() {
             ]),
           },
         );
-        if (!active) {
+        if (!active || deleted.current) {
           return;
         }
         const state = watchState(latest.status, Date.now() - startedAt);
@@ -64,7 +68,7 @@ export function PlanView() {
           timer = setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch (caught) {
-        if (!active) {
+        if (!active || deleted.current) {
           return;
         }
         const next = watchAfterFailure(
@@ -89,7 +93,7 @@ export function PlanView() {
       clearTimeout(timer);
       leaving.abort();
     };
-  }, [id, round, deleting]);
+  }, [id, round]);
 
   function retry() {
     setError(undefined);
@@ -121,28 +125,26 @@ export function PlanView() {
   if (!plan) {
     return <p className="text-sm text-sub">読み込んでいます</p>;
   }
+  let body: ReactNode;
   if (plan.status === "succeeded") {
-    return plan.result ? (
+    body = plan.result ? (
       <PlanResultView plan={plan} result={plan.result} onAnswered={setPlan} />
     ) : (
       <Notice title="道標の中身を読めませんでした">
         <RetryButton onClick={retry} />
       </Notice>
     );
-  }
-  if (plan.status === "failed") {
-    return (
+  } else if (plan.status === "failed") {
+    body = (
       <Notice title="道標を作れませんでした">
         <p>{plan.failure}</p>
         <Link href="/" className={TEXT_LINK}>
           もう一度作る
         </Link>
-        <DeletePlanButton id={plan.id} />
       </Notice>
     );
-  }
-  return (
-    <div className="grid gap-6">
+  } else {
+    body = (
       <PlanProgress
         plan={plan}
         stalled={
@@ -160,8 +162,26 @@ export function PlanView() {
           ) : undefined
         }
       />
-      <div className="mx-auto w-full max-w-xl">
-        <DeletePlanButton id={plan.id} onDeleting={setDeleting} />
+    );
+  }
+  return (
+    <div className="grid gap-6">
+      {body}
+      <div
+        className={
+          plan.status === "succeeded" ? undefined : "mx-auto w-full max-w-xl"
+        }
+      >
+        <ConfirmButton
+          label={DELETE_PLAN_LABEL}
+          note={DELETE_PLAN_NOTE}
+          confirmLabel={CONFIRM_DELETE_LABEL}
+          onConfirm={async () => {
+            await deletePlan(plan.id);
+            deleted.current = true;
+            router.replace("/plans");
+          }}
+        />
       </div>
     </div>
   );
