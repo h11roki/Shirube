@@ -1,23 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ISSUES_URL, OPERATOR } from "@/lib/site";
+import { ContactSection, LegalDocument } from "@/components/legal-document";
+import { TEXT_LINK } from "@/components/styles";
+import { OPERATOR } from "@/lib/site";
 
 export const metadata: Metadata = { title: "利用規約" };
 
 export default function TermsPage() {
   return (
-    <>
-      <header className="grid gap-2">
-        <h1>利用規約</h1>
-        <p className="text-sm text-sub">2026 年 10 月 22 日 制定</p>
-      </header>
+    <LegalDocument title="利用規約" enactedOn="2026 年 10 月 22 日">
       <section>
         <p>
           この利用規約は、個人({OPERATOR}
           、以下「運営者」)が運営する
           shirube(以下「このアプリ」)の利用の条件を定めます。ログインすると、この規約と
-          <Link href="/privacy">プライバシーポリシー</Link>
+          <Link href="/privacy" className={TEXT_LINK}>
+            プライバシーポリシー
+          </Link>
           に同意したことになります。
         </p>
       </section>
@@ -89,16 +89,7 @@ export default function TermsPage() {
           この規約を変えるときは、このページに改定の日付とともに載せます。改定のあとも使い続けた場合、改定に同意したものとみなします。
         </p>
       </section>
-      <section>
-        <h2>11. 問い合わせ</h2>
-        <p>
-          GitHub の Issue(
-          <a href={ISSUES_URL} target="_blank" rel="noreferrer">
-            {ISSUES_URL}
-          </a>
-          )で受け付けます。
-        </p>
-      </section>
-    </>
+      <ContactSection heading="11. 問い合わせ" />
+    </LegalDocument>
   );
 }

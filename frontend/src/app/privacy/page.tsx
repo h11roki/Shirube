@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { ISSUES_URL, OPERATOR } from "@/lib/site";
+import { ContactSection, LegalDocument } from "@/components/legal-document";
+import { TEXT_LINK } from "@/components/styles";
+import { OPERATOR } from "@/lib/site";
 
 export const metadata: Metadata = { title: "プライバシーポリシー" };
 
 export default function PrivacyPage() {
   return (
-    <>
-      <header className="grid gap-2">
-        <h1>プライバシーポリシー</h1>
-        <p className="text-sm text-sub">2026 年 10 月 22 日 制定</p>
-      </header>
+    <LegalDocument title="プライバシーポリシー" enactedOn="2026 年 10 月 22 日">
       <section>
         <p>
           shirube(以下「このアプリ」)は、個人({OPERATOR}
@@ -82,37 +80,31 @@ export default function PrivacyPage() {
       <section>
         <h2>消し方</h2>
         <ul>
-          <li>道標は、結果の画面か一覧の「消す」でいつでも消せます</li>
           <li>
-            退会(一覧の下)で、利用者の番号、道標、もう取ったと答えた授業を全て消します
+            道標は、結果の画面か一覧の「消す」でいつでも消せます。入力した内容と道標の中身は消え、その日に作った道標なら、1
+            日に作れる数を数えるために、作った日時と誰が作ったかだけを翌日の 0
+            時まで残します
           </li>
           <li>
-            道標を消したり退会したりしても、その日に作った道標の「作った日時」だけは、1
-            日に作れる数を数えるために、誰のものか分からない形で翌日の 0
-            時まで残ります。日時のほかは残りません
+            退会(一覧の下)で、利用者の番号、道標、もう取ったと答えた授業を全て消します。その日に作った道標の作った日時だけは、誰のものか分からない形で翌日の
+            0 時まで残ります
           </li>
           <li>サーバーのログは上のとおり 30 日で消えます</li>
         </ul>
       </section>
-      <section>
-        <h2>問い合わせ</h2>
-        <p>
-          GitHub の Issue(
-          <a href={ISSUES_URL} target="_blank" rel="noreferrer">
-            {ISSUES_URL}
-          </a>
-          )で受け付けます。
-        </p>
-      </section>
+      <ContactSection heading="問い合わせ" />
       <section>
         <h2>改定</h2>
         <p>
           このポリシーを変えるときは、このページに改定の日付とともに載せます。
         </p>
         <p>
-          <Link href="/terms">利用規約</Link>もあわせてお読みください。
+          <Link href="/terms" className={TEXT_LINK}>
+            利用規約
+          </Link>
+          もあわせてお読みください。
         </p>
       </section>
-    </>
+    </LegalDocument>
   );
 }

@@ -10,17 +10,30 @@ export function SiteFooter() {
           shirube は、立命館大学とは関係のない個人({OPERATOR}
           )が作った非公式のアプリです。授業の情報は、大学の公開シラバスと時間割表によります。
         </p>
-        <nav className="flex flex-wrap gap-x-5 gap-y-1">
+        <nav
+          aria-label="アプリについて"
+          className="flex flex-wrap gap-x-5 gap-y-1"
+        >
           <Link href="/terms" className="hover:text-ink">
             利用規約
           </Link>
           <Link href="/privacy" className="hover:text-ink">
             プライバシーポリシー
           </Link>
-          <a href={REPOSITORY_URL} className="hover:text-ink">
+          <a
+            href={REPOSITORY_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-ink"
+          >
             GitHub
           </a>
-          <a href={ISSUES_URL} className="hover:text-ink">
+          <a
+            href={ISSUES_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-ink"
+          >
             問い合わせ(Issue)
           </a>
         </nav>
