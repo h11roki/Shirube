@@ -36,11 +36,13 @@ class StoredSyllabi:
         except ListingConflictError as error:
             logger.warning("原ページの URL を決められません: %s", error)
             return page
-        if link is not None and link.primary_code != primary_code:
+        if link is None:
+            return page
+        if link.primary_code != primary_code:
             logger.warning(
                 "%s: 検索結果では %s の別名なので、原ページの URL を決められません",
                 primary_code,
                 link.primary_code,
             )
             return page
-        return page if link is None else replace(page, url=detail_url(link.href))
+        return replace(page, url=detail_url(link.href))
