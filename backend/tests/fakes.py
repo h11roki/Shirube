@@ -140,7 +140,8 @@ class FakeCourseRepository:
 class FakePlanRepository:
     def __init__(self) -> None:
         self.plans: dict[UUID, Plan] = {}
-        self.deleted: dict[UUID, UUID] = {}
+        self.deleted: dict[UUID, UUID | None] = {}
+        self.purges: list[datetime] = []
         self.created_at: dict[UUID, datetime] = {}
         self.stall_limits: list[timedelta] = []
         self.stages: list[tuple[UUID, PlanStage]] = []
@@ -170,13 +171,22 @@ class FakePlanRepository:
 
     def delete_owned_by(self, plan_id: UUID, owner_id: UUID) -> bool:
         plan = self.plans.get(plan_id)
-        if plan is None or plan.owner_id != owner_id:
+        if plan is None or plan.owner_id != owner_id or plan.status is PlanStatus.RUNNING:
             return False
         del self.plans[plan_id]
-        self.deleted[plan_id] = owner_id
+        self.deleted[plan_id] = None if plan.status is PlanStatus.FAILED else owner_id
         return True
 
+    def delete_all_owned_by(self, owner_id: UUID) -> None:
+        for plan_id in [plan.id for plan in self.plans.values() if plan.owner_id == owner_id]:
+            del self.plans[plan_id]
+            self.deleted[plan_id] = None
+        for plan_id, owner in self.deleted.items():
+            if owner == owner_id:
+                self.deleted[plan_id] = None
+
     def purge_deleted(self, before: datetime) -> int:
+        self.purges.append(before)
         purged = [plan_id for plan_id in self.deleted if self.created_at[plan_id] < before]
         for plan_id in purged:
             del self.deleted[plan_id]
@@ -217,7 +227,8 @@ class FakePlanRepository:
             self.plans[plan_id] = replace(plan, stage=stage)
 
     def finish(self, plan: Plan) -> bool:
-        if self.plans[plan.id].status is not PlanStatus.RUNNING:
+        stored = self.plans.get(plan.id)
+        if stored is None or stored.status is not PlanStatus.RUNNING:
             return False
         self.plans[plan.id] = plan
         return True
@@ -368,7 +379,7 @@ def plan_app(
         DeletePlan(stored),
         SyllabusLinks(courses),
         TakenCourses(known),
-        DeleteAccount(known),
+        DeleteAccount(stored, known),
         identify,
         2026,
         lambda: today,

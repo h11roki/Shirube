@@ -424,13 +424,33 @@ def test_a_plan_is_deleted_only_by_its_owner_and_then_not_found() -> None:
     assert api.delete(f"/api/v1/plans/{plan.id}").status_code == 404
 
 
-def test_leaving_deletes_the_user() -> None:
+def test_a_plan_being_built_is_not_deleted() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    running = replace(
+        Plan(uuid4(), users.id_of("google-a"), sample_conditions()),
+        status=PlanStatus.RUNNING,
+        stage=PlanStage.SELECTING,
+    )
+    plans.store(running)
+
+    response = client(plans=plans, users=users).delete(f"/api/v1/plans/{running.id}")
+
+    assert response.status_code == 409
+    assert "できてから消せます" in response.json()["detail"]
+
+
+def test_leaving_deletes_the_user_and_the_contents_of_their_plans() -> None:
+    plans = FakePlanRepository()
     users = FakeUserRepository()
     user_id = users.id_of("google-a")
     users.add_taken(user_id, "情報処理")
+    plan = sample_plan(uuid4(), user_id)
+    plans.store(plan)
 
-    response = client(users=users).delete("/api/v1/me")
+    response = client(plans=plans, users=users).delete("/api/v1/me")
 
     assert (response.status_code, response.content) == (204, b"")
     assert users.taken(user_id) == frozenset()
     assert "google-a" not in users.users
+    assert (plans.plans, plans.deleted) == ({}, {plan.id: None})

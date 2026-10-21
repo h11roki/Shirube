@@ -16,7 +16,7 @@ from app.application.answer_taken_courses import (
 )
 from app.application.build_plans import SERVER_FAILURE
 from app.application.delete_account import DeleteAccount
-from app.application.delete_plan import DeletePlan
+from app.application.delete_plan import DeletePlan, PlanRunningError
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
@@ -45,6 +45,7 @@ INPUT_ERRORS: tuple[type[Exception], ...] = (
 )
 CONFLICT_ERRORS: tuple[type[Exception], ...] = (
     PlanInProgressError,
+    PlanRunningError,
     PlanNotFinishedError,
     PlanOutdatedError,
     AnswerConflictError,

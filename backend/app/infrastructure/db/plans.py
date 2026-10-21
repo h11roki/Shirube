@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, Engine, Select, delete, func, select, update
+from sqlalchemy import ColumnElement, Engine, Select, case, delete, func, select, update
 from sqlalchemy.orm import Session as DbSession
 from sqlalchemy.orm import aliased
 
@@ -40,6 +40,15 @@ from app.infrastructure.db.models import (
 RESULT_JSON_VERSION = 3
 ADMISSION_LOCK = 380038
 DELETED = "deleted"
+ERASED = {
+    "status": DELETED,
+    "conditions": None,
+    "result": None,
+    "failure": None,
+    "stage": None,
+    "claimed_at": None,
+    "finished_at": None,
+}
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -163,20 +172,27 @@ class SqlPlanRepository:
             deleted = db.scalars(
                 update(PlanRow)
                 .where(
-                    PlanRow.id == plan_id, PlanRow.user_id == owner_id, PlanRow.status != DELETED
+                    PlanRow.id == plan_id,
+                    PlanRow.user_id == owner_id,
+                    PlanRow.status.not_in((DELETED, PlanStatus.RUNNING)),
                 )
                 .values(
-                    status=DELETED,
-                    conditions=None,
-                    result=None,
-                    failure=None,
-                    stage=None,
-                    finished_at=func.now(),
+                    user_id=case((PlanRow.status == PlanStatus.FAILED, None), else_=owner_id),
+                    **ERASED,
                 )
                 .returning(PlanRow.id)
                 .execution_options(synchronize_session=False)
             ).one_or_none()
         return deleted is not None
+
+    def delete_all_owned_by(self, owner_id: UUID) -> None:
+        with DbSession(self._engine) as db, db.begin():
+            db.execute(
+                update(PlanRow)
+                .where(PlanRow.user_id == owner_id)
+                .values(user_id=None, **ERASED)
+                .execution_options(synchronize_session=False)
+            )
 
     def purge_deleted(self, before: datetime) -> int:
         with DbSession(self._engine) as db, db.begin():
@@ -233,6 +249,8 @@ class SqlPlanRepository:
 
 
 def _plan(row: PlanRow) -> Plan:
+    if row.user_id is None:
+        raise PlanFormatError(f"{row.id}: 持ち主の無い道標は削除済みのはずです: {row.status}")
     stored = row.result
     version = stored.get("version") if isinstance(stored, dict) else None
     if stored is not None and version != RESULT_JSON_VERSION:

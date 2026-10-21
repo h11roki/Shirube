@@ -42,6 +42,7 @@ class BuildPlans:
         self._courses = courses
         self._plans = plans
         self._users = users
+        self._forgotten_before: datetime | None = None
 
     def fail_stalled(self, after: timedelta) -> list[UUID]:
         stalled = self._plans.fail_stalled(after, STALLED)
@@ -50,7 +51,11 @@ class BuildPlans:
         return stalled
 
     def forget_deleted(self, now: datetime) -> None:
-        purged = self._plans.purge_deleted(day_start(now))
+        before = day_start(now)
+        if before == self._forgotten_before:
+            return
+        purged = self._plans.purge_deleted(before)
+        self._forgotten_before = before
         if purged:
             logger.info("前の日までに削除した道標 %d 件の日時を消しました", purged)
 

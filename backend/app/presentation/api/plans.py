@@ -101,7 +101,7 @@ def plans_router(
     @router.delete(
         "/plans/{plan_id}",
         status_code=status.HTTP_204_NO_CONTENT,
-        responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE},
+        responses={**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **BUSY_RESPONSE},
     )
     def remove(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> None:
         if not delete_plan.run(owner_id=user_id, plan_id=plan_id):

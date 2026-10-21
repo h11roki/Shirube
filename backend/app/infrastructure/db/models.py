@@ -238,6 +238,7 @@ class PlanRow(Base):
             name="ck_plans_status",
         ),
         CheckConstraint("(status = 'deleted') = (conditions IS NULL)", name="ck_plans_conditions"),
+        CheckConstraint("user_id IS NOT NULL OR status = 'deleted'", name="ck_plans_owner"),
         CheckConstraint("(status = 'succeeded') = (result IS NOT NULL)", name="ck_plans_result"),
         CheckConstraint("(status = 'failed') = (failure IS NOT NULL)", name="ck_plans_failure"),
         CheckConstraint(
@@ -251,8 +252,8 @@ class PlanRow(Base):
     )
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
-    user_id: Mapped[UUID] = mapped_column(
-        ForeignKey("users.id", name="fk_plans_user_id_users", ondelete="CASCADE"), index=True
+    user_id: Mapped[UUID | None] = mapped_column(
+        ForeignKey("users.id", name="fk_plans_user_id_users", ondelete="SET NULL"), index=True
     )
     status: Mapped[str]
     conditions: Mapped[ConditionsJson | None] = mapped_column(JSONB(none_as_null=True))

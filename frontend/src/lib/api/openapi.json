@@ -296,6 +296,16 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "作っている道標がある",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
           }
         }
       }

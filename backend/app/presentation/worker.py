@@ -16,8 +16,11 @@ def work(
 ) -> None:
     while not stop.is_set():
         try:
-            builder.fail_stalled(stall_limit)
             builder.forget_deleted(datetime.now(UTC))
+        except Exception:
+            logger.exception("削除した道標の日時を消せませんでした。次の回にやり直します")
+        try:
+            builder.fail_stalled(stall_limit)
             built = None if stop.is_set() else builder.build_next()
         except PlanFormatError:
             logger.exception("取った道標を読めないので、止まった道標として失敗になるまで残します")

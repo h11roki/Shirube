@@ -287,3 +287,16 @@ def test_deleted_plans_made_before_today_in_japan_are_forgotten() -> None:
     )
 
     assert list(plans.deleted) == [today.id]
+
+
+def test_deleted_plans_are_forgotten_once_a_day() -> None:
+    plans = FakePlanRepository()
+    forgetting = builder(courses_ranked_by({"科目A": 0.9}), plans)
+
+    for moment in ("2026-10-21T09:00+09:00", "2026-10-21T23:59+09:00", "2026-10-22T00:01+09:00"):
+        forgetting.forget_deleted(datetime.fromisoformat(moment))
+
+    assert plans.purges == [
+        datetime.fromisoformat("2026-10-21T00:00+09:00"),
+        datetime.fromisoformat("2026-10-22T00:00+09:00"),
+    ]
