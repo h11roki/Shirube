@@ -1,13 +1,14 @@
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, timedelta, timezone
 
 from app.domain.course import ALL_GRADES, CourseSection, Term
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 NO_CLASS_CODE = ""
 SPRING_MONTHS = range(4, 9)
+UNIVERSITY_TIME = timezone(timedelta(hours=9), "JST")
 TERM_NAMES = {Term.SPRING: "春学期", Term.AUTUMN: "秋学期"}
 
 
