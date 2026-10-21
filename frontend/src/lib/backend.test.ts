@@ -31,6 +31,14 @@ function postRequest(body: string): Request {
   });
 }
 
+function sentFrom(headers: Record<string, string>, method = "POST"): Request {
+  return new Request("http://frontend.test/api/plans", {
+    method,
+    body: method === "GET" ? undefined : "{}",
+    headers: { "Content-Type": "application/json", ...headers },
+  });
+}
+
 function backendReturns(response: Response) {
   const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(response);
   vi.stubGlobal("fetch", fetchMock);
@@ -123,6 +131,109 @@ describe("forwardToBackend", () => {
     await forwardToBackend("/plans/abc", getRequest());
 
     expect(sentRequest(fetchMock).init.redirect).toBe("manual");
+  });
+
+  it.each(["cross-site", "same-site"])(
+    "refuses a POST that the browser says came from %s without asking for the session",
+    async (fetchSite) => {
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend(
+        "/plans",
+        sentFrom({ "Sec-Fetch-Site": fetchSite }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.json()).toEqual({
+        detail: "ほかのサイトからの要求は受け付けません",
+      });
+      expect(auth).not.toHaveBeenCalled();
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(["https://evil.test", "null"])(
+    "refuses a POST without Sec-Fetch-Site whose Origin is not this host: %s",
+    async (origin) => {
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend(
+        "/plans",
+        sentFrom({ Origin: origin, Host: "frontend.test" }),
+      );
+
+      expect(response.status).toBe(403);
+      expect(fetchMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each<Record<string, string>>([
+    { "Sec-Fetch-Site": "same-origin" },
+    { "Sec-Fetch-Site": "none" },
+    { Origin: "http://frontend.test", Host: "frontend.test" },
+    {},
+  ])(
+    "forwards a POST from this site or not from a browser: %o",
+    async (headers) => {
+      auth.mockResolvedValue(loggedInAs("google-subject"));
+      const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+
+      const response = await forwardToBackend("/plans", sentFrom(headers));
+
+      expect(response.status).toBe(202);
+      expect(fetchMock).toHaveBeenCalledOnce();
+    },
+  );
+
+  it("forwards a GET whatever site it came from", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 200 }));
+
+    const response = await forwardToBackend(
+      "/plans",
+      sentFrom({ "Sec-Fetch-Site": "cross-site" }, "GET"),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("refuses a body declared over 64KB without reading it", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    const request = new Request("http://frontend.test/api/plans", {
+      method: "POST",
+      body: "{}",
+      headers: { "Content-Length": String(64 * 1024 + 1) },
+    });
+
+    const response = await forwardToBackend("/plans", request);
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      detail: "要求の本文が大きすぎます",
+    });
+    expect(request.bodyUsed).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("stops reading a body once it goes over 64KB and forwards one at the limit", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    const fetchMock = backendReturns(new Response("{}", { status: 202 }));
+    const atLimit = "x".repeat(64 * 1024);
+
+    const refused = await forwardToBackend(
+      "/plans",
+      postRequest(`${atLimit}x`),
+    );
+    const forwarded = await forwardToBackend("/plans", postRequest(atLimit));
+
+    expect(refused.status).toBe(413);
+    expect(forwarded.status).toBe(202);
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(
+      new TextDecoder().decode(sentRequest(fetchMock).init.body as ArrayBuffer),
+    ).toBe(atLimit);
   });
 
   it("passes the backend status, body and content type through", async () => {
