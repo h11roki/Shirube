@@ -11,13 +11,13 @@ from uuid import UUID, uuid4
 import pytest
 from alembic import command
 from alembic.config import Config
-from sqlalchemy import Engine, delete, insert, select, text, update
+from sqlalchemy import Engine, delete, func, insert, select, text, update
 from sqlalchemy.exc import IntegrityError
 
-from app.application.ports import PlanFormatError
+from app.application.ports import Deletion, PlanFormatError
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
-from app.infrastructure.db.models import PlanRow, UserRow
+from app.infrastructure.db.models import DeletedPlanRow, PlanRow, TakenCourseRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from tests.builders import sample_conditions, sample_plan, sample_plan_with_taken
@@ -38,7 +38,9 @@ def allow(counts: PlanCounts) -> None:
 def repository(engine: Engine) -> Iterator[SqlPlanRepository]:
     yield SqlPlanRepository(engine)
     with engine.begin() as connection:
+        connection.execute(delete(DeletedPlanRow))
         connection.execute(delete(PlanRow))
+        connection.execute(delete(TakenCourseRow))
         connection.execute(delete(UserRow))
 
 
@@ -545,61 +547,53 @@ def test_requests_at_the_same_time_are_counted_one_after_another(
     assert len(saved) == 1
 
 
-def test_a_deleted_plan_keeps_only_its_time_and_still_counts_for_the_day(
+TODAY = datetime.now(UTC) - timedelta(hours=1)
+
+
+def counts_for(repository: SqlPlanRepository, owner: UUID) -> PlanCounts:
+    seen: list[PlanCounts] = []
+    repository.add(Plan(uuid4(), owner, sample_conditions()), TODAY, seen.append)
+    return seen[0]
+
+
+def test_a_deleted_plan_is_gone_but_still_counts_for_the_day(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = sample_plan(uuid4(), owner)
+    repository.add(plan, ANY_DAY, allow)
+    other = SqlUserRepository(engine).id_of("google-b")
+
+    assert repository.delete_owned_by(plan.id, other, TODAY) is Deletion.MISSING
+    assert repository.delete_owned_by(plan.id, owner, TODAY) is Deletion.DELETED
+    assert repository.delete_owned_by(plan.id, owner, TODAY) is Deletion.MISSING
+
+    assert repository.get(plan.id) is None
+    assert repository.list_owned_by(owner, 10) == []
+    assert counts_for(repository, owner) == PlanCounts(in_progress=0, owner_today=1, all_today=1)
+
+
+def test_a_plan_made_before_the_day_is_deleted_without_a_trace(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = sample_plan(uuid4(), owner)
     repository.add(plan, ANY_DAY, allow)
 
-    assert repository.delete_owned_by(plan.id, SqlUserRepository(engine).id_of("google-b")) is False
-    assert repository.delete_owned_by(plan.id, owner) is True
-    assert repository.delete_owned_by(plan.id, owner) is False
-
-    assert repository.get(plan.id) is None
-    assert repository.get_owned_by(plan.id, owner) is None
-    assert repository.list_owned_by(owner, 10) == []
+    assert repository.delete_owned_by(plan.id, owner, datetime.now(UTC) + timedelta(hours=1)) is (
+        Deletion.DELETED
+    )
     with engine.connect() as connection:
-        stored = connection.execute(
-            select(
-                PlanRow.status,
-                PlanRow.conditions,
-                PlanRow.result,
-                PlanRow.claimed_at,
-                PlanRow.finished_at,
-            ).where(PlanRow.id == plan.id)
-        ).one()
-    assert tuple(stored) == ("deleted", None, None, None, None)
-    seen: list[PlanCounts] = []
-    repository.add(Plan(uuid4(), owner, sample_conditions()), ANY_DAY, seen.append)
-    assert seen == [PlanCounts(in_progress=0, owner_today=1, all_today=1)]
-
-
-def test_deleted_plans_made_before_the_given_time_are_purged(
-    repository: SqlPlanRepository, owner: UUID
-) -> None:
-    kept = sample_plan(uuid4(), owner)
-    deleted = sample_plan(uuid4(), owner)
-    for plan in (kept, deleted):
-        repository.add(plan, ANY_DAY, allow)
-    repository.delete_owned_by(deleted.id, owner)
-
-    assert repository.purge_deleted(ANY_DAY) == 0
-    assert repository.purge_deleted(datetime.now(UTC) + timedelta(minutes=1)) == 1
-    assert repository.get(kept.id) == kept
-    seen: list[PlanCounts] = []
-    repository.add(Plan(uuid4(), owner, sample_conditions()), ANY_DAY, seen.append)
-    assert seen == [PlanCounts(in_progress=0, owner_today=1, all_today=1)]
+        assert connection.execute(select(func.count()).select_from(DeletedPlanRow)).scalar() == 0
 
 
 def test_a_plan_being_built_is_not_deleted(repository: SqlPlanRepository, owner: UUID) -> None:
     plan = waiting(repository, owner)
     claimed = repository.claim(plan.id)
 
-    assert repository.delete_owned_by(plan.id, owner) is False
+    assert repository.delete_owned_by(plan.id, owner, TODAY) is Deletion.RUNNING
     assert repository.get(plan.id) == claimed
 
 
-def test_a_deleted_failed_plan_loses_its_owner_and_counts_only_for_all(
+def test_a_deleted_failed_plan_counts_only_for_all(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = waiting(repository, owner)
@@ -607,13 +601,23 @@ def test_a_deleted_failed_plan_loses_its_owner_and_counts_only_for_all(
     assert claimed is not None
     repository.finish(claimed.failed("失敗"))
 
-    assert repository.delete_owned_by(plan.id, owner) is True
-    seen: list[PlanCounts] = []
-    repository.add(Plan(uuid4(), owner, sample_conditions()), ANY_DAY, seen.append)
-    assert seen == [PlanCounts(in_progress=0, owner_today=0, all_today=1)]
+    assert repository.delete_owned_by(plan.id, owner, TODAY) is Deletion.DELETED
+    assert counts_for(repository, owner) == PlanCounts(in_progress=0, owner_today=0, all_today=1)
 
 
-def test_leaving_erases_the_plans_keeps_ownerless_times_and_deletes_the_taken_courses(
+def test_deleted_times_made_before_the_given_time_are_purged(
+    repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = sample_plan(uuid4(), owner)
+    repository.add(plan, ANY_DAY, allow)
+    repository.delete_owned_by(plan.id, owner, TODAY)
+
+    assert repository.purge_deleted(TODAY) == 0
+    assert repository.purge_deleted(datetime.now(UTC) + timedelta(minutes=1)) == 1
+    assert counts_for(repository, owner) == PlanCounts(in_progress=0, owner_today=0, all_today=0)
+
+
+def test_leaving_keeps_ownerless_times_of_todays_plans_and_deletes_the_rest(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     users = SqlUserRepository(engine)
@@ -623,27 +627,24 @@ def test_leaving_erases_the_plans_keeps_ownerless_times_and_deletes_the_taken_co
         repository.add(plan, ANY_DAY, allow)
     users.add_taken(owner, "情報処理")
 
-    repository.delete_all_owned_by(owner)
-    users.delete(owner)
+    assert users.delete(owner, TODAY) is True
 
     assert repository.get(mine.id) is None
     assert repository.get(theirs.id) == theirs
     assert users.taken(owner) == frozenset()
     assert users.id_of("google-a") != owner
     with engine.connect() as connection:
-        stored = connection.execute(
-            select(PlanRow.user_id, PlanRow.status, PlanRow.conditions).where(PlanRow.id == mine.id)
-        ).one()
-    assert tuple(stored) == (None, "deleted", None)
-    seen: list[PlanCounts] = []
-    repository.add(Plan(uuid4(), other, sample_conditions()), ANY_DAY, seen.append)
-    assert seen == [PlanCounts(in_progress=0, owner_today=1, all_today=2)]
+        kept = connection.execute(select(DeletedPlanRow.id, DeletedPlanRow.user_id)).all()
+    assert [tuple(row) for row in kept] == [(mine.id, None)]
+    assert counts_for(repository, other) == PlanCounts(in_progress=0, owner_today=1, all_today=2)
 
 
-def test_a_user_with_plans_that_still_have_contents_cannot_be_deleted(
+def test_a_user_with_a_plan_being_built_cannot_leave(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
-    repository.add(sample_plan(uuid4(), owner), ANY_DAY, allow)
+    plan = waiting(repository, owner)
+    repository.claim(plan.id)
+    users = SqlUserRepository(engine)
 
-    with pytest.raises(IntegrityError, match="ck_plans_owner"):
-        SqlUserRepository(engine).delete(owner)
+    assert users.delete(owner, TODAY) is False
+    assert users.id_of("google-a") == owner

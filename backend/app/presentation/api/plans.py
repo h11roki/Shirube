@@ -33,6 +33,10 @@ TAKEN_COURSE = "/plans/{plan_id}/taken-courses/{name:path}"
 TAKEN_RESPONSES = {**INVALID_RESPONSE, **NOT_FOUND_RESPONSE, **CONFLICT_RESPONSE}
 
 
+def _not_found(plan_id: UUID) -> HTTPException:
+    return HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+
+
 def plans_router(
     request_plan: RequestPlan,
     get_plan: GetPlan,
@@ -48,7 +52,7 @@ def plans_router(
 
     def found(plan_id: UUID, plan: Plan | None) -> PlanOut:
         if plan is None:
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+            raise _not_found(plan_id)
         return plan_out(plan, syllabus_links.of(plan))
 
     @router.post(
@@ -105,7 +109,7 @@ def plans_router(
     )
     def remove(plan_id: UUID, user_id: Annotated[UUID, Depends(current_user)]) -> None:
         if not delete_plan.run(owner_id=user_id, plan_id=plan_id):
-            raise HTTPException(status.HTTP_404_NOT_FOUND, f"Plan がありません: {plan_id}")
+            raise _not_found(plan_id)
 
     @router.put(TAKEN_COURSE, responses=TAKEN_RESPONSES)
     def mark_taken(

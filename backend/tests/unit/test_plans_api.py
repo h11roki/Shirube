@@ -440,17 +440,19 @@ def test_a_plan_being_built_is_not_deleted() -> None:
     assert "できてから消せます" in response.json()["detail"]
 
 
-def test_leaving_deletes_the_user_and_the_contents_of_their_plans() -> None:
-    plans = FakePlanRepository()
+def test_leaving_deletes_the_user_unless_a_plan_is_being_built() -> None:
     users = FakeUserRepository()
     user_id = users.id_of("google-a")
     users.add_taken(user_id, "情報処理")
-    plan = sample_plan(uuid4(), user_id)
-    plans.store(plan)
+    users.building.add(user_id)
+    api = client(users=users)
 
-    response = client(plans=plans, users=users).delete("/api/v1/me")
+    refused = api.delete("/api/v1/me")
+    users.building.clear()
+    left = api.delete("/api/v1/me")
 
-    assert (response.status_code, response.content) == (204, b"")
+    assert refused.status_code == 409
+    assert "できてから退会できます" in refused.json()["detail"]
+    assert (left.status_code, left.content) == (204, b"")
     assert users.taken(user_id) == frozenset()
     assert "google-a" not in users.users
-    assert (plans.plans, plans.deleted) == ({}, {plan.id: None})

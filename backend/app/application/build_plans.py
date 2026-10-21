@@ -54,8 +54,8 @@ class BuildPlans:
         before = day_start(now)
         if before == self._forgotten_before:
             return
-        purged = self._plans.purge_deleted(before)
         self._forgotten_before = before
+        purged = self._plans.purge_deleted(before)
         if purged:
             logger.info("前の日までに削除した道標 %d 件の日時を消しました", purged)
 

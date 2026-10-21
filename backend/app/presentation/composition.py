@@ -104,7 +104,7 @@ def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
         SqlUserRepository(engine),
         settings.semester_credit_limit,
         PlanQuota(settings.daily_plan_limit_per_user, settings.daily_plan_limit_total),
-        lambda: datetime.now(UTC),
+        now,
     )
 
 
@@ -115,6 +115,10 @@ def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
         SqlPlanRepository(engine),
         SqlUserRepository(engine),
     )
+
+
+def now() -> datetime:
+    return datetime.now(UTC)
 
 
 def university_today() -> date:

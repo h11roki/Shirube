@@ -3,11 +3,11 @@ from datetime import datetime, timedelta
 from uuid import UUID
 
 from pydantic import TypeAdapter
-from sqlalchemy import ColumnElement, Engine, Select, case, delete, func, select, update
+from sqlalchemy import ColumnElement, Engine, Select, delete, func, select, update
 from sqlalchemy.orm import Session as DbSession
 from sqlalchemy.orm import aliased
 
-from app.application.ports import PlanFormatError
+from app.application.ports import Deletion, PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import (
@@ -26,6 +26,7 @@ from app.infrastructure.db.courses import section_from_json, section_json
 from app.infrastructure.db.models import (
     ChoiceJson,
     ConditionsJson,
+    DeletedPlanRow,
     PlacedJson,
     PlanRow,
     ProfileJson,
@@ -39,16 +40,6 @@ from app.infrastructure.db.models import (
 
 RESULT_JSON_VERSION = 3
 ADMISSION_LOCK = 380038
-DELETED = "deleted"
-ERASED = {
-    "status": DELETED,
-    "conditions": None,
-    "result": None,
-    "failure": None,
-    "stage": None,
-    "claimed_at": None,
-    "finished_at": None,
-}
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -64,7 +55,7 @@ class SqlPlanRepository:
             mine = PlanRow.user_id == plan.owner_id
             unfinished = mine & PlanRow.status.in_(IN_PROGRESS)
             today = PlanRow.created_at >= since
-            in_progress, owner_today, all_today = db.execute(
+            in_progress, owner_plans, all_plans = db.execute(
                 select(
                     func.count().filter(unfinished),
                     func.count().filter(mine & today & (PlanRow.status != PlanStatus.FAILED)),
@@ -73,7 +64,12 @@ class SqlPlanRepository:
                 .select_from(PlanRow)
                 .where(today | unfinished)
             ).one()
-            admit(PlanCounts(in_progress, owner_today, all_today))
+            owner_deleted, all_deleted = db.execute(
+                select(func.count().filter(DeletedPlanRow.user_id == plan.owner_id), func.count())
+                .select_from(DeletedPlanRow)
+                .where(DeletedPlanRow.created_at >= since)
+            ).one()
+            admit(PlanCounts(in_progress, owner_plans + owner_deleted, all_plans + all_deleted))
             db.add(
                 PlanRow(
                     id=plan.id,
@@ -167,57 +163,46 @@ class SqlPlanRepository:
                 )
             )
 
-    def delete_owned_by(self, plan_id: UUID, owner_id: UUID) -> bool:
+    def delete_owned_by(self, plan_id: UUID, owner_id: UUID, since: datetime) -> Deletion:
         with DbSession(self._engine) as db, db.begin():
-            deleted = db.scalars(
-                update(PlanRow)
-                .where(
-                    PlanRow.id == plan_id,
-                    PlanRow.user_id == owner_id,
-                    PlanRow.status.not_in((DELETED, PlanStatus.RUNNING)),
-                )
-                .values(
-                    user_id=case((PlanRow.status == PlanStatus.FAILED, None), else_=owner_id),
-                    **ERASED,
-                )
-                .returning(PlanRow.id)
-                .execution_options(synchronize_session=False)
+            row = db.execute(
+                select(PlanRow.status, PlanRow.created_at)
+                .where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
+                .with_for_update()
             ).one_or_none()
-        return deleted is not None
-
-    def delete_all_owned_by(self, owner_id: UUID) -> None:
-        with DbSession(self._engine) as db, db.begin():
-            db.execute(
-                update(PlanRow)
-                .where(PlanRow.user_id == owner_id)
-                .values(user_id=None, **ERASED)
-                .execution_options(synchronize_session=False)
-            )
+            if row is None:
+                return Deletion.MISSING
+            status, created_at = row
+            if status == PlanStatus.RUNNING:
+                return Deletion.RUNNING
+            if created_at >= since:
+                counted = None if status == PlanStatus.FAILED else owner_id
+                db.add(DeletedPlanRow(id=plan_id, user_id=counted, created_at=created_at))
+            db.execute(delete(PlanRow).where(PlanRow.id == plan_id))
+        return Deletion.DELETED
 
     def purge_deleted(self, before: datetime) -> int:
         with DbSession(self._engine) as db, db.begin():
             purged = db.scalars(
-                delete(PlanRow)
-                .where(PlanRow.status == DELETED, PlanRow.created_at < before)
-                .returning(PlanRow.id)
+                delete(DeletedPlanRow)
+                .where(DeletedPlanRow.created_at < before)
+                .returning(DeletedPlanRow.id)
             ).all()
         return len(purged)
 
     def get(self, plan_id: UUID) -> Plan | None:
-        return self._first(select(PlanRow).where(PlanRow.id == plan_id, PlanRow.status != DELETED))
+        return self._first(select(PlanRow).where(PlanRow.id == plan_id))
 
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None:
         return self._first(
-            select(PlanRow).where(
-                PlanRow.id == plan_id, PlanRow.user_id == owner_id, PlanRow.status != DELETED
-            )
+            select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
         )
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
         with DbSession(self._engine) as db:
             rows = db.execute(
                 select(PlanRow.id, PlanRow.status, PlanRow.conditions, PlanRow.created_at)
-                .where(PlanRow.user_id == owner_id, PlanRow.status != DELETED)
+                .where(PlanRow.user_id == owner_id)
                 .order_by(PlanRow.created_at.desc(), PlanRow.id.desc())
                 .limit(limit)
             ).all()
@@ -249,8 +234,6 @@ class SqlPlanRepository:
 
 
 def _plan(row: PlanRow) -> Plan:
-    if row.user_id is None:
-        raise PlanFormatError(f"{row.id}: 持ち主の無い道標は削除済みのはずです: {row.status}")
     stored = row.result
     version = stored.get("version") if isinstance(stored, dict) else None
     if stored is not None and version != RESULT_JSON_VERSION:

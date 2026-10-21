@@ -18,7 +18,7 @@ from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
-from app.application.ports import EmbeddingError, InvalidTokenError
+from app.application.ports import Deletion, EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
 from app.application.syllabus_links import SyllabusLinks
@@ -169,21 +169,16 @@ class FakePlanRepository:
         )
         self.store(plan)
 
-    def delete_owned_by(self, plan_id: UUID, owner_id: UUID) -> bool:
+    def delete_owned_by(self, plan_id: UUID, owner_id: UUID, since: datetime) -> Deletion:
         plan = self.plans.get(plan_id)
-        if plan is None or plan.owner_id != owner_id or plan.status is PlanStatus.RUNNING:
-            return False
+        if plan is None or plan.owner_id != owner_id:
+            return Deletion.MISSING
+        if plan.status is PlanStatus.RUNNING:
+            return Deletion.RUNNING
         del self.plans[plan_id]
-        self.deleted[plan_id] = None if plan.status is PlanStatus.FAILED else owner_id
-        return True
-
-    def delete_all_owned_by(self, owner_id: UUID) -> None:
-        for plan_id in [plan.id for plan in self.plans.values() if plan.owner_id == owner_id]:
-            del self.plans[plan_id]
-            self.deleted[plan_id] = None
-        for plan_id, owner in self.deleted.items():
-            if owner == owner_id:
-                self.deleted[plan_id] = None
+        if self.created_at[plan_id] >= since:
+            self.deleted[plan_id] = None if plan.status is PlanStatus.FAILED else owner_id
+        return Deletion.DELETED
 
     def purge_deleted(self, before: datetime) -> int:
         self.purges.append(before)
@@ -272,6 +267,7 @@ class FakeUserRepository:
     def __init__(self) -> None:
         self.users: dict[str, UUID] = {}
         self.remembered: dict[UUID, set[str]] = {}
+        self.building: set[UUID] = set()
 
     def id_of(self, subject: str) -> UUID:
         return self.users.setdefault(subject, uuid4())
@@ -285,9 +281,12 @@ class FakeUserRepository:
     def remove_taken(self, user_id: UUID, name: str) -> None:
         self.remembered.setdefault(user_id, set()).discard(name)
 
-    def delete(self, user_id: UUID) -> None:
+    def delete(self, user_id: UUID, since: datetime) -> bool:
+        if user_id in self.building:
+            return False
         self.users = {subject: known for subject, known in self.users.items() if known != user_id}
         self.remembered.pop(user_id, None)
+        return True
 
 
 def chat_answering(
@@ -376,10 +375,10 @@ def plan_app(
         ListPlans(stored),
         ListClassChoices(courses, known),
         AnswerTakenCourses(stored, known, courses),
-        DeletePlan(stored),
+        DeletePlan(stored, lambda: FIRST_CREATED_AT),
         SyllabusLinks(courses),
         TakenCourses(known),
-        DeleteAccount(stored, known),
+        DeleteAccount(known, lambda: FIRST_CREATED_AT),
         identify,
         2026,
         lambda: today,

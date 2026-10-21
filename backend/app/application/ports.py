@@ -1,6 +1,7 @@
 from collections.abc import Callable, Set
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from enum import Enum
 from typing import Protocol
 from uuid import UUID
 
@@ -86,11 +87,17 @@ class UserRepository(Protocol):
 
     def remove_taken(self, user_id: UUID, name: str) -> None: ...
 
-    def delete(self, user_id: UUID) -> None: ...
+    def delete(self, user_id: UUID, since: datetime) -> bool: ...
 
 
 class PlanFormatError(ValueError):
     pass
+
+
+class Deletion(Enum):
+    DELETED = "deleted"
+    MISSING = "missing"
+    RUNNING = "running"
 
 
 class PlanRepository(Protocol):
@@ -108,9 +115,7 @@ class PlanRepository(Protocol):
 
     def fail_stalled(self, after: timedelta, failure: str) -> list[UUID]: ...
 
-    def delete_owned_by(self, plan_id: UUID, owner_id: UUID) -> bool: ...
-
-    def delete_all_owned_by(self, owner_id: UUID) -> None: ...
+    def delete_owned_by(self, plan_id: UUID, owner_id: UUID, since: datetime) -> Deletion: ...
 
     def purge_deleted(self, before: datetime) -> int: ...
 
