@@ -217,6 +217,15 @@ class SqlPlanRepository:
             )
         return summaries
 
+    def count_owned_by(self, owner_id: UUID) -> int:
+        with DbSession(self._engine) as db:
+            return (
+                db.scalar(
+                    select(func.count()).select_from(PlanRow).where(PlanRow.user_id == owner_id)
+                )
+                or 0
+            )
+
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
         with DbSession(self._engine, expire_on_commit=False) as db, db.begin():
             row = db.scalars(

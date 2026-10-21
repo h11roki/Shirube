@@ -204,6 +204,9 @@ class FakePlanRepository:
             for plan in owned[:limit]
         ]
 
+    def count_owned_by(self, owner_id: UUID) -> int:
+        return sum(plan.owner_id == owner_id for plan in self.plans.values())
+
     def claim_next(self) -> Plan | None:
         pending = [plan for plan in self.plans.values() if plan.status is PlanStatus.PENDING]
         return self.claim(pending[0].id) if pending else None

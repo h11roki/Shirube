@@ -648,3 +648,15 @@ def test_a_user_with_a_plan_being_built_cannot_leave(
 
     assert users.delete(owner, TODAY) is Deletion.RUNNING
     assert users.id_of("google-a") == owner
+
+
+def test_the_users_plans_are_counted_without_others(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    other = SqlUserRepository(engine).id_of("google-b")
+    for _ in range(3):
+        waiting(repository, owner)
+    waiting(repository, other)
+
+    assert repository.count_owned_by(owner) == 3
+    assert repository.count_owned_by(SqlUserRepository(engine).id_of("google-c")) == 0

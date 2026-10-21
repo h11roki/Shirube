@@ -172,7 +172,7 @@ def test_a_failed_plan_is_shown_with_its_fixed_message() -> None:
     )
 
 
-def test_the_list_shows_only_the_users_own_plans_newest_first_up_to_fifty() -> None:
+def test_the_list_shows_the_users_own_plans_newest_first_up_to_fifty_and_counts_all() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
     owner = users.id_of("google-a")
@@ -184,6 +184,7 @@ def test_the_list_shows_only_the_users_own_plans_newest_first_up_to_fifty() -> N
     listed = client(plans=plans, users=users).get("/api/v1/plans")
 
     assert listed.status_code == 200
+    assert listed.json()["total"] == 51
     summaries = listed.json()["plans"]
     assert [summary["id"] for summary in summaries] == [str(plan.id) for plan in own[:0:-1]]
     assert summaries[0] == {

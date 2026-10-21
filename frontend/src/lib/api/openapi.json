@@ -1046,11 +1046,16 @@
             },
             "type": "array",
             "title": "Plans"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
           }
         },
         "type": "object",
         "required": [
-          "plans"
+          "plans",
+          "total"
         ],
         "title": "PlanListOut"
       },

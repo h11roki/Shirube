@@ -121,6 +121,7 @@ class PlanSummaryOut(BaseModel):
 
 class PlanListOut(BaseModel):
     plans: list[PlanSummaryOut]
+    total: int
 
 
 def _course_out(course: RecommendedCourse, links: Mapping[str, str]) -> CourseOut:
