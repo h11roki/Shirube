@@ -141,3 +141,9 @@ class PlanSummary:
     occupation: str
     start: Semester
     created_at: datetime
+
+
+@dataclass(frozen=True)
+class PlanListing:
+    summaries: list[PlanSummary]
+    total: int

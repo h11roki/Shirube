@@ -8,7 +8,7 @@ from uuid import UUID
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import Plan, PlanResult, PlanStage, PlanSummary
+from app.domain.plan import Plan, PlanListing, PlanResult, PlanStage
 from app.domain.quota import PlanCounts
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
@@ -127,7 +127,7 @@ class PlanRepository(Protocol):
 
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None: ...
 
-    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]: ...
+    def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing: ...
 
 
 class ChunkRepository(Protocol):

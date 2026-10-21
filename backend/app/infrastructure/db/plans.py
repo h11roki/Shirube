@@ -14,6 +14,7 @@ from app.domain.plan import (
     IN_PROGRESS,
     Plan,
     PlanConditions,
+    PlanListing,
     PlanResult,
     PlanStage,
     PlanStatus,
@@ -199,23 +200,29 @@ class SqlPlanRepository:
             select(PlanRow).where(PlanRow.id == plan_id, PlanRow.user_id == owner_id)
         )
 
-    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
+    def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing:
         with DbSession(self._engine) as db:
             rows = db.execute(
-                select(PlanRow.id, PlanRow.status, PlanRow.conditions, PlanRow.created_at)
+                select(
+                    PlanRow.id,
+                    PlanRow.status,
+                    PlanRow.conditions,
+                    PlanRow.created_at,
+                    func.count().over().label("total"),
+                )
                 .where(PlanRow.user_id == owner_id)
                 .order_by(PlanRow.created_at.desc(), PlanRow.id.desc())
                 .limit(limit)
             ).all()
         summaries = []
-        for plan_id, status, stored, created_at in rows:
+        for plan_id, status, stored, created_at, _ in rows:
             conditions = _conditions(plan_id, stored)
             summaries.append(
                 PlanSummary(
                     plan_id, PlanStatus(status), conditions.occupation, conditions.start, created_at
                 )
             )
-        return summaries
+        return PlanListing(summaries, rows[0].total if rows else 0)
 
     def _claim(self, which: ColumnElement[bool]) -> Plan | None:
         with DbSession(self._engine, expire_on_commit=False) as db, db.begin():

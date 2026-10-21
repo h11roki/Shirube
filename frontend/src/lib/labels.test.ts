@@ -18,6 +18,9 @@ import {
   unmarkTakenLabel,
   sourceNote,
   syllabusLinkLabel,
+  deletePlanLabel,
+  deletedPlanLabel,
+  leaveSummary,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -121,6 +124,24 @@ describe("labels", () => {
     );
     expect(sourceNote(2026)).toBe(
       "授業の情報は、立命館大学の 2026 年度のシラバスと時間割表によります。来年度以降の学期も、2026 年度の時間割で組んでいます。",
+    );
+  });
+
+  it("names what deleting and leaving remove", () => {
+    expect(deletePlanLabel("組込みエンジニア")).toBe(
+      "組込みエンジニアの道標を消す",
+    );
+    expect(deletedPlanLabel("組込みエンジニア")).toBe(
+      "組込みエンジニアの道標を消しました",
+    );
+    expect(leaveSummary(55, { count: 2 })).toBe(
+      "作った道標 55 件と、もう取ったと答えた授業 2 科目を全て消し、ログアウトします。",
+    );
+    expect(leaveSummary(0, undefined)).toBe(
+      "作った道標 0 件と、もう取ったと答えた授業を全て消し、ログアウトします。",
+    );
+    expect(leaveSummary(3, { failure: "サーバーに届きませんでした" })).toBe(
+      "作った道標 3 件と、もう取ったと答えた授業を全て消し、ログアウトします。もう取ったと答えた授業の数は確かめられませんでした(サーバーに届きませんでした)。",
     );
   });
 });

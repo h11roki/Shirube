@@ -80,6 +80,7 @@ def plans_router(
 
     @router.get("/plans")
     def index(user_id: Annotated[UUID, Depends(current_user)]) -> PlanListOut:
+        listing = list_plans.run(user_id)
         return PlanListOut(
             plans=[
                 PlanSummaryOut(
@@ -90,8 +91,9 @@ def plans_router(
                     term=summary.start.term,
                     created_at=summary.created_at,
                 )
-                for summary in list_plans.run(user_id)
-            ]
+                for summary in listing.summaries
+            ],
+            total=listing.total,
         )
 
     @router.get(

@@ -1,5 +1,6 @@
-import { signIn, signOut } from "@/auth";
+import { signIn } from "@/auth";
 import { currentSession } from "@/lib/session";
+import { signOutToTop } from "@/lib/sign-out";
 
 export async function Account() {
   const session = await currentSession();
@@ -7,13 +8,7 @@ export async function Account() {
     return <SignInButton />;
   }
   return (
-    <form
-      className="flex items-center gap-3"
-      action={async () => {
-        "use server";
-        await signOut({ redirectTo: "/" });
-      }}
-    >
+    <form className="flex items-center gap-3" action={signOutToTop}>
       <span className="hidden sm:inline">
         {session.user?.name ?? "Google のアカウント"}
       </span>

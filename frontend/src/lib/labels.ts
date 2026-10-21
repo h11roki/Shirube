@@ -169,3 +169,49 @@ export function syllabusLinkLabel(name: string): string {
 export function sourceNote(year: number): string {
   return `授業の情報は、立命館大学の ${year} 年度のシラバスと時間割表によります。来年度以降の学期も、${year} 年度の時間割で組んでいます。`;
 }
+
+export const DELETE_PLAN_LABEL = "この道標を消す";
+
+export const DELETE_ROW_LABEL = "消す";
+
+export const CONFIRM_DELETE_LABEL = "本当に消す";
+
+export const CANCEL_LABEL = "やめる";
+
+export const DELETE_PLAN_NOTE =
+  "消した道標は戻せません。今日作った道標は、1 日に作れる数を数えるため、作った日時だけを翌日の 0 時まで残します。";
+
+export const LEAVE_LABEL = "退会してデータを全て消す";
+
+export const CONFIRM_LEAVE_LABEL = "本当に退会する";
+
+export const LEAVE_KEEPS =
+  "今日作った道標は、1 日に作れる数を数えるため、作った日時だけを誰のものか分からない形で翌日の 0 時まで残します。";
+
+export function deletePlanLabel(occupation: string): string {
+  return `${occupation}の道標を消す`;
+}
+
+export const LEFT_NOTICE =
+  "退会しました。ログアウトしてトップへ戻ります。戻らないときは、下のボタンでログアウトしてください。";
+
+export function deletedPlanLabel(occupation: string): string {
+  return `${occupation}の道標を消しました`;
+}
+
+export type TakenCount = { count: number } | { failure: string };
+
+export function leaveSummary(
+  plans: number,
+  taken: TakenCount | undefined,
+): string {
+  const takenCount =
+    taken && "count" in taken
+      ? `もう取ったと答えた授業 ${taken.count} 科目`
+      : "もう取ったと答えた授業";
+  const failure =
+    taken && "failure" in taken
+      ? `もう取ったと答えた授業の数は確かめられませんでした(${taken.failure})。`
+      : "";
+  return `作った道標 ${plans} 件と、${takenCount}を全て消し、ログアウトします。${failure}`;
+}

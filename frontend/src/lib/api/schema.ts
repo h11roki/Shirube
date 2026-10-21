@@ -239,6 +239,8 @@ export interface components {
         PlanListOut: {
             /** Plans */
             plans: components["schemas"]["PlanSummaryOut"][];
+            /** Total */
+            total: number;
         };
         /** PlanOut */
         PlanOut: {

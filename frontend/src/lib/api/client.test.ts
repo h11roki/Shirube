@@ -2,9 +2,11 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  deletePlan,
   isTemporary,
   messageOf,
   requestJson,
+  requestNothing,
 } from "@/lib/api/client";
 
 afterEach(() => {
@@ -110,5 +112,56 @@ describe("errors", () => {
     expect(messageOf("文字列")).toBe(
       "道標のサーバーとやり取りできませんでした",
     );
+  });
+});
+
+describe("requestNothing", () => {
+  it("accepts an answer without a body", async () => {
+    const fetchMock = respondWith(new Response(null, { status: 204 }));
+
+    await expect(
+      requestNothing("/api/me", { method: "DELETE" }),
+    ).resolves.toBeUndefined();
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: "DELETE",
+      cache: "no-store",
+    });
+  });
+
+  it("turns a refusal into its detail sentence and status", async () => {
+    respondWith(
+      Response.json(
+        { detail: "作っている途中の道標は、できてから消せます" },
+        { status: 409 },
+      ),
+    );
+
+    await expect(
+      requestNothing("/api/plans/abc", { method: "DELETE" }),
+    ).rejects.toMatchObject({
+      status: 409,
+      message: "作っている途中の道標は、できてから消せます",
+    });
+  });
+});
+
+describe("deletePlan", () => {
+  it("treats a plan that is already gone as deleted", async () => {
+    respondWith(
+      Response.json({ detail: "Plan がありません: abc" }, { status: 404 }),
+    );
+
+    await expect(deletePlan("abc")).resolves.toBeUndefined();
+  });
+
+  it("passes on any other refusal", async () => {
+    respondWith(
+      Response.json(
+        { detail: "作っている途中の道標は、できてから消せます" },
+        { status: 409 },
+      ),
+    );
+
+    await expect(deletePlan("abc")).rejects.toMatchObject({ status: 409 });
   });
 });
