@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import { ConfirmButton } from "@/components/confirm-button";
 import { CourseGrid } from "@/components/course-grid";
+import { DeletePlanButton } from "@/components/delete-plan-button";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
@@ -19,14 +19,10 @@ import { TimetableBook } from "@/components/timetable-book";
 import {
   type Plan,
   type PlanResult as Result,
-  deletePlan,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
 import {
-  CONFIRM_DELETE_LABEL,
-  DELETE_PLAN_LABEL,
-  DELETE_PLAN_NOTE,
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
   type TakenChange,
@@ -61,7 +57,6 @@ export function PlanResultView({
   onAnswered: (plan: Plan) => void;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
   const { view, semester } = readResultView(useSearchParams());
   const [busy, setBusy] = useState(false);
   const [answered, setAnswered] = useState<Answered>();
@@ -284,15 +279,7 @@ export function PlanResultView({
           <Link href="/" className={`text-sm ${TEXT_LINK}`}>
             別の職業で作る
           </Link>
-          <ConfirmButton
-            label={DELETE_PLAN_LABEL}
-            note={DELETE_PLAN_NOTE}
-            confirmLabel={CONFIRM_DELETE_LABEL}
-            onConfirm={async () => {
-              await deletePlan(plan.id);
-              router.push("/plans");
-            }}
-          />
+          <DeletePlanButton id={plan.id} />
         </div>
       </div>
       <div

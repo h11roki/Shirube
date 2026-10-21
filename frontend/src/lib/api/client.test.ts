@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  deletePlan,
   isTemporary,
   messageOf,
   requestJson,
@@ -141,5 +142,26 @@ describe("requestNothing", () => {
       status: 409,
       message: "作っている途中の道標は、できてから消せます",
     });
+  });
+});
+
+describe("deletePlan", () => {
+  it("treats a plan that is already gone as deleted", async () => {
+    respondWith(
+      Response.json({ detail: "Plan がありません: abc" }, { status: 404 }),
+    );
+
+    await expect(deletePlan("abc")).resolves.toBeUndefined();
+  });
+
+  it("passes on any other refusal", async () => {
+    respondWith(
+      Response.json(
+        { detail: "作っている途中の道標は、できてから消せます" },
+        { status: 409 },
+      ),
+    );
+
+    await expect(deletePlan("abc")).rejects.toMatchObject({ status: 409 });
   });
 });

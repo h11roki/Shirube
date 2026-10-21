@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { type ReactNode, useEffect, useState } from "react";
 
-import { ConfirmButton } from "@/components/confirm-button";
+import { DeletePlanButton } from "@/components/delete-plan-button";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
@@ -12,16 +12,11 @@ import {
   ApiError,
   type Plan,
   UNAUTHORIZED,
-  deletePlan,
   isTemporary,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
-import {
-  CONFIRM_DELETE_LABEL,
-  DELETE_PLAN_LABEL,
-  DELETE_PLAN_NOTE,
-} from "@/lib/labels";
+import { deletable } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
   POLL_REQUEST_TIMEOUT_MS,
@@ -32,7 +27,6 @@ import {
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
-  const router = useRouter();
   const [plan, setPlan] = useState<Plan>();
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
@@ -140,36 +134,35 @@ export function PlanView() {
         <Link href="/" className={TEXT_LINK}>
           もう一度作る
         </Link>
-        <ConfirmButton
-          label={DELETE_PLAN_LABEL}
-          note={DELETE_PLAN_NOTE}
-          confirmLabel={CONFIRM_DELETE_LABEL}
-          onConfirm={async () => {
-            await deletePlan(plan.id);
-            router.push("/plans");
-          }}
-        />
+        <DeletePlanButton id={plan.id} />
       </Notice>
     );
   }
   return (
-    <PlanProgress
-      plan={plan}
-      stalled={
-        watch === "gave-up" ? (
-          <div className="grid justify-items-start gap-3 text-sm">
-            <p>
-              時間がかかっています。あとで
-              <Link href="/plans" className={TEXT_LINK}>
-                一覧
-              </Link>
-              から見てください。
-            </p>
-            <RetryButton onClick={retry} />
-          </div>
-        ) : undefined
-      }
-    />
+    <div className="grid gap-6">
+      <PlanProgress
+        plan={plan}
+        stalled={
+          watch === "gave-up" ? (
+            <div className="grid justify-items-start gap-3 text-sm">
+              <p>
+                時間がかかっています。あとで
+                <Link href="/plans" className={TEXT_LINK}>
+                  一覧
+                </Link>
+                から見てください。
+              </p>
+              <RetryButton onClick={retry} />
+            </div>
+          ) : undefined
+        }
+      />
+      {deletable(plan.status) && (
+        <div className="mx-auto w-full max-w-xl">
+          <DeletePlanButton id={plan.id} />
+        </div>
+      )}
+    </div>
   );
 }
 

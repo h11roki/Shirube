@@ -21,6 +21,7 @@ const UNREACHABLE = "道標のサーバーとやり取りできませんでし�
 const SIGNED_OUT =
   "ログインが切れました。ページを読み直してログインしてください";
 export const UNAUTHORIZED = 401;
+const NOT_FOUND = 404;
 
 export class ApiError extends Error {
   constructor(
@@ -96,8 +97,14 @@ export function isTemporary(error: unknown): boolean {
   );
 }
 
-export function deletePlan(id: string): Promise<void> {
-  return requestNothing(`/api/plans/${encodeURIComponent(id)}`, {
-    method: "DELETE",
-  });
+export async function deletePlan(id: string): Promise<void> {
+  try {
+    await requestNothing(`/api/plans/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+    });
+  } catch (error) {
+    if (!(error instanceof ApiError && error.status === NOT_FOUND)) {
+      throw error;
+    }
+  }
 }

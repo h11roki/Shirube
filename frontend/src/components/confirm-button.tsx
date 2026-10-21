@@ -11,12 +11,14 @@ export function ConfirmButton({
   name,
   note,
   confirmLabel,
+  onOpen,
   onConfirm,
 }: {
   label: string;
   name?: string;
   note: string;
   confirmLabel: string;
+  onOpen?: () => void;
   onConfirm: () => Promise<void>;
 }) {
   const [asking, setAsking] = useState(false);
@@ -52,7 +54,11 @@ export function ConfirmButton({
         ref={start}
         type="button"
         aria-label={name}
-        onClick={() => setAsking(true)}
+        onClick={() => {
+          setFailure(undefined);
+          setAsking(true);
+          onOpen?.();
+        }}
         className="rounded-full border border-line px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
       >
         {label}

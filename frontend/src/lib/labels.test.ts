@@ -18,7 +18,9 @@ import {
   unmarkTakenLabel,
   sourceNote,
   syllabusLinkLabel,
+  deletable,
   deletePlanLabel,
+  deletedPlanLabel,
   leaveSummary,
 } from "@/lib/labels";
 
@@ -130,11 +132,21 @@ describe("labels", () => {
     expect(deletePlanLabel("組込みエンジニア")).toBe(
       "組込みエンジニアの道標を消す",
     );
-    expect(leaveSummary(3, 50, 2)).toBe(
-      "作った道標 3 件と、もう取ったと答えた授業 2 科目を全て消し、ログアウトします。",
+    expect(deletedPlanLabel("組込みエンジニア")).toBe(
+      "組込みエンジニアの道標を消しました",
     );
-    expect(leaveSummary(50, 50, undefined)).toBe(
-      "作った道標 50 件以上と、もう取ったと答えた授業を全て消し、ログアウトします。",
+    expect(leaveSummary(55, 2)).toBe(
+      "作った道標 55 件と、もう取ったと答えた授業 2 科目を全て消し、ログアウトします。",
     );
+    expect(leaveSummary(0, undefined)).toBe(
+      "作った道標 0 件と、もう取ったと答えた授業を全て消し、ログアウトします。",
+    );
+  });
+
+  it("lets every plan but one being built be deleted", () => {
+    expect(deletable("pending")).toBe(true);
+    expect(deletable("running")).toBe(false);
+    expect(deletable("succeeded")).toBe(true);
+    expect(deletable("failed")).toBe(true);
   });
 });
