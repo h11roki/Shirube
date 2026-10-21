@@ -24,6 +24,21 @@ CONFLICT_RESPONSE: dict[int | str, dict[str, Any]] = {
         "description": "道標が完了していない、時間割表が変わった、ほかの画面で答えが変わった",
     }
 }
+BUSY_RESPONSE: dict[int | str, dict[str, Any]] = {
+    status.HTTP_409_CONFLICT: {"model": ErrorOut, "description": "作っている道標がある"}
+}
+LIMIT_RESPONSE: dict[int | str, dict[str, Any]] = {
+    status.HTTP_429_TOO_MANY_REQUESTS: {
+        "model": ErrorOut,
+        "description": "1 人か全体の、1 日に作れる数に達した",
+        "headers": {
+            "Retry-After": {
+                "description": "次の日本時間の 0 時までの秒数",
+                "schema": {"type": "integer"},
+            }
+        },
+    }
+}
 NOT_FOUND_RESPONSE: dict[int | str, dict[str, Any]] = {
     status.HTTP_404_NOT_FOUND: {"model": ErrorOut, "description": "無いか、ほかの利用者の道標"}
 }

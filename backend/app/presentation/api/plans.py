@@ -12,7 +12,13 @@ from app.application.request_plan import RequestPlan
 from app.domain.plan import Plan
 from app.domain.roadmap import Semester, term_on
 from app.presentation.api.taken_courses import TakenCourseName
-from app.presentation.schemas.errors import CONFLICT_RESPONSE, INVALID_RESPONSE, NOT_FOUND_RESPONSE
+from app.presentation.schemas.errors import (
+    BUSY_RESPONSE,
+    CONFLICT_RESPONSE,
+    INVALID_RESPONSE,
+    LIMIT_RESPONSE,
+    NOT_FOUND_RESPONSE,
+)
 from app.presentation.schemas.plans import (
     PlanIn,
     PlanListOut,
@@ -42,7 +48,11 @@ def plans_router(
 ) -> APIRouter:
     router = APIRouter()
 
-    @router.post("/plans", status_code=status.HTTP_202_ACCEPTED, responses=INVALID_RESPONSE)
+    @router.post(
+        "/plans",
+        status_code=status.HTTP_202_ACCEPTED,
+        responses={**INVALID_RESPONSE, **BUSY_RESPONSE, **LIMIT_RESPONSE},
+    )
     def create(
         body: PlanIn,
         user_id: Annotated[UUID, Depends(current_user)],

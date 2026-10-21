@@ -433,9 +433,29 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorOut"];
                 };
             };
+            /** @description 作っている道標がある */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
             /** @description リクエストを直せば通る誤り */
             422: {
                 headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description 1 人か全体の、1 日に作れる数に達した */
+            429: {
+                headers: {
+                    /** @description 次の日本時間の 0 時までの秒数 */
+                    "Retry-After"?: number;
                     [name: string]: unknown;
                 };
                 content: {

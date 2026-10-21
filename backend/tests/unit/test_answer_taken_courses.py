@@ -28,7 +28,7 @@ def answering(
 ) -> tuple[FakePlanRepository, FakeUserRepository, Plan]:
     stored = plans or FakePlanRepository()
     plan = sample_plan_asking(uuid4(), owner)
-    stored.add(plan)
+    stored.store(plan)
     return stored, FakeUserRepository(), plan
 
 
@@ -93,7 +93,7 @@ def test_an_unfinished_plan_is_refused_and_another_users_plan_is_none() -> None:
     owner = uuid4()
     plans, users, plan = answering(owner)
     waiting = Plan(uuid4(), owner, sample_conditions())
-    plans.add(waiting)
+    plans.store(waiting)
     answer = AnswerTakenCourses(plans, users, COURSES)
 
     with pytest.raises(PlanNotFinishedError, match="完了した道標でないと答えられません: pending"):
@@ -120,7 +120,7 @@ def test_a_plan_whose_timetable_changed_since_it_was_made_is_refused() -> None:
     chosen = replace(
         plan, id=uuid4(), conditions=replace(plan.conditions, chosen_classes=(("科目A", "6Z"),))
     )
-    plans.add(chosen)
+    plans.store(chosen)
 
     with pytest.raises(PlanOutdatedError, match="時間割表が変わった"):
         AnswerTakenCourses(plans, users, moved).mark(owner_id=owner, plan_id=plan.id, name="科目A")

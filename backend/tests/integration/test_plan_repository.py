@@ -1,6 +1,9 @@
 import json
+import threading
+import time
 from collections.abc import Iterator
-from datetime import timedelta
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
@@ -13,6 +16,7 @@ from sqlalchemy.exc import IntegrityError
 
 from app.application.ports import PlanFormatError
 from app.domain.plan import Plan, PlanStage, PlanStatus
+from app.domain.quota import PlanCounts
 from app.infrastructure.db.models import PlanRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
@@ -23,6 +27,11 @@ VERSION_1 = FIXTURES / "plan_v1.json"
 VERSION_2 = FIXTURES / "plan_v2.json"
 VERSION_3 = FIXTURES / "plan_v3.json"
 STALL_LIMIT = timedelta(minutes=15)
+ANY_DAY = datetime(2000, 1, 1, tzinfo=UTC)
+
+
+def allow(counts: PlanCounts) -> None:
+    pass
 
 
 @pytest.fixture
@@ -40,7 +49,7 @@ def owner(engine: Engine, repository: SqlPlanRepository) -> UUID:
 
 def waiting(repository: SqlPlanRepository, owner: UUID) -> Plan:
     plan = Plan(uuid4(), owner, sample_conditions())
-    repository.add(plan)
+    repository.add(plan, ANY_DAY, allow)
     return plan
 
 
@@ -60,7 +69,7 @@ def test_a_saved_plan_comes_back_unchanged_with_its_owner(
     succeeded = sample_plan(uuid4(), owner)
     pending = waiting(repository, owner)
 
-    repository.add(succeeded)
+    repository.add(succeeded, ANY_DAY, allow)
 
     assert repository.get(succeeded.id) == succeeded
     assert repository.get(pending.id) == pending
@@ -143,7 +152,7 @@ def test_another_owners_plan_is_none_even_when_it_cannot_be_read(
 
 def test_a_plan_is_returned_to_its_owner(repository: SqlPlanRepository, owner: UUID) -> None:
     plan = sample_plan(uuid4(), owner)
-    repository.add(plan)
+    repository.add(plan, ANY_DAY, allow)
 
     assert repository.get_owned_by(plan.id, owner) == plan
 
@@ -153,7 +162,7 @@ def test_the_owners_plans_are_listed_newest_first_up_to_the_limit(
 ) -> None:
     oldest = waiting(repository, owner)
     middle = sample_plan(uuid4(), owner)
-    repository.add(middle)
+    repository.add(middle, ANY_DAY, allow)
     newest = waiting(repository, owner)
     waiting(repository, SqlUserRepository(engine).id_of("google-b"))
     with engine.begin() as connection:
@@ -180,7 +189,7 @@ def test_the_oldest_waiting_plan_is_claimed_once_as_running(
 ) -> None:
     oldest = waiting(repository, owner)
     newer = waiting(repository, owner)
-    repository.add(sample_plan(uuid4(), owner))
+    repository.add(sample_plan(uuid4(), owner), ANY_DAY, allow)
 
     first = repository.claim_next()
     second = repository.claim_next()
@@ -242,7 +251,7 @@ def test_only_a_waiting_plan_is_claimed_by_its_id(
 ) -> None:
     plan = waiting(repository, owner)
     done = sample_plan(uuid4(), owner)
-    repository.add(done)
+    repository.add(done, ANY_DAY, allow)
 
     claimed = repository.claim(plan.id)
 
@@ -278,7 +287,7 @@ def test_a_succeeded_plan_is_placed_again_only_from_the_result_it_was_read_with(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = sample_plan(uuid4(), owner)
-    repository.add(plan)
+    repository.add(plan, ANY_DAY, allow)
     pending = waiting(repository, owner)
     again = sample_plan_with_taken(plan.id, owner)
     assert plan.result is not None
@@ -444,7 +453,7 @@ def test_going_back_to_version_2_moves_the_taken_courses_to_the_unplaced_ones(
     engine: Engine, alembic_config: Config, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = sample_plan_with_taken(uuid4(), owner)
-    repository.add(plan)
+    repository.add(plan, ANY_DAY, allow)
     command.downgrade(alembic_config, "0006")
     try:
         with engine.connect() as connection:
@@ -459,3 +468,78 @@ def test_going_back_to_version_2_moves_the_taken_courses_to_the_unplaced_ones(
     assert stored["roadmap"]["unplaced"] == ["科目D"]
     assert "taken" not in stored["roadmap"]
     assert "offered_earlier" not in stored["roadmap"]
+
+
+class Refused(Exception):
+    pass
+
+
+def failed(owner: UUID) -> Plan:
+    return replace(Plan(uuid4(), owner, sample_conditions()), status=PlanStatus.RUNNING).failed(
+        "失敗"
+    )
+
+
+def test_adding_counts_plans_in_progress_the_users_successes_and_all_plans_since_the_day(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    other = SqlUserRepository(engine).id_of("google-b")
+    waiting(repository, owner)
+    repository.add(sample_plan(uuid4(), owner), ANY_DAY, allow)
+    repository.add(failed(owner), ANY_DAY, allow)
+    repository.add(sample_plan(uuid4(), other), ANY_DAY, allow)
+    seen: list[PlanCounts] = []
+
+    repository.add(Plan(uuid4(), owner, sample_conditions()), ANY_DAY, seen.append)
+    repository.add(
+        Plan(uuid4(), other, sample_conditions()),
+        datetime.now(UTC) + timedelta(hours=1),
+        seen.append,
+    )
+
+    assert seen == [
+        PlanCounts(in_progress=1, owner_today=2, all_today=4),
+        PlanCounts(in_progress=0, owner_today=0, all_today=0),
+    ]
+
+
+def test_a_refused_plan_is_not_saved(repository: SqlPlanRepository, owner: UUID) -> None:
+    plan = Plan(uuid4(), owner, sample_conditions())
+
+    def refuse(counts: PlanCounts) -> None:
+        raise Refused
+
+    with pytest.raises(Refused):
+        repository.add(plan, ANY_DAY, refuse)
+    assert repository.get(plan.id) is None
+
+
+def test_requests_at_the_same_time_are_counted_one_after_another(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    other = SqlUserRepository(engine).id_of("google-b")
+    together = threading.Barrier(2)
+    refused: list[UUID] = []
+
+    def only_the_first(counts: PlanCounts) -> None:
+        time.sleep(0.2)
+        if counts.all_today >= 1:
+            raise Refused
+
+    def request(user_id: UUID) -> None:
+        plan = Plan(uuid4(), user_id, sample_conditions())
+        together.wait()
+        try:
+            repository.add(plan, ANY_DAY, only_the_first)
+        except Refused:
+            refused.append(plan.id)
+
+    threads = [threading.Thread(target=request, args=(user_id,)) for user_id in (owner, other)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+
+    saved = repository.list_owned_by(owner, 10) + repository.list_owned_by(other, 10)
+    assert len(refused) == 1
+    assert len(saved) == 1

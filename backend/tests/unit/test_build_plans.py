@@ -38,7 +38,7 @@ def waiting(
     plans: FakePlanRepository, start: Semester = START, chosen: tuple[tuple[str, str], ...] = ()
 ) -> Plan:
     plan = Plan(uuid4(), OWNER, PlanConditions("職業", "情", 2026, start, chosen, 2))
-    plans.add(plan)
+    plans.store(plan)
     return plan
 
 

@@ -1,5 +1,5 @@
 import sys
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime
 
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
@@ -9,6 +9,8 @@ from app.application.build_plans import BuildPlans
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.domain.course import UNIVERSITY_TIME
+from app.domain.quota import PlanQuota
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
@@ -18,8 +20,6 @@ from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.settings import Settings
-
-UNIVERSITY_TIME = timezone(timedelta(hours=9))
 
 
 def load_settings() -> Settings:
@@ -103,6 +103,8 @@ def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
         SqlPlanRepository(engine),
         SqlUserRepository(engine),
         settings.semester_credit_limit,
+        PlanQuota(settings.daily_plan_limit_per_user, settings.daily_plan_limit_total),
+        lambda: datetime.now(UTC),
     )
 
 

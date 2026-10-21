@@ -1,4 +1,5 @@
 import logging
+import math
 from collections.abc import Callable
 from datetime import date
 
@@ -22,6 +23,7 @@ from app.application.ports import InvalidTokenError
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import NoCandidatesError
 from app.application.taken_courses import TakenCourses
+from app.domain.quota import DailyLimitError, PlanInProgressError
 from app.domain.roadmap import ClassChoiceError
 from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
@@ -38,6 +40,7 @@ INPUT_ERRORS: tuple[type[Exception], ...] = (
     UnaskedCourseError,
 )
 CONFLICT_ERRORS: tuple[type[Exception], ...] = (
+    PlanInProgressError,
     PlanNotFinishedError,
     PlanOutdatedError,
     AnswerConflictError,
@@ -115,6 +118,14 @@ def create_app(
     for error in CONFLICT_ERRORS:
         app.add_exception_handler(error, _conflict)
     app.add_exception_handler(Exception, _unexpected_error)
+
+    @app.exception_handler(DailyLimitError)
+    async def daily_limit(request: Request, error: DailyLimitError) -> JSONResponse:
+        return JSONResponse(
+            {"detail": str(error)},
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            headers={"Retry-After": str(math.ceil(error.retry_after.total_seconds()))},
+        )
 
     @app.exception_handler(RequestValidationError)
     async def invalid_request(request: Request, error: RequestValidationError) -> JSONResponse:

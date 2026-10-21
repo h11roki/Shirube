@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from datetime import timedelta
+from collections.abc import Callable, Mapping
+from datetime import datetime, timedelta
 from uuid import UUID
 
 from pydantic import TypeAdapter
@@ -11,6 +11,7 @@ from app.application.ports import PlanFormatError
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import (
+    IN_PROGRESS,
     Plan,
     PlanConditions,
     PlanResult,
@@ -18,6 +19,7 @@ from app.domain.plan import (
     PlanStatus,
     PlanSummary,
 )
+from app.domain.quota import PlanCounts
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.infrastructure.db.courses import section_from_json, section_json
@@ -36,6 +38,7 @@ from app.infrastructure.db.models import (
 )
 
 RESULT_JSON_VERSION = 3
+ADMISSION_LOCK = 380038
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -45,8 +48,22 @@ class SqlPlanRepository:
     def __init__(self, engine: Engine) -> None:
         self._engine = engine
 
-    def add(self, plan: Plan) -> None:
+    def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None:
         with DbSession(self._engine) as db, db.begin():
+            db.execute(select(func.pg_advisory_xact_lock(ADMISSION_LOCK)))
+            mine = PlanRow.user_id == plan.owner_id
+            unfinished = mine & PlanRow.status.in_(IN_PROGRESS)
+            today = PlanRow.created_at >= since
+            in_progress, owner_today, all_today = db.execute(
+                select(
+                    func.count().filter(unfinished),
+                    func.count().filter(mine & today & (PlanRow.status != PlanStatus.FAILED)),
+                    func.count().filter(today),
+                )
+                .select_from(PlanRow)
+                .where(today | unfinished)
+            ).one()
+            admit(PlanCounts(in_progress, owner_today, all_today))
             db.add(
                 PlanRow(
                     id=plan.id,

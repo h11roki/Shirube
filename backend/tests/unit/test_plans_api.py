@@ -1,4 +1,6 @@
+from collections.abc import Callable
 from dataclasses import replace
+from datetime import datetime
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -9,6 +11,7 @@ from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStage, PlanStatus
+from app.domain.quota import PlanCounts
 from tests.builders import sample_conditions, sample_plan, sample_plan_asking, sample_sections
 from tests.fakes import (
     FakeChunkSearch,
@@ -27,7 +30,7 @@ class UnreadablePlans(FakePlanRepository):
 
 
 class BrokenPlans(FakePlanRepository):
-    def add(self, plan: Plan) -> None:
+    def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None:
         raise RuntimeError("接続文字列 postgresql://secret")
 
 
@@ -97,7 +100,7 @@ def test_a_running_plan_is_shown_with_its_stage() -> None:
         PlanStatus.RUNNING,
         stage=PlanStage.SELECTING,
     )
-    plans.add(plan)
+    plans.store(plan)
 
     shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
 
@@ -108,7 +111,7 @@ def test_a_succeeded_plan_is_shown_with_its_result() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
     plan = sample_plan(uuid4(), users.id_of("google-a"))
-    plans.add(plan)
+    plans.store(plan)
 
     shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
 
@@ -149,7 +152,7 @@ def test_a_failed_plan_is_shown_with_its_fixed_message() -> None:
         PlanStatus.FAILED,
         failure="道標を作る途中で止まりました",
     )
-    plans.add(plan)
+    plans.store(plan)
 
     shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
 
@@ -166,8 +169,8 @@ def test_the_list_shows_only_the_users_own_plans_newest_first_up_to_fifty() -> N
     owner = users.id_of("google-a")
     own = [Plan(uuid4(), owner, sample_conditions()) for _ in range(51)]
     for plan in own:
-        plans.add(plan)
-    plans.add(Plan(uuid4(), users.id_of("google-b"), sample_conditions()))
+        plans.store(plan)
+    plans.store(Plan(uuid4(), users.id_of("google-b"), sample_conditions()))
 
     listed = client(plans=plans, users=users).get("/api/v1/plans")
 
@@ -307,7 +310,7 @@ def test_a_course_is_marked_taken_and_unmarked_by_its_name() -> None:
     plans = FakePlanRepository()
     users = FakeUserRepository()
     plan = sample_plan_asking(uuid4(), users.id_of("google-a"))
-    plans.add(plan)
+    plans.store(plan)
     courses = (FakeCourseRepository(sample_sections()), courses_ranked_by({"科目A": 0.9})[1])
     api = client(courses, plans, users)
 
@@ -327,8 +330,8 @@ def test_answers_about_unasked_courses_unfinished_or_others_plans_are_refused() 
     owner = users.id_of("google-a")
     plan = sample_plan_asking(uuid4(), owner)
     waiting = Plan(uuid4(), owner, sample_conditions())
-    plans.add(plan)
-    plans.add(waiting)
+    plans.store(plan)
+    plans.store(waiting)
     api = client(plans=plans, users=users)
 
     unasked = api.put(f"/api/v1/plans/{plan.id}/taken-courses/科目B")
@@ -367,3 +370,28 @@ def test_the_users_taken_courses_are_listed_and_forgotten_one_by_one() -> None:
     assert users.taken(users.id_of("google-b")) == {"情報処理"}
     assert too_long.status_code == 422
     assert empty.status_code == 422
+
+
+def test_a_user_at_the_daily_limit_is_refused_with_when_to_retry() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    for _ in range(3):
+        plans.store(sample_plan(uuid4(), users.id_of("google-a")))
+
+    response = client(plans=plans, users=users).post("/api/v1/plans", json=body())
+
+    assert response.status_code == 429
+    assert response.headers["Retry-After"] == str(6 * 60 * 60)
+    assert "1 人 1 日 3 件まで" in response.json()["detail"]
+    assert len(plans.plans) == 3
+
+
+def test_a_user_with_a_plan_in_progress_is_refused_as_a_conflict() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plans.store(Plan(uuid4(), users.id_of("google-a"), sample_conditions()))
+
+    response = client(plans=plans, users=users).post("/api/v1/plans", json=body())
+
+    assert response.status_code == 409
+    assert "作っている道標ができてから" in response.json()["detail"]

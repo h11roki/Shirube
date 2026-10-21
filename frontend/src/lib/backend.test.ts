@@ -138,6 +138,21 @@ describe("forwardToBackend", () => {
     expect(await response.json()).toEqual({ detail: "道標が見つかりません" });
   });
 
+  it("passes when to retry a refused plan through", async () => {
+    auth.mockResolvedValue(loggedInAs("google-subject"));
+    backendReturns(
+      Response.json(
+        { detail: "道標を作れるのは 1 人 1 日 3 件までです" },
+        { status: 429, headers: { "Retry-After": "21600" } },
+      ),
+    );
+
+    const response = await forwardToBackend("/plans", postRequest("{}"));
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("21600");
+  });
+
   it("points the Location of a created plan at the frontend route", async () => {
     auth.mockResolvedValue(loggedInAs("google-subject"));
     backendReturns(

@@ -7,6 +7,7 @@ const BACKEND_TIMED_OUT = {
   detail: "道標のサーバーが時間内に返りませんでした",
 };
 const BACKEND_TIMEOUT_MS = 290_000;
+const PASSED_HEADERS = ["Content-Type", "Retry-After"];
 const BACKEND_PREFIX = "/api/v1";
 const FRONTEND_PREFIX = "/api";
 
@@ -58,9 +59,11 @@ export async function forwardToBackend(
     return Response.json(BACKEND_UNREACHABLE, { status: 502 });
   }
   const forwarded = new Headers();
-  const responseType = backend.headers.get("Content-Type");
-  if (responseType) {
-    forwarded.set("Content-Type", responseType);
+  for (const name of PASSED_HEADERS) {
+    const value = backend.headers.get(name);
+    if (value) {
+      forwarded.set(name, value);
+    }
   }
   const location = backend.headers.get("Location");
   if (location?.startsWith(`${BACKEND_PREFIX}/`)) {
