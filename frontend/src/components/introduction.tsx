@@ -1,8 +1,8 @@
 import { SignInButton } from "@/components/account";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
-import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { Kicker } from "@/components/kicker";
+import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";

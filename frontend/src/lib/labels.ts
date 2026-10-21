@@ -162,9 +162,6 @@ export function classLabel(classCode: string): string {
 export const PLAN_CAUTION =
   "非公式の参考です。必修、卒業要件、履修の前提は見ていません。授業は AI が選ぶので、誤りや作るたびの違いがあります。履修登録の前に、大学の履修要項とシラバスで確かめてください。";
 
-export const SYLLABUS_SITE =
-  "https://syllabus.ritsumei.ac.jp/syllabus/s/?language=ja";
-
 export function syllabusLinkLabel(name: string): string {
   return `${name}のシラバスを新しいタブで開く`;
 }
