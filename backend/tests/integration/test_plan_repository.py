@@ -15,7 +15,7 @@ from sqlalchemy import Engine, delete, func, insert, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 from app.application.ports import Deletion, PlanFormatError
-from app.domain.plan import Plan, PlanStage, PlanStatus
+from app.domain.plan import Plan, PlanListing, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
 from app.infrastructure.db.models import DeletedPlanRow, PlanRow, TakenCourseRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
@@ -175,8 +175,10 @@ def test_the_owners_plans_are_listed_newest_first_up_to_the_limit(
                 .values(created_at=text(f"now() + interval '{minutes} minutes'"))
             )
 
-    listed = repository.list_owned_by(owner, 2)
+    listing = repository.list_owned_by(owner, 2)
+    listed = listing.summaries
 
+    assert listing.total == 3
     assert [summary.id for summary in listed] == [newest.id, middle.id]
     assert [summary.status for summary in listed] == [PlanStatus.PENDING, PlanStatus.SUCCEEDED]
     assert {(summary.occupation, summary.start) for summary in listed} == {
@@ -542,7 +544,10 @@ def test_requests_at_the_same_time_are_counted_one_after_another(
     for thread in threads:
         thread.join()
 
-    saved = repository.list_owned_by(owner, 10) + repository.list_owned_by(other, 10)
+    saved = (
+        repository.list_owned_by(owner, 10).summaries
+        + repository.list_owned_by(other, 10).summaries
+    )
     assert len(refused) == 1
     assert len(saved) == 1
 
@@ -568,7 +573,7 @@ def test_a_deleted_plan_is_gone_but_still_counts_for_the_day(
     assert repository.delete_owned_by(plan.id, owner, TODAY) is Deletion.MISSING
 
     assert repository.get(plan.id) is None
-    assert repository.list_owned_by(owner, 10) == []
+    assert repository.list_owned_by(owner, 10) == PlanListing([], 0)
     assert counts_for(repository, owner) == PlanCounts(in_progress=0, owner_today=1, all_today=1)
 
 
@@ -650,7 +655,7 @@ def test_a_user_with_a_plan_being_built_cannot_leave(
     assert users.id_of("google-a") == owner
 
 
-def test_the_users_plans_are_counted_without_others(
+def test_the_listing_counts_all_of_the_users_plans_without_others(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     other = SqlUserRepository(engine).id_of("google-b")
@@ -658,5 +663,11 @@ def test_the_users_plans_are_counted_without_others(
         waiting(repository, owner)
     waiting(repository, other)
 
-    assert repository.count_owned_by(owner) == 3
-    assert repository.count_owned_by(SqlUserRepository(engine).id_of("google-c")) == 0
+    listing = repository.list_owned_by(owner, 2)
+
+    assert len(listing.summaries) == 2
+    assert listing.total == 3
+    assert repository.list_owned_by(other, 2).total == 1
+    assert repository.list_owned_by(SqlUserRepository(engine).id_of("google-c"), 2) == PlanListing(
+        [], 0
+    )

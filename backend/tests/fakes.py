@@ -26,7 +26,15 @@ from app.application.taken_courses import TakenCourses
 from app.domain.chunk import ChunkSection
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
-from app.domain.plan import IN_PROGRESS, Plan, PlanResult, PlanStage, PlanStatus, PlanSummary
+from app.domain.plan import (
+    IN_PROGRESS,
+    Plan,
+    PlanListing,
+    PlanResult,
+    PlanStage,
+    PlanStatus,
+    PlanSummary,
+)
 from app.domain.quota import PlanCounts, PlanQuota
 from app.domain.ranking import ChunkHit
 from app.domain.recommendation import CandidateCourse, CourseChoice
@@ -187,25 +195,25 @@ class FakePlanRepository:
             del self.deleted[plan_id]
         return len(purged)
 
-    def list_owned_by(self, owner_id: UUID, limit: int) -> list[PlanSummary]:
+    def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing:
         owned = sorted(
             (plan for plan in self.plans.values() if plan.owner_id == owner_id),
             key=lambda plan: self.created_at[plan.id],
             reverse=True,
         )
-        return [
-            PlanSummary(
-                plan.id,
-                plan.status,
-                plan.conditions.occupation,
-                plan.conditions.start,
-                self.created_at[plan.id],
-            )
-            for plan in owned[:limit]
-        ]
-
-    def count_owned_by(self, owner_id: UUID) -> int:
-        return sum(plan.owner_id == owner_id for plan in self.plans.values())
+        return PlanListing(
+            [
+                PlanSummary(
+                    plan.id,
+                    plan.status,
+                    plan.conditions.occupation,
+                    plan.conditions.start,
+                    self.created_at[plan.id],
+                )
+                for plan in owned[:limit]
+            ],
+            len(owned),
+        )
 
     def claim_next(self) -> Plan | None:
         pending = [plan for plan in self.plans.values() if plan.status is PlanStatus.PENDING]
