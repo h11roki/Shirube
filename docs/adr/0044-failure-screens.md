@@ -29,8 +29,10 @@
 
 ## 決定
 
-- 無い URL は `not-found.tsx`、描けなかったときは `error.tsx`(root layout が壊れたときは `global-error.tsx`。見た目の設定の script とフォントは root layout と共有する)で、日本語で知らせてトップへの導線を置く
-- API の失敗は `FailureNotice`(何を読めなかったかの文と、失敗の文、読み直すボタン)か、同じ文(`messageOf`)で出す。読み直すときは前の失敗を消してから読む
+- 無い URL は `not-found.tsx`、描けなかったときは `error.tsx`(「もう一度試す」は `router.refresh()` と `reset()` でサーバーからも取り直す)、root layout が壊れたときは `global-error.tsx`(見た目の設定の script とフォントは root layout と共有し、ページごと読み直す)で、日本語で知らせてトップへの導線を置く
+- API の失敗は `FailureNotice`(何を読めなかったかの文と、失敗の文、読み直すボタン)か、同じ文(`messageOf`)で出す。画面全体が知らせになる一覧は、読み直す前に知らせを消して「読み込んでいます」に戻す。画面の一部の知らせ(入力の画面のクラスの選択など)は結果が返るまで残し、送るボタンを止めない
+- 全面の知らせの枠(危険色の section と見出し)は `Notice` で共有し、ページに h1 が残る場所では h2 にする
+- `messageOf` は 401 だけの文を持たない。401 は `SignedOutGate` が先に中身を替えるので、その文が画面に出る道が無い
 - ログイン切れは 1(1 か所で受ける)。API の呼び出しが 401 を受けたら `lib/api/client.ts` が購読者に知らせ、`SignedOutGate` が中身を替える。動きは 1(ページを読み直す)
 - 無い道標は 1(読み直すボタンを出さない)
 

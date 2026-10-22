@@ -70,6 +70,10 @@ export function PlanForm() {
     };
   }, [query, reloads]);
 
+  function reloadChoices() {
+    setReloads((current) => current + 1);
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!occupation.trim()) {
@@ -169,10 +173,7 @@ export function PlanForm() {
         <FailureNotice
           lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
           message={loadError}
-          onRetry={() => {
-            setFailed(undefined);
-            setReloads((current) => current + 1);
-          }}
+          onRetry={reloadChoices}
         />
       )}
 
@@ -227,8 +228,7 @@ export function PlanForm() {
         refresh={takenRefresh}
         onForget={() => {
           setSubmitError(undefined);
-          setFailed(undefined);
-          setReloads((current) => current + 1);
+          reloadChoices();
         }}
       />
 

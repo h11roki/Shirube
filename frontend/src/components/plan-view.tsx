@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { Notice } from "@/components/notice";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
@@ -181,18 +182,6 @@ export function PlanView() {
         />
       </div>
     </div>
-  );
-}
-
-function Notice({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section
-      role="alert"
-      className="mx-auto grid max-w-xl justify-items-start gap-3 rounded-lg border border-danger/30 bg-danger-soft p-6 text-sm"
-    >
-      <h1 className="font-serif text-xl font-bold text-danger">{title}</h1>
-      {children}
-    </section>
   );
 }
 

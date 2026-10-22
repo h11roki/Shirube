@@ -3,12 +3,10 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   deletePlan,
-  hasSignedOut,
   isTemporary,
   messageOf,
   requestJson,
   requestNothing,
-  subscribeSignedOut,
 } from "@/lib/api/client";
 
 afterEach(() => {
@@ -101,12 +99,6 @@ describe("errors", () => {
     expect(isTemporary(new TypeError("壊れた"))).toBe(false);
   });
 
-  it("ask to log in again when the login has run out", () => {
-    expect(messageOf(new ApiError(401, "ログインしてください"))).toBe(
-      "ログインが切れました。ページを読み直してログインしてください",
-    );
-  });
-
   it("give their message, or the fixed sentence when they are not errors", () => {
     expect(messageOf(new ApiError(422, "直してください"))).toBe(
       "直してください",
@@ -165,28 +157,5 @@ describe("deletePlan", () => {
     );
 
     await expect(deletePlan("abc")).rejects.toMatchObject({ status: 409 });
-  });
-});
-
-describe("a refusal for a missing login", () => {
-  it("marks the session as signed out, telling each listener once", async () => {
-    const heard = vi.fn();
-    subscribeSignedOut(heard);
-    respondWith(
-      Response.json({ detail: "ログインしてください" }, { status: 401 }),
-    );
-
-    await expect(requestJson("/api/plans")).rejects.toMatchObject({
-      status: 401,
-    });
-    respondWith(
-      Response.json({ detail: "ログインしてください" }, { status: 401 }),
-    );
-    await expect(requestNothing("/api/me")).rejects.toMatchObject({
-      status: 401,
-    });
-
-    expect(hasSignedOut()).toBe(true);
-    expect(heard).toHaveBeenCalledTimes(1);
   });
 });

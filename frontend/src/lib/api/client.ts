@@ -18,8 +18,6 @@ export type Term = Schemas["Term"];
 export type Weekday = Schemas["Weekday"];
 
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
-const SIGNED_OUT =
-  "ログインが切れました。ページを読み直してログインしてください";
 const UNAUTHORIZED = 401;
 export const NOT_FOUND = 404;
 
@@ -112,9 +110,6 @@ export async function requestNothing(
 }
 
 export function messageOf(error: unknown): string {
-  if (error instanceof ApiError && error.status === UNAUTHORIZED) {
-    return SIGNED_OUT;
-  }
   return error instanceof Error ? error.message : UNREACHABLE;
 }
 
