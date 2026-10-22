@@ -2,7 +2,6 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
-import { slotsLabel } from "@/lib/labels";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE, SUBHEAD } from "@/lib/site";
 
@@ -42,7 +41,7 @@ describe("the share card", () => {
       SAMPLE_TICKETS.map((course) => ({
         name: course.name,
         reason: course.reason,
-        slots: slotsLabel(course),
+        slots: course.slot,
         credits: String(course.credits),
       })),
     );

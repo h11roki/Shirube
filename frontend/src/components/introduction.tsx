@@ -4,7 +4,7 @@ import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { RouteMap } from "@/components/route-map";
-import { RELEVANCE_LABELS, semesterLabel } from "@/lib/labels";
+import { RELEVANCE_LABELS, sampleLabel, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
@@ -57,7 +57,7 @@ export function Introduction() {
 
       <section className="grid gap-5">
         <div className="grid gap-1">
-          <Kicker>見本 ── {conditions.occupation}</Kicker>
+          <Kicker>{sampleLabel(conditions.occupation)}</Kicker>
           <h2 className="sr-only">{result.profile.interpretation}への道標</h2>
           <DestinationPlate destination={result.profile.interpretation} />
           <p className="text-sm text-sub">

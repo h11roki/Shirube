@@ -1,3 +1,4 @@
+import { slotsLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 const SAMPLE_COURSES = SAMPLE_PLAN.result.semesters.flatMap(
@@ -25,5 +26,6 @@ export const SAMPLE_TICKETS = ["電子情報基礎数学", "ＡＩ・機械学�
       ...course,
       name: halfWidthAlphanumerics(course.name),
       reason: lastSentence(course.reason),
+      slot: slotsLabel(course),
     })),
 );

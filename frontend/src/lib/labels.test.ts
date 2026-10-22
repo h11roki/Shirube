@@ -17,6 +17,7 @@ import {
   markTakenLabel,
   unmarkTakenLabel,
   sourceNote,
+  sampleLabel,
   syllabusLinkLabel,
   deletePlanLabel,
   deletedPlanLabel,
@@ -116,6 +117,12 @@ describe("labels", () => {
   it("names a class without a code", () => {
     expect(classLabel("")).toBe("記号なし");
     expect(classLabel("TA")).toBe("TA");
+  });
+
+  it("names a sample plan by its occupation", () => {
+    expect(sampleLabel("データサイエンティスト")).toBe(
+      "見本 ── データサイエンティスト",
+    );
   });
 
   it("names the syllabus link and the source with the year of the timetable", () => {

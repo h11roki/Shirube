@@ -1,8 +1,8 @@
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
+import { PHRASE_WRAP, TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
 import { Tilt } from "@/components/tilt";
 import type { Relevance } from "@/lib/api/client";
-import { RELEVANCE_LABELS, slotsLabel } from "@/lib/labels";
+import { RELEVANCE_LABELS, sampleLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 
@@ -43,7 +43,7 @@ export function HeroTickets() {
                       {RELEVANCE_LABELS[course.relevance]}
                     </p>
                     <p
-                      className={`text-lg leading-snug font-bold [overflow-wrap:anywhere] [word-break:auto-phrase] md:text-[1.3125rem] ${core ? "pr-9 md:pr-10" : ""}`}
+                      className={`text-lg leading-snug font-bold md:text-[1.3125rem] ${PHRASE_WRAP} ${core ? "pr-9 md:pr-10" : ""}`}
                     >
                       {course.name}
                     </p>
@@ -54,22 +54,21 @@ export function HeroTickets() {
                   <dl
                     className={`relative grid content-center gap-2 border-l-2 border-dashed border-line text-center tabular-nums ${TICKET_NOTCH}`}
                   >
-                    <div>
-                      <dt className="text-[0.59375rem] tracking-[0.14em] text-sub">
-                        コマ
-                      </dt>
-                      <dd className="text-sm font-bold md:text-base">
-                        {slotsLabel(course)}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-[0.59375rem] tracking-[0.14em] text-sub">
-                        単位
-                      </dt>
-                      <dd className="text-sm font-bold md:text-base">
-                        {course.credits}
-                      </dd>
-                    </div>
+                    {(
+                      [
+                        ["コマ", course.slot],
+                        ["単位", course.credits],
+                      ] as const
+                    ).map(([label, value]) => (
+                      <div key={label}>
+                        <dt className="text-[0.59375rem] tracking-[0.14em] text-sub">
+                          {label}
+                        </dt>
+                        <dd className="text-sm font-bold md:text-base">
+                          {value}
+                        </dd>
+                      </div>
+                    ))}
                   </dl>
                   {core && (
                     <span
@@ -86,7 +85,7 @@ export function HeroTickets() {
         </div>
       </Tilt>
       <p className="text-xs text-sub">
-        見本 ── {SAMPLE_PLAN.conditions.occupation}の道標から
+        {sampleLabel(SAMPLE_PLAN.conditions.occupation)}
       </p>
     </div>
   );
