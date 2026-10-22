@@ -70,6 +70,17 @@ class CourseSelector(Protocol):
     ) -> list[CourseChoice]: ...
 
 
+@dataclass(frozen=True)
+class TokenUsage:
+    input: int
+    cached: int
+    output: int
+
+
+class UsageMeter(Protocol):
+    def metered[T](self, work: Callable[[], T]) -> tuple[T, dict[str, TokenUsage]]: ...
+
+
 class InvalidTokenError(ValueError):
     pass
 
