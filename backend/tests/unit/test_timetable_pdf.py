@@ -161,14 +161,14 @@ def test_stray_mark_above_period_and_class_is_ignored() -> None:
 
 def test_carried_over_row_marks_are_removed() -> None:
     carried = ["I火", "I @", "I教 養B", "I全", "I 19-16", "I 1", "I310 61", "Basic Skills"]
-    carried += ["IG2", "I2", "庄子 萌、羽谷 沙織、\nI石川 涼子", "I -", "I抽 選"]
+    carried += ["IG2", "I2", "仮名 三子、架空 四子、\nI仮名 五子", "I -", "I抽 選"]
 
     section = section_from_row(Term.AUTUMN, normalize_row(carried))
 
     assert section.code == "31061"
     assert section.slots == ()
     assert section.audiences == (Audience(2016, 2019, frozenset({1, 2, 3, 4}), "教養B"),)
-    assert section.instructors == ("庄子 萌", "羽谷 沙織", "石川 涼子")
+    assert section.instructors == ("仮名 三子", "架空 四子", "仮名 五子")
     assert section.registration == "抽選"
 
 
