@@ -17,7 +17,7 @@ FIXTURE = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan" / "sea
 def test_search_results_page_yields_one_row_per_course() -> None:
     rows = parse_listing(FIXTURE.read_text(encoding="utf-8"))
 
-    assert [row.code for row in rows] == ["10001", "10002", "10003"]
+    assert [row.code for row in rows] == ["10001", "10002", "10003", "10004"]
     first = rows[0]
     assert first.title == "架空工学概論(6A)"
     assert first.faculties == ("理工学部",)
@@ -29,6 +29,8 @@ def test_search_results_page_yields_one_row_per_course() -> None:
     assert first.credits == "2"
     assert first.href == "/syllabus/s/r-syllabus/a0i000000000001AAA/202610001"
     assert first.aliases == ()
+    assert rows[3].title == "架空平和研究 (GR)"
+    assert rows[3].aliases == (CourseName("10005", "架空交流演習(GR)"),)
 
 
 def test_cross_listed_row_keeps_the_other_names_as_aliases() -> None:

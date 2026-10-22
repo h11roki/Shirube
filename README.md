@@ -80,4 +80,4 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 
 ## ライセンス
 
-コードは [MIT License](LICENSE)。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と、画面に出す引用の権利は立命館大学にあり、ライセンスの対象外。テストの fixture には実ページを置かず、科目名・教員名・本文が架空の合成のページと PDF を `tests/fixtures/*/make_*.py` で作って置く(ADR 0043)。
+コードは [MIT License](LICENSE)。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と、画面に出す引用の権利は立命館大学にあり、ライセンスの対象外。テストの fixture には実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/fixtures/html/ritsumeikan/make_pages.py` が作る)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を置く(ADR 0043)。

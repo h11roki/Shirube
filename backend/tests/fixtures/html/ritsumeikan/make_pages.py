@@ -1,3 +1,4 @@
+import html
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -14,6 +15,7 @@ HEADER_LABELS = (
 )
 SCHEDULE_LABELS = ("授業回数/担当教員（複数担当の場合）", "テーマ", "キーワード・文献・補足情報等")
 GRADING_LABELS = ("種別", "割合(%)", "評価基準等")
+BOOK_LABELS = ("書名", "著者・出版社")
 LISTING_LABELS = (
     "行番号",
     "授業科目名",
@@ -42,6 +44,7 @@ class Page:
     schedule_note: str
     sessions: tuple[tuple[str, str, str], ...]
     record_id: str
+    aliases: tuple[tuple[str, str], ...] = ()
     campus: str = "BKC"
     language: str = "日本語"
     preparation: str = "なし"
@@ -58,6 +61,11 @@ class Page:
             "発表と課題の提出状況で評価する。",
         ),
     )
+
+    @property
+    def heading(self) -> str:
+        names = ((self.code, self.title), *self.aliases)
+        return " § ".join(f"{code}:{title}" for code, title in names)
 
     @property
     def text_fields(self) -> tuple[tuple[str, str], ...]:
@@ -196,7 +204,7 @@ CIRCUITS_2 = Page(
 
 CROSS_LISTED = Page(
     code="10004",
-    title="架空平和研究 (GR) § 10005:架空交流演習(GR)",
+    title="架空平和研究 (GR)",
     term="秋セメスター",
     slot="その他",
     faculties="法学部,理工学部",
@@ -207,27 +215,76 @@ CROSS_LISTED = Page(
     schedule_note="研修の日程は初回に案内する。",
     sessions=numbered(("ガイダンス", "事前の学習", "研修", "振り返り")),
     record_id="a0i000000000004AAA",
+    aliases=(("10005", "架空交流演習(GR)"),),
     class_format="集中で実施する。",
 )
 
 DETAIL_PAGES = (INTRODUCTION, CIRCUITS_1, CIRCUITS_2, CROSS_LISTED)
-LISTED_PAGES = (INTRODUCTION, CIRCUITS_1, CIRCUITS_2)
+
+
+def escape(text: str) -> str:
+    return html.escape(text, quote=True)
+
+
+def screen_text(text: str) -> str:
+    return "<br/>".join(escape(line) for line in text.split("\n"))
 
 
 def header_cell(label: str) -> str:
     return (
-        f'<th scope="col"><div class="syllabus-table__header-cell" title="{label}">'
-        f"{label}</div></th>"
+        f'<th scope="col"><div class="syllabus-table__header-cell" title="{escape(label)}">'
+        f"{escape(label)}</div></th>"
     )
 
 
-def screen_text(text: str) -> str:
-    return "<br/>".join(text.split("\n"))
+def table(kind: str, labels: tuple[str, ...], rows: str) -> str:
+    heads = "".join(header_cell(label) for label in labels)
+    return (
+        f'<table class="syllabus-table syllabus-table--{kind} slds-table slds-table_bordered'
+        f' slds-table_col-bordered"><colgroup>{"<col/>" * len(labels)}</colgroup>'
+        f'<thead><tr class="slds-line-height_reset">{heads}</tr></thead>'
+        f"<tbody><!-- -->{rows}</tbody></table>"
+    )
 
 
-def header_table(page: Page) -> str:
+def plain_cell(tag: str, label: str, text: str) -> str:
+    scope = ' scope="row"' if tag == "th" else ""
+    title = f' title="{escape(text)}"' if text else ""
+    return (
+        f'<{tag} data-label="{escape(label)}"{scope}>'
+        f'<div class="syllabus-table__cell slds-cell-wrap"{title}>{escape(text)}</div></{tag}>'
+    )
+
+
+def formatted_cell(label: str, text: str) -> str:
+    return (
+        f'<td data-label="{escape(label)}">'
+        f'<div class="syllabus-table__cell slds-cell-wrap" title="{escape(text)}">'
+        f"<lightning-formatted-text>{screen_text(text)}</lightning-formatted-text></div></td>"
+    )
+
+
+def row(cells: str) -> str:
+    return f'<tr class="slds-hint-parent">{cells}</tr>'
+
+
+def table_section(kind: str, labels: tuple[str, ...], rows: str, label: str = "") -> str:
+    heading = (
+        '<div class="syllabus-section__label slds-form-element">'
+        f'<span class="syllabus-section__label-text slds-form-element__label">{escape(label)}'
+        "</span></div>"
+        if label
+        else ""
+    )
+    return (
+        f'<section class="syllabus-section syllabus-section--table">{heading}'
+        f"{table(kind, labels, rows)}</section>"
+    )
+
+
+def header_section(page: Page) -> str:
     values = (
-        f"{page.code}:{page.title}",
+        page.heading,
         YEAR,
         page.term,
         page.slot,
@@ -235,125 +292,90 @@ def header_table(page: Page) -> str:
         page.instructors,
         page.credits,
     )
-    heads = "".join(header_cell(label) for label in HEADER_LABELS)
     cells = "".join(
-        f'<td data-label="{label}">'
-        f'<div class="syllabus-table__cell slds-cell-wrap" title="{value}">{value}</div></td>'
-        for label, value in zip(HEADER_LABELS, values, strict=True)
+        plain_cell("td", label, value) for label, value in zip(HEADER_LABELS, values, strict=True)
     )
-    return (
-        '<table class="syllabus-table syllabus-table--header-info slds-table slds-table_bordered'
-        f' slds-table_col-bordered"><colgroup>{"<col/>" * len(HEADER_LABELS)}</colgroup>'
-        f'<thead><tr class="slds-line-height_reset">{heads}</tr></thead>'
-        f'<tbody><tr class="slds-hint-parent">{cells}</tr></tbody></table>'
-    )
+    return table_section("header-info", HEADER_LABELS, row(cells))
 
 
-def field(label: str, text: str) -> str:
+def field_section(label: str, text: str) -> str:
     return (
+        '<section class="syllabus-section syllabus-section--field">'
         '<div class="syllabus-field"><!-- -->'
-        f'<span class="syllabus-field__label">{label}</span><!-- -->'
+        f'<span class="syllabus-field__label">{escape(label)}</span><!-- -->'
         '<div class="syllabus-field__value slds-form-element__static"><!-- -->'
-        f'<span class="syllabus-field__print-text">{text}</span>'
+        f'<span class="syllabus-field__print-text">{escape(text)}</span>'
         f'<lightning-formatted-text class="syllabus-screen-only-text">{screen_text(text)}'
-        "</lightning-formatted-text><!-- --></div></div>"
+        "</lightning-formatted-text><!-- --></div></div></section>"
     )
 
 
-def unlabeled_field() -> str:
+def unlabeled_field_section() -> str:
     return (
-        '<div class="syllabus-field"><div class="syllabus-field__value slds-form-element__static">'
+        '<section class="syllabus-section syllabus-section--field"><div class="syllabus-field">'
+        '<div class="syllabus-field__value slds-form-element__static">'
         '<span class="syllabus-field__print-text">科目ナンバリングは学科の案内を参照。</span>'
-        "</div></div>"
-    )
-
-
-def schedule_cell(label: str, text: str) -> str:
-    return (
-        f'<td data-label="{label}"><div class="syllabus-table__cell slds-cell-wrap" title="{text}">'
-        f"<lightning-formatted-text>{screen_text(text)}</lightning-formatted-text></div></td>"
-    )
-
-
-def grading_cell(tag: str, label: str, text: str) -> str:
-    scope = ' scope="row"' if tag == "th" else ""
-    title = f' title="{text}"' if text else ""
-    return (
-        f'<{tag} data-label="{label}"{scope}>'
-        f'<div class="syllabus-table__cell slds-cell-wrap"{title}>{text}</div></{tag}>'
-    )
-
-
-def table_section(label: str, kind: str, labels: tuple[str, ...], rows: str) -> str:
-    heads = "".join(header_cell(column) for column in labels)
-    return (
-        '<section class="syllabus-section syllabus-section--table">'
-        '<div class="syllabus-section__label slds-form-element">'
-        f'<span class="syllabus-section__label-text slds-form-element__label">{label}</span></div>'
-        f'<table class="syllabus-table syllabus-table--{kind} slds-table slds-table_bordered'
-        f' slds-table_col-bordered"><colgroup>{"<col/>" * len(labels)}</colgroup>'
-        f'<thead><tr class="slds-line-height_reset">{heads}</tr></thead>'
-        f"<tbody><!-- -->{rows}</tbody></table></section>"
+        "</div></div></section>"
     )
 
 
 def schedule_section(page: Page) -> str:
     rows = ((NOTE_ROW, page.schedule_note, ""), *page.sessions)
-    html = "".join(
-        '<tr class="slds-hint-parent">'
-        + "".join(
-            schedule_cell(label, text) for label, text in zip(SCHEDULE_LABELS, row, strict=True)
+    html_rows = "".join(
+        row(
+            "".join(
+                formatted_cell(label, text)
+                for label, text in zip(SCHEDULE_LABELS, cells, strict=True)
+            )
         )
-        + "</tr>"
-        for row in rows
+        for cells in rows
     )
-    return table_section("授業スケジュール", "schedule", SCHEDULE_LABELS, html)
+    return table_section("schedule", SCHEDULE_LABELS, html_rows, "授業スケジュール")
 
 
 def grading_section(page: Page) -> str:
-    html = "".join(
-        '<tr class="slds-hint-parent">'
-        + grading_cell("th", GRADING_LABELS[0], kind)
-        + grading_cell("td", GRADING_LABELS[1], percentage)
-        + grading_cell("td", GRADING_LABELS[2], criteria)
-        + "</tr>"
+    html_rows = "".join(
+        row(
+            plain_cell("th", GRADING_LABELS[0], kind)
+            + plain_cell("td", GRADING_LABELS[1], percentage)
+            + plain_cell("td", GRADING_LABELS[2], criteria)
+        )
         for kind, percentage, criteria in page.grading
     )
-    return table_section("成績評価方法", "evaluation", GRADING_LABELS, html)
+    return table_section("evaluation", GRADING_LABELS, html_rows, "成績評価方法")
 
 
-def unlabeled_section() -> str:
-    return (
-        '<section class="syllabus-section"><div class="syllabus-section__body">'
-        "<p>教科書は初回に案内する。</p></div></section>"
-    )
+def book_section(label: str, title: str, publisher: str) -> str:
+    cells = plain_cell("th", BOOK_LABELS[0], title) + plain_cell("td", BOOK_LABELS[1], publisher)
+    return table_section("book", BOOK_LABELS, row(cells), label)
 
 
 def detail_page(page: Page) -> str:
-    fields = "".join(field(label, text) for label, text in page.text_fields)
+    fields = "".join(field_section(label, text) for label, text in page.text_fields)
     return (
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">'
         f"<title>シラバス情報: {YEAR}{page.code}</title></head>"
         '<body class="comm-page-detail-a0i"><div class="themeLayoutStarterWrapper">'
         '<div class="syllabus-detail">'
-        f"{header_table(page)}{unlabeled_field()}{fields}{unlabeled_section()}"
+        f"{header_section(page)}{unlabeled_field_section()}{fields}"
         f"{schedule_section(page)}{grading_section(page)}"
+        f"{book_section('教科書', '架空工学の教科書', '架空 太郎（架空出版）')}"
+        f"{book_section('参考書', '架空工学の演習', '仮名 花子（仮名書房）')}"
         "</div></div></body></html>"
     )
 
 
 def listing_cell(label: str, text: str) -> str:
     return (
-        f'<td role="gridcell" data-label="{label}" data-cell-value="{text}">'
-        f'<lightning-primitive-cell-factory class="slds-cell-wrap" data-label="{label}">'
+        f'<td role="gridcell" data-label="{escape(label)}" data-cell-value="{escape(text)}">'
+        f'<lightning-primitive-cell-factory class="slds-cell-wrap" data-label="{escape(label)}">'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-hyphenate">'
-        f"<lightning-base-formatted-text>{text}</lightning-base-formatted-text>"
+        f"<lightning-base-formatted-text>{escape(text)}</lightning-base-formatted-text>"
         "</div></span></lightning-primitive-cell-factory></td>"
     )
 
 
 def listing_row(number: int, page: Page) -> str:
-    title = f"{page.code}:{page.title}"
     values = (
         page.faculties,
         page.term,
@@ -366,6 +388,7 @@ def listing_row(number: int, page: Page) -> str:
     cells = "".join(
         listing_cell(label, text) for label, text in zip(LISTING_LABELS[2:], values, strict=True)
     )
+    href = escape(page.href)
     return (
         f'<tr class="slds-hint-parent" role="row" data-row-key-value="{page.record_id}"'
         f' data-row-number="{number}">'
@@ -373,29 +396,30 @@ def listing_row(number: int, page: Page) -> str:
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-truncate">'
         '<span class="slds-row-number slds-text-body_small slds-text-color_weak"></span>'
         "</div></span></lightning-primitive-cell-factory></td>"
-        f'<th role="rowheader" scope="row" data-label="授業科目名" data-cell-value="{page.href}">'
+        f'<th role="rowheader" scope="row" data-label="授業科目名" data-cell-value="{href}">'
         '<lightning-primitive-cell-factory class="slds-cell-wrap" data-label="授業科目名">'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-hyphenate">'
-        f'<lightning-formatted-url><a href="{page.href}" target="_blank" title="{page.href}">'
-        f"{title}</a></lightning-formatted-url></div></span></lightning-primitive-cell-factory></th>"
-        f"{cells}</tr>"
+        f'<lightning-formatted-url><a href="{href}" target="_blank" title="{href}">'
+        f"{escape(page.heading)}</a></lightning-formatted-url></div></span>"
+        f"</lightning-primitive-cell-factory></th>{cells}</tr>"
     )
 
 
 def listing_page(pages: tuple[Page, ...]) -> str:
     heads = "".join(
-        f'<th role="columnheader" scope="col" aria-label="{label}">'
-        f'<span class="slds-truncate" title="{label}">{label}</span></th>'
+        f'<th role="columnheader" scope="col" aria-label="{escape(label)}">'
+        f'<span class="slds-truncate" title="{escape(label)}">{escape(label)}</span></th>'
         for label in LISTING_LABELS
     )
     rows = "".join(listing_row(number, page) for number, page in enumerate(pages, start=1))
     return (
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>ホーム</title></head>'
         '<body class="comm-page-home"><div class="themeLayoutStarterWrapper">'
-        f'<p class="slds-m-vertical_medium content">全 {len(pages)} 件（1 / 1 ページ）</p>'
+        '<div class="slds-card"><p class="slds-m-vertical_medium content">'
+        f"全 {len(pages)} 件（1 / 1 ページ）</p>"
         '<table class="slds-table slds-table_header-fixed slds-table_bordered" role="grid"'
         f' data-num-rows="{len(pages)}"><thead><tr class="slds-line-height_reset" role="row">'
-        f'{heads}</tr></thead><tbody data-rowgroup-body="">{rows}</tbody></table>'
+        f'{heads}</tr></thead><tbody data-rowgroup-body="">{rows}</tbody></table></div>'
         "</div></body></html>"
     )
 
@@ -403,7 +427,7 @@ def listing_page(pages: tuple[Page, ...]) -> str:
 def main() -> None:
     for page in DETAIL_PAGES:
         (HERE / f"detail_{page.code}.html").write_text(detail_page(page), encoding="utf-8")
-    (HERE / "search_results.html").write_text(listing_page(LISTED_PAGES), encoding="utf-8")
+    (HERE / "search_results.html").write_text(listing_page(DETAIL_PAGES), encoding="utf-8")
 
 
 if __name__ == "__main__":
