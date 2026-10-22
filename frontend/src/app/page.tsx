@@ -14,9 +14,9 @@ export default function Home() {
     <div className="grid gap-10">
       <section className="grid gap-3 motion-safe:animate-rise">
         <Kicker>立命館大学 理工学部 {DEPARTMENT_NAME}</Kicker>
-        <h1 className="font-serif text-3xl leading-snug font-extrabold text-balance sm:text-5xl sm:leading-tight">
-          <span className="inline-block">履修に迷ったら、</span>
-          <span className="inline-block">なりたい職業から。</span>
+        <h1 className="font-serif text-3xl leading-snug font-extrabold sm:text-5xl sm:leading-tight">
+          <span className="inline-block max-w-full">履修に迷ったら、</span>
+          <span className="inline-block max-w-full">なりたい職業から。</span>
         </h1>
         <p className="max-w-2xl leading-relaxed text-sub">
           シラバスから職業に関係の深い授業を選び、取る理由をつけて、卒業までの学期ごとの時間割に並べます。
