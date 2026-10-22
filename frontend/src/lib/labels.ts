@@ -162,6 +162,10 @@ export function classLabel(classCode: string): string {
 export const PLAN_CAUTION =
   "非公式の参考です。必修、卒業要件、履修の前提は見ていません。授業は AI が選ぶので、誤りや作るたびの違いがあります。履修登録の前に、大学の履修要項とシラバスで確かめてください。";
 
+export function sampleLabel(occupation: string): string {
+  return `見本 ── ${occupation}`;
+}
+
 export function syllabusLinkLabel(name: string): string {
   return `${name}のシラバスを新しいタブで開く`;
 }
