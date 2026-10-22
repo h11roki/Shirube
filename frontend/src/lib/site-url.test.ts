@@ -15,6 +15,15 @@ describe("the site URL", () => {
     expect(siteUrl().toString()).toBe("http://localhost:3000/");
   });
 
+  it("requires a site URL for a production build", () => {
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("SITE_URL", "");
+    expect(() => siteUrl()).toThrow("本番のビルドと起動には SITE_URL");
+
+    vi.stubEnv("SITE_URL", "https://shirube.example");
+    expect(siteUrl().origin).toBe("https://shirube.example");
+  });
+
   it("takes an origin from the environment", () => {
     vi.stubEnv("SITE_URL", "https://shirube.example");
 

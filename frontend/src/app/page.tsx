@@ -1,8 +1,13 @@
+import type { Metadata } from "next";
+
 import { Introduction } from "@/components/introduction";
 import { LoginRequired } from "@/components/login-required";
 import { Kicker } from "@/components/kicker";
 import { PlanForm } from "@/components/plan-form";
 import { DEPARTMENT_NAME } from "@/lib/labels";
+import { INDEXED } from "@/lib/site";
+
+export const metadata: Metadata = { robots: INDEXED };
 
 export default function Home() {
   return (

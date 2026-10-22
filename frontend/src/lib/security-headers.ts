@@ -1,10 +1,12 @@
-export function contentSecurityPolicy(development: boolean): string {
+export function securityHeaders(
+  development: boolean,
+): { key: string; value: string }[] {
   const script = [
     "'self'",
     "'unsafe-inline'",
     ...(development ? ["'unsafe-eval'"] : []),
   ];
-  return [
+  const policy = [
     "default-src 'self'",
     `script-src ${script.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
@@ -15,16 +17,8 @@ export function contentSecurityPolicy(development: boolean): string {
     "object-src 'none'",
     "base-uri 'self'",
   ].join("; ");
-}
-
-export function securityHeaders(
-  development: boolean,
-): { key: string; value: string }[] {
   return [
-    {
-      key: "Content-Security-Policy",
-      value: contentSecurityPolicy(development),
-    },
+    { key: "Content-Security-Policy", value: policy },
     { key: "X-Content-Type-Options", value: "nosniff" },
     { key: "X-Frame-Options", value: "DENY" },
     { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },

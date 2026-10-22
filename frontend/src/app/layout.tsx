@@ -14,6 +14,7 @@ export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
   description: SITE_DESCRIPTION,
+  robots: { index: false, follow: true },
   openGraph: { type: "website", siteName: SITE_NAME, locale: "ja_JP" },
   twitter: { card: "summary_large_image" },
 };

@@ -3,9 +3,12 @@ import Link from "next/link";
 
 import { ContactSection, LegalDocument } from "@/components/legal-document";
 import { TEXT_LINK } from "@/components/styles";
-import { OPERATOR } from "@/lib/site";
+import { INDEXED, OPERATOR } from "@/lib/site";
 
-export const metadata: Metadata = { title: "プライバシーポリシー" };
+export const metadata: Metadata = {
+  title: "プライバシーポリシー",
+  robots: INDEXED,
+};
 
 export default function PrivacyPage() {
   return (

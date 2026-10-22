@@ -1,10 +1,18 @@
 import { describe, expect, it } from "vitest";
 
-import { contentSecurityPolicy, securityHeaders } from "@/lib/security-headers";
+import { securityHeaders } from "@/lib/security-headers";
+
+function policyOf(development: boolean): string {
+  return (
+    securityHeaders(development).find(
+      (header) => header.key === "Content-Security-Policy",
+    )?.value ?? ""
+  );
+}
 
 describe("the content security policy", () => {
   it("keeps the site out of frames and its scripts and connections on its own origin", () => {
-    const policy = contentSecurityPolicy(false);
+    const policy = policyOf(false);
 
     expect(policy).toContain("default-src 'self'");
     expect(policy).toContain("script-src 'self' 'unsafe-inline'");
@@ -16,21 +24,18 @@ describe("the content security policy", () => {
   });
 
   it("allows eval only while developing", () => {
-    expect(contentSecurityPolicy(true)).toContain("'unsafe-eval'");
+    expect(policyOf(true)).toContain("'unsafe-eval'");
   });
 });
 
 describe("the security headers", () => {
   it("carry the policy and the four other headers", () => {
-    const headers = securityHeaders(false);
-
-    expect(headers.map((header) => header.key)).toEqual([
+    expect(securityHeaders(false).map((header) => header.key)).toEqual([
       "Content-Security-Policy",
       "X-Content-Type-Options",
       "X-Frame-Options",
       "Referrer-Policy",
       "Permissions-Policy",
     ]);
-    expect(headers[0].value).toBe(contentSecurityPolicy(false));
   });
 });

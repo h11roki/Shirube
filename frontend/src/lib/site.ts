@@ -4,7 +4,7 @@ export const SITE_DESCRIPTION = "なりたい職業から、卒業までの履�
 
 export const PUBLIC_PAGES = ["/", "/terms", "/privacy"];
 
-export const CRAWL_DISALLOWED = ["/api/", "/plans", "/login"];
+export const INDEXED = { index: true, follow: true };
 
 export const OPERATOR = "h11roki";
 

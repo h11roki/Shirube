@@ -2,7 +2,14 @@ const DEFAULT_SITE_URL = "http://localhost:3000";
 const WEB_PROTOCOLS = new Set(["http:", "https:"]);
 
 export function siteUrl(): URL {
-  const given = process.env.SITE_URL || DEFAULT_SITE_URL;
+  const given =
+    process.env.SITE_URL ||
+    (process.env.NODE_ENV === "production" ? "" : DEFAULT_SITE_URL);
+  if (!given) {
+    throw new Error(
+      "本番のビルドと起動には SITE_URL(https://example.com のようなオリジン)が要ります",
+    );
+  }
   let url: URL;
   try {
     url = new URL(given);
