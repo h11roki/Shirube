@@ -1,13 +1,19 @@
 const DEFAULT_SITE_URL = "http://localhost:3000";
+const WEB_PROTOCOLS = new Set(["http:", "https:"]);
 
 export function siteUrl(): URL {
-  const given = process.env.SITE_URL ?? DEFAULT_SITE_URL;
+  const given = process.env.SITE_URL || DEFAULT_SITE_URL;
   let url: URL;
   try {
     url = new URL(given);
   } catch {
     throw new Error(
       `SITE_URL を https://example.com のような URL にしてください: ${given}`,
+    );
+  }
+  if (!WEB_PROTOCOLS.has(url.protocol)) {
+    throw new Error(
+      `SITE_URL は http:// か https:// で始めてください: ${given}`,
     );
   }
   if (url.pathname !== "/" || url.search || url.hash) {
