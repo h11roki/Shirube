@@ -1,21 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 
-export default function ErrorPage({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    console.error("画面を描けませんでした", error);
-  }, [error]);
-
+export default function ErrorPage({ reset }: { reset: () => void }) {
+  const pathname = usePathname();
   return (
     <section
       role="alert"
@@ -29,9 +20,11 @@ export default function ErrorPage({
         <button type="button" onClick={reset} className={OUTLINE_BUTTON}>
           もう一度試す
         </button>
-        <Link href="/" className={TEXT_LINK}>
-          トップへ
-        </Link>
+        {pathname !== "/" && (
+          <Link href="/" className={TEXT_LINK}>
+            トップへ
+          </Link>
+        )}
       </div>
     </section>
   );

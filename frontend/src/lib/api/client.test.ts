@@ -3,10 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   deletePlan,
+  hasSignedOut,
   isTemporary,
   messageOf,
   requestJson,
   requestNothing,
+  subscribeSignedOut,
 } from "@/lib/api/client";
 
 afterEach(() => {
@@ -163,5 +165,28 @@ describe("deletePlan", () => {
     );
 
     await expect(deletePlan("abc")).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("a refusal for a missing login", () => {
+  it("marks the session as signed out, telling each listener once", async () => {
+    const heard = vi.fn();
+    subscribeSignedOut(heard);
+    respondWith(
+      Response.json({ detail: "ログインしてください" }, { status: 401 }),
+    );
+
+    await expect(requestJson("/api/plans")).rejects.toMatchObject({
+      status: 401,
+    });
+    respondWith(
+      Response.json({ detail: "ログインしてください" }, { status: 401 }),
+    );
+    await expect(requestNothing("/api/me")).rejects.toMatchObject({
+      status: 401,
+    });
+
+    expect(hasSignedOut()).toBe(true);
+    expect(heard).toHaveBeenCalledTimes(1);
   });
 });

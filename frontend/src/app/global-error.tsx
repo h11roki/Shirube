@@ -1,24 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
-
 import { OUTLINE_BUTTON } from "@/components/styles";
+import { gothic, mincho } from "@/lib/fonts";
+import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
-export default function GlobalError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  useEffect(() => {
-    console.error("画面を描けませんでした", error);
-  }, [error]);
-
+export default function GlobalError({ reset }: { reset: () => void }) {
   return (
-    <html lang="ja">
+    <html
+      lang="ja"
+      className={`${mincho.variable} ${gothic.variable}`}
+      suppressHydrationWarning
+    >
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
+      </head>
       <body className="min-h-dvh font-sans text-ink antialiased">
         <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16 sm:px-6">
           <section

@@ -11,7 +11,7 @@ import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import {
   ApiError,
   type Plan,
-  UNAUTHORIZED,
+  NOT_FOUND,
   deletePlan,
   isTemporary,
   messageOf,
@@ -101,16 +101,13 @@ export function PlanView() {
     setRound((current) => current + 1);
   }
 
-  if (error?.status === UNAUTHORIZED) {
+  if (error?.status === NOT_FOUND) {
     return (
-      <Notice title="ログインが切れました">
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className={OUTLINE_BUTTON}
-        >
-          ログインし直す
-        </button>
+      <Notice title="道標が見つかりません">
+        <p>消した道標か、URL が違うかもしれません。</p>
+        <Link href="/plans" className={TEXT_LINK}>
+          自分の道標へ
+        </Link>
       </Notice>
     );
   }

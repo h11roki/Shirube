@@ -1,6 +1,7 @@
 import { type ReactNode, Suspense } from "react";
 
 import { SignInButton } from "@/components/account";
+import { SignedOutGate } from "@/components/signed-out-gate";
 import { currentSession } from "@/lib/session";
 
 type Gate = { children: ReactNode; signedOut?: ReactNode };
@@ -16,7 +17,7 @@ export function LoginRequired({ children, signedOut }: Gate) {
 async function SessionGate({ children, signedOut }: Gate) {
   const session = await currentSession();
   if (session?.googleSubject) {
-    return children;
+    return <SignedOutGate>{children}</SignedOutGate>;
   }
   return (
     signedOut ?? (

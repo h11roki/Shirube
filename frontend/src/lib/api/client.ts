@@ -20,8 +20,32 @@ export type Weekday = Schemas["Weekday"];
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
 const SIGNED_OUT =
   "ログインが切れました。ページを読み直してログインしてください";
-export const UNAUTHORIZED = 401;
-const NOT_FOUND = 404;
+const UNAUTHORIZED = 401;
+export const NOT_FOUND = 404;
+
+const signedOutListeners = new Set<() => void>();
+let signedOut = false;
+
+function noteSignedOut() {
+  if (signedOut) {
+    return;
+  }
+  signedOut = true;
+  for (const listener of signedOutListeners) {
+    listener();
+  }
+}
+
+export function subscribeSignedOut(listener: () => void): () => void {
+  signedOutListeners.add(listener);
+  return () => {
+    signedOutListeners.delete(listener);
+  };
+}
+
+export function hasSignedOut(): boolean {
+  return signedOut;
+}
 
 export class ApiError extends Error {
   constructor(
@@ -52,6 +76,9 @@ async function bodyOf(response: Response, init?: RequestInit) {
 }
 
 async function refusal(response: Response, init?: RequestInit) {
+  if (response.status === UNAUTHORIZED) {
+    noteSignedOut();
+  }
   const body = await bodyOf(response, init);
   const detail =
     typeof body === "object" &&

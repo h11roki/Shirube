@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { OUTLINE_BUTTON } from "@/components/styles";
+import { FailureNotice } from "@/components/failure-notice";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
@@ -166,19 +166,14 @@ export function PlanForm() {
       </div>
 
       {loadError && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-          <p className="text-danger">
-            クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます):{" "}
-            {loadError}
-          </p>
-          <button
-            type="button"
-            onClick={() => setReloads((current) => current + 1)}
-            className={OUTLINE_BUTTON}
-          >
-            読み直す
-          </button>
-        </div>
+        <FailureNotice
+          lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
+          message={loadError}
+          onRetry={() => {
+            setFailed(undefined);
+            setReloads((current) => current + 1);
+          }}
+        />
       )}
 
       {choices && choices.courses.length > 0 && (
@@ -237,11 +232,7 @@ export function PlanForm() {
         }}
       />
 
-      {submitError && (
-        <p role="alert" className="text-sm text-danger">
-          {submitError}
-        </p>
-      )}
+      {submitError && <FailureNotice message={submitError} />}
 
       <div className="flex flex-wrap items-center gap-4">
         <button

@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { FailureNotice } from "@/components/failure-notice";
 import { LeaveSection, LeftNotice } from "@/components/leave-section";
 import { StatusBadge } from "@/components/status-badge";
 import { TEXT_LINK } from "@/components/styles";
@@ -59,11 +60,18 @@ export function PlanList() {
     };
   }, [loads]);
 
+  function reload() {
+    setError(undefined);
+    setLoads((current) => current + 1);
+  }
+
   if (!plans) {
     return error ? (
-      <p role="alert" className="text-sm text-danger">
-        一覧を読み込めませんでした: {error}
-      </p>
+      <FailureNotice
+        lead="一覧を読み込めませんでした: "
+        message={error}
+        onRetry={reload}
+      />
     ) : (
       <p className="text-sm text-sub">読み込んでいます</p>
     );
@@ -85,7 +93,7 @@ export function PlanList() {
     });
     notice.current?.focus();
     if (plans.total > plans.plans.length) {
-      setLoads((current) => current + 1);
+      reload();
     }
   };
 
@@ -95,9 +103,11 @@ export function PlanList() {
         {deleted}
       </p>
       {error && (
-        <p role="alert" className="text-sm text-danger">
-          一覧を読み直せませんでした: {error}
-        </p>
+        <FailureNotice
+          lead="一覧を読み直せませんでした: "
+          message={error}
+          onRetry={reload}
+        />
       )}
       {plans.plans.length === 0 ? (
         <p className="text-sm text-sub">
