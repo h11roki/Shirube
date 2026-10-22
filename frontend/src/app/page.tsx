@@ -13,7 +13,7 @@ export const metadata: Metadata = { robots: INDEXED };
 export default function Home() {
   return (
     <div className="grid gap-10">
-      <section className="grid gap-x-8 gap-y-7 motion-safe:animate-rise md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:gap-x-12">
+      <section className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-7 motion-safe:animate-rise md:grid-cols-[minmax(0,1fr)_auto] md:items-center lg:gap-x-12">
         <div className="grid gap-3">
           <Kicker>立命館大学 理工学部 {DEPARTMENT_NAME}</Kicker>
           <h1 className="font-serif text-3xl leading-snug font-extrabold sm:text-4xl sm:leading-tight lg:text-5xl">

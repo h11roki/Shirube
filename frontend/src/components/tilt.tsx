@@ -3,6 +3,9 @@
 import type { CSSProperties, ReactNode } from "react";
 import { useState } from "react";
 
+const SWING_DEGREES = { x: 8, y: 10 };
+const STILL = "(hover: none), (prefers-reduced-motion: reduce)";
+
 export function Tilt({
   className,
   children,
@@ -10,24 +13,21 @@ export function Tilt({
   className: string;
   children: ReactNode;
 }) {
-  const [angle, setAngle] = useState<CSSProperties>();
+  const [tilt, setTilt] = useState<CSSProperties>();
   return (
     <div
-      style={angle}
+      style={tilt}
       onPointerMove={(event) => {
-        if (
-          event.pointerType !== "mouse" ||
-          matchMedia("(prefers-reduced-motion: reduce)").matches
-        ) {
+        if (event.pointerType !== "mouse" || matchMedia(STILL).matches) {
           return;
         }
         const box = event.currentTarget.getBoundingClientRect();
-        setAngle({
-          "--tilt-x": `${(0.5 - (event.clientY - box.top) / box.height) * 8}deg`,
-          "--tilt-y": `${((event.clientX - box.left) / box.width - 0.5) * 10}deg`,
+        setTilt({
+          "--tilt-x": `${(0.5 - (event.clientY - box.top) / box.height) * SWING_DEGREES.x}deg`,
+          "--tilt-y": `${((event.clientX - box.left) / box.width - 0.5) * SWING_DEGREES.y}deg`,
         } as CSSProperties);
       }}
-      onPointerLeave={() => setAngle(undefined)}
+      onPointerLeave={() => setTilt(undefined)}
       className={className}
     >
       {children}
