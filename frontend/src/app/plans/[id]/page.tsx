@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "道標" };
 
 export default function PlanPage() {
   return (
-    <LoginRequired>
+    <LoginRequired heading="h1">
       <PlanView />
     </LoginRequired>
   );

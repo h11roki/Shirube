@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
+
 import { Notice } from "@/components/notice";
-import { OUTLINE_BUTTON } from "@/components/styles";
+import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import { gothic, mincho } from "@/lib/fonts";
 import { THEME_SCRIPT } from "@/lib/theme";
 
@@ -23,13 +25,18 @@ export default function GlobalError() {
             <p>
               ページを読み直しても直らなければ、しばらくしてから開いてください。
             </p>
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className={OUTLINE_BUTTON}
-            >
-              ページを読み直す
-            </button>
+            <div className="flex flex-wrap items-center gap-4">
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className={OUTLINE_BUTTON}
+              >
+                ページを読み直す
+              </button>
+              <Link href="/" className={TEXT_LINK}>
+                トップへ
+              </Link>
+            </div>
           </Notice>
         </main>
       </body>

@@ -22,13 +22,8 @@ const UNAUTHORIZED = 401;
 export const NOT_FOUND = 404;
 
 const signedOutListeners = new Set<() => void>();
-let signedOut = false;
 
 function noteSignedOut() {
-  if (signedOut) {
-    return;
-  }
-  signedOut = true;
   for (const listener of signedOutListeners) {
     listener();
   }
@@ -39,10 +34,6 @@ export function subscribeSignedOut(listener: () => void): () => void {
   return () => {
     signedOutListeners.delete(listener);
   };
-}
-
-export function hasSignedOut(): boolean {
-  return signedOut;
 }
 
 export class ApiError extends Error {

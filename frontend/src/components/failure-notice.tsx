@@ -7,11 +7,13 @@ export function FailureNotice({
   lead,
   message,
   onRetry,
+  busy = false,
   className,
 }: {
   lead?: string;
   message: string;
   onRetry?: () => void;
+  busy?: boolean;
   className?: string;
 }) {
   return (
@@ -24,7 +26,12 @@ export function FailureNotice({
         {message}
       </p>
       {onRetry && (
-        <button type="button" onClick={onRetry} className={OUTLINE_BUTTON}>
+        <button
+          type="button"
+          aria-disabled={busy}
+          onClick={busy ? undefined : onRetry}
+          className={`${OUTLINE_BUTTON} aria-disabled:opacity-50`}
+        >
           {RETRY_LABEL}
         </button>
       )}

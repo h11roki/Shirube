@@ -39,6 +39,7 @@ export function PlanList() {
   const [loads, setLoads] = useState(0);
   const [deleted, setDeleted] = useState<string>();
   const [left, setLeft] = useState(false);
+  const [reloading, setReloading] = useState(false);
   const notice = useRef<HTMLParagraphElement>(null);
 
   useEffect(() => {
@@ -48,11 +49,13 @@ export function PlanList() {
         if (active) {
           setPlans(answer);
           setError(undefined);
+          setReloading(false);
         }
       })
       .catch((caught: unknown) => {
         if (active) {
           setError(messageOf(caught));
+          setReloading(false);
         }
       });
     return () => {
@@ -61,7 +64,7 @@ export function PlanList() {
   }, [loads]);
 
   function reload() {
-    setError(undefined);
+    setReloading(true);
     setLoads((current) => current + 1);
   }
 
@@ -70,7 +73,10 @@ export function PlanList() {
       <FailureNotice
         lead="一覧を読み込めませんでした: "
         message={error}
-        onRetry={reload}
+        onRetry={() => {
+          setError(undefined);
+          reload();
+        }}
       />
     ) : (
       <p className="text-sm text-sub">読み込んでいます</p>
@@ -107,6 +113,7 @@ export function PlanList() {
           lead="一覧を読み直せませんでした: "
           message={error}
           onRetry={reload}
+          busy={reloading}
         />
       )}
       {plans.plans.length === 0 ? (

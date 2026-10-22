@@ -38,6 +38,7 @@ export function PlanForm() {
   );
   const [failed, setFailed] = useState<{ query: string; message: string }>();
   const [reloads, setReloads] = useState(0);
+  const [reloadingChoices, setReloadingChoices] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [takenRefresh, setTakenRefresh] = useState(0);
@@ -58,11 +59,13 @@ export function PlanForm() {
         if (active) {
           setLoaded({ query, answer });
           setFailed(undefined);
+          setReloadingChoices(false);
         }
       })
       .catch((error: unknown) => {
         if (active) {
           setFailed({ query, message: messageOf(error) });
+          setReloadingChoices(false);
         }
       });
     return () => {
@@ -71,6 +74,7 @@ export function PlanForm() {
   }, [query, reloads]);
 
   function reloadChoices() {
+    setReloadingChoices(true);
     setReloads((current) => current + 1);
   }
 
@@ -174,6 +178,7 @@ export function PlanForm() {
           lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
           message={loadError}
           onRetry={reloadChoices}
+          busy={reloadingChoices}
         />
       )}
 

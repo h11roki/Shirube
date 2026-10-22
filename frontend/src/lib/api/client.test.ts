@@ -7,6 +7,7 @@ import {
   messageOf,
   requestJson,
   requestNothing,
+  subscribeSignedOut,
 } from "@/lib/api/client";
 
 afterEach(() => {
@@ -157,5 +158,34 @@ describe("deletePlan", () => {
     );
 
     await expect(deletePlan("abc")).rejects.toMatchObject({ status: 409 });
+  });
+});
+
+describe("a refusal for a missing login", () => {
+  it("tells every subscriber until it unsubscribes", async () => {
+    const heard = vi.fn();
+    const unsubscribe = subscribeSignedOut(heard);
+    respondWith(
+      Response.json({ detail: "ログインしてください" }, { status: 401 }),
+    );
+    await expect(requestJson("/api/plans")).rejects.toMatchObject({
+      status: 401,
+    });
+    respondWith(
+      Response.json({ detail: "ログインしてください" }, { status: 401 }),
+    );
+    await expect(requestNothing("/api/me")).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(heard).toHaveBeenCalledTimes(2);
+
+    unsubscribe();
+    respondWith(
+      Response.json({ detail: "ログインしてください" }, { status: 401 }),
+    );
+    await expect(requestJson("/api/plans")).rejects.toMatchObject({
+      status: 401,
+    });
+    expect(heard).toHaveBeenCalledTimes(2);
   });
 });
