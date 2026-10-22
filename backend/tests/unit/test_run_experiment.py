@@ -1,9 +1,11 @@
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
+from dataclasses import astuple
+from math import sqrt
 
 import pytest
 
-from app.application.evaluate_search import EvaluationCase, EvaluationDataset
+from app.application.evaluate_search import EvaluationCase, EvaluationDataset, EvaluationError
 from app.application.evaluate_selection import (
     ExpectedCourse,
     Judgment,
@@ -31,6 +33,7 @@ from app.domain.recommendation import (
 )
 from tests.fakes import (
     FakeChunkSearch,
+    FakeCourseRepository,
     FakeCourseSelector,
     FakeEmbedder,
     FakeOccupationAnalyzer,
@@ -38,6 +41,7 @@ from tests.fakes import (
 )
 
 CASE = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A", "科目D"))
+OTHER = EvaluationCase("別の職業", ("甲", "乙", "丙"), ("科目A",))
 DATASET = EvaluationDataset(2026, "情", (CASE,))
 SIMILARITIES = {"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6}
 JUDGMENTS = Judgments(
@@ -51,6 +55,8 @@ JUDGMENTS = Judgments(
 PROFILE = OccupationProfile("職業", "職業の読み", None, ("スキル1", "スキル2", "スキル3"))
 CORE, FOUNDATION = Relevance.CORE, Relevance.FOUNDATION
 USAGE = {"gpt-5.4-nano": TokenUsage(input=300, cached=100, output=50)}
+LIMIT = 20
+HALF_APART = sqrt(0.125)
 
 
 class FakeMeter:
@@ -78,14 +84,18 @@ class FailingOnceSelector(FakeCourseSelector):
         return super().select(profile, candidates)
 
 
-def experiment(selector: FakeCourseSelector) -> RunExperiment:
-    repository, search = courses_ranked_by(SIMILARITIES)
+def experiment(
+    selector: FakeCourseSelector,
+    ranked: tuple[FakeCourseRepository, SearchCourses] | None = None,
+    candidate_limit: int = LIMIT,
+) -> RunExperiment:
+    repository, search = ranked or courses_ranked_by(SIMILARITIES)
     return RunExperiment(
         search,
         repository,
         FakeOccupationAnalyzer({"職業": PROFILE}),
         selector,
-        3,
+        candidate_limit,
         FakeMeter(),
         Ticks(),
     )
@@ -104,8 +114,8 @@ def test_each_repeat_runs_the_whole_recommendation_and_keeps_its_cost_and_stage_
     assert [outcome.repeat for outcome in outcomes] == [1, 2]
     first = outcomes[0]
     assert isinstance(first, Trial)
-    assert first.skills == PROFILE.skills
-    assert first.candidates == ("科目A", "科目B", "科目C")
+    assert first.profile == PROFILE
+    assert first.candidates == ("科目A", "科目B", "科目C", "科目D")
     assert [course.name for course in first.courses] == ["科目A", "科目C"]
     assert first.result.picks == (
         Pick("科目A", CORE, Judgment.EXPECTED),
@@ -113,27 +123,6 @@ def test_each_repeat_runs_the_whole_recommendation_and_keeps_its_cost_and_stage_
     )
     assert first.usage == USAGE
     assert first.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=1.0)
-
-
-def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> None:
-    repository, _ = courses_ranked_by(SIMILARITIES)
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder())
-    selector = FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")])
-    experiment = RunExperiment(
-        search,
-        repository,
-        FakeOccupationAnalyzer({"職業": PROFILE}),
-        selector,
-        3,
-        FakeMeter(),
-        Ticks(),
-    )
-
-    [only] = experiment.trials(DATASET, JUDGMENTS, 1)
-
-    assert isinstance(only, Trial)
-    assert (only.candidates, only.courses, selector.calls) == ((), (), [])
-    assert only.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=0.0)
 
 
 def test_a_failed_llm_call_keeps_its_usage_and_the_experiment_goes_on() -> None:
@@ -147,8 +136,37 @@ def test_a_failed_llm_call_keeps_its_usage_and_the_experiment_goes_on() -> None:
     assert isinstance(outcomes[1], Trial)
 
 
+def test_a_failed_embedding_fails_only_that_recommendation_as_in_production() -> None:
+    selector = FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")])
+    ranked = courses_ranked_by(SIMILARITIES, FakeEmbedder(failing_call=1))
+
+    outcomes = list(experiment(selector, ranked).trials(DATASET, JUDGMENTS, 2))
+
+    assert outcomes[0] == FailedTrial(
+        "職業", 1, "埋め込みの API 呼び出しに失敗しました: 応答が無い", USAGE
+    )
+    assert isinstance(outcomes[1], Trial)
+
+
+def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> None:
+    repository, _ = courses_ranked_by(SIMILARITIES)
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder())
+    selector = FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")])
+
+    [only] = experiment(selector, (repository, search)).trials(DATASET, JUDGMENTS, 1)
+
+    assert isinstance(only, Trial)
+    assert (only.candidates, only.courses, selector.calls) == ((), (), [])
+    assert only.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=0.0)
+
+
+def test_candidates_fewer_than_the_deepest_recall_cutoff_are_refused() -> None:
+    with pytest.raises(EvaluationError, match="候補の数を 20 以上にしてください"):
+        experiment(FakeCourseSelector([]), candidate_limit=19)
+
+
 def trial(
-    occupation: str,
+    case: EvaluationCase,
     repeat: int,
     candidates: tuple[str, ...],
     picks: tuple[Pick, ...],
@@ -156,9 +174,9 @@ def trial(
 ) -> Trial:
     picked = {pick.name: pick.relevance for pick in picks}
     return Trial(
-        occupation,
+        case.occupation,
         repeat,
-        PROFILE.skills,
+        PROFILE,
         candidates,
         tuple(
             RecommendedCourse(
@@ -171,11 +189,11 @@ def trial(
             for pick in picks
         ),
         SelectionResult(
-            occupation,
+            case.occupation,
             picks,
             tuple(
                 ExpectedCourse(name, picked.get(name), name in candidates, False)
-                for name in CASE.expected
+                for name in case.expected
             ),
             (),
         ),
@@ -184,16 +202,20 @@ def trial(
     )
 
 
+def values(spread: Spread | None) -> tuple[float, ...] | None:
+    return None if spread is None else astuple(spread)
+
+
 def test_summary_averages_each_repeat_and_measures_the_spread_and_overlap() -> None:
     first = trial(
-        "職業",
+        CASE,
         1,
         ("科目A", "科目B", "科目C"),
         (Pick("科目A", CORE, Judgment.EXPECTED), Pick("科目C", FOUNDATION, Judgment.UNRELATED)),
         1.0,
     )
     second = trial(
-        "職業",
+        CASE,
         2,
         ("科目D", "科目A"),
         (Pick("科目A", CORE, Judgment.EXPECTED), Pick("科目D", CORE, Judgment.EXPECTED)),
@@ -203,13 +225,17 @@ def test_summary_averages_each_repeat_and_measures_the_spread_and_overlap() -> N
 
     summary = summarize([first, second, failed], DATASET.cases)
 
-    assert (summary.trials, summary.failures, summary.complete_repeats) == (3, 1, 2)
-    assert summary.recall[0] == Spread(mean=0.75, std=0.25, low=0.5, high=1.0)
-    assert summary.core_precision == Spread(1.0, 0.0, 1.0, 1.0)
-    assert summary.expected_as_core == Spread(0.75, 0.25, 0.5, 1.0)
-    assert summary.unrelated == Spread(0.25, 0.25, 0.0, 0.5)
-    assert summary.cores == Spread(1.5, 0.5, 1.0, 2.0)
-    assert summary.foundations == Spread(0.5, 0.5, 0.0, 1.0)
+    assert summary is not None
+    assert (summary.trials, summary.failures) == (3, 1)
+    assert (summary.complete_repeats, summary.scored_repeats) == (2, 2)
+    halves = pytest.approx((0.75, HALF_APART, 0.5, 1.0))
+    assert [values(recall) for recall in summary.recall] == [halves, halves]
+    assert values(summary.candidate_recall) == halves
+    assert values(summary.core_precision) == (1.0, 0.0, 1.0, 1.0)
+    assert values(summary.expected_as_core) == halves
+    assert values(summary.unrelated) == pytest.approx((0.25, HALF_APART, 0.0, 0.5))
+    assert values(summary.cores) == pytest.approx((1.5, 2 * HALF_APART, 1.0, 2.0))
+    assert values(summary.foundations) == pytest.approx((0.5, 2 * HALF_APART, 0.0, 1.0))
     assert summary.overlap == pytest.approx(1 / 3)
     assert summary.core_overlap == pytest.approx(1 / 2)
     assert summary.usage == {"gpt-5.4-nano": TokenUsage(900, 300, 150)}
@@ -217,32 +243,53 @@ def test_summary_averages_each_repeat_and_measures_the_spread_and_overlap() -> N
 
 
 def test_a_repeat_cut_short_is_left_out_of_the_scores_but_not_of_the_cost() -> None:
-    cases = (CASE, EvaluationCase("別の職業", ("甲", "乙", "丙"), ("科目A",)))
     full = [
-        trial("職業", 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0),
-        trial("別の職業", 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0),
+        trial(CASE, 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0),
+        trial(OTHER, 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0),
     ]
-    cut = trial("職業", 2, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
+    cut = trial(CASE, 2, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
 
-    summary = summarize([*full, cut], cases)
+    summary = summarize([*full, cut], (CASE, OTHER))
 
-    assert summary.complete_repeats == 1
-    assert summary.unrelated == Spread(0.0, 0.0, 0.0, 0.0)
+    assert summary is not None
+    assert (summary.complete_repeats, summary.scored_repeats) == (1, 1)
+    assert values(summary.unrelated) == (0.0, 0.0, 0.0, 0.0)
     assert summary.usage == {"gpt-5.4-nano": TokenUsage(900, 300, 150)}
 
 
+def test_without_a_complete_repeat_the_scores_come_from_the_repeats_cut_short() -> None:
+    cut = trial(CASE, 1, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
+
+    summary = summarize([cut], (CASE, OTHER))
+
+    assert summary is not None
+    assert (summary.complete_repeats, summary.scored_repeats) == (0, 1)
+    assert values(summary.unrelated) == (1.0, 0.0, 1.0, 1.0)
+
+
+def test_shares_of_nothing_picked_are_left_undefined_rather_than_zero() -> None:
+    empty = trial(CASE, 1, ("科目A",), (), 1.0)
+
+    summary = summarize([empty], DATASET.cases)
+
+    assert summary is not None
+    assert (summary.core_precision, summary.unrelated) == (None, None)
+    assert values(summary.expected_as_core) == (0.0, 0.0, 0.0, 0.0)
+    assert values(summary.cores) == (0.0, 0.0, 0.0, 0.0)
+
+
 def test_a_single_repeat_has_no_overlap_to_measure() -> None:
-    only = trial("職業", 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0)
+    only = trial(CASE, 1, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0)
 
     summary = summarize([only], DATASET.cases)
 
+    assert summary is not None
     assert (summary.overlap, summary.core_overlap) == (None, None)
     assert summary.recall[0].std == 0.0
 
 
-def test_nothing_to_summarize_when_every_recommendation_failed() -> None:
-    with pytest.raises(ValueError, match="集計できる推薦がありません"):
-        summarize([FailedTrial("職業", 1, "失敗", {})], DATASET.cases)
+def test_nothing_is_summarized_when_every_recommendation_failed() -> None:
+    assert summarize([FailedTrial("職業", 1, "失敗", USAGE)], DATASET.cases) is None
 
 
 @pytest.mark.parametrize(

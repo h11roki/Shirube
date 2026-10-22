@@ -1,11 +1,17 @@
-from collections import Counter, defaultdict
+from collections import defaultdict
 from collections.abc import Callable, Iterator, Sequence
 from dataclasses import dataclass
 from itertools import combinations
-from statistics import mean, pstdev
+from statistics import mean, stdev
 from time import perf_counter
 
-from app.application.evaluate_search import EvaluationCase, EvaluationDataset
+from app.application.build_plans import UPSTREAM_ERRORS
+from app.application.evaluate_search import (
+    RECALL_CUTOFFS,
+    EvaluationCase,
+    EvaluationDataset,
+    EvaluationError,
+)
 from app.application.evaluate_selection import (
     Judgment,
     Judgments,
@@ -15,9 +21,7 @@ from app.application.evaluate_selection import (
 )
 from app.application.ports import (
     CourseRepository,
-    CourseSelectionError,
     CourseSelector,
-    OccupationAnalysisError,
     OccupationAnalyzer,
     TokenUsage,
     UsageMeter,
@@ -27,8 +31,6 @@ from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
-
-RECALL_DEPTHS = (10, 20, 30)
 
 
 @dataclass(frozen=True)
@@ -46,7 +48,7 @@ class StageSeconds:
 class Trial:
     occupation: str
     repeat: int
-    skills: tuple[str, ...]
+    profile: OccupationProfile
     candidates: tuple[str, ...]
     courses: tuple[RecommendedCourse, ...]
     result: SelectionResult
@@ -87,6 +89,11 @@ class RunExperiment:
         meter: UsageMeter,
         clock: Callable[[], float] = perf_counter,
     ) -> None:
+        if candidate_limit < max(RECALL_CUTOFFS):
+            raise EvaluationError(
+                f"候補の数を {max(RECALL_CUTOFFS)} 以上にしてください"
+                f"(検索の再現率 @{max(RECALL_CUTOFFS)} を候補から測るため)"
+            )
         self._search = search
         self._analyzer = _TimedAnalyzer(analyzer, clock)
         self._recommend = RecommendCourses(
@@ -118,14 +125,14 @@ class RunExperiment:
                 recommendation = self._recommend.run(
                     case.occupation, dataset.year, dataset.department, ALL_SEMESTERS, enter=mark
                 )
-            except (OccupationAnalysisError, CourseSelectionError) as error:
+            except UPSTREAM_ERRORS as error:
                 return FailedTrial(case.occupation, repeat, str(error), usage())
         finished = self._clock()
         selecting = entered.get(RecommendStep.SELECTING, finished)
         return Trial(
             case.occupation,
             repeat,
-            recommendation.profile.skills,
+            recommendation.profile,
             recommendation.candidates,
             recommendation.courses,
             selection_result(case, recommendation, judgments),
@@ -149,9 +156,10 @@ class Spread:
 @dataclass(frozen=True)
 class RepeatScores:
     recall: tuple[float, ...]
-    core_precision: float
+    candidate_recall: float
+    core_precision: float | None
     expected_as_core: float
-    unrelated: float
+    unrelated: float | None
     cores: float
     foundations: float
 
@@ -161,10 +169,12 @@ class ExperimentSummary:
     trials: int
     failures: int
     complete_repeats: int
+    scored_repeats: int
     recall: tuple[Spread, ...]
-    core_precision: Spread
+    candidate_recall: Spread
+    core_precision: Spread | None
     expected_as_core: Spread
-    unrelated: Spread
+    unrelated: Spread | None
     cores: Spread
     foundations: Spread
     overlap: float | None
@@ -174,30 +184,36 @@ class ExperimentSummary:
 
 
 def spread(values: Sequence[float]) -> Spread:
-    return Spread(mean(values), pstdev(values), min(values), max(values))
+    return Spread(mean(values), stdev(values) if len(values) > 1 else 0.0, min(values), max(values))
 
 
-def _ratio(part: int, whole: int) -> float:
-    return part / whole if whole else 0.0
+def _defined_spread(values: Sequence[float | None]) -> Spread | None:
+    defined = [value for value in values if value is not None]
+    return spread(defined) if defined else None
+
+
+def _ratio(part: int, whole: int) -> float | None:
+    return part / whole if whole else None
 
 
 def repeat_scores(trials: Sequence[Trial], cases: Sequence[EvaluationCase]) -> RepeatScores:
     expected_of = {case.occupation: set(case.expected) for case in cases}
     recall = tuple(
         mean(
-            len(expected_of[trial.occupation] & set(trial.candidates[:depth]))
+            len(expected_of[trial.occupation] & set(trial.candidates[:cutoff]))
             / len(expected_of[trial.occupation])
             for trial in trials
         )
-        for depth in RECALL_DEPTHS
+        for cutoff in RECALL_CUTOFFS
     )
     picks = [pick for trial in trials for pick in trial.result.picks]
     cores = [pick for pick in picks if pick.relevance is Relevance.CORE]
-    expected = sum(len(trial.result.expected) for trial in trials)
     return RepeatScores(
         recall,
+        mean(1 - len(trial.result.unsearched) / len(trial.result.expected) for trial in trials),
         _ratio(sum(1 for pick in cores if pick.judgment is Judgment.EXPECTED), len(cores)),
-        _ratio(sum(trial.result.expected_as(Relevance.CORE) for trial in trials), expected),
+        sum(trial.result.expected_as(Relevance.CORE) for trial in trials)
+        / sum(len(trial.result.expected) for trial in trials),
         _ratio(sum(1 for pick in picks if pick.judgment is Judgment.UNRELATED), len(picks)),
         len(cores) / len(trials),
         (len(picks) - len(cores)) / len(trials),
@@ -220,42 +236,43 @@ def overlap(groups: Sequence[Sequence[set[str]]]) -> float | None:
 
 def summarize(
     outcomes: Sequence[Trial | FailedTrial], cases: Sequence[EvaluationCase]
-) -> ExperimentSummary:
+) -> ExperimentSummary | None:
     trials = [outcome for outcome in outcomes if isinstance(outcome, Trial)]
     if not trials:
-        raise ValueError("集計できる推薦がありません")
+        return None
     by_repeat: dict[int, list[Trial]] = defaultdict(list)
     by_occupation: dict[str, list[Trial]] = defaultdict(list)
     for trial in trials:
         by_repeat[trial.repeat].append(trial)
         by_occupation[trial.occupation].append(trial)
-    complete = {repeat: group for repeat, group in by_repeat.items() if len(group) == len(cases)}
-    scores = [repeat_scores(group, cases) for group in (complete or by_repeat).values()]
-    usage: Counter[tuple[str, str]] = Counter()
+    complete = [group for group in by_repeat.values() if len(group) == len(cases)]
+    scores = [repeat_scores(group, cases) for group in complete or list(by_repeat.values())]
+    usage: dict[str, TokenUsage] = {}
     for outcome in outcomes:
         for model, tokens in outcome.usage.items():
-            usage[(model, "input")] += tokens.input
-            usage[(model, "cached")] += tokens.cached
-            usage[(model, "output")] += tokens.output
+            usage[model] = usage[model] + tokens if model in usage else tokens
     return ExperimentSummary(
-        len(outcomes),
-        len(outcomes) - len(trials),
-        len(complete),
-        tuple(
-            spread([score.recall[index] for score in scores]) for index in range(len(RECALL_DEPTHS))
+        trials=len(outcomes),
+        failures=len(outcomes) - len(trials),
+        complete_repeats=len(complete),
+        scored_repeats=len(scores),
+        recall=tuple(
+            spread([score.recall[index] for score in scores])
+            for index in range(len(RECALL_CUTOFFS))
         ),
-        spread([score.core_precision for score in scores]),
-        spread([score.expected_as_core for score in scores]),
-        spread([score.unrelated for score in scores]),
-        spread([score.cores for score in scores]),
-        spread([score.foundations for score in scores]),
-        overlap(
+        candidate_recall=spread([score.candidate_recall for score in scores]),
+        core_precision=_defined_spread([score.core_precision for score in scores]),
+        expected_as_core=spread([score.expected_as_core for score in scores]),
+        unrelated=_defined_spread([score.unrelated for score in scores]),
+        cores=spread([score.cores for score in scores]),
+        foundations=spread([score.foundations for score in scores]),
+        overlap=overlap(
             [
                 [{pick.name for pick in trial.result.picks} for trial in group]
                 for group in by_occupation.values()
             ]
         ),
-        overlap(
+        core_overlap=overlap(
             [
                 [
                     {pick.name for pick in trial.result.picks if pick.relevance is Relevance.CORE}
@@ -264,13 +281,8 @@ def summarize(
                 for group in by_occupation.values()
             ]
         ),
-        {
-            model: TokenUsage(
-                usage[(model, "input")], usage[(model, "cached")], usage[(model, "output")]
-            )
-            for model in sorted({model for model, _ in usage})
-        },
-        StageSeconds(
+        usage=dict(sorted(usage.items())),
+        seconds=StageSeconds(
             mean(trial.seconds.reading for trial in trials),
             mean(trial.seconds.searching for trial in trials),
             mean(trial.seconds.selecting for trial in trials),

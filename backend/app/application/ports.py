@@ -77,6 +77,11 @@ class TokenUsage:
     cached: int
     output: int
 
+    def __add__(self, other: "TokenUsage") -> "TokenUsage":
+        return TokenUsage(
+            self.input + other.input, self.cached + other.cached, self.output + other.output
+        )
+
 
 class UsageMeter(Protocol):
     def meter(self) -> AbstractContextManager[Callable[[], dict[str, TokenUsage]]]: ...
