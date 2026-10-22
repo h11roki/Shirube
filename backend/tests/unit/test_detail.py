@@ -45,31 +45,31 @@ def document(
 
 
 def test_header_fields_are_read_from_the_summary_table() -> None:
-    syllabus = parse_detail(fixture("32463"))
+    syllabus = parse_detail(fixture("10001"))
 
-    assert syllabus.code == "32463"
-    assert syllabus.title == "電子情報工学入門(6A)"
+    assert syllabus.code == "10001"
+    assert syllabus.title == "架空工学概論(6A)"
     assert syllabus.aliases == ()
     assert syllabus.year == 2026
     assert syllabus.term_label == "春セメスター"
     assert syllabus.slot_label == "月5"
     assert syllabus.faculties == ("理工学部",)
-    assert syllabus.instructors == ("AHMAD A. AMINUDDIN", "三木 信彦", "孟 林")
+    assert syllabus.instructors == ("ALEX EXAMPLE", "架空 太郎", "仮名 花子")
     assert syllabus.credits == 2
     assert syllabus.campus == "BKC"
     assert syllabus.language == "日本語"
 
 
 def test_text_fields_keep_line_and_paragraph_breaks() -> None:
-    entry = parse_detail(fixture("32463"))
-    circuits = parse_detail(fixture("32469"))
+    entry = parse_detail(fixture("10001"))
+    circuits = parse_detail(fixture("10002"))
 
-    assert entry.overview.startswith("電子情報工学科の勉学研究内容について概説し")
-    assert "\n(1) 電子情報工学科に関連するテーマの学習とプレゼンテーション" in entry.overview
-    assert entry.objectives.startswith("(1) 電子情報工学科での勉学研究の内容の概要を理解している。")
+    assert entry.overview.startswith("架空工学科の学びの内容について概説し")
+    assert "\n(1) 架空工学科に関連するテーマの学習と発表" in entry.overview
+    assert entry.objectives.startswith("(1) 架空工学科での学びの概要を理解している。")
     assert entry.preparation == "なし"
-    assert entry.class_format == "対面実施します。"
-    assert entry.self_study.startswith("テキストの予習・復習")
+    assert entry.class_format == "対面で実施する。"
+    assert entry.self_study.startswith("テキストの予習と復習")
     assert entry.grading_note == ""
     assert entry.advice == ""
     assert entry.remarks == ""
@@ -77,24 +77,24 @@ def test_text_fields_keep_line_and_paragraph_breaks() -> None:
 
 
 def test_schedule_note_is_separated_from_sessions() -> None:
-    syllabus = parse_detail(fixture("32463"))
+    syllabus = parse_detail(fixture("10001"))
 
-    assert syllabus.schedule_note.startswith("+R授業対象科目。第1回に+R授業を実施")
+    assert syllabus.schedule_note.startswith("第 1 回はガイダンスを行う。")
     assert len(syllabus.sessions) == 14
     assert syllabus.sessions[0].label.startswith("1 /")
-    assert syllabus.sessions[0].theme == "電子情報工学科での学び"
+    assert syllabus.sessions[0].theme == "架空工学科での学び"
     assert syllabus.sessions[0].keywords.startswith("カリキュラム、オンラインシラバス")
 
 
 def test_table_cells_keep_line_breaks() -> None:
-    syllabus = parse_detail(fixture("32469"))
+    syllabus = parse_detail(fixture("10002"))
 
     grouped = next(session for session in syllabus.sessions if session.label == "5～7")
     assert "\n" in grouped.keywords
 
 
 def test_grading_table_becomes_items() -> None:
-    syllabus = parse_detail(fixture("32463"))
+    syllabus = parse_detail(fixture("10001"))
 
     assert syllabus.grading[0] == GradingItem("定期試験（筆記）", "", "")
     assert syllabus.grading[1].percentage == "100"
@@ -104,8 +104,8 @@ def test_grading_table_becomes_items() -> None:
 @pytest.mark.parametrize(
     ("code", "title", "slot", "instructors"),
     [
-        ("32469", "電子回路Ⅰ(6T)", "水2", ("白畑 正芳",)),
-        ("32494", "電子回路Ⅱ(6T)", "木3", ("田中 亜実",)),
+        ("10002", "架空回路Ⅰ(6T)", "水2", ("仮名 一郎",)),
+        ("10003", "架空回路Ⅱ(6T)", "木3", ("仮名 二郎",)),
     ],
 )
 def test_other_courses_parse_consistently(
@@ -132,11 +132,12 @@ def test_synthetic_document_parses_with_note_row_excluded() -> None:
 
 
 def test_cross_listed_page_keeps_the_other_names_as_aliases() -> None:
-    syllabus = parse_detail(fixture("16806"))
+    syllabus = parse_detail(fixture("10004"))
 
-    assert syllabus.code == "16806"
-    assert syllabus.title == "平和人権フィールドスタディ (GR)"
-    assert syllabus.aliases == (CourseName("16807", "国際平和交流セミナー(GR)"),)
+    assert syllabus.code == "10004"
+    assert syllabus.title == "架空平和研究 (GR)"
+    assert syllabus.aliases == (CourseName("10005", "架空交流演習(GR)"),)
+    assert syllabus.faculties == ("法学部", "理工学部")
 
 
 def test_synthetic_cross_listed_title_splits_into_aliases() -> None:

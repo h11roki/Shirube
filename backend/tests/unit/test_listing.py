@@ -17,28 +17,28 @@ FIXTURE = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan" / "sea
 def test_search_results_page_yields_one_row_per_course() -> None:
     rows = parse_listing(FIXTURE.read_text(encoding="utf-8"))
 
-    assert [row.code for row in rows] == ["32463", "32464", "32465"]
+    assert [row.code for row in rows] == ["10001", "10002", "10003"]
     first = rows[0]
-    assert first.title == "電子情報工学入門(6A)"
+    assert first.title == "架空工学概論(6A)"
     assert first.faculties == ("理工学部",)
     assert first.term_label == "春セメスター"
     assert first.slot_label == "月5"
     assert first.campus == "BKC"
-    assert first.instructors == ("AHMAD A. AMINUDDIN", "三木 信彦", "孟 林")
+    assert first.instructors == ("ALEX EXAMPLE", "架空 太郎", "仮名 花子")
     assert first.language == "日本語"
     assert first.credits == "2"
-    assert first.href == "/syllabus/s/r-syllabus/a0ifD000003Rw21QAC/202632463"
+    assert first.href == "/syllabus/s/r-syllabus/a0i000000000001AAA/202610001"
     assert first.aliases == ()
 
 
 def test_cross_listed_row_keeps_the_other_names_as_aliases() -> None:
-    title = "16806:平和人権フィールドスタディ (GR) § 16807:国際平和交流セミナー(GR)"
+    title = "10004:架空平和研究 (GR) § 10005:架空交流演習(GR)"
 
-    row = parse_listing(listing_page((title, "/syllabus/s/r-syllabus/x/202616806")))[0]
+    row = parse_listing(listing_page((title, "/syllabus/s/r-syllabus/x/202610004")))[0]
 
-    assert row.code == "16806"
-    assert row.title == "平和人権フィールドスタディ (GR)"
-    assert row.aliases == (CourseName("16807", "国際平和交流セミナー(GR)"),)
+    assert row.code == "10004"
+    assert row.title == "架空平和研究 (GR)"
+    assert row.aliases == (CourseName("10005", "架空交流演習(GR)"),)
 
 
 def test_row_with_too_few_cells_is_an_error() -> None:
