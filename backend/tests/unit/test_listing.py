@@ -1,5 +1,3 @@
-from pathlib import Path
-
 import pytest
 
 from app.domain.syllabus import CourseName
@@ -9,13 +7,11 @@ from app.infrastructure.scrapers.ritsumeikan.listing import (
     parse_listing,
     parse_page_count,
 )
-from tests.unit.listing_page import listing_page
-
-FIXTURE = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan" / "search_results.html"
+from tests.unit.syllabus_pages import PAGES, listing_page, page_listing
 
 
 def test_search_results_page_yields_one_row_per_course() -> None:
-    rows = parse_listing(FIXTURE.read_text(encoding="utf-8"))
+    rows = parse_listing(page_listing(*PAGES.values()))
 
     assert [row.code for row in rows] == ["10001", "10002", "10003", "10004"]
     first = rows[0]

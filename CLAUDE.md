@@ -63,7 +63,7 @@ frontend は API を呼んで表示するだけで、業務ロジックを置か
 - シラバス(https://syllabus.ritsumei.ac.jp/syllabus/s)は Salesforce 製で JavaScript 描画。取得は Playwright、解析は BeautifulSoup。取得と解析を分け、取得した HTML は `backend/data/raw/` に保存して再取得しない(`backend/data/` は git 管理外)
 - 1リクエスト 2〜3 秒以上、単一スレッド、リポジトリの URL を入れた User-Agent(メールアドレスは入れない。ADR 0042)。教員の連絡先は保存しない
 - 画面に出すシラバス本文は短い引用にとどめ、原ページへリンクする
-- テストには実ページを置かず、構造を写した合成のページ(`backend/tests/fixtures/html/ritsumeikan/make_pages.py` が作る。生成物と一致するかをテストが確かめるので、スクリプトを変えたら作り直す)と合成の時間割表の PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使う。科目名・教員名・本文は架空。実ページの癖を見つけたら合成のページにも足す(ADR 0043)
+- テストには実ページを置かず、構造を写した合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる。ラベルは解析のモジュールから取らず書き写す)と合成の時間割表の PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使う。科目名・教員名・本文は架空。実ページの癖を見つけたら合成のページにも足す(ADR 0043)
 
 ## 進め方
 

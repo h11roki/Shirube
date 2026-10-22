@@ -1,8 +1,6 @@
-import html
 from dataclasses import dataclass
-from pathlib import Path
+from html import escape
 
-HERE = Path(__file__).parent
 YEAR = "2026"
 HEADER_LABELS = (
     "授業科目名",
@@ -28,6 +26,7 @@ LISTING_LABELS = (
     "単位数",
 )
 NOTE_ROW = "-"
+SIMPLE_CELLS = ("理工学部", "春セメスター", "月1", "BKC", "甲", "日本語", "2")
 
 
 @dataclass(frozen=True)
@@ -85,6 +84,18 @@ class Page:
     @property
     def href(self) -> str:
         return f"/syllabus/s/r-syllabus/{self.record_id}/{YEAR}{self.code}"
+
+    @property
+    def listing_cells(self) -> tuple[str, ...]:
+        return (
+            self.faculties,
+            self.term,
+            self.slot,
+            self.campus,
+            self.instructors,
+            self.language,
+            self.credits,
+        )
 
 
 def numbered(themes: tuple[str, ...]) -> tuple[tuple[str, str, str], ...]:
@@ -219,11 +230,7 @@ CROSS_LISTED = Page(
     class_format="集中で実施する。",
 )
 
-DETAIL_PAGES = (INTRODUCTION, CIRCUITS_1, CIRCUITS_2, CROSS_LISTED)
-
-
-def escape(text: str) -> str:
-    return html.escape(text, quote=True)
+PAGES = {page.code: page for page in (INTRODUCTION, CIRCUITS_1, CIRCUITS_2, CROSS_LISTED)}
 
 
 def screen_text(text: str) -> str:
@@ -350,8 +357,10 @@ def book_section(label: str, title: str, publisher: str) -> str:
     return table_section("book", BOOK_LABELS, row(cells), label)
 
 
-def detail_page(page: Page) -> str:
-    fields = "".join(field_section(label, text) for label, text in page.text_fields)
+def detail_page(page: Page, omit: str = "") -> str:
+    fields = "".join(
+        field_section(label, text) for label, text in page.text_fields if label != omit
+    )
     return (
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8">'
         f"<title>シラバス情報: {YEAR}{page.code}</title></head>"
@@ -375,60 +384,48 @@ def listing_cell(label: str, text: str) -> str:
     )
 
 
-def listing_row(number: int, page: Page) -> str:
-    values = (
-        page.faculties,
-        page.term,
-        page.slot,
-        page.campus,
-        page.instructors,
-        page.language,
-        page.credits,
+def listing_row(heading: str, href: str, cells: tuple[str, ...]) -> str:
+    link = escape(href)
+    values = "".join(
+        listing_cell(label, text) for label, text in zip(LISTING_LABELS[2:], cells, strict=True)
     )
-    cells = "".join(
-        listing_cell(label, text) for label, text in zip(LISTING_LABELS[2:], values, strict=True)
-    )
-    href = escape(page.href)
     return (
-        f'<tr class="slds-hint-parent" role="row" data-row-key-value="{page.record_id}"'
-        f' data-row-number="{number}">'
+        f'<tr class="slds-hint-parent" role="row" data-row-key-value="{link}">'
         '<td role="gridcell" data-col-key-value="0-rowNumber-0"><lightning-primitive-cell-factory>'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-truncate">'
         '<span class="slds-row-number slds-text-body_small slds-text-color_weak"></span>'
         "</div></span></lightning-primitive-cell-factory></td>"
-        f'<th role="rowheader" scope="row" data-label="授業科目名" data-cell-value="{href}">'
+        f'<th role="rowheader" scope="row" data-label="授業科目名" data-cell-value="{link}">'
         '<lightning-primitive-cell-factory class="slds-cell-wrap" data-label="授業科目名">'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-hyphenate">'
-        f'<lightning-formatted-url><a href="{href}" target="_blank" title="{href}">'
-        f"{escape(page.heading)}</a></lightning-formatted-url></div></span>"
-        f"</lightning-primitive-cell-factory></th>{cells}</tr>"
+        f'<lightning-formatted-url><a href="{link}" target="_blank" title="{link}">'
+        f"{escape(heading)}</a></lightning-formatted-url></div></span>"
+        f"</lightning-primitive-cell-factory></th>{values}</tr>"
     )
 
 
-def listing_page(pages: tuple[Page, ...]) -> str:
+def listing(rows: tuple[str, ...]) -> str:
     heads = "".join(
         f'<th role="columnheader" scope="col" aria-label="{escape(label)}">'
         f'<span class="slds-truncate" title="{escape(label)}">{escape(label)}</span></th>'
         for label in LISTING_LABELS
     )
-    rows = "".join(listing_row(number, page) for number, page in enumerate(pages, start=1))
     return (
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>ホーム</title></head>'
         '<body class="comm-page-home"><div class="themeLayoutStarterWrapper">'
         '<div class="slds-card"><p class="slds-m-vertical_medium content">'
-        f"全 {len(pages)} 件（1 / 1 ページ）</p>"
+        f"全 {len(rows)} 件（1 / 1 ページ）</p>"
         '<table class="slds-table slds-table_header-fixed slds-table_bordered" role="grid"'
-        f' data-num-rows="{len(pages)}"><thead><tr class="slds-line-height_reset" role="row">'
-        f'{heads}</tr></thead><tbody data-rowgroup-body="">{rows}</tbody></table></div>'
+        f' data-num-rows="{len(rows)}"><thead><tr class="slds-line-height_reset" role="row">'
+        f'{heads}</tr></thead><tbody data-rowgroup-body="">{"".join(rows)}</tbody></table></div>'
         "</div></body></html>"
     )
 
 
-def main() -> None:
-    for page in DETAIL_PAGES:
-        (HERE / f"detail_{page.code}.html").write_text(detail_page(page), encoding="utf-8")
-    (HERE / "search_results.html").write_text(listing_page(DETAIL_PAGES), encoding="utf-8")
+def listing_page(*rows: tuple[str, str]) -> str:
+    return listing(tuple(listing_row(heading, href, SIMPLE_CELLS) for heading, href in rows))
 
 
-if __name__ == "__main__":
-    main()
+def page_listing(*pages: Page) -> str:
+    rows = (listing_row(page.heading, page.href, page.listing_cells) for page in pages)
+    return listing(tuple(rows))

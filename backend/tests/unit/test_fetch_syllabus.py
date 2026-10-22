@@ -3,7 +3,7 @@ from pathlib import Path
 from app.application.fetch_syllabus import FetchSyllabus
 from app.application.ports import DetailLink, ListingQuery
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
-from tests.unit.listing_page import listing_page
+from tests.unit.syllabus_pages import listing_page
 
 
 def href_of(code: str) -> str:

@@ -5,9 +5,8 @@ import pytest
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
 from app.infrastructure.scrapers.ritsumeikan.stored import StoredSyllabi
-from tests.unit.listing_page import listing_page
+from tests.unit.syllabus_pages import CIRCUITS_2, CROSS_LISTED, detail_page, listing_page
 
-FIXTURES = Path(__file__).parents[1] / "fixtures" / "html" / "ritsumeikan"
 LISTING = listing_page(
     ("10004:架空平和研究 (GR) § 10005:架空交流演習(GR)", "/syllabus/s/r-syllabus/x/202610004")
 )
@@ -15,7 +14,7 @@ LISTING = listing_page(
 
 def saved_store(tmp_path: Path, with_listing: bool) -> RawStore:
     store = RawStore(tmp_path, 2026)
-    store.save_detail("10004", (FIXTURES / "detail_10004.html").read_text(encoding="utf-8"))
+    store.save_detail("10004", detail_page(CROSS_LISTED))
     if with_listing:
         store.save_listing("a", [LISTING])
     return store
@@ -45,7 +44,7 @@ def test_unknown_or_unsaved_codes_are_none(tmp_path: Path) -> None:
 
 def test_every_saved_page_is_listed_once(tmp_path: Path) -> None:
     store = saved_store(tmp_path, with_listing=True)
-    store.save_detail("10003", (FIXTURES / "detail_10003.html").read_text(encoding="utf-8"))
+    store.save_detail("10003", detail_page(CIRCUITS_2))
 
     assert [page.code for page in StoredSyllabi(store).syllabi()] == ["10003", "10004"]
 
@@ -85,7 +84,7 @@ def test_a_page_listed_with_two_links_has_no_url(tmp_path: Path) -> None:
 
 def test_a_page_listed_only_as_an_alias_of_another_has_no_url(tmp_path: Path) -> None:
     store = RawStore(tmp_path, 2026)
-    store.save_detail("10005", (FIXTURES / "detail_10004.html").read_text(encoding="utf-8"))
+    store.save_detail("10005", detail_page(CROSS_LISTED))
     store.save_listing("a", [LISTING])
 
     assert [page.url for page in StoredSyllabi(store).syllabi()] == [None]
