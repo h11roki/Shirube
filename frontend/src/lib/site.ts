@@ -2,6 +2,10 @@ export const SITE_NAME = "shirube";
 
 export const SITE_DESCRIPTION = "なりたい職業から、卒業までの履修の道標を描く";
 
+export const CATCHPHRASE = ["履修に迷ったら、", "なりたい職業から。"];
+
+export const SUBHEAD = "なぜ学ぶかが見える、卒業までの時間割。";
+
 export const PUBLIC_PAGES = ["/", "/terms", "/privacy"];
 
 export const INDEXED = { index: true, follow: true };

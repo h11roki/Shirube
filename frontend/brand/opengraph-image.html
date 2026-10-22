@@ -32,37 +32,19 @@
         letter-spacing: 0.28em;
         color: #b23d27;
       }
-      .plate {
-        display: inline-block;
-        margin-top: 36px;
-        padding: 18px 40px;
-        border: 1px solid #d8cfbe;
-        border-radius: 12px;
-        background: #24211d;
-        color: #f4efe4;
-        box-shadow: 0 8px 24px rgb(60 40 20 / 0.12);
+      .catch {
+        max-width: 760px;
+        margin: 52px 0 0;
         font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
-        font-size: 64px;
+        font-size: 66px;
         font-weight: 800;
-        letter-spacing: 0.08em;
-        line-height: 1.2;
-      }
-      .plate .to {
-        margin-left: 14px;
-        color: #e2775d;
-      }
-      .title {
-        max-width: 740px;
-        margin: 44px 0 0;
-        font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
-        font-size: 42px;
-        font-weight: 800;
-        line-height: 1.35;
+        letter-spacing: 0.04em;
+        line-height: 1.3;
       }
       .sub {
         max-width: 740px;
-        margin: 16px 0 0;
-        font-size: 24px;
+        margin: 20px 0 0;
+        font-size: 26px;
         color: #6b6257;
       }
       .brand {
@@ -82,49 +64,157 @@
         letter-spacing: 0.3em;
         color: #6b6257;
       }
-      .signpost {
+      .ticket {
         position: absolute;
-        right: 90px;
-        top: 110px;
-        width: 260px;
-        height: 314px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 96px;
+        width: 400px;
+        border: 1px solid #d8cfbe;
+        border-radius: 10px;
+        background: #fffaf0;
+        box-shadow: 0 14px 28px rgb(60 40 20 / 0.14);
+      }
+      .ticket .body {
+        display: grid;
+        align-content: start;
+        gap: 6px;
+        padding: 20px 22px 22px;
+      }
+      .ticket .role {
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+      }
+      .ticket .name {
+        margin: 0;
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.3;
+      }
+      .ticket .reason {
+        margin: 2px 0 0;
+        font-size: 18px;
+        line-height: 1.6;
+        color: #6b6257;
+      }
+      .ticket .stub {
+        position: relative;
+        display: grid;
+        align-content: center;
+        gap: 14px;
+        margin: 0;
+        border-left: 2px dashed #d8cfbe;
+        text-align: center;
+      }
+      .ticket .stub::before,
+      .ticket .stub::after {
+        content: "";
+        position: absolute;
+        left: -11px;
+        width: 20px;
+        height: 20px;
+        box-sizing: border-box;
+        border: 1px solid #d8cfbe;
+        border-radius: 50%;
+        background: #f4efe4;
+      }
+      .ticket .stub::before {
+        top: -11px;
+        clip-path: inset(50% 0 0 0);
+      }
+      .ticket .stub::after {
+        bottom: -11px;
+        clip-path: inset(0 0 50% 0);
+      }
+      .ticket .stub dt {
+        font-size: 13px;
+        letter-spacing: 0.14em;
+        color: #6b6257;
+      }
+      .ticket .stub dd {
+        margin: 2px 0 0;
+        font-size: 24px;
+        font-weight: 700;
+      }
+      .foundation .role {
+        color: #2f5874;
+      }
+      .core .role {
+        color: #b23d27;
+      }
+      .core .name {
+        padding-right: 52px;
+      }
+      .stamp {
+        position: absolute;
+        top: 14px;
+        right: 110px;
+        display: grid;
+        place-items: center;
+        width: 50px;
+        height: 50px;
+        box-sizing: border-box;
+        border: 3px solid #b23d27;
+        border-radius: 50%;
+        color: #b23d27;
+        font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
+        font-size: 24px;
+        font-weight: 800;
+        opacity: 0.85;
+        transform: rotate(-12deg);
+      }
+      .back {
+        top: 132px;
+        right: 86px;
+        transform: rotate(4deg);
+      }
+      .front {
+        top: 296px;
+        right: 56px;
+        transform: rotate(-3deg);
       }
     </style>
   </head>
   <body>
     <div class="kicker">立命館大学 理工学部 電子情報工学科 ・ 非公式</div>
-    <div class="plate">なりたい職業<span class="to">行</span></div>
-    <h1 class="title">なりたい職業から、卒業までの道標を作る</h1>
-    <p class="sub">
-      シラバスから関係の深い授業を選び、理由をつけて、学期ごとの時間割に並べる
-    </p>
+    <h1 class="catch">履修に迷ったら、<br />なりたい職業から。</h1>
+    <p class="sub">なぜ学ぶかが見える、卒業までの時間割。</p>
     <div class="brand">shirube<small>道標</small></div>
-    <svg class="signpost" viewBox="0 0 96 116" aria-hidden="true">
-      <rect x="44" y="16" width="8" height="98" fill="#2a2520" opacity="0.85" />
-      <path d="M14 20h62l12 11-12 11H14z" fill="#b23d27" />
-      <path d="M82 52H22L8 63l14 11h60z" fill="#2f5874" />
-      <text
-        x="45"
-        y="35"
-        text-anchor="middle"
-        fill="#f4efe4"
-        font-family="Shippori Mincho, serif"
-        font-size="11"
-        font-weight="700"
-      >
-        卒業
-      </text>
-      <text
-        x="51"
-        y="67"
-        text-anchor="middle"
-        fill="#f4efe4"
-        font-family="Shippori Mincho, serif"
-        font-size="11"
-        font-weight="700"
-      >
-        1 回生
-      </text>
-    </svg>
+    <article class="ticket foundation back">
+      <div class="body">
+        <p class="role">礎</p>
+        <p class="name">電子情報基礎数学</p>
+        <p class="reason">確率分布や推定・検定で使う数学の前提になるため。</p>
+      </div>
+      <dl class="stub">
+        <div>
+          <dt>コマ</dt>
+          <dd>木2</dd>
+        </div>
+        <div>
+          <dt>単位</dt>
+          <dd>2</dd>
+        </div>
+      </dl>
+    </article>
+    <article class="ticket core front">
+      <div class="body">
+        <p class="role">柱</p>
+        <p class="name">AI・機械学習</p>
+        <p class="reason">予測モデル開発に直結する。</p>
+      </div>
+      <dl class="stub">
+        <div>
+          <dt>コマ</dt>
+          <dd>火3</dd>
+        </div>
+        <div>
+          <dt>単位</dt>
+          <dd>2</dd>
+        </div>
+      </dl>
+      <span class="stamp">柱</span>
+    </article>
   </body>
 </html>
