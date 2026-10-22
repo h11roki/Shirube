@@ -5,7 +5,7 @@ import { LoginRequired } from "@/components/login-required";
 import { Kicker } from "@/components/kicker";
 import { PlanForm } from "@/components/plan-form";
 import { DEPARTMENT_NAME } from "@/lib/labels";
-import { CATCHPHRASE, INDEXED } from "@/lib/site";
+import { CATCHPHRASE, INDEXED, SUBHEAD } from "@/lib/site";
 
 export const metadata: Metadata = { robots: INDEXED };
 
@@ -24,8 +24,8 @@ export default function Home() {
             </span>
           ))}
         </h1>
-        <p className="max-w-2xl leading-relaxed text-sub">
-          シラバスから職業に関係の深い授業を選び、取る理由をつけて、卒業までの学期ごとの時間割に並べます。
+        <p className="max-w-2xl leading-relaxed text-balance text-sub">
+          {SUBHEAD}
         </p>
       </section>
       <LoginRequired signedOut={<Introduction />}>
