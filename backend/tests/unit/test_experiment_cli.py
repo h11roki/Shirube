@@ -1,3 +1,4 @@
+import argparse
 from typing import Any
 
 import pytest
@@ -5,7 +6,7 @@ from langchain_core.messages import HumanMessage
 
 from app.application.ports import TokenUsage
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
-from app.presentation.cli.experiment import compare, unpriced, yen
+from app.presentation.cli.experiment import compare, label, unpriced, yen
 from tests.fakes import chat_answering
 
 
@@ -19,23 +20,45 @@ def test_models_without_a_price_cost_nothing_and_are_listed() -> None:
     usage = {"gpt-5.4-mini": TokenUsage(1_000_000, 0, 0), "other-model": TokenUsage(5, 0, 5)}
 
     assert yen(usage) == pytest.approx(0.75 * 150)
-    assert unpriced(usage) == ["other-model"]
+    assert unpriced(list(usage)) == ["other-model"]
 
 
 def test_the_meter_reads_token_usage_from_langchain_by_model() -> None:
     chat = chat_answering({"content": "はい"})
 
-    answer, usage = LangChainUsageMeter().metered(lambda: chat.invoke([HumanMessage("質問")]))
+    with LangChainUsageMeter().meter() as usage:
+        answer = chat.invoke([HumanMessage("質問")])
 
     assert answer.content == "はい"
-    assert usage == {"test-model": TokenUsage(input=1, cached=0, output=1)}
+    assert usage() == {"test-model": TokenUsage(input=1, cached=0, output=1)}
+
+
+def test_the_meter_keeps_the_usage_of_a_call_that_failed_afterwards() -> None:
+    chat = chat_answering({"content": "はい"})
+
+    with pytest.raises(RuntimeError), LangChainUsageMeter().meter() as usage:
+        chat.invoke([HumanMessage("質問")])
+        raise RuntimeError("答えを使えない")
+
+    assert usage() == {"test-model": TokenUsage(input=1, cached=0, output=1)}
+
+
+@pytest.mark.parametrize("text", ["baseline", "vote-3", "nano_0.2"])
+def test_a_label_of_letters_digits_dots_and_dashes_is_accepted(text: str) -> None:
+    assert label(text) == text
+
+
+@pytest.mark.parametrize("text", ["mini/nano", "", "-start", "日本語"])
+def test_a_label_that_cannot_be_a_file_name_part_is_refused(text: str) -> None:
+    with pytest.raises(argparse.ArgumentTypeError):
+        label(text)
 
 
 def spread(value: float, std: float) -> dict[str, float]:
     return {"mean": value, "std": std, "low": value - std, "high": value + std}
 
 
-def run(label: str, repeats: int, unrelated: float, std: float) -> dict[str, Any]:
+def run(name: str, repeats: int, unrelated: float, std: float) -> dict[str, Any]:
     summary: dict[str, Any] = {
         key: spread(0.5, 0.0)
         for key in (
@@ -55,14 +78,14 @@ def run(label: str, repeats: int, unrelated: float, std: float) -> dict[str, Any
         "yen_per_plan": 1.5,
         "seconds": {"total": 12.0},
     }
-    return {"label": label, "config": {"repeats": repeats}, "summary": summary}
+    return {"label": name, "config": {"repeats": repeats}, "summary": summary}
 
 
 def test_compare_tells_whether_a_difference_is_larger_than_the_spread() -> None:
     lines = compare(run("before", 3, 0.20, 0.02), run("after", 3, 0.10, 0.03)).splitlines()
 
     unrelated = next(line for line in lines if line.startswith("  選んだ科目のうち関係なし"))
-    assert "差 -10.00 ポイント" in unrelated
+    assert "差 -10 ポイント" in unrelated
     assert unrelated.endswith("揺れより大きい")
     precision = next(line for line in lines if line.startswith("  中心の適合率"))
     assert precision.endswith("揺れの範囲")

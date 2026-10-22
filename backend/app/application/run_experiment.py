@@ -24,7 +24,8 @@ from app.application.ports import (
 )
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import SearchCourses
-from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
+from app.domain.occupation import OccupationProfile
+from app.domain.recommendation import RecommendedCourse, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_DEPTHS = (10, 20, 30)
@@ -58,6 +59,21 @@ class FailedTrial:
     occupation: str
     repeat: int
     failure: str
+    usage: dict[str, TokenUsage]
+
+
+class _TimedAnalyzer:
+    def __init__(self, analyzer: OccupationAnalyzer, clock: Callable[[], float]) -> None:
+        self._analyzer = analyzer
+        self._clock = clock
+        self.seconds = 0.0
+
+    def analyze(self, occupation: str) -> OccupationProfile:
+        started = self._clock()
+        try:
+            return self._analyzer.analyze(occupation)
+        finally:
+            self.seconds = self._clock() - started
 
 
 class RunExperiment:
@@ -72,7 +88,10 @@ class RunExperiment:
         clock: Callable[[], float] = perf_counter,
     ) -> None:
         self._search = search
-        self._recommend = RecommendCourses(search, courses, analyzer, selector, candidate_limit)
+        self._analyzer = _TimedAnalyzer(analyzer, clock)
+        self._recommend = RecommendCourses(
+            search, courses, self._analyzer, selector, candidate_limit
+        )
         self._meter = meter
         self._clock = clock
 
@@ -88,24 +107,21 @@ class RunExperiment:
     def _trial(
         self, dataset: EvaluationDataset, judgments: Judgments, case: EvaluationCase, repeat: int
     ) -> Trial | FailedTrial:
-        marks: dict[RecommendStep, float] = {}
+        entered: dict[RecommendStep, float] = {}
 
         def mark(step: RecommendStep) -> None:
-            marks.setdefault(step, self._clock())
-
-        def recommend() -> Recommendation:
-            return self._recommend.run(
-                case.occupation, dataset.year, dataset.department, ALL_SEMESTERS, enter=mark
-            )
+            entered[step] = self._clock()
 
         started = self._clock()
-        try:
-            recommendation, usage = self._meter.metered(recommend)
-        except (OccupationAnalysisError, CourseSelectionError) as error:
-            return FailedTrial(case.occupation, repeat, str(error))
+        with self._meter.meter() as usage:
+            try:
+                recommendation = self._recommend.run(
+                    case.occupation, dataset.year, dataset.department, ALL_SEMESTERS, enter=mark
+                )
+            except (OccupationAnalysisError, CourseSelectionError) as error:
+                return FailedTrial(case.occupation, repeat, str(error), usage())
         finished = self._clock()
-        searching = marks.get(RecommendStep.SEARCHING, finished)
-        selecting = marks.get(RecommendStep.SELECTING, finished)
+        selecting = entered.get(RecommendStep.SELECTING, finished)
         return Trial(
             case.occupation,
             repeat,
@@ -113,8 +129,12 @@ class RunExperiment:
             recommendation.candidates,
             recommendation.courses,
             selection_result(case, recommendation, judgments),
-            usage,
-            StageSeconds(searching - started, selecting - searching, finished - selecting),
+            usage(),
+            StageSeconds(
+                self._analyzer.seconds,
+                selecting - started - self._analyzer.seconds,
+                finished - selecting,
+            ),
         )
 
 
@@ -140,6 +160,7 @@ class RepeatScores:
 class ExperimentSummary:
     trials: int
     failures: int
+    complete_repeats: int
     recall: tuple[Spread, ...]
     core_precision: Spread
     expected_as_core: Spread
@@ -208,17 +229,18 @@ def summarize(
     for trial in trials:
         by_repeat[trial.repeat].append(trial)
         by_occupation[trial.occupation].append(trial)
-    scores = [repeat_scores(group, cases) for group in by_repeat.values()]
+    complete = {repeat: group for repeat, group in by_repeat.items() if len(group) == len(cases)}
+    scores = [repeat_scores(group, cases) for group in (complete or by_repeat).values()]
     usage: Counter[tuple[str, str]] = Counter()
-    for trial in trials:
-        for model, tokens in trial.usage.items():
+    for outcome in outcomes:
+        for model, tokens in outcome.usage.items():
             usage[(model, "input")] += tokens.input
             usage[(model, "cached")] += tokens.cached
             usage[(model, "output")] += tokens.output
-    models = sorted({model for model, _ in usage})
     return ExperimentSummary(
         len(outcomes),
         len(outcomes) - len(trials),
+        len(complete),
         tuple(
             spread([score.recall[index] for score in scores]) for index in range(len(RECALL_DEPTHS))
         ),
@@ -246,7 +268,7 @@ def summarize(
             model: TokenUsage(
                 usage[(model, "input")], usage[(model, "cached")], usage[(model, "output")]
             )
-            for model in models
+            for model in sorted({model for model, _ in usage})
         },
         StageSeconds(
             mean(trial.seconds.reading for trial in trials),

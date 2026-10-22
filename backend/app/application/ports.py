@@ -1,4 +1,5 @@
 from collections.abc import Callable, Set
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -78,7 +79,7 @@ class TokenUsage:
 
 
 class UsageMeter(Protocol):
-    def metered[T](self, work: Callable[[], T]) -> tuple[T, dict[str, TokenUsage]]: ...
+    def meter(self) -> AbstractContextManager[Callable[[], dict[str, TokenUsage]]]: ...
 
 
 class InvalidTokenError(ValueError):

@@ -1,6 +1,7 @@
 import argparse
 import hashlib
 import json
+import re
 import subprocess
 import sys
 from collections.abc import Mapping, Sequence
@@ -20,7 +21,6 @@ from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
     RunExperiment,
-    Spread,
     Trial,
     summarize,
 )
@@ -54,20 +54,25 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 JST = ZoneInfo("Asia/Tokyo")
 PROFILES = ("analyzed", "handwritten")
+LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 METRICS = (
-    *((f"recall@{depth}", f"検索の再現率 @{depth}") for depth in RECALL_DEPTHS),
-    ("core_precision", "中心の適合率"),
-    ("expected_as_core", "期待する科目を中心に選んだ割合"),
-    ("unrelated", "選んだ科目のうち関係なし"),
-    ("cores", "1 職業に選んだ中心"),
-    ("foundations", "1 職業に選んだ土台"),
+    *((f"recall@{depth}", f"検索の再現率 @{depth}", "ratio") for depth in RECALL_DEPTHS),
+    ("core_precision", "中心の適合率", "ratio"),
+    ("expected_as_core", "期待する科目を中心に選んだ割合", "ratio"),
+    ("unrelated", "選んだ科目のうち関係なし", "ratio"),
+    ("cores", "1 職業に選んだ中心", "count"),
+    ("foundations", "1 職業に選んだ土台", "count"),
 )
+
+
+def price_of(model: str) -> tuple[float, float, float] | None:
+    return next((rates for name, rates in PRICES.items() if model.startswith(name)), None)
 
 
 def yen(usage: Mapping[str, TokenUsage]) -> float:
     total = 0.0
     for model, tokens in usage.items():
-        price = next((rates for name, rates in PRICES.items() if model.startswith(name)), None)
+        price = price_of(model)
         if price is None:
             continue
         fresh, cached, output = price
@@ -77,12 +82,17 @@ def yen(usage: Mapping[str, TokenUsage]) -> float:
     return total * YEN_PER_DOLLAR
 
 
-def unpriced(usage: Mapping[str, TokenUsage]) -> list[str]:
-    return sorted(model for model in usage if not any(model.startswith(name) for name in PRICES))
+def unpriced(models: Sequence[str]) -> list[str]:
+    return sorted(model for model in models if price_of(model) is None)
 
 
-def _digest(text: str | bytes) -> str:
-    data = text.encode("utf-8") if isinstance(text, str) else text
+def label(text: str) -> str:
+    if not LABEL.fullmatch(text):
+        raise argparse.ArgumentTypeError("英数字と . _ - だけで、英数字から始めてください")
+    return text
+
+
+def _digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:8]
 
 
@@ -91,44 +101,52 @@ def _commit() -> str | None:
         head = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
         ).stdout.strip()
-        dirty = subprocess.run(
-            ["git", "status", "--porcelain"], capture_output=True, text=True, check=True
+        changed = subprocess.run(
+            ["git", "status", "--porcelain", "--untracked-files=no"],
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout.strip()
     except (OSError, subprocess.CalledProcessError):
         return None
-    return f"{head}-dirty" if dirty else head
-
-
-def _spread(value: Spread) -> dict[str, float]:
-    return asdict(value)
+    return f"{head}-dirty" if changed else head
 
 
 def summary_document(summary: ExperimentSummary) -> dict[str, Any]:
     plans = summary.trials - summary.failures
-    document: dict[str, Any] = {"trials": summary.trials, "failures": summary.failures}
-    for depth, value in zip(RECALL_DEPTHS, summary.recall, strict=True):
-        document[f"recall@{depth}"] = _spread(value)
-    document |= {
-        "core_precision": _spread(summary.core_precision),
-        "expected_as_core": _spread(summary.expected_as_core),
-        "unrelated": _spread(summary.unrelated),
-        "cores": _spread(summary.cores),
-        "foundations": _spread(summary.foundations),
+    spreads = dict(
+        zip(
+            (key for key, _, _ in METRICS),
+            (
+                *summary.recall,
+                summary.core_precision,
+                summary.expected_as_core,
+                summary.unrelated,
+                summary.cores,
+                summary.foundations,
+            ),
+            strict=True,
+        )
+    )
+    return {
+        "trials": summary.trials,
+        "failures": summary.failures,
+        "complete_repeats": summary.complete_repeats,
+        **{key: asdict(value) for key, value in spreads.items()},
         "overlap": summary.overlap,
         "core_overlap": summary.core_overlap,
-        "yen_per_plan": yen(summary.usage) / plans,
+        "yen_per_plan": yen(summary.usage) / summary.trials,
         "tokens_per_plan": {
             model: {
-                "input": tokens.input / plans,
-                "cached": tokens.cached / plans,
-                "output": tokens.output / plans,
+                "input": tokens.input / summary.trials,
+                "cached": tokens.cached / summary.trials,
+                "output": tokens.output / summary.trials,
             }
             for model, tokens in summary.usage.items()
         },
-        "seconds": asdict(summary.seconds) | {"total": summary.seconds.total},
-        "unpriced_models": unpriced(summary.usage),
+        "seconds": asdict(summary.seconds) | {"total": summary.seconds.total, "plans": plans},
+        "unpriced_models": unpriced(list(summary.usage)),
     }
-    return document
 
 
 def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
@@ -172,22 +190,13 @@ def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
     }
 
 
-def _percent(value: Mapping[str, float]) -> str:
-    return (
-        f"{value['mean']:.0%} ± {value['std'] * 100:.0f}({value['low']:.0%}〜{value['high']:.0%})"
-    )
-
-
-def _number(value: Mapping[str, float]) -> str:
+def _format(kind: str, value: Mapping[str, float]) -> str:
+    if kind == "ratio":
+        return (
+            f"{value['mean']:.0%} ± {value['std'] * 100:.0f}"
+            f"({value['low']:.0%}〜{value['high']:.0%})"
+        )
     return f"{value['mean']:.2f} ± {value['std']:.2f}({value['low']:.2f}〜{value['high']:.2f})"
-
-
-def _format(key: str, value: Mapping[str, float]) -> str:
-    return (
-        _number(value)
-        if key.startswith("recall") or key in ("cores", "foundations")
-        else _percent(value)
-    )
 
 
 def render(document: Mapping[str, Any]) -> str:
@@ -198,10 +207,13 @@ def render(document: Mapping[str, Any]) -> str:
         f"職業の読み取り {config['profiles']}、"
         f"{config['chat_model']} / {config['selection_model']}、候補 {config['candidate_limit']})",
     ]
-    if not document["complete"]:
-        lines.append(f"  費用の上限 {config['budget']} 円で途中で止めた")
-    lines.append(f"  推薦 {summary['trials']} 回、失敗 {summary['failures']} 回")
-    lines += [f"  {label} {_format(key, summary[key])}" for key, label in METRICS]
+    if document["stopped"] is not None:
+        lines.append(f"  途中で止めた: {document['stopped']}")
+    lines.append(
+        f"  推薦 {summary['trials']} 回、失敗 {summary['failures']} 回、"
+        f"全職業がそろった回 {summary['complete_repeats']}"
+    )
+    lines += [f"  {name} {_format(kind, summary[key])}" for key, name, kind in METRICS]
     if summary["overlap"] is not None:
         lines.append(
             f"  揺れ(同じ職業の回どうしの重なり)選んだ科目 {summary['overlap']:.2f}、"
@@ -213,9 +225,9 @@ def render(document: Mapping[str, Any]) -> str:
         for model, usage in summary["tokens_per_plan"].items()
     )
     seconds = summary["seconds"]
-    lines.append(f"  1 件あたり {summary['yen_per_plan']:.2f} 円({tokens})")
+    lines.append(f"  1 回の推薦あたり {summary['yen_per_plan']:.2f} 円({tokens})")
     lines.append(
-        f"  1 件あたりの時間 {seconds['total']:.1f} 秒(読み取り {seconds['reading']:.1f}、"
+        f"  1 回の推薦の時間 {seconds['total']:.1f} 秒(読み取り {seconds['reading']:.1f}、"
         f"検索 {seconds['searching']:.1f}、選び直し {seconds['selecting']:.1f})"
     )
     if summary["unpriced_models"]:
@@ -225,119 +237,32 @@ def render(document: Mapping[str, Any]) -> str:
 
 def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
     lines = [f"比べる: {before['label']} → {after['label']}"]
-    for key, label in METRICS:
+    repeated = before["config"]["repeats"] > 1 and after["config"]["repeats"] > 1
+    for key, name, kind in METRICS:
         old, new = before["summary"][key], after["summary"][key]
         delta = new["mean"] - old["mean"]
         noise = max(old["std"], new["std"])
-        repeated = before["config"]["repeats"] > 1 and after["config"]["repeats"] > 1
         verdict = ("揺れより大きい" if abs(delta) > noise else "揺れの範囲") if repeated else "-"
-        scale = 1 if key.startswith("recall") or key in ("cores", "foundations") else 100
-        unit = "" if scale == 1 else " ポイント"
+        difference = f"{delta * 100:+.0f} ポイント" if kind == "ratio" else f"{delta:+.2f}"
         lines.append(
-            f"  {label}: {_format(key, old)} → {_format(key, new)}、"
-            f"差 {delta * scale:+.2f}{unit}、{verdict}"
+            f"  {name}: {_format(kind, old)} → {_format(kind, new)}、差 {difference}、{verdict}"
         )
-    for key, label in (
+    for key, name in (
         ("overlap", "揺れ(選んだ科目の重なり)"),
         ("core_overlap", "揺れ(中心の重なり)"),
     ):
         old, new = before["summary"][key], after["summary"][key]
         if old is not None and new is not None:
-            lines.append(f"  {label}: {old:.2f} → {new:.2f}、差 {new - old:+.2f}")
+            lines.append(f"  {name}: {old:.2f} → {new:.2f}、差 {new - old:+.2f}")
     lines.append(
-        f"  1 件あたりの費用: {before['summary']['yen_per_plan']:.2f} 円 → "
+        f"  1 回の推薦あたりの費用: {before['summary']['yen_per_plan']:.2f} 円 → "
         f"{after['summary']['yen_per_plan']:.2f} 円"
     )
     lines.append(
-        f"  1 件あたりの時間: {before['summary']['seconds']['total']:.1f} 秒 → "
+        f"  1 回の推薦の時間: {before['summary']['seconds']['total']:.1f} 秒 → "
         f"{after['summary']['seconds']['total']:.1f} 秒"
     )
     return "\n".join(lines)
-
-
-def _run(args: argparse.Namespace) -> None:
-    try:
-        dataset = load_dataset(args.dataset)
-        judgments = load_judgments(args.judgments, dataset)
-    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
-        sys.exit(f"評価データか判定を読めません: {error!r}")
-    settings = load_settings()
-    engine = database_engine(settings)
-    courses = SqlCourseRepository(engine)
-    search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
-    analyzer = (
-        HandwrittenProfiles(dataset)
-        if args.profiles == "handwritten"
-        else openai_occupation_analyzer(settings)
-    )
-    experiment = RunExperiment(
-        search,
-        courses,
-        analyzer,
-        openai_course_selector(settings),
-        settings.selection_candidate_limit,
-        LangChainUsageMeter(),
-    )
-    outcomes: list[Trial | FailedTrial] = []
-    spent = 0.0
-    total = len(dataset.cases) * args.repeat
-    try:
-        for outcome in experiment.trials(dataset, judgments, args.repeat):
-            outcomes.append(outcome)
-            if isinstance(outcome, Trial):
-                spent += yen(outcome.usage)
-                detail = f"{yen(outcome.usage):.2f} 円、{outcome.seconds.total:.1f} 秒"
-            else:
-                detail = f"失敗: {outcome.failure}"
-            print(
-                f"{len(outcomes)}/{total} {outcome.occupation}({outcome.repeat} 回目){detail}、"
-                f"ここまで {spent:.1f} 円",
-                file=sys.stderr,
-            )
-            if spent >= args.budget:
-                break
-    except (
-        EvaluationError,
-        SearchError,
-        OccupationProfileError,
-        RecommendationError,
-        EmbeddingError,
-    ) as error:
-        sys.exit(f"実験を止めました: {error}")
-    except OperationalError as error:
-        sys.exit(f"DB に接続できません: {error.orig}")
-    except SQLAlchemyError as error:
-        sys.exit(f"DB の操作に失敗しました: {error}")
-    except OSError as error:
-        sys.exit(f"ネットワークに失敗しました: {error}")
-    finally:
-        engine.dispose()
-    try:
-        summary = summarize(outcomes, dataset.cases)
-    except ValueError as error:
-        sys.exit(f"実験を止めました: {error}")
-    created = datetime.now(JST)
-    document = {
-        "label": args.label,
-        "created": created.isoformat(timespec="seconds"),
-        "commit": _commit(),
-        "complete": len(outcomes) == total,
-        "config": config_document(
-            args,
-            settings.chat_model,
-            settings.selection_model,
-            settings.embedding_model,
-            settings.selection_candidate_limit,
-            dataset,
-        ),
-        "summary": summary_document(summary),
-        "trials": [trial_document(outcome) for outcome in outcomes],
-    }
-    args.out.mkdir(parents=True, exist_ok=True)
-    path = args.out / f"{created:%Y%m%d-%H%M}-{args.label}.json"
-    path.write_text(json.dumps(document, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    print(render(document))
-    print(f"保存した: {path}")
 
 
 def config_document(
@@ -358,12 +283,119 @@ def config_document(
         "embedding_model": embedding_model,
         "candidate_limit": candidate_limit,
         "prompts": {
-            "occupation": _digest(occupation_prompt.INSTRUCTIONS),
-            "selection": _digest(selection_prompt.INSTRUCTIONS),
+            "occupation": _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")),
+            "selection": _digest(selection_prompt.INSTRUCTIONS.encode("utf-8")),
         },
         "dataset": _digest(args.dataset.read_bytes()),
         "judgments": _digest(args.judgments.read_bytes()),
     }
+
+
+def _run(args: argparse.Namespace) -> None:
+    try:
+        dataset = load_dataset(args.dataset)
+        judgments = load_judgments(args.judgments, dataset)
+    except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
+        sys.exit(f"評価データか判定を読めません: {error!r}")
+    settings = load_settings()
+    models = [settings.selection_model]
+    if args.profiles == "analyzed":
+        models.append(settings.chat_model)
+    if missing := unpriced(models):
+        sys.exit(f"料金表に無いモデルでは費用の上限を守れないので流しません: {'、'.join(missing)}")
+    engine = database_engine(settings)
+    courses = SqlCourseRepository(engine)
+    search = SearchCourses(courses, SqlChunkRepository(engine), openai_embedder(settings))
+    analyzer = (
+        HandwrittenProfiles(dataset)
+        if args.profiles == "handwritten"
+        else openai_occupation_analyzer(settings)
+    )
+    experiment = RunExperiment(
+        search,
+        courses,
+        analyzer,
+        openai_course_selector(settings),
+        settings.selection_candidate_limit,
+        LangChainUsageMeter(),
+    )
+    created = datetime.now(JST)
+    try:
+        args.out.mkdir(parents=True, exist_ok=True)
+        output = (args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json").open(
+            "x", encoding="utf-8"
+        )
+    except OSError as error:
+        sys.exit(f"結果を書く場所を作れません: {error}")
+    outcomes: list[Trial | FailedTrial] = []
+    spent = 0.0
+    stopped: str | None = None
+    over_budget = False
+    total = len(dataset.cases) * args.repeat
+    try:
+        for outcome in experiment.trials(dataset, judgments, args.repeat):
+            outcomes.append(outcome)
+            spent += yen(outcome.usage)
+            detail = (
+                f"{outcome.seconds.total:.1f} 秒"
+                if isinstance(outcome, Trial)
+                else f"失敗: {outcome.failure}"
+            )
+            print(
+                f"{len(outcomes)}/{total} {outcome.occupation}({outcome.repeat} 回目)"
+                f"{yen(outcome.usage):.2f} 円、{detail}、ここまで {spent:.1f} 円",
+                file=sys.stderr,
+            )
+            if missing := unpriced(list(outcome.usage)):
+                stopped = f"料金表に無いモデルが答えた: {'、'.join(missing)}"
+                break
+            if spent >= args.budget and len(outcomes) < total:
+                stopped = f"費用の上限 {args.budget:g} 円に達した"
+                over_budget = True
+                break
+    except EvaluationError as error:
+        stopped = f"評価データが合わない: {error}"
+    except (SearchError, OccupationProfileError, RecommendationError, EmbeddingError) as error:
+        stopped = str(error)
+    except OperationalError as error:
+        stopped = f"DB に接続できません: {error.orig}"
+    except SQLAlchemyError as error:
+        stopped = f"DB の操作に失敗しました: {error}"
+    except OSError as error:
+        stopped = f"ネットワークに失敗しました: {error}"
+    except KeyboardInterrupt:
+        stopped = "中断した"
+    finally:
+        engine.dispose()
+    if not any(isinstance(outcome, Trial) for outcome in outcomes):
+        output.close()
+        Path(output.name).unlink()
+        sys.exit(
+            f"集計できる推薦がありません。{stopped or '全ての推薦が失敗しました'}"
+            f"(使った費用 {spent:.1f} 円)"
+        )
+    document = {
+        "label": args.label,
+        "created": created.isoformat(timespec="seconds"),
+        "commit": _commit(),
+        "stopped": stopped,
+        "config": config_document(
+            args,
+            settings.chat_model,
+            settings.selection_model,
+            settings.embedding_model,
+            settings.selection_candidate_limit,
+            dataset,
+        ),
+        "summary": summary_document(summarize(outcomes, dataset.cases)),
+        "trials": [trial_document(outcome) for outcome in outcomes],
+    }
+    with output:
+        output.write(json.dumps(document, ensure_ascii=False, indent=1) + "\n")
+    print(render(document))
+    print(f"保存した: {output.name}")
+    if stopped is not None and not over_budget:
+        sys.exit(1)
 
 
 def _compare(args: argparse.Namespace) -> None:
@@ -378,7 +410,7 @@ def main(argv: Sequence[str] | None = None) -> None:
     parser = argparse.ArgumentParser(description="推薦を通しで流して、精度・揺れ・費用・時間を測る")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="評価データの職業ごとに推薦を流して結果を JSON に残す")
-    run.add_argument("--label", required=True)
+    run.add_argument("--label", type=label, required=True)
     run.add_argument("--repeat", type=int, default=3)
     run.add_argument("--profiles", choices=PROFILES, default="analyzed")
     run.add_argument("--budget", type=float, default=100)
@@ -392,6 +424,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     args = parser.parse_args(argv)
     if args.command == "run" and args.repeat < 1:
         parser.error("--repeat は 1 以上にしてください")
+    if args.command == "run" and args.budget <= 0:
+        parser.error("--budget は 0 より大きくしてください")
     args.handle(args)
 
 
