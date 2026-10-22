@@ -11,7 +11,7 @@
 
 セキュリティヘッダー(特に CSP)
 
-1. nonce 無しの CSP とほかのヘッダーを `next.config.ts` の headers で付ける。script は self と unsafe-inline(Next がインラインの script を出すため)、外部の script・接続・frame は禁止、frame-ancestors none、object none、base-uri self、form-action は self と Google のログイン。今の作り(cacheComponents の静的な部分)を変えずに済むが、インラインの script を許したままなので XSS への守りは弱い
+1. nonce 無しの CSP とほかのヘッダーを `next.config.ts` の headers で付ける。script は self と unsafe-inline(Next がインラインの script を出すため)、外部の script・接続・frame は禁止、frame-ancestors none、object none、base-uri self。今の作り(cacheComponents の静的な部分)を変えずに済むが、インラインの script を許したままなので XSS への守りは弱い
 2. nonce 付きの厳しい CSP。middleware で nonce を作りインラインの script を nonce で限る。XSS に強いが、Next が nonce を使うには全ページを動的に描く必要があり、cacheComponents の静的な部分を手放す
 3. CSP 以外のヘッダーだけ今回付け、CSP はプロキシを置く本番化で決める
 
@@ -32,12 +32,12 @@ OG 画像(共有したときのカード)
 高橋さんが選んだ。ヘッダーは 1、OG 画像は 1、検索は 1。
 
 - `src/lib/security-headers.ts` がヘッダーの列を作り(純粋な関数で Vitest が確かめる)、`next.config.ts` の `headers` が全ての経路に付ける。CSP は `default-src 'self'`、`script-src 'self' 'unsafe-inline'`(開発中だけ `'unsafe-eval'`)、`style-src 'self' 'unsafe-inline'`(style 属性のため)、`img-src 'self' data: blob:`、`font-src 'self'`(next/font が自前で配る)、`connect-src 'self'`(開発用サーバーの WebSocket も同じオリジンなので `ws:` は要らない)、`frame-ancestors 'none'`、`object-src 'none'`、`base-uri 'self'`。`form-action` は付けない。Auth.js のログインはフォームの送信のあと Google へ 303 で移り、JavaScript が効かないときは素のフォームの送信になって Chrome が移った先にも form-action を当てるので、Google から大学などの SSO の IdP へさらに移る経路を止めてしまう。ほかに `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: strict-origin-when-cross-origin`、`Permissions-Policy: camera=(), microphone=(), geolocation=()`。HSTS と COOP は TLS を終える前段のプロキシで本番化のときに付ける
-- `app/robots.ts` は `/api/`、`/plans`、`/login` を拒否して残りを許し、`app/sitemap.ts` はトップ、利用規約、プライバシーポリシーを載せる。本番の URL は環境変数 `SITE_URL`(無ければ `http://localhost:3000`。パスを含まないオリジンで、違えばビルドが分かる文で止まる)で、`metadataBase`(OG 画像の絶対 URL)と robots と sitemap に使う。これらはビルドで静的に作られるので、`SITE_URL` はビルドのときに渡す
-- `app/opengraph-image.png`(1200×630)は、行先表示の板に「なりたい職業 行」と、アプリの名前と一言を描いた静的な画像で、`opengraph-image.alt.txt` が代替の文。`app/icon.svg`(道標の絵、favicon)、`app/favicon.ico`(link を読まずに `/favicon.ico` を取りに来る相手のため)、`app/apple-icon.png`(180×180)も置き、`app/manifest.ts` が名前と色とアイコンを出す。PNG と ICO は `frontend/brand/make.py` が `frontend/brand/` の HTML を Playwright で開き、フォントの読み込み(`document.fonts.ready`)を待って撮る(作り方は CLAUDE.md)。OG の title と description はページごとの title から Next が引き継ぐ
+- `app/robots.ts` は `/api/`、`/plans`、`/login` を拒否して残りを許し、`app/sitemap.ts` はトップ、利用規約、プライバシーポリシーを載せる。本番の URL は環境変数 `SITE_URL`(無いか空なら `http://localhost:3000`。http か https のパスを含まないオリジンで、違えばビルドが分かる文で止まる)で、`metadataBase`(OG 画像の絶対 URL)と robots と sitemap に使う。これらはビルドで静的に作られるので、`SITE_URL` はビルドのときに渡す
+- `app/opengraph-image.png`(1200×630)は、行先表示の板に「なりたい職業 行」と、アプリの名前と一言を描いた静的な画像で、`opengraph-image.alt.txt` が代替の文。`app/icon.svg`(道標の絵、favicon。絵の元はこの 1 つ)、`app/favicon.ico`(link を読まずに `/favicon.ico` を取りに来る相手のため)、`app/apple-icon.png`(180×180)、`public/icon-192.png` と `public/icon-512.png`(ホーム画面に置くとき)も置き、`app/manifest.ts` が名前と色とアイコンを出す。manifest の色は既定の明るい見た目の紙の色(暗い見た目は画面の中の切り替えで、manifest からは分からない)。PNG と ICO は `frontend/brand/make.py` が `frontend/brand/` の HTML を Playwright で開き、フォントの読み込み(`document.fonts.ready`)を待って撮る(作り方は CLAUDE.md)。OG の title と description はページごとの title から Next が引き継ぐ
 
 ## 理由
 
-- nonce 付きの CSP は守りが強いが、全ページを動的に描くことになり、しるべ線の画面の静的な部分(ADR 0030)を手放す。インラインの script を許す CSP でも、外部の script の読み込み、ほかのサイトからの frame 埋め込み、object、base の差し替え、フォームの送り先の持ち出しは止められる
+- nonce 付きの CSP は守りが強いが、全ページを動的に描くことになり、しるべ線の画面の静的な部分(ADR 0030)を手放す。インラインの script を許す CSP でも、外部の script の読み込み、ほかのサイトからの frame 埋め込み、object、base の差し替えは止められる(フォームの送り先は、ログインの経路のため止めない)
 - 静的な OG 画像は作り方が単純で、ページごとに変える要望は今は無い
 - 道標の画面はログインが要るので、クロールさせても意味が無い
 
