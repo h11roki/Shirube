@@ -11,7 +11,7 @@ def test_sample_pdf_yields_every_course_row_with_its_term() -> None:
 
     assert set(sections) == {"34982", "32453", "34793", "32423", "16806"}
     assert sections["34982"].name == "スポーツ方法実習Ⅰ(A)【バスケットボール】"
-    assert sections["32453"].instructors == ("川畑 良尚", "峯元 高志", "福水 洋平")
+    assert sections["32453"].instructors == ("仮名 一郎", "架空 太郎", "仮名 花子")
     assert sections["34793"].audiences == (
         Audience(2020, 2026, frozenset({1, 2, 3, 4}), "立命館"),
         Audience(2016, 2019, frozenset({1, 2, 3, 4}), "教養A"),

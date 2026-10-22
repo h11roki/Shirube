@@ -14,7 +14,7 @@ ROW = [
     "電動移動機械システム",
     "B8",
     "2",
-    "川畑 良尚、峯元 高\n志、福水 洋平",
+    "仮名 一郎、架空 太\n郎、仮名 花子",
     "Ｃ３０５",
     "本",
 ]
@@ -51,7 +51,7 @@ def test_row_becomes_a_section_with_one_slot() -> None:
     assert section.departments == frozenset({"電"})
     assert section.audiences == (Audience(2020, 2024, frozenset({3, 4}), "専門"),)
     assert section.credits == 2
-    assert section.instructors == ("川畑 良尚", "峯元 高志", "福水 洋平")
+    assert section.instructors == ("仮名 一郎", "架空 太郎", "仮名 花子")
     assert section.room == "Ｃ３０５"
     assert section.registration == "本"
     assert section.note is None
