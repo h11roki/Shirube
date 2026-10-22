@@ -3,7 +3,7 @@
 import { useContext } from "react";
 
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { TEXT_LINK } from "@/components/styles";
+import { TEXT_LINK, TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
@@ -23,9 +23,6 @@ const EMPHASIS = {
   linked:
     "ring-2 ring-route shadow-[0_0_0_6px_color-mix(in_srgb,var(--route)_18%,transparent)]",
 };
-
-const NOTCH =
-  "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
 
 function ticketId(section: string): string {
   return `ticket-${section}`;
@@ -118,7 +115,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid w-[4.75rem] content-center gap-1.5 border-l-2 border-dashed border-line px-2 py-3 text-center tabular-nums ${NOTCH}`}
+          className={`relative grid w-[4.75rem] content-center gap-1.5 border-l-2 border-dashed border-line px-2 py-3 text-center tabular-nums ${TICKET_NOTCH}`}
         >
           <div>
             <dt className="text-[9.5px] tracking-[0.14em] text-sub">コマ</dt>
@@ -144,7 +141,7 @@ export function CourseTicket({
       {core && (
         <span
           aria-hidden
-          className={`absolute top-2.5 grid size-9 rotate-[-12deg] place-items-center rounded-full border-[2.5px] border-pillar font-serif font-extrabold text-pillar opacity-85 ${placed ? "right-[5.6rem]" : "right-3"}`}
+          className={`size-9 ${TICKET_STAMP} ${placed ? "right-[5.6rem]" : "right-3"}`}
         >
           {RELEVANCE_LABELS.core}
         </span>
