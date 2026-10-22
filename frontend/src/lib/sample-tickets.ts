@@ -15,7 +15,7 @@ export const SAMPLE_TICKETS = ["電子情報基礎数学", "ＡＩ・機械学�
 export function lastSentence(text: string): string {
   return (
     text
-      .split(/(?<=。)/)
+      .split(/(?<=[。！？])(?![」』）)】])/)
       .filter((sentence) => sentence.trim() !== "")
       .at(-1) ?? text
   );

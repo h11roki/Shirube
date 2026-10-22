@@ -17,6 +17,15 @@ describe("the sample tickets on the top page", () => {
     ]);
   });
 
+  it("quote the last sentence of each reason", () => {
+    expect(SAMPLE_TICKETS.map((course) => lastSentence(course.reason))).toEqual(
+      [
+        "確率分布や推定・検定で使う数学の前提になるため。",
+        "予測モデル開発に直結する。",
+      ],
+    );
+  });
+
   it("are placed in a slot of the timetable", () => {
     for (const course of SAMPLE_TICKETS) {
       expect(course.slots).not.toHaveLength(0);
@@ -36,6 +45,21 @@ describe("the last sentence of a reason", () => {
   it("keeps a single sentence whole", () => {
     expect(lastSentence("統計的判断の土台になる。")).toBe(
       "統計的判断の土台になる。",
+    );
+  });
+
+  it("ends a sentence at an exclamation or question mark too", () => {
+    expect(lastSentence("手を動かして学ぶ！現場の分析に役立つ。")).toBe(
+      "現場の分析に役立つ。",
+    );
+  });
+
+  it("keeps a closing bracket with the sentence it closes", () => {
+    expect(lastSentence("先生は「基礎が要る。」と言う。だから取る。")).toBe(
+      "だから取る。",
+    );
+    expect(lastSentence("基礎を固める。「分析の土台になる。」")).toBe(
+      "「分析の土台になる。」",
     );
   });
 
