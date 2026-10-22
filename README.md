@@ -77,3 +77,7 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 - 1か所でしか使わない短い処理は関数に切り出さない
 - 変更は小さな単位で行う
 - 設計判断は実装より先に ADR に書く
+
+## ライセンス
+
+コードは [MIT License](LICENSE)。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と、画面に出す引用の権利は立命館大学にあり、ライセンスの対象外。テストの fixture には実ページを置かず、科目名・教員名・本文が架空の合成のページと PDF を `tests/fixtures/*/make_*.py` で作って置く(ADR 0043)。
