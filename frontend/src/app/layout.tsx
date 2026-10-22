@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
 
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { THEME_SCRIPT } from "@/lib/theme";
@@ -37,11 +38,12 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="min-h-dvh font-sans text-ink antialiased">
+      <body className="flex min-h-dvh flex-col font-sans text-ink antialiased">
         <SiteHeader />
-        <main className="mx-auto w-full max-w-5xl px-4 pt-8 pb-24 sm:px-6">
+        <main className="mx-auto w-full max-w-5xl flex-1 px-4 pt-8 pb-16 sm:px-6">
           {children}
         </main>
+        <SiteFooter />
         <ThemeToggle />
       </body>
     </html>
