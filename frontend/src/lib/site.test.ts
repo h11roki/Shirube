@@ -23,6 +23,17 @@ describe("the share card", () => {
     expect(alt).toContain(CATCHPHRASE.join("") + SUBHEAD);
   });
 
+  it("names the courses on its tickets in the alt text", () => {
+    const courses = [
+      ...card.matchAll(/<p class="name">\s*([^<]+?)\s*<\/p>/g),
+    ].map((match) => match[1]);
+
+    expect(courses).not.toHaveLength(0);
+    for (const course of courses) {
+      expect(alt).toContain(course);
+    }
+  });
+
   it("ends the alt text without a line break, which Next would copy into og:image:alt", () => {
     expect(alt).toBe(alt.trim());
   });
