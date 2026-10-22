@@ -5,15 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 
 import { ConfirmButton } from "@/components/confirm-button";
-import { FailureNotice } from "@/components/failure-notice";
 import { LeaveSection, LeftNotice } from "@/components/leave-section";
 import { StatusBadge } from "@/components/status-badge";
 import { TEXT_LINK } from "@/components/styles";
 import {
-  type Failure,
   type PlanList as Plans,
   deletePlan,
-  failureOf,
+  messageOf,
   requestJson,
 } from "@/lib/api/client";
 import {
@@ -36,7 +34,7 @@ const STAGGERED_ROWS = 10;
 
 export function PlanList() {
   const [plans, setPlans] = useState<Plans>();
-  const [failure, setFailure] = useState<Failure>();
+  const [error, setError] = useState<string>();
   const [loads, setLoads] = useState(0);
   const [deleted, setDeleted] = useState<string>();
   const [left, setLeft] = useState(false);
@@ -48,12 +46,12 @@ export function PlanList() {
       .then((answer) => {
         if (active) {
           setPlans(answer);
-          setFailure(undefined);
+          setError(undefined);
         }
       })
       .catch((caught: unknown) => {
         if (active) {
-          setFailure(failureOf(caught));
+          setError(messageOf(caught));
         }
       });
     return () => {
@@ -61,17 +59,11 @@ export function PlanList() {
     };
   }, [loads]);
 
-  function reload() {
-    setLoads((current) => current + 1);
-  }
-
   if (!plans) {
-    return failure ? (
-      <FailureNotice
-        lead="一覧を読み込めませんでした: "
-        failure={failure}
-        onRetry={reload}
-      />
+    return error ? (
+      <p role="alert" className="text-sm text-danger">
+        一覧を読み込めませんでした: {error}
+      </p>
     ) : (
       <p className="text-sm text-sub">読み込んでいます</p>
     );
@@ -93,7 +85,7 @@ export function PlanList() {
     });
     notice.current?.focus();
     if (plans.total > plans.plans.length) {
-      reload();
+      setLoads((current) => current + 1);
     }
   };
 
@@ -102,12 +94,10 @@ export function PlanList() {
       <p ref={notice} tabIndex={-1} className="text-sm text-sub empty:hidden">
         {deleted}
       </p>
-      {failure && (
-        <FailureNotice
-          lead="一覧を読み直せませんでした: "
-          failure={failure}
-          onRetry={reload}
-        />
+      {error && (
+        <p role="alert" className="text-sm text-danger">
+          一覧を読み直せませんでした: {error}
+        </p>
       )}
       {plans.plans.length === 0 ? (
         <p className="text-sm text-sub">

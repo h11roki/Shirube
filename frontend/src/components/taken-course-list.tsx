@@ -2,13 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { FailureNotice } from "@/components/failure-notice";
-import {
-  type Failure,
-  type TakenCourses,
-  failureOf,
-  requestJson,
-} from "@/lib/api/client";
+import { OUTLINE_BUTTON } from "@/components/styles";
+import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
 import { forgetTakenLabel } from "@/lib/labels";
 
 export function TakenCourseList({
@@ -20,7 +15,7 @@ export function TakenCourseList({
 }) {
   const [names, setNames] = useState<string[]>();
   const [busy, setBusy] = useState(false);
-  const [failure, setFailure] = useState<Failure>();
+  const [failure, setFailure] = useState<string>();
   const [forgotten, setForgotten] = useState(false);
   const [reloads, setReloads] = useState(0);
   const summary = useRef<HTMLElement>(null);
@@ -36,7 +31,7 @@ export function TakenCourseList({
       })
       .catch((error: unknown) => {
         if (active) {
-          setFailure(failureOf(error));
+          setFailure(messageOf(error));
         }
       });
     return () => {
@@ -56,7 +51,7 @@ export function TakenCourseList({
       setForgotten(true);
       onForget();
     } catch (error) {
-      setFailure(failureOf(error));
+      setFailure(messageOf(error));
     } finally {
       setBusy(false);
       summary.current?.focus();
@@ -65,14 +60,22 @@ export function TakenCourseList({
 
   if (!names) {
     return failure ? (
-      <FailureNotice
-        lead="もう取ったと答えた授業を読み込めませんでした(道標は作れます): "
-        failure={failure}
-        onRetry={() => {
-          setFailure(undefined);
-          setReloads((current) => current + 1);
-        }}
-      />
+      <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
+        <p className="text-danger">
+          もう取ったと答えた授業を読み込めませんでした(道標は作れます):{" "}
+          {failure}
+        </p>
+        <button
+          type="button"
+          onClick={() => {
+            setFailure(undefined);
+            setReloads((current) => current + 1);
+          }}
+          className={OUTLINE_BUTTON}
+        >
+          読み直す
+        </button>
+      </div>
     ) : null;
   }
   if (names.length === 0 && !forgotten && !failure) {
@@ -91,7 +94,11 @@ export function TakenCourseList({
           もう取ったと答えた授業はありません。取り消した授業は、次に作る道標から候補に戻ります。
         </p>
       )}
-      {failure && <FailureNotice failure={failure} className="mt-3" />}
+      {failure && (
+        <p role="alert" className="mt-3 text-sm text-danger">
+          {failure}
+        </p>
+      )}
       <ul className="mt-3 grid gap-2 text-sm">
         {names.map((name) => (
           <li
