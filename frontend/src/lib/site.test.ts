@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE, SUBHEAD } from "@/lib/site";
 
 const FRONTEND = new URL("../../", import.meta.url);
@@ -12,6 +13,9 @@ function read(path: string): string {
 
 const card = read("brand/opengraph-image.html");
 const alt = read("src/app/opengraph-image.alt.txt");
+const courses = [...card.matchAll(/<p class="name">\s*([^<]+?)\s*<\/p>/g)].map(
+  (match) => match[1],
+);
 
 describe("the share card", () => {
   it("shows the catchphrase, one part per line, and the subhead", () => {
@@ -23,11 +27,11 @@ describe("the share card", () => {
     expect(alt).toContain(CATCHPHRASE.join("") + SUBHEAD);
   });
 
-  it("names the courses on its tickets in the alt text", () => {
-    const courses = [
-      ...card.matchAll(/<p class="name">\s*([^<]+?)\s*<\/p>/g),
-    ].map((match) => match[1]);
+  it("shows the courses of the tickets on the top page", () => {
+    expect(courses).toEqual(SAMPLE_TICKETS.map((course) => course.name));
+  });
 
+  it("names the courses on its tickets in the alt text", () => {
     expect(courses).not.toHaveLength(0);
     for (const course of courses) {
       expect(alt).toContain(course);
