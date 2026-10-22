@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   deletePlan,
+  failureOf,
   isTemporary,
   messageOf,
   requestJson,
@@ -101,8 +102,16 @@ describe("errors", () => {
 
   it("ask to log in again when the login has run out", () => {
     expect(messageOf(new ApiError(401, "ログインしてください"))).toBe(
-      "ログインが切れました。ページを読み直してログインしてください",
+      "ログインが切れました。ログインし直してください",
     );
+    expect(failureOf(new ApiError(401, "ログインしてください"))).toEqual({
+      message: "ログインが切れました。ログインし直してください",
+      signedOut: true,
+    });
+    expect(failureOf(new ApiError(502, "届かない"))).toEqual({
+      message: "届かない",
+      signedOut: false,
+    });
   });
 
   it("give their message, or the fixed sentence when they are not errors", () => {

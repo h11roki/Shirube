@@ -5,16 +5,18 @@ import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { SignInAgainButton } from "@/components/failure-notice";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import {
   ApiError,
+  type Failure,
+  NOT_FOUND,
   type Plan,
-  UNAUTHORIZED,
   deletePlan,
+  failureOf,
   isTemporary,
-  messageOf,
   requestJson,
 } from "@/lib/api/client";
 import {
@@ -35,7 +37,7 @@ export function PlanView() {
   const router = useRouter();
   const [plan, setPlan] = useState<Plan>();
   const [watch, setWatch] = useState<Watch>("waiting");
-  const [error, setError] = useState<{ message: string; status: number }>();
+  const [error, setError] = useState<{ failure: Failure; status: number }>();
   const [round, setRound] = useState(0);
   const deleted = useRef(false);
 
@@ -81,7 +83,7 @@ export function PlanView() {
           setWatch(next);
         } else {
           setError({
-            message: messageOf(caught),
+            failure: failureOf(caught),
             status: caught instanceof ApiError ? caught.status : 0,
           });
         }
@@ -101,24 +103,25 @@ export function PlanView() {
     setRound((current) => current + 1);
   }
 
-  if (error?.status === UNAUTHORIZED) {
+  if (error?.status === NOT_FOUND) {
     return (
-      <Notice title="ログインが切れました">
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className={OUTLINE_BUTTON}
-        >
-          ログインし直す
-        </button>
+      <Notice title="道標が見つかりません">
+        <p>消した道標か、URL が違うかもしれません。</p>
+        <Link href="/plans" className={TEXT_LINK}>
+          自分の道標へ
+        </Link>
       </Notice>
     );
   }
   if (error) {
     return (
       <Notice title="道標を読み込めませんでした">
-        <p>{error.message}</p>
-        <RetryButton onClick={retry} />
+        <p>{error.failure.message}</p>
+        {error.failure.signedOut ? (
+          <SignInAgainButton />
+        ) : (
+          <RetryButton onClick={retry} />
+        )}
       </Notice>
     );
   }

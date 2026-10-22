@@ -3,14 +3,15 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { OUTLINE_BUTTON } from "@/components/styles";
+import { FailureNotice } from "@/components/failure-notice";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
+  type Failure,
   type Plan,
   type PlanRequest,
   type Term,
-  messageOf,
+  failureOf,
   requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
@@ -36,9 +37,9 @@ export function PlanForm() {
   const [chosenClasses, setChosenClasses] = useState<Record<string, string>>(
     {},
   );
-  const [failed, setFailed] = useState<{ query: string; message: string }>();
+  const [failed, setFailed] = useState<{ query: string; failure: Failure }>();
   const [reloads, setReloads] = useState(0);
-  const [submitError, setSubmitError] = useState<string>();
+  const [submitFailure, setSubmitFailure] = useState<Failure>();
   const [submitting, setSubmitting] = useState(false);
   const [takenRefresh, setTakenRefresh] = useState(0);
   const query = new URLSearchParams({
@@ -47,8 +48,8 @@ export function PlanForm() {
     ...(chosenTerm ? { term: chosenTerm } : {}),
   }).toString();
   const choices = loaded?.query === query ? loaded.answer : undefined;
-  const loadError = failed?.query === query ? failed.message : undefined;
-  const loading = !choices && !loadError;
+  const loadFailure = failed?.query === query ? failed.failure : undefined;
+  const loading = !choices && !loadFailure;
   const term = chosenTerm ?? loaded?.answer.term;
 
   useEffect(() => {
@@ -62,7 +63,7 @@ export function PlanForm() {
       })
       .catch((error: unknown) => {
         if (active) {
-          setFailed({ query, message: messageOf(error) });
+          setFailed({ query, failure: failureOf(error) });
         }
       });
     return () => {
@@ -73,11 +74,14 @@ export function PlanForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!occupation.trim()) {
-      setSubmitError("なりたい職業を入れてください");
+      setSubmitFailure({
+        message: "なりたい職業を入れてください",
+        signedOut: false,
+      });
       return;
     }
     setSubmitting(true);
-    setSubmitError(undefined);
+    setSubmitFailure(undefined);
     const request: PlanRequest = {
       occupation: occupation.trim(),
       grade,
@@ -93,7 +97,7 @@ export function PlanForm() {
       });
       router.push(`/plans/${plan.id}`);
     } catch (error) {
-      setSubmitError(messageOf(error));
+      setSubmitFailure(failureOf(error));
       setSubmitting(false);
       setTakenRefresh((current) => current + 1);
     }
@@ -165,20 +169,12 @@ export function PlanForm() {
         </div>
       </div>
 
-      {loadError && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-          <p className="text-danger">
-            クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます):{" "}
-            {loadError}
-          </p>
-          <button
-            type="button"
-            onClick={() => setReloads((current) => current + 1)}
-            className={OUTLINE_BUTTON}
-          >
-            読み直す
-          </button>
-        </div>
+      {loadFailure && (
+        <FailureNotice
+          lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
+          failure={loadFailure}
+          onRetry={() => setReloads((current) => current + 1)}
+        />
       )}
 
       {choices && choices.courses.length > 0 && (
@@ -231,17 +227,13 @@ export function PlanForm() {
       <TakenCourseList
         refresh={takenRefresh}
         onForget={() => {
-          setSubmitError(undefined);
+          setSubmitFailure(undefined);
           setFailed(undefined);
           setReloads((current) => current + 1);
         }}
       />
 
-      {submitError && (
-        <p role="alert" className="text-sm text-danger">
-          {submitError}
-        </p>
-      )}
+      {submitFailure && <FailureNotice failure={submitFailure} />}
 
       <div className="flex flex-wrap items-center gap-4">
         <button

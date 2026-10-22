@@ -170,6 +170,10 @@ export function sourceNote(year: number): string {
   return `授業の情報は、立命館大学の ${year} 年度のシラバスと時間割表によります。来年度以降の学期も、${year} 年度の時間割で組んでいます。`;
 }
 
+export const RETRY_LABEL = "読み直す";
+
+export const SIGN_IN_AGAIN_LABEL = "ログインし直す";
+
 export const DELETE_PLAN_LABEL = "この道標を消す";
 
 export const DELETE_ROW_LABEL = "消す";

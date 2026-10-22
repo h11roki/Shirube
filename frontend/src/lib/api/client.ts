@@ -18,10 +18,9 @@ export type Term = Schemas["Term"];
 export type Weekday = Schemas["Weekday"];
 
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
-const SIGNED_OUT =
-  "ログインが切れました。ページを読み直してログインしてください";
+const SIGNED_OUT = "ログインが切れました。ログインし直してください";
 export const UNAUTHORIZED = 401;
-const NOT_FOUND = 404;
+export const NOT_FOUND = 404;
 
 export class ApiError extends Error {
   constructor(
@@ -89,6 +88,15 @@ export function messageOf(error: unknown): string {
     return SIGNED_OUT;
   }
   return error instanceof Error ? error.message : UNREACHABLE;
+}
+
+export type Failure = { message: string; signedOut: boolean };
+
+export function failureOf(error: unknown): Failure {
+  return {
+    message: messageOf(error),
+    signedOut: error instanceof ApiError && error.status === UNAUTHORIZED,
+  };
 }
 
 export function isTemporary(error: unknown): boolean {
