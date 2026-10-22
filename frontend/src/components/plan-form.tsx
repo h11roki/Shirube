@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState } from "react";
 
-import { OUTLINE_BUTTON } from "@/components/styles";
+import { FailureNotice } from "@/components/failure-notice";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
@@ -38,6 +38,7 @@ export function PlanForm() {
   );
   const [failed, setFailed] = useState<{ query: string; message: string }>();
   const [reloads, setReloads] = useState(0);
+  const [reloadingChoices, setReloadingChoices] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [takenRefresh, setTakenRefresh] = useState(0);
@@ -58,17 +59,24 @@ export function PlanForm() {
         if (active) {
           setLoaded({ query, answer });
           setFailed(undefined);
+          setReloadingChoices(false);
         }
       })
       .catch((error: unknown) => {
         if (active) {
           setFailed({ query, message: messageOf(error) });
+          setReloadingChoices(false);
         }
       });
     return () => {
       active = false;
     };
   }, [query, reloads]);
+
+  function reloadChoices() {
+    setReloadingChoices(true);
+    setReloads((current) => current + 1);
+  }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -166,19 +174,12 @@ export function PlanForm() {
       </div>
 
       {loadError && (
-        <div role="alert" className="flex flex-wrap items-center gap-3 text-sm">
-          <p className="text-danger">
-            クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます):{" "}
-            {loadError}
-          </p>
-          <button
-            type="button"
-            onClick={() => setReloads((current) => current + 1)}
-            className={OUTLINE_BUTTON}
-          >
-            読み直す
-          </button>
-        </div>
+        <FailureNotice
+          lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
+          message={loadError}
+          onRetry={reloadChoices}
+          busy={reloadingChoices}
+        />
       )}
 
       {choices && choices.courses.length > 0 && (
@@ -232,16 +233,11 @@ export function PlanForm() {
         refresh={takenRefresh}
         onForget={() => {
           setSubmitError(undefined);
-          setFailed(undefined);
-          setReloads((current) => current + 1);
+          reloadChoices();
         }}
       />
 
-      {submitError && (
-        <p role="alert" className="text-sm text-danger">
-          {submitError}
-        </p>
-      )}
+      {submitError && <FailureNotice message={submitError} />}
 
       <div className="flex flex-wrap items-center gap-4">
         <button

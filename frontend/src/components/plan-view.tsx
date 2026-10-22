@@ -5,13 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useRef, useState } from "react";
 
 import { ConfirmButton } from "@/components/confirm-button";
+import { Notice } from "@/components/notice";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
 import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
 import {
   ApiError,
   type Plan,
-  UNAUTHORIZED,
+  NOT_FOUND,
   deletePlan,
   isTemporary,
   messageOf,
@@ -101,16 +102,13 @@ export function PlanView() {
     setRound((current) => current + 1);
   }
 
-  if (error?.status === UNAUTHORIZED) {
+  if (error?.status === NOT_FOUND) {
     return (
-      <Notice title="ログインが切れました">
-        <button
-          type="button"
-          onClick={() => window.location.reload()}
-          className={OUTLINE_BUTTON}
-        >
-          ログインし直す
-        </button>
+      <Notice title="道標が見つかりません">
+        <p>消した道標か、URL が違うかもしれません。</p>
+        <Link href="/plans" className={TEXT_LINK}>
+          自分の道標へ
+        </Link>
       </Notice>
     );
   }
@@ -184,18 +182,6 @@ export function PlanView() {
         />
       </div>
     </div>
-  );
-}
-
-function Notice({ title, children }: { title: string; children: ReactNode }) {
-  return (
-    <section
-      role="alert"
-      className="mx-auto grid max-w-xl justify-items-start gap-3 rounded-lg border border-danger/30 bg-danger-soft p-6 text-sm"
-    >
-      <h1 className="font-serif text-xl font-bold text-danger">{title}</h1>
-      {children}
-    </section>
   );
 }
 

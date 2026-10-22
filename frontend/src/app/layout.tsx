@@ -1,26 +1,12 @@
 import type { Metadata } from "next";
-import { Shippori_Mincho, Zen_Kaku_Gothic_New } from "next/font/google";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { gothic, mincho } from "@/lib/fonts";
 import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
-
-const mincho = Shippori_Mincho({
-  weight: ["600", "800"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-shippori-mincho",
-});
-
-const gothic = Zen_Kaku_Gothic_New({
-  weight: ["400", "500", "700"],
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-zen-kaku-gothic-new",
-});
 
 export const metadata: Metadata = {
   title: { default: "shirube", template: "%s | shirube" },

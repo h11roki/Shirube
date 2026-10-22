@@ -1,22 +1,29 @@
 import { type ReactNode, Suspense } from "react";
 
 import { SignInButton } from "@/components/account";
+import { SignedOutGate } from "@/components/signed-out-gate";
 import { currentSession } from "@/lib/session";
 
-type Gate = { children: ReactNode; signedOut?: ReactNode };
+type Gate = {
+  children: ReactNode;
+  signedOut?: ReactNode;
+  heading?: "h1" | "h2";
+};
 
-export function LoginRequired({ children, signedOut }: Gate) {
+export function LoginRequired({ children, signedOut, heading }: Gate) {
   return (
     <Suspense fallback={<p className="text-sm text-sub">読み込んでいます</p>}>
-      <SessionGate signedOut={signedOut}>{children}</SessionGate>
+      <SessionGate signedOut={signedOut} heading={heading}>
+        {children}
+      </SessionGate>
     </Suspense>
   );
 }
 
-async function SessionGate({ children, signedOut }: Gate) {
+async function SessionGate({ children, signedOut, heading }: Gate) {
   const session = await currentSession();
   if (session?.googleSubject) {
-    return children;
+    return <SignedOutGate heading={heading}>{children}</SignedOutGate>;
   }
   return (
     signedOut ?? (

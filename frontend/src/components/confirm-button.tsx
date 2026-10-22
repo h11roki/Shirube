@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { FailureNotice } from "@/components/failure-notice";
 import { OUTLINE_BUTTON } from "@/components/styles";
 import { messageOf } from "@/lib/api/client";
 import { CANCEL_LABEL } from "@/lib/labels";
@@ -98,11 +99,7 @@ export function ConfirmButton({
           {confirmLabel}
         </button>
       </div>
-      {failure && (
-        <p role="alert" className="text-danger">
-          {failure}
-        </p>
-      )}
+      {failure && <FailureNotice message={failure} />}
     </div>
   );
 }
