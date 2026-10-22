@@ -1,14 +1,14 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 from enum import Enum
 
-from app.application.evaluate_search import EvaluationDataset, EvaluationError
+from app.application.evaluate_search import EvaluationCase, EvaluationDataset, EvaluationError
 from app.application.ports import CourseRepository, CourseSelector
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
-from app.domain.recommendation import Relevance
+from app.domain.recommendation import Recommendation, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
 
 
@@ -105,6 +105,51 @@ class SelectionReport:
     results: tuple[SelectionResult, ...]
 
 
+def require_judged(dataset: EvaluationDataset, judgments: Judgments, candidates: Set[str]) -> None:
+    dataset.require_courses_in(candidates)
+    unjudged = sorted(candidates - judgments.courses)
+    if unjudged:
+        raise EvaluationError(f"判定していない候補があります: {'、'.join(unjudged)}")
+    expected_of: dict[str, set[str]] = defaultdict(set)
+    for (occupation, course), judged in judgments.by_course.items():
+        if judged is Judgment.EXPECTED:
+            expected_of[occupation].add(course)
+    disagreeing = [
+        case.occupation
+        for case in dataset.cases
+        if set(case.expected) != expected_of[case.occupation]
+    ]
+    if disagreeing:
+        raise EvaluationError(f"期待する科目が判定と合いません: {'、'.join(disagreeing)}")
+
+
+def selection_result(
+    case: EvaluationCase, recommendation: Recommendation, judgments: Judgments
+) -> SelectionResult:
+    picked = {course.name: course.relevance for course in recommendation.courses}
+    dropped = {choice.name for choice in recommendation.unlinked}
+    picks = tuple(
+        Pick(course.name, course.relevance, judgments.of(case.occupation, course.name))
+        for course in recommendation.courses
+    )
+    expected = tuple(
+        ExpectedCourse(
+            name,
+            picked=picked.get(name),
+            searched=name in recommendation.candidates,
+            unlinked=name in dropped,
+        )
+        for name in case.expected
+    )
+    unlinked = tuple(
+        UnlinkedPick(
+            choice.name, choice.prerequisite_for, judgments.of(case.occupation, choice.name)
+        )
+        for choice in recommendation.unlinked
+    )
+    return SelectionResult(case.occupation, picks, expected, unlinked)
+
+
 class EvaluateSelection:
     def __init__(
         self,
@@ -121,51 +166,17 @@ class EvaluateSelection:
     def run(self, dataset: EvaluationDataset, judgments: Judgments) -> SelectionReport:
         profiles = HandwrittenProfiles(dataset)
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
-        dataset.require_courses_in(candidates.names)
-        unjudged = sorted(candidates.names - judgments.courses)
-        if unjudged:
-            raise EvaluationError(f"判定していない候補があります: {'、'.join(unjudged)}")
-        expected_of: dict[str, set[str]] = defaultdict(set)
-        for (occupation, course), judged in judgments.by_course.items():
-            if judged is Judgment.EXPECTED:
-                expected_of[occupation].add(course)
-        disagreeing = [
-            case.occupation
-            for case in dataset.cases
-            if set(case.expected) != expected_of[case.occupation]
-        ]
-        if disagreeing:
-            raise EvaluationError(f"期待する科目が判定と合いません: {'、'.join(disagreeing)}")
+        require_judged(dataset, judgments, candidates.names)
         recommend = RecommendCourses(
             self._search, self._courses, profiles, self._selector, self._candidate_limit
         )
-        results = []
-        for case in dataset.cases:
-            recommendation = recommend.run(
-                case.occupation, dataset.year, dataset.department, ALL_SEMESTERS
-            )
-            picked = {course.name: course.relevance for course in recommendation.courses}
-            dropped = {choice.name for choice in recommendation.unlinked}
-            picks = tuple(
-                Pick(course.name, course.relevance, judgments.of(case.occupation, course.name))
-                for course in recommendation.courses
-            )
-            expected = tuple(
-                ExpectedCourse(
-                    name,
-                    picked=picked.get(name),
-                    searched=name in recommendation.candidates,
-                    unlinked=name in dropped,
+        return SelectionReport(
+            tuple(
+                selection_result(
+                    case,
+                    recommend.run(case.occupation, dataset.year, dataset.department, ALL_SEMESTERS),
+                    judgments,
                 )
-                for name in case.expected
+                for case in dataset.cases
             )
-            unlinked = tuple(
-                UnlinkedPick(
-                    choice.name,
-                    choice.prerequisite_for,
-                    judgments.of(case.occupation, choice.name),
-                )
-                for choice in recommendation.unlinked
-            )
-            results.append(SelectionResult(case.occupation, picks, expected, unlinked))
-        return SelectionReport(tuple(results))
+        )
