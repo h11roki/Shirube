@@ -7,11 +7,11 @@ from app.infrastructure.scrapers.ritsumeikan.listing import (
     parse_listing,
     parse_page_count,
 )
-from tests.unit.syllabus_pages import PAGES, listing_page, page_listing
+from tests.unit.syllabus_pages import PAGES, listing_page
 
 
 def test_search_results_page_yields_one_row_per_course() -> None:
-    rows = parse_listing(page_listing(*PAGES.values()))
+    rows = parse_listing(listing_page(*PAGES.values()))
 
     assert [row.code for row in rows] == ["10001", "10002", "10003", "10004"]
     first = rows[0]

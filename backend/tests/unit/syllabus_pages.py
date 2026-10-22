@@ -27,6 +27,12 @@ LISTING_LABELS = (
 )
 NOTE_ROW = "-"
 SIMPLE_CELLS = ("理工学部", "春セメスター", "月1", "BKC", "甲", "日本語", "2")
+UNLABELED_FIELD = (
+    '<section class="syllabus-section syllabus-section--field"><div class="syllabus-field">'
+    '<div class="syllabus-field__value slds-form-element__static">'
+    '<span class="syllabus-field__print-text">科目ナンバリングは学科の案内を参照。</span>'
+    "</div></div></section>"
+)
 
 
 @dataclass(frozen=True)
@@ -237,15 +243,12 @@ def screen_text(text: str) -> str:
     return "<br/>".join(escape(line) for line in text.split("\n"))
 
 
-def header_cell(label: str) -> str:
-    return (
+def table(kind: str, labels: tuple[str, ...], rows: str) -> str:
+    heads = "".join(
         f'<th scope="col"><div class="syllabus-table__header-cell" title="{escape(label)}">'
         f"{escape(label)}</div></th>"
+        for label in labels
     )
-
-
-def table(kind: str, labels: tuple[str, ...], rows: str) -> str:
-    heads = "".join(header_cell(label) for label in labels)
     return (
         f'<table class="syllabus-table syllabus-table--{kind} slds-table slds-table_bordered'
         f' slds-table_col-bordered"><colgroup>{"<col/>" * len(labels)}</colgroup>'
@@ -254,19 +257,23 @@ def table(kind: str, labels: tuple[str, ...], rows: str) -> str:
     )
 
 
+def cell_title(text: str) -> str:
+    return f' title="{escape(text)}"' if text else ""
+
+
 def plain_cell(tag: str, label: str, text: str) -> str:
     scope = ' scope="row"' if tag == "th" else ""
-    title = f' title="{escape(text)}"' if text else ""
     return (
         f'<{tag} data-label="{escape(label)}"{scope}>'
-        f'<div class="syllabus-table__cell slds-cell-wrap"{title}>{escape(text)}</div></{tag}>'
+        f'<div class="syllabus-table__cell slds-cell-wrap"{cell_title(text)}>{escape(text)}'
+        f"</div></{tag}>"
     )
 
 
 def formatted_cell(label: str, text: str) -> str:
     return (
         f'<td data-label="{escape(label)}">'
-        f'<div class="syllabus-table__cell slds-cell-wrap" title="{escape(text)}">'
+        f'<div class="syllabus-table__cell slds-cell-wrap"{cell_title(text)}>'
         f"<lightning-formatted-text>{screen_text(text)}</lightning-formatted-text></div></td>"
     )
 
@@ -317,15 +324,6 @@ def field_section(label: str, text: str) -> str:
     )
 
 
-def unlabeled_field_section() -> str:
-    return (
-        '<section class="syllabus-section syllabus-section--field"><div class="syllabus-field">'
-        '<div class="syllabus-field__value slds-form-element__static">'
-        '<span class="syllabus-field__print-text">科目ナンバリングは学科の案内を参照。</span>'
-        "</div></div></section>"
-    )
-
-
 def schedule_section(page: Page) -> str:
     rows = ((NOTE_ROW, page.schedule_note, ""), *page.sessions)
     html_rows = "".join(
@@ -366,7 +364,7 @@ def detail_page(page: Page, omit: str = "") -> str:
         f"<title>シラバス情報: {YEAR}{page.code}</title></head>"
         '<body class="comm-page-detail-a0i"><div class="themeLayoutStarterWrapper">'
         '<div class="syllabus-detail">'
-        f"{header_section(page)}{unlabeled_field_section()}{fields}"
+        f"{header_section(page)}{UNLABELED_FIELD}{fields}"
         f"{schedule_section(page)}{grading_section(page)}"
         f"{book_section('教科書', '架空工学の教科書', '架空 太郎（架空出版）')}"
         f"{book_section('参考書', '架空工学の演習', '仮名 花子（仮名書房）')}"
@@ -374,23 +372,19 @@ def detail_page(page: Page, omit: str = "") -> str:
     )
 
 
-def listing_cell(label: str, text: str) -> str:
-    return (
+def listing_row(heading: str, href: str, cells: tuple[str, ...]) -> str:
+    link = escape(href)
+    record_id = escape(href.rsplit("/", 2)[-2])
+    values = "".join(
         f'<td role="gridcell" data-label="{escape(label)}" data-cell-value="{escape(text)}">'
         f'<lightning-primitive-cell-factory class="slds-cell-wrap" data-label="{escape(label)}">'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-hyphenate">'
         f"<lightning-base-formatted-text>{escape(text)}</lightning-base-formatted-text>"
         "</div></span></lightning-primitive-cell-factory></td>"
-    )
-
-
-def listing_row(heading: str, href: str, cells: tuple[str, ...]) -> str:
-    link = escape(href)
-    values = "".join(
-        listing_cell(label, text) for label, text in zip(LISTING_LABELS[2:], cells, strict=True)
+        for label, text in zip(LISTING_LABELS[2:], cells, strict=True)
     )
     return (
-        f'<tr class="slds-hint-parent" role="row" data-row-key-value="{link}">'
+        f'<tr class="slds-hint-parent" role="row" data-row-key-value="{record_id}">'
         '<td role="gridcell" data-col-key-value="0-rowNumber-0"><lightning-primitive-cell-factory>'
         '<span class="slds-grid slds-grid_align-spread"><div class="slds-truncate">'
         '<span class="slds-row-number slds-text-body_small slds-text-color_weak"></span>'
@@ -404,7 +398,13 @@ def listing_row(heading: str, href: str, cells: tuple[str, ...]) -> str:
     )
 
 
-def listing(rows: tuple[str, ...]) -> str:
+def listing_page(*rows: Page | tuple[str, str]) -> str:
+    built = tuple(
+        listing_row(entry.heading, entry.href, entry.listing_cells)
+        if isinstance(entry, Page)
+        else listing_row(entry[0], entry[1], SIMPLE_CELLS)
+        for entry in rows
+    )
     heads = "".join(
         f'<th role="columnheader" scope="col" aria-label="{escape(label)}">'
         f'<span class="slds-truncate" title="{escape(label)}">{escape(label)}</span></th>'
@@ -414,18 +414,9 @@ def listing(rows: tuple[str, ...]) -> str:
         '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>ホーム</title></head>'
         '<body class="comm-page-home"><div class="themeLayoutStarterWrapper">'
         '<div class="slds-card"><p class="slds-m-vertical_medium content">'
-        f"全 {len(rows)} 件（1 / 1 ページ）</p>"
+        f"全 {len(built)} 件（1 / 1 ページ）</p>"
         '<table class="slds-table slds-table_header-fixed slds-table_bordered" role="grid"'
-        f' data-num-rows="{len(rows)}"><thead><tr class="slds-line-height_reset" role="row">'
-        f'{heads}</tr></thead><tbody data-rowgroup-body="">{"".join(rows)}</tbody></table></div>'
+        f' data-num-rows="{len(built)}"><thead><tr class="slds-line-height_reset" role="row">'
+        f'{heads}</tr></thead><tbody data-rowgroup-body="">{"".join(built)}</tbody></table></div>'
         "</div></body></html>"
     )
-
-
-def listing_page(*rows: tuple[str, str]) -> str:
-    return listing(tuple(listing_row(heading, href, SIMPLE_CELLS) for heading, href in rows))
-
-
-def page_listing(*pages: Page) -> str:
-    rows = (listing_row(page.heading, page.href, page.listing_cells) for page in pages)
-    return listing(tuple(rows))
