@@ -1,23 +1,19 @@
-const GOOGLE_SIGN_IN = "https://accounts.google.com";
-
 export function contentSecurityPolicy(development: boolean): string {
   const script = [
     "'self'",
     "'unsafe-inline'",
     ...(development ? ["'unsafe-eval'"] : []),
   ];
-  const connect = ["'self'", ...(development ? ["ws:"] : [])];
   return [
     "default-src 'self'",
     `script-src ${script.join(" ")}`,
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob:",
     "font-src 'self'",
-    `connect-src ${connect.join(" ")}`,
+    "connect-src 'self'",
     "frame-ancestors 'none'",
     "object-src 'none'",
     "base-uri 'self'",
-    `form-action 'self' ${GOOGLE_SIGN_IN}`,
   ].join("; ");
 }
 

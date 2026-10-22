@@ -31,9 +31,9 @@ OG 画像(共有したときのカード)
 
 高橋さんが選んだ。ヘッダーは 1、OG 画像は 1、検索は 1。
 
-- `src/lib/security-headers.ts` がヘッダーの列を作り(純粋な関数で Vitest が確かめる)、`next.config.ts` の `headers` が全ての経路に付ける。CSP は `default-src 'self'`、`script-src 'self' 'unsafe-inline'`(開発中だけ `'unsafe-eval'`)、`style-src 'self' 'unsafe-inline'`(style 属性のため)、`img-src 'self' data: blob:`、`font-src 'self'`(next/font が自前で配る)、`connect-src 'self'`(開発中だけ `ws:` も)、`frame-ancestors 'none'`、`object-src 'none'`、`base-uri 'self'`、`form-action 'self' https://accounts.google.com`(Auth.js のログインはフォームの送信のあと Google へ 303 で移り、Chrome は移った先にも form-action を当てる)。ほかに `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: strict-origin-when-cross-origin`、`Permissions-Policy: camera=(), microphone=(), geolocation=()`。HSTS と COOP は TLS を終える前段のプロキシで本番化のときに付ける
-- `app/robots.ts` は `/api/`、`/plans`、`/login` を拒否して残りを許し、`app/sitemap.ts` はトップ、利用規約、プライバシーポリシーを載せる。本番の URL は環境変数 `SITE_URL`(無ければ `http://localhost:3000`)で、`metadataBase`(OG 画像の絶対 URL)と robots と sitemap に使う。これらはビルドで静的に作られるので、`SITE_URL` はビルドのときに渡す
-- `app/opengraph-image.png`(1200×630)は、行先表示の板に「なりたい職業 行」と、アプリの名前と一言を描いた静的な画像。`app/icon.svg`(道標の絵、favicon)と `app/apple-icon.png`(180×180)も置き、`app/manifest.ts` が名前と色とアイコンを出す。PNG は `frontend/brand/` の HTML を Playwright の CLI で撮って作る(作り方は CLAUDE.md)
+- `src/lib/security-headers.ts` がヘッダーの列を作り(純粋な関数で Vitest が確かめる)、`next.config.ts` の `headers` が全ての経路に付ける。CSP は `default-src 'self'`、`script-src 'self' 'unsafe-inline'`(開発中だけ `'unsafe-eval'`)、`style-src 'self' 'unsafe-inline'`(style 属性のため)、`img-src 'self' data: blob:`、`font-src 'self'`(next/font が自前で配る)、`connect-src 'self'`(開発用サーバーの WebSocket も同じオリジンなので `ws:` は要らない)、`frame-ancestors 'none'`、`object-src 'none'`、`base-uri 'self'`。`form-action` は付けない。Auth.js のログインはフォームの送信のあと Google へ 303 で移り、JavaScript が効かないときは素のフォームの送信になって Chrome が移った先にも form-action を当てるので、Google から大学などの SSO の IdP へさらに移る経路を止めてしまう。ほかに `X-Content-Type-Options: nosniff`、`X-Frame-Options: DENY`、`Referrer-Policy: strict-origin-when-cross-origin`、`Permissions-Policy: camera=(), microphone=(), geolocation=()`。HSTS と COOP は TLS を終える前段のプロキシで本番化のときに付ける
+- `app/robots.ts` は `/api/`、`/plans`、`/login` を拒否して残りを許し、`app/sitemap.ts` はトップ、利用規約、プライバシーポリシーを載せる。本番の URL は環境変数 `SITE_URL`(無ければ `http://localhost:3000`。パスを含まないオリジンで、違えばビルドが分かる文で止まる)で、`metadataBase`(OG 画像の絶対 URL)と robots と sitemap に使う。これらはビルドで静的に作られるので、`SITE_URL` はビルドのときに渡す
+- `app/opengraph-image.png`(1200×630)は、行先表示の板に「なりたい職業 行」と、アプリの名前と一言を描いた静的な画像で、`opengraph-image.alt.txt` が代替の文。`app/icon.svg`(道標の絵、favicon)、`app/favicon.ico`(link を読まずに `/favicon.ico` を取りに来る相手のため)、`app/apple-icon.png`(180×180)も置き、`app/manifest.ts` が名前と色とアイコンを出す。PNG と ICO は `frontend/brand/make.py` が `frontend/brand/` の HTML を Playwright で開き、フォントの読み込み(`document.fonts.ready`)を待って撮る(作り方は CLAUDE.md)。OG の title と description はページごとの title から Next が引き継ぐ
 
 ## 理由
 
@@ -43,7 +43,8 @@ OG 画像(共有したときのカード)
 
 ## 受け入れたトレードオフ
 
-- インラインの script を許すので、XSS が起きたときの CSP の守りは弱い。入力は backend が検査し(ADR 0026)、画面に出す文は React がエスケープする
+- インラインの script を許すので、XSS が起きたときの CSP の守りは弱い。入力は backend が検査し(ADR 0026)、画面に出す文は React がエスケープする。`form-action` も付けないので、注入されたフォームの送り先は CSP では止まらない
+- OG 画像の作り直しは Google Fonts への接続が要る(フォントは同梱しない)
 - OG 画像はページごとに同じ。道標ごとの画像を出すなら `ImageResponse` に替える
 - `SITE_URL` はビルドのときに決まるので、本番のイメージを作る CI に渡す必要がある。渡し忘れると sitemap と OG 画像の URL が localhost になる(本番化の手順に入れる)
 

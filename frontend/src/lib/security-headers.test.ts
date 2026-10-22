@@ -13,30 +13,18 @@ describe("the content security policy", () => {
     expect(policy).toContain("object-src 'none'");
     expect(policy).toContain("base-uri 'self'");
     expect(policy).not.toContain("unsafe-eval");
-    expect(policy).not.toContain("ws:");
   });
 
-  it("lets the form submission continue to Google for the login", () => {
-    expect(contentSecurityPolicy(false)).toContain(
-      "form-action 'self' https://accounts.google.com",
-    );
-  });
-
-  it("allows eval and the dev socket only while developing", () => {
-    const policy = contentSecurityPolicy(true);
-
-    expect(policy).toContain("'unsafe-eval'");
-    expect(policy).toContain("connect-src 'self' ws:");
+  it("allows eval only while developing", () => {
+    expect(contentSecurityPolicy(true)).toContain("'unsafe-eval'");
   });
 });
 
 describe("the security headers", () => {
-  it("name each header once and include the policy", () => {
+  it("carry the policy and the four other headers", () => {
     const headers = securityHeaders(false);
-    const keys = headers.map((header) => header.key);
 
-    expect(new Set(keys).size).toBe(keys.length);
-    expect(keys).toEqual([
+    expect(headers.map((header) => header.key)).toEqual([
       "Content-Security-Policy",
       "X-Content-Type-Options",
       "X-Frame-Options",
