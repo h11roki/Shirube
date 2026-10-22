@@ -14,14 +14,11 @@ export default function Home() {
     <div className="grid gap-10">
       <section className="grid gap-3 motion-safe:animate-rise">
         <Kicker>立命館大学 理工学部 {DEPARTMENT_NAME}</Kicker>
-        <h1
-          aria-label={CATCHPHRASE.join("")}
-          className="font-serif text-3xl leading-snug font-extrabold sm:text-5xl sm:leading-tight"
-        >
+        <h1 className="font-serif text-3xl leading-snug font-extrabold sm:text-5xl sm:leading-tight">
           {CATCHPHRASE.map((part) => (
             <span
               key={part}
-              className="inline-block max-w-full [word-break:auto-phrase]"
+              className="inline-block [overflow-wrap:anywhere] [word-break:auto-phrase]"
             >
               {part}
             </span>
