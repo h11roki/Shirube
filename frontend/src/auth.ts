@@ -9,6 +9,7 @@ declare module "next-auth" {
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [Google],
+  pages: { signIn: "/login", error: "/login" },
   session: { strategy: "jwt" },
   callbacks: {
     jwt({ token, account }) {

@@ -4,13 +4,19 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { gothic, mincho } from "@/lib/fonts";
+import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
+import { siteUrl } from "@/lib/site-url";
 import { THEME_SCRIPT } from "@/lib/theme";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "shirube", template: "%s | shirube" },
-  description: "なりたい職業から、卒業までの履修の道標を描く",
+  metadataBase: siteUrl(),
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  robots: { index: false, follow: true },
+  openGraph: { type: "website", siteName: SITE_NAME, locale: "ja_JP" },
+  twitter: { card: "summary_large_image" },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

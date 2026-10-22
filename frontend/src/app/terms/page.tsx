@@ -3,9 +3,9 @@ import Link from "next/link";
 
 import { ContactSection, LegalDocument } from "@/components/legal-document";
 import { TEXT_LINK } from "@/components/styles";
-import { OPERATOR, SYLLABUS_SITE } from "@/lib/site";
+import { INDEXED, OPERATOR, SYLLABUS_SITE } from "@/lib/site";
 
-export const metadata: Metadata = { title: "利用規約" };
+export const metadata: Metadata = { title: "利用規約", robots: INDEXED };
 
 export default function TermsPage() {
   return (
