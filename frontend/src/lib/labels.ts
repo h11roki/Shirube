@@ -45,14 +45,10 @@ function completedInView(plan: PlanState, sawProgress: boolean): boolean {
   return plan.status === "succeeded" && plan.result !== null && sawProgress;
 }
 
-export function planTabTitle(
-  base: string,
-  plan: PlanState,
-  sawProgress: boolean,
-): string {
+export function planTitlePrefix(plan: PlanState, sawProgress: boolean): string {
   const plain =
     plan.status === "succeeded" && !completedInView(plan, sawProgress);
-  return plain ? base : `${PLAN_TITLE_PREFIXES[plan.status]}${base}`;
+  return plain ? "" : PLAN_TITLE_PREFIXES[plan.status];
 }
 
 export function completionNotice(

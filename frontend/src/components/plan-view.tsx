@@ -27,7 +27,7 @@ import {
   DELETE_PLAN_LABEL,
   DELETE_PLAN_NOTE,
   completionNotice,
-  planTabTitle,
+  planTitlePrefix,
 } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
@@ -51,6 +51,8 @@ export function PlanView() {
   const deleted = useRef(false);
   const sawProgress = progressSeenFor === id;
   const completion = plan ? completionNotice(plan, sawProgress) : "";
+  const prefix =
+    plan && !error ? planTitlePrefix(plan, sawProgress) : undefined;
 
   useEffect(() => {
     let active = true;
@@ -112,18 +114,18 @@ export function PlanView() {
   }, [id, round]);
 
   useEffect(() => {
-    if (!plan || error) {
+    if (prefix === undefined) {
       return;
     }
     const base = document.title;
-    const title = planTabTitle(base, plan, sawProgress);
+    const title = `${prefix}${base}`;
     document.title = title;
     return () => {
       if (document.title === title) {
         document.title = base;
       }
     };
-  }, [plan, error, sawProgress]);
+  }, [prefix]);
 
   useEffect(() => {
     const timer = setTimeout(() => setNotice(completion), ANNOUNCE_DELAY_MS);

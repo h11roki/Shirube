@@ -22,7 +22,7 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   leaveSummary,
-  planTabTitle,
+  planTitlePrefix,
   completionNotice,
   weekdayName,
 } from "@/lib/labels";
@@ -160,28 +160,18 @@ describe("labels", () => {
     );
   });
 
-  it("puts the state of the plan in front of the title the page opened with", () => {
-    const base = "道標 | shirube";
-
-    expect(planTabTitle(base, inState("pending"), false)).toBe(
-      "作成中: 道標 | shirube",
-    );
-    expect(planTabTitle(base, inState("running"), true)).toBe(
-      "作成中: 道標 | shirube",
-    );
-    expect(planTabTitle(base, SAMPLE_PLAN, true)).toBe(
-      "できました: 道標 | shirube",
-    );
-    expect(planTabTitle(base, inState("failed"), false)).toBe(
-      "作れませんでした: 道標 | shirube",
+  it("puts the state of the plan in front of the tab title", () => {
+    expect(planTitlePrefix(inState("pending"), false)).toBe("作成中: ");
+    expect(planTitlePrefix(inState("running"), true)).toBe("作成中: ");
+    expect(planTitlePrefix(SAMPLE_PLAN, true)).toBe("できました: ");
+    expect(planTitlePrefix(inState("failed"), false)).toBe(
+      "作れませんでした: ",
     );
   });
 
-  it("keeps the title the page opened with for a plan done before it was opened or done without a result", () => {
-    const base = "道標 | shirube";
-
-    expect(planTabTitle(base, SAMPLE_PLAN, false)).toBe(base);
-    expect(planTabTitle(base, inState("succeeded"), true)).toBe(base);
+  it("adds nothing for a plan done before it was opened or done without a result", () => {
+    expect(planTitlePrefix(SAMPLE_PLAN, false)).toBe("");
+    expect(planTitlePrefix(inState("succeeded"), true)).toBe("");
   });
 
   it("spells out the weekday for the screen reader", () => {
