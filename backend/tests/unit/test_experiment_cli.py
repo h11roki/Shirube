@@ -1,5 +1,6 @@
 import argparse
 import json
+import math
 from collections.abc import Iterator, Sequence
 from pathlib import Path
 from typing import Any
@@ -7,7 +8,13 @@ from typing import Any
 import pytest
 from langchain_core.messages import HumanMessage
 
-from app.application.compare_experiments import MIN_OCCUPATIONS, Comparison, Difference
+from app.application.compare_experiments import (
+    MIN_OCCUPATIONS,
+    Change,
+    Comparison,
+    Interval,
+    compare_experiments,
+)
 from app.application.evaluate_search import EvaluationCase
 from app.application.evaluate_selection import (
     ExpectedCourse,
@@ -23,6 +30,7 @@ from app.application.run_experiment import (
     Spread,
     StageSeconds,
     Trial,
+    scored_run,
     summarize,
 )
 from app.application.search_courses import SearchError
@@ -36,6 +44,7 @@ from app.domain.recommendation import (
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     METRICS,
+    OVERLAPS,
     collect,
     compare,
     label,
@@ -242,10 +251,6 @@ def test_collect_keeps_what_ran_before_the_run_was_stopped(
     assert (collection.stopped, collection.over_budget) == (stopped, False)
 
 
-def spread(value: float, std: float) -> dict[str, float]:
-    return {"mean": value, "std": std, "low": value - std, "high": value + std}
-
-
 def document(summary: dict[str, Any] | None) -> dict[str, Any]:
     return {
         "label": "baseline",
@@ -296,16 +301,12 @@ def test_a_run_whose_recommendations_all_failed_is_shown_without_scores() -> Non
     assert lines[1:] == ["  使った費用 24.0 円", "  推薦が全て失敗したので集計していない"]
 
 
-def run(name: str, unrelated: float, **config: Any) -> dict[str, Any]:
-    summary: dict[str, Any] = {key: spread(0.5, 0.0) for key, _, _ in METRICS}
-    summary |= {
+def run(name: str, **config: Any) -> dict[str, Any]:
+    summary = {
         "trials": 30,
         "failures": 0,
         "complete_repeats": 3,
         "scored_repeats": 3,
-        "unrelated": spread(unrelated, 0.02),
-        "overlap": 0.6,
-        "core_overlap": 0.7,
         "yen_per_plan": 1.5,
         "seconds": {"total": 12.0},
     }
@@ -316,75 +317,72 @@ def line_of(lines: list[str], start: str) -> str:
     return next(line for line in lines if line.startswith(start))
 
 
-WITHOUT_INTERVALS = Comparison(MIN_OCCUPATIONS, {})
+NOTHING_MEASURED = Comparison(MIN_OCCUPATIONS, {})
 
 
-def test_compare_shows_each_difference_with_its_interval_and_whether_zero_is_left_out() -> None:
+def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_out() -> None:
     comparison = Comparison(
         10,
         {
-            "unrelated": Difference(-0.1, -0.15, -0.05),
-            "core_precision": Difference(-1e-17, -0.05, 0.05),
-            "overlap": Difference(0.0, -0.1, 0.1),
+            "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05)),
+            "core_precision": Change(0.5, math.nextafter(0.5, 0.0), Interval(-0.05, 0.05)),
+            "overlap": Change(0.6, 0.6, Interval(-0.1, 0.1)),
+            "cores": Change(5.0, 4.4, None),
+            "foundations": Change(None, 3.9, None),
         },
     )
 
-    lines = compare(run("before", 0.20), run("after", 0.10), comparison).splitlines()
+    lines = compare(run("before"), run("after"), comparison).splitlines()
 
-    assert (
-        "  差の区間は 95% 信頼区間(両方にそろった 10 職業を選び直すブートストラップ 10,000 回)"
-        in lines
-    )
-    assert line_of(lines, "  選んだ科目のうち関係なし").endswith(
-        "、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり"
-    )
-    assert line_of(lines, "  中心の適合率").endswith(
-        "、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない"
-    )
-    assert line_of(lines, "  揺れ(選んだ科目の重なり)").endswith(
-        "、差 +0.00(区間 -0.10〜+0.10)、はっきりしない"
-    )
-    assert line_of(lines, "  1 職業に選んだ中心").endswith("、差 +0.00")
+    assert lines[3:] == [
+        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
+        "(職業を選び直すブートストラップ 10,000 回)",
+        "  検索の再現率 @10: - → -",
+        "  検索の再現率 @20: - → -",
+        "  選び直しに渡した候補の再現率: - → -",
+        "  中心の適合率: 50% → 50%、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない",
+        "  期待する科目を中心に選んだ割合: - → -",
+        "  選んだ科目のうち関係なし: 20% → 10%、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり",
+        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60、区間なし",
+        "  1 職業に選んだ土台: - → 3.90",
+        "  揺れ(選んだ科目の重なり): 0.60 → 0.60、差 +0.00(区間 -0.10〜+0.10)、はっきりしない",
+        "  揺れ(中心の重なり): - → -",
+        "  1 回の推薦あたりの費用: 1.50 円 → 1.50 円",
+        "  1 回の推薦の時間: 12.0 秒 → 12.0 秒",
+    ]
 
 
 def test_compare_gives_no_interval_for_fewer_occupations_than_were_checked() -> None:
-    lines = compare(run("before", 0.20), run("after", 0.10), Comparison(7, {})).splitlines()
+    comparison = Comparison(7, {"unrelated": Change(0.2, 0.1, None)})
 
-    assert "  差の区間は出さない(両方にそろった職業が 7 で、10 に満たない)" in lines
-    assert line_of(lines, "  選んだ科目のうち関係なし").endswith("、差 -10.0 ポイント")
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない" in lines
+    assert "  選んだ科目のうち関係なし: 20% → 10%、差 -10.0 ポイント、区間なし" in lines
 
 
 def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
-    before = run("before", 0.2, selection_model="gpt-5.4-nano", budget=100)
-    after = run("after", 0.2, selection_model="gpt-5.4-mini", budget=50)
+    before = run("before", selection_model="gpt-5.4-nano", budget=100)
+    after = run("after", selection_model="gpt-5.4-mini", budget=50)
 
-    lines = compare(before, after, WITHOUT_INTERVALS).splitlines()
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
     assert "  設定の違い: selection_model gpt-5.4-nano → gpt-5.4-mini" in lines
 
 
 def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
-    before = run("before", 0.2)
-    after = run("after", 0.2, selection_votes=3)
+    before = run("before")
+    after = run("after", selection_votes=3)
 
-    lines = compare(before, after, WITHOUT_INTERVALS).splitlines()
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
     assert "  設定の違い: selection_votes 1 → 3" in lines
     single = compare(
         before,
-        run("after", 0.2, selection_votes=1, selection_vote_delay_seconds=0.0),
-        WITHOUT_INTERVALS,
+        run("after", selection_votes=1, selection_vote_delay_seconds=0.0),
+        NOTHING_MEASURED,
     ).splitlines()
     assert not any(line.startswith("  設定の違い") for line in single)
-
-
-def test_compare_shows_a_metric_an_older_run_lacks_without_a_difference() -> None:
-    before = run("before", 0.2)
-    del before["summary"]["candidate_recall"]
-
-    lines = compare(before, run("after", 0.2), WITHOUT_INTERVALS).splitlines()
-
-    assert line_of(lines, "  選び直しに渡した候補の再現率").endswith(": - → 50% ± 0(50%〜50%)")
 
 
 def test_the_raw_output_reads_back_into_the_scorecard_it_was_written_from() -> None:
@@ -474,15 +472,24 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
 
     lines = capsys.readouterr().out.splitlines()
     assert (
-        "  差の区間は 95% 信頼区間(両方にそろった 10 職業を選び直すブートストラップ 10,000 回)"
-        in lines
-    )
+        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
+        "(職業を選び直すブートストラップ 10,000 回)"
+    ) in lines
     unrelated = line_of(lines, "  選んだ科目のうち関係なし")
-    assert "、差 -60.0 ポイント(区間 -" in unrelated
+    assert unrelated.startswith("  選んだ科目のうち関係なし: 60% → 0%、差 -60.0 ポイント(区間 -")
     assert unrelated.endswith("、差あり")
-    assert line_of(lines, "  期待する科目を中心に選んだ割合").endswith(
-        "、差 +0.0 ポイント(区間 +0.0〜+0.0)、はっきりしない"
-    )
+    assert (
+        "  期待する科目を中心に選んだ割合: 100% → 100%、差 +0.0 ポイント(区間 +0.0〜+0.0)、"
+        "はっきりしない"
+    ) in lines
+
+
+def test_the_shown_changes_are_the_ones_the_comparison_measures() -> None:
+    run = scored_run([picking(f"職業{index}", 1).scorecard for index in range(10)], 10)
+
+    comparison = compare_experiments(run, run, resamples=10)
+
+    assert comparison.changes.keys() == {key for key, _, _ in (*METRICS, *OVERLAPS)}
 
 
 def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_read(

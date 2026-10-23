@@ -4,8 +4,9 @@ import pytest
 
 from app.application.compare_experiments import (
     MIN_OCCUPATIONS,
+    Change,
     Comparison,
-    Difference,
+    Interval,
     compare_experiments,
 )
 from app.application.evaluate_selection import ExpectedCourse, Judgment, Pick, SelectionResult
@@ -15,7 +16,16 @@ from app.domain.recommendation import Relevance
 OCCUPATIONS = tuple(f"職業{index}" for index in range(MIN_OCCUPATIONS))
 EXPECTED, UNRELATED = Judgment.EXPECTED, Judgment.UNRELATED
 ONLY_EXPECTED = (("科目A", EXPECTED),)
-NO_CHANGE = Difference(0.0, 0.0, 0.0)
+METRICS = {
+    "recall@10",
+    "recall@20",
+    "candidate_recall",
+    "core_precision",
+    "expected_as_core",
+    "unrelated",
+    "cores",
+    "foundations",
+}
 
 
 def card(occupation: str, repeat: int, picks: Sequence[tuple[str, Judgment]]) -> Scorecard:
@@ -48,17 +58,12 @@ def test_the_same_results_differ_by_nothing() -> None:
     comparison = compared(cards, cards)
 
     assert comparison.occupations == MIN_OCCUPATIONS
-    assert comparison.differences.keys() == {
-        "recall@10",
-        "recall@20",
-        "candidate_recall",
-        "core_precision",
-        "expected_as_core",
-        "unrelated",
-        "cores",
-        "foundations",
+    assert comparison.changes.keys() == METRICS | {"overlap", "core_overlap"}
+    measured = {key: change for key, change in comparison.changes.items() if key in METRICS}
+    assert {(change.difference, change.interval) for change in measured.values()} == {
+        (0.0, Interval(0.0, 0.0))
     }
-    assert set(comparison.differences.values()) == {NO_CHANGE}
+    assert comparison.changes["unrelated"] == Change(5 / 15, 5 / 15, Interval(0.0, 0.0))
 
 
 def test_a_drop_every_occupation_shares_is_clear() -> None:
@@ -75,11 +80,13 @@ def test_a_drop_every_occupation_shares_is_clear() -> None:
     ]
     after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
 
-    unrelated = compared(before, after).differences["unrelated"]
+    unrelated = compared(before, after).changes["unrelated"]
 
-    assert unrelated.estimate == pytest.approx(-19 / 29)
-    assert unrelated.high < 0
-    assert unrelated.clear
+    assert unrelated.before == pytest.approx(19 / 29)
+    assert unrelated.after == 0.0
+    assert unrelated.interval is not None
+    assert unrelated.interval.high < 0
+    assert unrelated.interval.clear
 
 
 def test_a_change_in_one_occupation_alone_is_not_clear() -> None:
@@ -91,14 +98,15 @@ def test_a_change_in_one_occupation_alone_is_not_clear() -> None:
 
     comparison = compared(before, after)
 
-    unrelated = comparison.differences["unrelated"]
-    assert unrelated.estimate == pytest.approx(2 / 12)
-    assert unrelated.low == 0.0
-    assert not unrelated.clear
+    unrelated = comparison.changes["unrelated"]
+    assert unrelated.difference == pytest.approx(2 / 12)
+    assert unrelated.interval is not None
+    assert unrelated.interval.low == 0.0
+    assert not unrelated.interval.clear
     assert compared(before, after) == comparison
 
 
-def test_the_estimate_averages_the_repeats_like_the_summary() -> None:
+def test_the_values_average_the_repeats_like_the_summary() -> None:
     before = [
         *(
             card(occupation, 1, (("科目A", EXPECTED), ("科目B", UNRELATED)))
@@ -110,25 +118,30 @@ def test_the_estimate_averages_the_repeats_like_the_summary() -> None:
         card(occupation, repeat, ONLY_EXPECTED) for repeat in (1, 2) for occupation in OCCUPATIONS
     ]
 
-    unrelated = compared(before, after).differences["unrelated"]
+    unrelated = compared(before, after).changes["unrelated"]
 
-    assert unrelated.estimate == pytest.approx(-0.25)
+    assert unrelated.before == pytest.approx(0.25)
+    assert unrelated.after == 0.0
 
 
-def test_fewer_paired_occupations_than_were_checked_get_no_interval() -> None:
+def test_fewer_paired_occupations_than_were_checked_get_values_but_no_interval() -> None:
     cards = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS[:-1]]
 
-    assert compared(cards, cards) == Comparison(MIN_OCCUPATIONS - 1, {})
+    comparison = compared(cards, cards)
+
+    assert comparison.occupations == MIN_OCCUPATIONS - 1
+    assert comparison.changes["unrelated"] == Change(0.0, 0.0, None)
+    assert all(change.interval is None for change in comparison.changes.values())
 
 
-def test_an_occupation_only_one_run_has_is_left_out_of_the_pairs() -> None:
+def test_an_occupation_only_one_run_has_is_left_out_of_the_values() -> None:
     shared = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
     extra = card("ほかの職業", 1, (("科目B", UNRELATED),))
 
     comparison = compared([*shared, extra], shared)
 
     assert comparison.occupations == MIN_OCCUPATIONS
-    assert comparison.differences["unrelated"] == NO_CHANGE
+    assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0))
 
 
 def test_the_overlap_between_repeats_is_compared_by_occupation() -> None:
@@ -141,17 +154,48 @@ def test_the_overlap_between_repeats_is_compared_by_occupation() -> None:
         card(occupation, repeat, ONLY_EXPECTED) for repeat in (1, 2) for occupation in OCCUPATIONS
     ]
 
-    differences = compared(before, after).differences
+    changes = compared(before, after).changes
 
-    assert differences["overlap"] == Difference(1.0, 1.0, 1.0)
-    assert differences["core_overlap"] == Difference(1.0, 1.0, 1.0)
+    assert changes["overlap"] == Change(0.0, 1.0, Interval(1.0, 1.0))
+    assert changes["core_overlap"] == Change(0.0, 1.0, Interval(1.0, 1.0))
 
 
 def test_a_share_left_undefined_in_either_run_has_no_difference() -> None:
     nothing = [card(occupation, 1, ()) for occupation in OCCUPATIONS]
     something = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
 
-    differences = compared(nothing, something).differences
+    changes = compared(nothing, something).changes
 
-    assert {"core_precision", "unrelated"}.isdisjoint(differences)
-    assert differences["cores"] == Difference(1.0, 1.0, 1.0)
+    assert changes["unrelated"] == Change(None, 0.0, None)
+    assert changes["unrelated"].difference is None
+    assert changes["cores"] == Change(0.0, 1.0, Interval(1.0, 1.0))
+
+
+def test_a_share_some_resamples_cannot_define_gets_no_interval() -> None:
+    before = [
+        card(OCCUPATIONS[0], 1, ONLY_EXPECTED),
+        *(card(occupation, 1, ()) for occupation in OCCUPATIONS[1:]),
+    ]
+    after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
+
+    changes = compared(before, after).changes
+
+    assert changes["core_precision"] == Change(1.0, 1.0, None)
+    assert changes["cores"].interval is not None
+
+
+@pytest.mark.parametrize(
+    ("interval", "clear"),
+    [
+        (Interval(0.01, 0.2), True),
+        (Interval(-0.2, -0.01), True),
+        (Interval(-0.01, 0.2), False),
+        (Interval(1e-17, 1e-16), False),
+        (Interval(-1e-16, -1e-17), False),
+    ],
+    ids=["above", "below", "across", "rounding-above", "rounding-below"],
+)
+def test_an_interval_is_clear_only_when_it_leaves_out_zero_beyond_rounding(
+    interval: Interval, clear: bool
+) -> None:
+    assert interval.clear is clear

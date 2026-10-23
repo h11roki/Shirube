@@ -19,25 +19,38 @@ RESAMPLES = 10_000
 SEED = 0
 CONFIDENCE = 0.95
 MIN_OCCUPATIONS = 10
+TOLERANCE = 1e-9
 
 Statistic = Callable[[Sequence[str]], float | None]
 
 
 @dataclass(frozen=True)
-class Difference:
-    estimate: float
+class Interval:
     low: float
     high: float
 
     @property
     def clear(self) -> bool:
-        return self.low > 0 or self.high < 0
+        return self.low > TOLERANCE or self.high < -TOLERANCE
+
+
+@dataclass(frozen=True)
+class Change:
+    before: float | None
+    after: float | None
+    interval: Interval | None
+
+    @property
+    def difference(self) -> float | None:
+        if self.before is None or self.after is None:
+            return None
+        return self.after - self.before
 
 
 @dataclass(frozen=True)
 class Comparison:
     occupations: int
-    differences: dict[str, Difference]
+    changes: dict[str, Change]
 
 
 def _pooled_mean(
@@ -63,40 +76,47 @@ def _statistics(run: ScoredRun) -> dict[str, Statistic]:
     }
 
 
-def _difference(
+def _interval(old: Statistic, new: Statistic, samples: Sequence[Sequence[str]]) -> Interval | None:
+    differences = []
+    for chosen in samples:
+        before, after = old(chosen), new(chosen)
+        if before is None or after is None:
+            return None
+        differences.append(after - before)
+    if not differences:
+        return None
+    differences.sort()
+    tail = (1 - CONFIDENCE) / 2
+    return Interval(
+        differences[int(tail * len(differences))],
+        differences[math.ceil((1 - tail) * len(differences)) - 1],
+    )
+
+
+def _change(
     old: Statistic, new: Statistic, occupations: Sequence[str], samples: Sequence[Sequence[str]]
-) -> Difference | None:
+) -> Change:
     before, after = old(occupations), new(occupations)
     if before is None or after is None:
-        return None
-    resampled = []
-    for chosen in samples:
-        chosen_before, chosen_after = old(chosen), new(chosen)
-        if chosen_before is not None and chosen_after is not None:
-            resampled.append(chosen_after - chosen_before)
-    if not resampled:
-        return None
-    resampled.sort()
-    tail = (1 - CONFIDENCE) / 2
-    return Difference(
-        after - before,
-        resampled[int(tail * len(resampled))],
-        resampled[math.ceil((1 - tail) * len(resampled)) - 1],
-    )
+        return Change(before, after, None)
+    return Change(before, after, _interval(old, new, samples))
 
 
 def compare_experiments(
     before: ScoredRun, after: ScoredRun, resamples: int = RESAMPLES, seed: int = SEED
 ) -> Comparison:
     occupations = sorted(before.occupations & after.occupations)
-    if len(occupations) < MIN_OCCUPATIONS:
-        return Comparison(len(occupations), {})
     generator = Random(seed)
-    samples = [generator.choices(occupations, k=len(occupations)) for _ in range(resamples)]
+    samples = (
+        [generator.choices(occupations, k=len(occupations)) for _ in range(resamples)]
+        if len(occupations) >= MIN_OCCUPATIONS
+        else []
+    )
     old, new = _statistics(before), _statistics(after)
-    differences = {
-        key: difference
-        for key in sorted(old.keys() & new.keys())
-        if (difference := _difference(old[key], new[key], occupations, samples)) is not None
-    }
-    return Comparison(len(occupations), differences)
+    return Comparison(
+        len(occupations),
+        {
+            key: _change(old[key], new[key], occupations, samples)
+            for key in sorted(old.keys() & new.keys())
+        },
+    )

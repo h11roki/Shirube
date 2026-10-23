@@ -19,8 +19,8 @@ from app.application.compare_experiments import (
     CONFIDENCE,
     MIN_OCCUPATIONS,
     RESAMPLES,
+    Change,
     Comparison,
-    Difference,
     compare_experiments,
 )
 from app.application.evaluate_search import RECALL_CUTOFFS, EvaluationDataset, EvaluationError
@@ -88,6 +88,10 @@ METRICS = (
     ("unrelated", "選んだ科目のうち関係なし", "ratio"),
     ("cores", "1 職業に選んだ中心", "count"),
     ("foundations", "1 職業に選んだ土台", "count"),
+)
+OVERLAPS = (
+    ("overlap", "揺れ(選んだ科目の重なり)", "coefficient"),
+    ("core_overlap", "揺れ(中心の重なり)", "coefficient"),
 )
 
 
@@ -351,19 +355,27 @@ def render(document: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def _value(kind: str, value: float | None) -> str:
+    if value is None:
+        return "-"
+    return f"{value:.0%}" if kind == "ratio" else f"{value:.2f}"
+
+
 def _signed(kind: str, value: float) -> str:
     return f"{value * 100:+z.1f}" if kind == "ratio" else f"{value:+z.2f}"
 
 
-def _change(kind: str, delta: float, difference: Difference | None) -> str:
+def _change(kind: str, change: Change) -> str:
+    values = f"{_value(kind, change.before)} → {_value(kind, change.after)}"
+    if change.difference is None:
+        return values
     unit = " ポイント" if kind == "ratio" else ""
-    if difference is None:
-        return f"差 {_signed(kind, delta)}{unit}"
-    verdict = "差あり" if difference.clear else "はっきりしない"
-    return (
-        f"差 {_signed(kind, difference.estimate)}{unit}"
-        f"(区間 {_signed(kind, difference.low)}〜{_signed(kind, difference.high)})、{verdict}"
-    )
+    difference = f"{values}、差 {_signed(kind, change.difference)}{unit}"
+    if change.interval is None:
+        return f"{difference}、区間なし"
+    low, high = _signed(kind, change.interval.low), _signed(kind, change.interval.high)
+    verdict = "差あり" if change.interval.clear else "はっきりしない"
+    return f"{difference}(区間 {low}〜{high})、{verdict}"
 
 
 def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Comparison) -> str:
@@ -383,29 +395,17 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
         lines.append(f"  設定の違い: {'、'.join(differences)}")
     if comparison.occupations >= MIN_OCCUPATIONS:
         lines.append(
-            f"  差の区間は {CONFIDENCE:.0%} 信頼区間(両方にそろった {comparison.occupations} 職業を"
-            f"選び直すブートストラップ {RESAMPLES:,} 回)"
+            f"  両方にそろった {comparison.occupations} 職業で比べる。差の区間は {CONFIDENCE:.0%} "
+            f"信頼区間(職業を選び直すブートストラップ {RESAMPLES:,} 回)"
         )
     else:
         lines.append(
-            f"  差の区間は出さない(両方にそろった職業が {comparison.occupations} で、"
-            f"{MIN_OCCUPATIONS} に満たない)"
+            f"  両方にそろった {comparison.occupations} 職業で比べる。{MIN_OCCUPATIONS} 職業に"
+            "満たないので差の区間は出さない"
         )
-    for key, name, kind in METRICS:
-        old, new = old_summary.get(key), new_summary.get(key)
-        if old is None or new is None:
-            lines.append(f"  {name}: {_format(kind, old)} → {_format(kind, new)}")
-            continue
-        change = _change(kind, new["mean"] - old["mean"], comparison.differences.get(key))
-        lines.append(f"  {name}: {_format(kind, old)} → {_format(kind, new)}、{change}")
-    for key, name in (
-        ("overlap", "揺れ(選んだ科目の重なり)"),
-        ("core_overlap", "揺れ(中心の重なり)"),
-    ):
-        old, new = old_summary[key], new_summary[key]
-        if old is not None and new is not None:
-            change = _change("coefficient", new - old, comparison.differences.get(key))
-            lines.append(f"  {name}: {old:.2f} → {new:.2f}、{change}")
+    unknown = Change(None, None, None)
+    for key, name, kind in (*METRICS, *OVERLAPS):
+        lines.append(f"  {name}: {_change(kind, comparison.changes.get(key, unknown))}")
     lines.append(
         f"  1 回の推薦あたりの費用: {old_summary['yen_per_plan']:.2f} 円 → "
         f"{new_summary['yen_per_plan']:.2f} 円"
