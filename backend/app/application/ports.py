@@ -1,4 +1,5 @@
 from collections.abc import Callable, Set
+from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -68,6 +69,22 @@ class CourseSelector(Protocol):
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
     ) -> list[CourseChoice]: ...
+
+
+@dataclass(frozen=True)
+class TokenUsage:
+    input: int
+    cached: int
+    output: int
+
+    def __add__(self, other: "TokenUsage") -> "TokenUsage":
+        return TokenUsage(
+            self.input + other.input, self.cached + other.cached, self.output + other.output
+        )
+
+
+class UsageMeter(Protocol):
+    def meter(self) -> AbstractContextManager[Callable[[], dict[str, TokenUsage]]]: ...
 
 
 class InvalidTokenError(ValueError):

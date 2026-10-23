@@ -338,7 +338,7 @@ def chat_answering(
 
 
 def courses_ranked_by(
-    similarities: dict[str, float],
+    similarities: dict[str, float], embedder: FakeEmbedder | None = None
 ) -> tuple[FakeCourseRepository, SearchCourses]:
     codes = [f"{10000 + number}" for number in range(len(similarities))]
     repository = FakeCourseRepository(
@@ -352,7 +352,7 @@ def courses_ranked_by(
         ChunkHit(code, ChunkSection.OVERVIEW, similarity)
         for code, similarity in zip(codes, similarities.values(), strict=True)
     ]
-    return repository, SearchCourses(repository, FakeChunkSearch(hits), FakeEmbedder())
+    return repository, SearchCourses(repository, FakeChunkSearch(hits), embedder or FakeEmbedder())
 
 
 def failing_http_client(status: int) -> httpx.Client:
