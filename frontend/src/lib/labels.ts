@@ -58,6 +58,8 @@ export const DEPARTMENT_NAME = "電子情報工学科";
 
 export const EMPTY_SEMESTER_LABEL = "この学期に置いた授業はありません。";
 
+export const NO_LESSONS_LABEL = "授業なし";
+
 export const CONTINUING_LABEL = "春学期からの続き";
 
 export const RESULT_VIEW_LABELS: Record<ResultView, string> = {
