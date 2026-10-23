@@ -171,7 +171,7 @@ export function PlanResultView({
         >
           <nav
             aria-label="見え方"
-            className="inline-flex rounded-full border border-edge bg-sheet p-0.5 text-sm"
+            className="inline-flex gap-1 rounded-full border border-edge bg-sheet p-0.5 text-sm"
           >
             {VIEWS.map((each) => (
               <QueryLink
