@@ -73,6 +73,7 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 RUN_CONTROLS = frozenset({"budget"})
+GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
     "selection_votes": 1,
     "selection_vote_delay_seconds": 0.0,
@@ -360,21 +361,21 @@ def render(document: Mapping[str, Any]) -> str:
 def _value(kind: str, value: float | None) -> str:
     if value is None:
         return "-"
-    return f"{value:.0%}" if kind == "ratio" else f"{value:.2f}"
+    return f"{value:.1%}" if kind == "ratio" else f"{value:.2f}"
 
 
 def _signed(kind: str, value: float) -> str:
     return f"{value * 100:+z.1f}" if kind == "ratio" else f"{value:+z.2f}"
 
 
-def _change(kind: str, change: Change) -> str:
+def _change(kind: str, change: Change, no_interval: str) -> str:
     values = f"{_value(kind, change.before)} → {_value(kind, change.after)}"
     if change.difference is None:
         return values
     unit = " ポイント" if kind == "ratio" else ""
     difference = f"{values}、差 {_signed(kind, change.difference)}{unit}"
     if change.interval is None:
-        return f"{difference}、区間なし"
+        return f"{difference}、{no_interval}"
     low, high = _signed(kind, change.interval.low), _signed(kind, change.interval.high)
     verdict = "差あり" if change.interval.clear else "はっきりしない"
     return f"{difference}(区間 {low}〜{high})、{verdict}"
@@ -395,23 +396,27 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     ]
     if differences:
         lines.append(f"  設定の違い: {'、'.join(differences)}")
+    if any(old_config.get(key) != new_config.get(key) for key in GRADING):
+        lines.append("  評価データか判定が違うので、差には正解の付け直しの分も入る")
     if comparison.occupations >= MIN_OCCUPATIONS:
         lines.append(
             f"  両方にそろった {comparison.occupations} 職業で比べる。差の区間は {CONFIDENCE:.0%} "
             f"信頼区間(職業を選び直すブートストラップ {RESAMPLES:,} 回)"
         )
+        no_interval = "区間なし(選び直すと割合を出せない組がある)"
     else:
         lines.append(
             f"  両方にそろった {comparison.occupations} 職業で比べる。{MIN_OCCUPATIONS} 職業に"
             "満たないので差の区間は出さない"
         )
+        no_interval = "区間なし"
     if any(run["config"]["occupations"] != comparison.occupations for run in (before, after)):
         sizes = "、".join(
             f"{run['label']} {run['config']['occupations']} 職業" for run in (before, after)
         )
         lines.append(f"  前と後の値は、それぞれの集計({sizes})と違うことがある")
     for key, name, kind in (*METRICS, *OVERLAPS):
-        lines.append(f"  {name}: {_change(kind, comparison.changes[key])}")
+        lines.append(f"  {name}: {_change(kind, comparison.changes[key], no_interval)}")
     lines.append(
         f"  1 回の推薦あたりの費用: {old_summary['yen_per_plan']:.2f} 円 → "
         f"{new_summary['yen_per_plan']:.2f} 円"

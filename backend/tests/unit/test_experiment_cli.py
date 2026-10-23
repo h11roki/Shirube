@@ -351,10 +351,10 @@ def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_ou
         "  検索の再現率 @10: - → -",
         "  検索の再現率 @20: - → -",
         "  選び直しに渡した候補の再現率: - → -",
-        "  中心の適合率: 50% → 50%、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない",
+        "  中心の適合率: 50.0% → 50.0%、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない",
         "  期待する科目を中心に選んだ割合: - → -",
-        "  選んだ科目のうち関係なし: 20% → 10%、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり",
-        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60、区間なし",
+        "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり",
+        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60、区間なし(選び直すと割合を出せない組がある)",
         "  1 職業に選んだ土台: - → 3.90",
         "  揺れ(選んだ科目の重なり): 0.60 → 0.60、差 +0.00(区間 -0.10〜+0.10)、はっきりしない",
         "  揺れ(中心の重なり): - → -",
@@ -372,7 +372,7 @@ def test_compare_gives_no_interval_for_fewer_occupations_than_were_checked() -> 
         "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない",
         "  前と後の値は、それぞれの集計(before 10 職業、after 10 職業)と違うことがある",
     ]
-    assert "  選んだ科目のうち関係なし: 20% → 10%、差 -10.0 ポイント、区間なし" in lines
+    assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間なし" in lines
 
 
 def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
@@ -382,6 +382,17 @@ def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
     lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
     assert "  設定の違い: selection_model gpt-5.4-nano → gpt-5.4-mini" in lines
+    assert not any(line.startswith("  評価データか判定が違う") for line in lines)
+
+
+@pytest.mark.parametrize("key", ["dataset", "judgments"])
+def test_compare_warns_that_a_regraded_run_mixes_in_the_new_labels(key: str) -> None:
+    before = run("before", **{key: "aaaa1111"})
+    after = run("after", **{key: "bbbb2222"})
+
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
+
+    assert "  評価データか判定が違うので、差には正解の付け直しの分も入る" in lines
 
 
 def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
@@ -490,10 +501,12 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
         "(職業を選び直すブートストラップ 10,000 回)"
     ) in lines
     unrelated = line_of(lines, "  選んだ科目のうち関係なし")
-    assert unrelated.startswith("  選んだ科目のうち関係なし: 60% → 0%、差 -60.0 ポイント(区間 -")
+    assert unrelated.startswith(
+        "  選んだ科目のうち関係なし: 60.0% → 0.0%、差 -60.0 ポイント(区間 -"
+    )
     assert unrelated.endswith("、差あり")
     assert (
-        "  期待する科目を中心に選んだ割合: 100% → 100%、差 +0.0 ポイント(区間 +0.0〜+0.0)、"
+        "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント(区間 +0.0〜+0.0)、"
         "はっきりしない"
     ) in lines
 
