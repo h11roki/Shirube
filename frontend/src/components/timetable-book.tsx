@@ -80,7 +80,7 @@ export function TimetableBook({
                 key={semesterKey(each)}
                 href={resultViewHref(planPath, "timetable", semesterKey(each))}
                 aria-current={current ? "page" : undefined}
-                className={`rounded-full border-[1.5px] px-3.5 py-1 text-[13px] ${current ? "border-ink bg-note font-bold text-ink" : "border-line bg-sheet text-sub hover:text-ink"}`}
+                className={`rounded-full border-[1.5px] px-3.5 py-1 text-[13px] ${current ? "border-ink bg-note font-bold text-ink" : "border-edge bg-sheet text-sub hover:text-ink"}`}
               >
                 <span className="mr-1.5 text-[11px] text-route tabular-nums">
                   {stationLabel(index)}

@@ -99,7 +99,7 @@ export function TakenCourseList({
               disabled={busy}
               onClick={() => void forget(name)}
               aria-label={forgetTakenLabel(name)}
-              className="rounded-full border border-line px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+              className="rounded-full border border-edge px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
             >
               取り消す
             </button>

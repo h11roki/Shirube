@@ -58,7 +58,7 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 scroll-mt-28 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
+      className={`relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
@@ -107,7 +107,7 @@ export function CourseTicket({
               answering.answer(course.name, "mark");
             }}
             aria-label={markTakenLabel(course.name)}
-            className="mt-1 justify-self-start rounded-full border border-line bg-sheet px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+            className="mt-1 justify-self-start rounded-full border border-edge bg-sheet px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
           >
             もう取った
           </button>

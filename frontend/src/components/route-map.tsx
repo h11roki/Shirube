@@ -155,7 +155,7 @@ export function RouteMap({
           <li
             data-station
             style={{ animationDelay: `${arrive}ms` }}
-            className="relative min-w-0 scroll-mt-28 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
+            className="relative min-w-0 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             <div className="grid min-h-24 content-center gap-1">
               <h2 className="font-serif text-2xl font-bold">
@@ -204,6 +204,7 @@ function RouteStrip({
     <nav
       ref={strip}
       aria-label="路線図"
+      data-sticky-band
       className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-4 py-2 shadow-paper backdrop-blur"
     >
       <ol className="flex w-max min-w-full items-start justify-between">
@@ -272,7 +273,7 @@ function Station({
           "--line-delay": `${delayMs + LINE_DELAY_MS}ms`,
         } as CSSProperties
       }
-      className={`relative grid min-w-0 scroll-mt-28 gap-3 before:absolute before:top-7 before:-left-[39px] before:z-[1] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper after:absolute ${index === 0 ? "after:top-9" : "after:top-0"} after:-bottom-9 after:-left-[32px] after:w-1 after:origin-top after:bg-route motion-safe:animate-rise motion-safe:after:animate-draw motion-safe:after:[animation-delay:var(--line-delay)]`}
+      className={`relative grid min-w-0 gap-3 before:absolute before:top-7 before:-left-[39px] before:z-[1] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper after:absolute ${index === 0 ? "after:top-9" : "after:top-0"} after:-bottom-9 after:-left-[32px] after:w-1 after:origin-top after:bg-route motion-safe:animate-rise motion-safe:after:animate-draw motion-safe:after:[animation-delay:var(--line-delay)]`}
     >
       <StationBoard
         index={index}

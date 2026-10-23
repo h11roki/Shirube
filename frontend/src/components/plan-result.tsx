@@ -166,7 +166,7 @@ export function PlanResultView({
         >
           <nav
             aria-label="見え方"
-            className="inline-flex rounded-full border border-line bg-sheet p-0.5 text-sm"
+            className="inline-flex rounded-full border border-edge bg-sheet p-0.5 text-sm"
           >
             {VIEWS.map((each) => (
               <QueryLink
@@ -231,7 +231,7 @@ export function PlanResultView({
                     disabled={busy}
                     onClick={() => void answer(course.name, "unmark")}
                     aria-label={unmarkTakenLabel(course.name)}
-                    className="rounded-full border border-line px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+                    className="rounded-full border border-edge px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
                   >
                     戻す
                   </button>
