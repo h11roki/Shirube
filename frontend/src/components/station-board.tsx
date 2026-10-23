@@ -30,12 +30,12 @@ export function StationBoard({
             {label(semester)}
           </h2>
           {index === 0 && (
-            <span className="rounded-xs bg-pillar px-1.5 text-[10.5px] font-bold tracking-[0.12em] text-paper">
+            <span className="rounded-xs bg-pillar px-1.5 text-[11px] font-bold tracking-[0.12em] text-paper">
               始発
             </span>
           )}
         </div>
-        <p className="text-[10.5px] tracking-[0.3em] text-sub">
+        <p className="text-[11px] tracking-[0.3em] text-sub">
           {semesterReading(semester.grade, semester.term)}
         </p>
       </div>
