@@ -6,6 +6,7 @@ import re
 import signal
 import subprocess
 import sys
+import traceback
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -54,6 +55,7 @@ PRICES = {
 }
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
+RUN_CONTROLS = frozenset({"budget"})
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 METRICS = (
@@ -107,7 +109,8 @@ def _commit() -> str | None:
         changes = subprocess.run(
             ["git", "diff", "HEAD"], cwd=here, capture_output=True, check=True
         ).stdout
-    except (OSError, subprocess.CalledProcessError):
+    except (OSError, subprocess.CalledProcessError) as error:
+        print(f"commit を記録できません(結果の commit は null): {error}", file=sys.stderr)
         return None
     commit = head.decode().strip()
     return f"{commit}-dirty-{_digest(changes)}" if changes else commit
@@ -160,9 +163,12 @@ def collect(
     except SQLAlchemyError as error:
         return Collection(collected, f"DB の操作に失敗しました: {error}", False)
     except OSError as error:
-        return Collection(collected, f"ネットワークに失敗しました: {error}", False)
+        return Collection(collected, f"入出力に失敗しました: {error}", False)
     except KeyboardInterrupt:
         return Collection(collected, "中断した", False)
+    except Exception as error:
+        traceback.print_exc()
+        return Collection(collected, f"思わぬ失敗で止まった: {error!r}", False)
     return Collection(collected, None, False)
 
 
@@ -203,14 +209,17 @@ def summary_document(summary: ExperimentSummary) -> dict[str, Any]:
 def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
     if isinstance(outcome, FailedTrial):
         return asdict(outcome)
-    judged = {pick.name: pick.judgment.value for pick in outcome.result.picks}
+    recommendation = outcome.recommendation
+    judged = {pick.name: pick.judgment.value for pick in outcome.result.picks} | {
+        pick.name: pick.judgment.value for pick in outcome.result.unlinked
+    }
     return {
         "occupation": outcome.occupation,
         "repeat": outcome.repeat,
-        "interpretation": outcome.profile.interpretation,
-        "assumption": outcome.profile.assumption,
-        "skills": list(outcome.profile.skills),
-        "candidates": list(outcome.candidates),
+        "interpretation": recommendation.profile.interpretation,
+        "assumption": recommendation.profile.assumption,
+        "skills": list(recommendation.profile.skills),
+        "candidates": list(recommendation.candidates),
         "courses": [
             {
                 "name": course.name,
@@ -219,15 +228,16 @@ def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
                 "reason": course.reason,
                 "prerequisite_for": course.prerequisite_for,
             }
-            for course in outcome.courses
+            for course in recommendation.courses
         ],
         "unlinked": [
             {
-                "name": pick.name,
-                "prerequisite_for": pick.prerequisite_for,
-                "judgment": pick.judgment.value,
+                "name": choice.name,
+                "judgment": judged[choice.name],
+                "reason": choice.reason,
+                "prerequisite_for": choice.prerequisite_for,
             }
-            for pick in outcome.result.unlinked
+            for choice in recommendation.unlinked
         ],
         "expected": [
             {
@@ -263,11 +273,13 @@ def _counts(summary: Mapping[str, Any]) -> str:
 
 def render(document: Mapping[str, Any]) -> str:
     config, summary = document["config"], document["summary"]
+    models = " / ".join(
+        model for model in (config["chat_model"], config["selection_model"]) if model
+    )
     lines = [
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
-        f"職業の読み取り {config['profiles']}、"
-        f"{config['chat_model']} / {config['selection_model']}、候補 {config['candidate_limit']})",
+        f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']})",
     ]
     if document["stopped"] is not None:
         lines.append(f"  途中で止めた: {document['stopped']}")
@@ -307,7 +319,7 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
     differences = [
         f"{key} {old_config.get(key)} → {new_config.get(key)}"
         for key in sorted(old_config.keys() | new_config.keys())
-        if old_config.get(key) != new_config.get(key)
+        if key not in RUN_CONTROLS and old_config.get(key) != new_config.get(key)
     ]
     if differences:
         lines.append(f"  設定の違い: {'、'.join(differences)}")
@@ -345,17 +357,20 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
 def config_document(
     args: argparse.Namespace, settings: Settings, dataset: EvaluationDataset
 ) -> dict[str, Any]:
+    analyzed = args.profiles == "analyzed"
     return {
         "profiles": args.profiles,
         "repeats": args.repeat,
         "budget": args.budget,
         "occupations": len(dataset.cases),
-        "chat_model": settings.chat_model,
+        "chat_model": settings.chat_model if analyzed else None,
         "selection_model": settings.selection_model,
         "embedding_model": settings.embedding_model,
         "candidate_limit": settings.selection_candidate_limit,
         "prompts": {
-            "occupation": _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")),
+            "occupation": (
+                _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
+            ),
             "selection": _digest(selection_prompt.INSTRUCTIONS.encode("utf-8")),
         },
         "dataset": _digest(args.dataset.read_bytes()),

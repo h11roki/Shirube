@@ -29,7 +29,7 @@ from app.application.ports import (
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
-from app.domain.recommendation import RecommendedCourse, Relevance
+from app.domain.recommendation import Recommendation, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
 
 
@@ -48,9 +48,7 @@ class StageSeconds:
 class Trial:
     occupation: str
     repeat: int
-    profile: OccupationProfile
-    candidates: tuple[str, ...]
-    courses: tuple[RecommendedCourse, ...]
+    recommendation: Recommendation
     result: SelectionResult
     usage: dict[str, TokenUsage]
     seconds: StageSeconds
@@ -132,9 +130,7 @@ class RunExperiment:
         return Trial(
             case.occupation,
             repeat,
-            recommendation.profile,
-            recommendation.candidates,
-            recommendation.courses,
+            recommendation,
             selection_result(case, recommendation, judgments),
             usage(),
             StageSeconds(
@@ -200,7 +196,7 @@ def repeat_scores(trials: Sequence[Trial], cases: Sequence[EvaluationCase]) -> R
     expected_of = {case.occupation: set(case.expected) for case in cases}
     recall = tuple(
         mean(
-            len(expected_of[trial.occupation] & set(trial.candidates[:cutoff]))
+            len(expected_of[trial.occupation] & set(trial.recommendation.candidates[:cutoff]))
             / len(expected_of[trial.occupation])
             for trial in trials
         )

@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from langchain_core.messages import HumanMessage
 
-from app.application.evaluate_selection import SelectionResult
+from app.application.evaluate_selection import Judgment, Pick, SelectionResult, UnlinkedPick
 from app.application.ports import TokenUsage
 from app.application.run_experiment import (
     ExperimentSummary,
@@ -16,6 +16,12 @@ from app.application.run_experiment import (
 )
 from app.application.search_courses import SearchError
 from app.domain.occupation import OccupationProfile
+from app.domain.recommendation import (
+    CourseChoice,
+    Recommendation,
+    RecommendedCourse,
+    Relevance,
+)
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     METRICS,
@@ -25,6 +31,7 @@ from app.presentation.cli.experiment import (
     main,
     render,
     summary_document,
+    trial_document,
     unpriced,
     yen,
 )
@@ -104,13 +111,46 @@ def succeeded(repeat: int) -> Trial:
     return Trial(
         "職業",
         repeat,
-        PROFILE,
-        (),
-        (),
+        Recommendation(PROFILE, (), ()),
         SelectionResult("職業", (), (), ()),
         THIRTY_YEN,
         StageSeconds(1.0, 1.0, 1.0),
     )
+
+
+def test_the_raw_output_keeps_the_reading_and_the_reason_of_a_dropped_foundation() -> None:
+    reading = OccupationProfile("職業", "読んだ職業", "前提", ("甲", "乙", "丙"))
+    recommendation = Recommendation(
+        reading,
+        (RecommendedCourse("科目A", "10000", Relevance.CORE, "理由A"),),
+        ("科目A", "科目B", "科目C"),
+        (CourseChoice("科目B", Relevance.FOUNDATION, "理由B", "科目C"),),
+    )
+    outcome = Trial(
+        "職業",
+        1,
+        recommendation,
+        SelectionResult(
+            "職業",
+            (Pick("科目A", Relevance.CORE, Judgment.EXPECTED),),
+            (),
+            (UnlinkedPick("科目B", "科目C", Judgment.FOUNDATION),),
+        ),
+        THIRTY_YEN,
+        StageSeconds(1.0, 1.0, 1.0),
+    )
+
+    written = trial_document(outcome)
+
+    assert (written["interpretation"], written["assumption"]) == ("読んだ職業", "前提")
+    assert written["unlinked"] == [
+        {
+            "name": "科目B",
+            "judgment": "foundation",
+            "reason": "理由B",
+            "prerequisite_for": "科目C",
+        }
+    ]
 
 
 def failed(repeat: int) -> FailedTrial:
@@ -173,10 +213,11 @@ def test_collect_stops_when_a_model_without_a_price_answered() -> None:
     ("error", "stopped"),
     [
         (SearchError("シラバスが DB にありません: 10000"), "シラバスが DB にありません: 10000"),
-        (OSError("応答が無い"), "ネットワークに失敗しました: 応答が無い"),
+        (OSError("応答が無い"), "入出力に失敗しました: 応答が無い"),
         (KeyboardInterrupt(), "中断した"),
+        (RuntimeError("壊れた"), "思わぬ失敗で止まった: RuntimeError('壊れた')"),
     ],
-    ids=["search", "network", "interrupted"],
+    ids=["search", "input-output", "interrupted", "unexpected"],
 )
 def test_collect_keeps_what_ran_before_the_run_was_stopped(
     error: BaseException, stopped: str
@@ -282,9 +323,9 @@ def test_compare_does_not_judge_the_spread_of_a_run_scored_from_one_repeat() -> 
     assert "  before: 推薦 30 回、失敗 0 回、全職業がそろった回 1、採点した回 1" in lines
 
 
-def test_compare_lists_the_settings_that_differ() -> None:
-    before = run("before", 3, 0.2, 0.0, selection_model="gpt-5.4-nano")
-    after = run("after", 3, 0.2, 0.0, selection_model="gpt-5.4-mini")
+def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
+    before = run("before", 3, 0.2, 0.0, selection_model="gpt-5.4-nano", budget=100)
+    after = run("after", 3, 0.2, 0.0, selection_model="gpt-5.4-mini", budget=50)
 
     lines = compare(before, after).splitlines()
 

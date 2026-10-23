@@ -28,6 +28,7 @@ from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CandidateCourse,
     CourseChoice,
+    Recommendation,
     RecommendedCourse,
     Relevance,
 )
@@ -63,6 +64,17 @@ class FakeMeter:
     @contextmanager
     def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
         yield lambda: USAGE
+
+
+class CountingMeter:
+    def __init__(self) -> None:
+        self.opened = 0
+
+    @contextmanager
+    def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
+        self.opened += 1
+        usage = {"gpt-5.4-nano": TokenUsage(self.opened, 0, 0)}
+        yield lambda: usage
 
 
 class Ticks:
@@ -114,15 +126,35 @@ def test_each_repeat_runs_the_whole_recommendation_and_keeps_its_cost_and_stage_
     assert [outcome.repeat for outcome in outcomes] == [1, 2]
     first = outcomes[0]
     assert isinstance(first, Trial)
-    assert first.profile == PROFILE
-    assert first.candidates == ("科目A", "科目B", "科目C", "科目D")
-    assert [course.name for course in first.courses] == ["科目A", "科目C"]
+    assert first.recommendation.profile == PROFILE
+    assert first.recommendation.candidates == ("科目A", "科目B", "科目C", "科目D")
+    assert [course.name for course in first.recommendation.courses] == ["科目A", "科目C"]
     assert first.result.picks == (
         Pick("科目A", CORE, Judgment.EXPECTED),
         Pick("科目C", FOUNDATION, Judgment.UNRELATED),
     )
     assert first.usage == USAGE
     assert first.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=1.0)
+
+
+def test_each_recommendation_keeps_only_the_usage_of_its_own_calls() -> None:
+    repository, search = courses_ranked_by(SIMILARITIES)
+    experiment = RunExperiment(
+        search,
+        repository,
+        FakeOccupationAnalyzer({"職業": PROFILE}),
+        FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")]),
+        LIMIT,
+        CountingMeter(),
+        Ticks(),
+    )
+
+    outcomes = list(experiment.trials(DATASET, JUDGMENTS, 2))
+
+    assert [outcome.usage for outcome in outcomes] == [
+        {"gpt-5.4-nano": TokenUsage(1, 0, 0)},
+        {"gpt-5.4-nano": TokenUsage(2, 0, 0)},
+    ]
 
 
 def test_a_failed_llm_call_keeps_its_usage_and_the_experiment_goes_on() -> None:
@@ -156,7 +188,8 @@ def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> Non
     [only] = experiment(selector, (repository, search)).trials(DATASET, JUDGMENTS, 1)
 
     assert isinstance(only, Trial)
-    assert (only.candidates, only.courses, selector.calls) == ((), (), [])
+    assert (only.recommendation.candidates, only.recommendation.courses) == ((), ())
+    assert selector.calls == []
     assert only.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=0.0)
 
 
@@ -176,17 +209,19 @@ def trial(
     return Trial(
         case.occupation,
         repeat,
-        PROFILE,
-        candidates,
-        tuple(
-            RecommendedCourse(
-                pick.name,
-                "10000",
-                pick.relevance,
-                "理由",
-                None if pick.relevance is CORE else "科目A",
-            )
-            for pick in picks
+        Recommendation(
+            PROFILE,
+            tuple(
+                RecommendedCourse(
+                    pick.name,
+                    "10000",
+                    pick.relevance,
+                    "理由",
+                    None if pick.relevance is CORE else "科目A",
+                )
+                for pick in picks
+            ),
+            candidates,
         ),
         SelectionResult(
             case.occupation,
@@ -276,6 +311,15 @@ def test_shares_of_nothing_picked_are_left_undefined_rather_than_zero() -> None:
     assert (summary.core_precision, summary.unrelated) == (None, None)
     assert values(summary.expected_as_core) == (0.0, 0.0, 0.0, 0.0)
     assert values(summary.cores) == (0.0, 0.0, 0.0, 0.0)
+
+
+def test_candidate_recall_counts_expected_courses_searched_but_not_picked() -> None:
+    only = trial(CASE, 1, ("科目A", "科目D"), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0)
+
+    summary = summarize([only], DATASET.cases)
+
+    assert summary is not None
+    assert (summary.candidate_recall.mean, summary.expected_as_core.mean) == (1.0, 0.5)
 
 
 def test_a_single_repeat_has_no_overlap_to_measure() -> None:
