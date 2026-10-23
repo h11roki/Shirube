@@ -4,6 +4,7 @@ import pytest
 
 from app.application.judging import (
     EVIDENCE_LENGTH,
+    JUDGES,
     OVERVIEW_LENGTH,
     CourseMaterial,
     JudgedCourse,
@@ -21,7 +22,6 @@ from tests.builders import course_section, syllabus
 from tests.fakes import FakeCourseRepository
 
 CORE, FOUNDATION = Relevance.CORE, Relevance.FOUNDATION
-JUDGES = ("engineer", "professor", "student")
 PARTS = (("科目A", "科目B"), ("科目C", "科目D"))
 PAGES = {"科目A": "1", "科目B": "2", "科目C": "3", "科目D": "4"}
 
@@ -62,6 +62,11 @@ def test_a_course_with_a_single_core_vote_waits_for_a_decision() -> None:
     assert not judged("科目A", ("engineer", CORE), ("student", CORE)).undecided
 
 
+def test_a_vote_from_an_unknown_judge_is_refused() -> None:
+    with pytest.raises(JudgingError, match="科目A: 知らない判定者の票があります: teacher"):
+        judged("科目A", ("teacher", CORE), ("student", CORE))
+
+
 @pytest.mark.parametrize("evidence", ["", "あ" * (EVIDENCE_LENGTH + 1)], ids=["empty", "long"])
 def test_evidence_is_a_short_summary(evidence: str) -> None:
     with pytest.raises(JudgingError, match="根拠は"):
@@ -87,7 +92,7 @@ def every_judge(votes: dict[str, dict[str, Relevance]]) -> list[JudgeOutput]:
 
 
 def test_combine_gathers_both_halves_of_every_judge_by_occupation() -> None:
-    combined = combine([every_judge(FIRST), every_judge(SECOND)], JUDGES, PARTS, PAGES, ["職業"])
+    combined = combine([every_judge(FIRST), every_judge(SECOND)], PARTS, PAGES, ["職業"])
 
     assert combined == {
         "職業": [
@@ -101,7 +106,7 @@ def test_combine_gathers_both_halves_of_every_judge_by_occupation() -> None:
 def test_a_judge_may_find_nothing_in_a_half() -> None:
     second = [*every_judge(SECOND)[:2], output("student", {"職業": {}})]
 
-    combined = combine([every_judge(FIRST), second], JUDGES, PARTS, PAGES, ["職業"])
+    combined = combine([every_judge(FIRST), second], PARTS, PAGES, ["職業"])
 
     assert list(combined["職業"][1].votes) == ["engineer", "professor"]
 
@@ -137,7 +142,7 @@ def test_combine_refuses_outputs_that_do_not_cover_every_judge_once_per_half(
     halves: list[list[JudgeOutput]], message: str
 ) -> None:
     with pytest.raises(JudgingError, match=message):
-        combine(halves, JUDGES, PARTS, PAGES, ["職業"])
+        combine(halves, PARTS, PAGES, ["職業"])
 
 
 def test_decide_settles_only_courses_with_a_single_core_vote() -> None:

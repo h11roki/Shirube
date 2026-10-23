@@ -9,6 +9,7 @@ from typing import Any
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.judging import (
+    JUDGES,
     JudgedCourse,
     JudgeOutput,
     JudgingError,
@@ -33,6 +34,7 @@ from app.presentation.composition import database_engine, load_settings
 LABELS = {label: relevance for relevance, label in RELEVANCE_LABELS.items()}
 PART_FILES = ("courses-1.json", "courses-2.json")
 OCCUPATION_FILE = "occupations.json"
+UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
 def unjudged(dataset: Mapping[str, Any], judgments: Mapping[str, Any]) -> list[str]:
@@ -44,6 +46,13 @@ def unjudged(dataset: Mapping[str, Any], judgments: Mapping[str, Any]) -> list[s
     ]
 
 
+def roles(judgments: Mapping[str, Any]) -> dict[str, str]:
+    judges = judgments["judges"]
+    if sorted(judges) != sorted(JUDGES):
+        raise JudgingError(f"判定者の一覧が {'、'.join(JUDGES)} と違います: {'、'.join(judges)}")
+    return dict(judges)
+
+
 def judge_output(document: Mapping[str, Any], judges: Mapping[str, str]) -> JudgeOutput:
     keys = {role: key for key, role in judges.items()}
     role = document["judge"]
@@ -53,6 +62,10 @@ def judge_output(document: Mapping[str, Any], judges: Mapping[str, str]) -> Judg
     for occupation, labelled in document["judgments"].items():
         courses: dict[str, Vote] = {}
         for label, entries in labelled.items():
+            if label not in LABELS:
+                raise JudgingError(
+                    f"{role} / {occupation}: 中心と土台のほかの分け方があります: {label}"
+                )
             for entry in entries:
                 if entry["course"] in courses:
                     raise JudgingError(
@@ -105,15 +118,57 @@ def undecided_text(judged: Mapping[str, Sequence[JudgedCourse]], judges: Mapping
     return "\n".join(lines)
 
 
-def _documents(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+def material_pages(directory: Path, judgments: Mapping[str, Any]) -> dict[str, str]:
+    parts = [read_document(directory / name) for name in PART_FILES]
+    if [[material["name"] for material in part] for part in parts] != judgments["parts"]:
+        raise JudgingError("資料の科目が判定の前半と後半と違います(materials で作り直す)")
+    pages = {material["name"]: material["page"] for part in parts for material in part}
+    stale = sorted(
+        {
+            course["name"]
+            for occupation in judgments["occupations"]
+            for course in occupation["courses"]
+            if pages[course["name"]] != course["page"]
+        }
+    )
+    if stale:
+        raise JudgingError(
+            f"資料のシラバスが判定と違う科目があります: {'、'.join(stale)}(materials で作り直す)"
+        )
+    return pages
+
+
+def _read(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     try:
-        dataset, judgments = read_document(args.dataset), read_document(args.judgments)
+        return read_document(args.dataset), read_document(args.judgments)
+    except UNREADABLE as error:
+        sys.exit(f"評価データか判定を読めません: {error!r}")
+
+
+def _documents(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
+    dataset, judgments = _read(args)
+    try:
         names = unjudged(dataset, judgments)
-    except (OSError, ValueError, KeyError, TypeError) as error:
+    except UNREADABLE as error:
         sys.exit(f"評価データか判定を読めません: {error!r}")
     if not names:
         sys.exit("判定していない職業がありません(評価データに職業を足してから流す)")
     return dataset, judgments, names
+
+
+def _rebuild(dataset: Mapping[str, Any], judged: Mapping[str, Sequence[JudgedCourse]]) -> None:
+    for occupation in dataset["occupations"]:
+        occupation["expected"] = expected_courses(judged[occupation["name"]])
+
+
+def _save(path: Path, document: Mapping[str, Any], one_line: frozenset[str]) -> None:
+    try:
+        write_document(path, document, one_line)
+    except OSError as error:
+        sys.exit(
+            f"書けません: {error}"
+            "(判定を書いたあとなら、期待する科目は judging expected で作り直せる)"
+        )
 
 
 def _materials(args: argparse.Namespace) -> None:
@@ -123,31 +178,33 @@ def _materials(args: argparse.Namespace) -> None:
         materials = JudgingMaterials(SqlCourseRepository(engine)).courses(
             dataset["year"], dataset["department"]
         )
+        half = (len(materials) + 1) // 2
+        halves = [materials[:half], materials[half:]]
+        if [[material.name for material in part] for part in halves] != judgments["parts"]:
+            sys.exit(
+                "候補の科目が判定の前半と後半と違います"
+                "(時間割表かシラバスを取り込み直したなら、判定もやり直す)"
+            )
+        args.out.mkdir(parents=True, exist_ok=True)
+        for name, part in zip(PART_FILES, halves, strict=True):
+            (args.out / name).write_text(
+                json.dumps([asdict(material) for material in part], ensure_ascii=False, indent=2)
+                + "\n",
+                encoding="utf-8",
+            )
+        (args.out / OCCUPATION_FILE).write_text(
+            json.dumps(names, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     except JudgingError as error:
         sys.exit(str(error))
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
+    except UNREADABLE as error:
+        sys.exit(f"資料を作れません: {error!r}")
     finally:
         engine.dispose()
-    half = (len(materials) + 1) // 2
-    halves = [materials[:half], materials[half:]]
-    if [[material.name for material in part] for part in halves] != judgments["parts"]:
-        sys.exit(
-            "候補の科目が判定の前半と後半と違います"
-            "(時間割表かシラバスを取り込み直したなら、判定もやり直す)"
-        )
-    args.out.mkdir(parents=True, exist_ok=True)
-    for name, part in zip(PART_FILES, halves, strict=True):
-        (args.out / name).write_text(
-            json.dumps([asdict(material) for material in part], ensure_ascii=False, indent=2)
-            + "\n",
-            encoding="utf-8",
-        )
-    (args.out / OCCUPATION_FILE).write_text(
-        json.dumps(names, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
     print(
         f"科目 {len(materials)}(前半 {len(halves[0])}、後半 {len(halves[1])})と、"
         f"判定する職業 {len(names)} を {args.out} に書いた"
@@ -156,29 +213,48 @@ def _materials(args: argparse.Namespace) -> None:
 
 def _merge(args: argparse.Namespace) -> None:
     dataset, judgments, names = _documents(args)
-    judges = judgments["judges"]
     try:
-        pages = {
-            material["name"]: material["page"]
-            for name in PART_FILES
-            for material in read_document(args.materials / name)
-        }
-        halves = [
+        judges = roles(judgments)
+        pages = material_pages(args.materials, judgments)
+        given = [
             [judge_output(read_document(path), judges) for path in paths]
             for paths in (args.first, args.second)
+        ]
+        extra = sorted(
+            {occupation for half in given for output in half for occupation in output.votes}
+            - set(names)
+        )
+        halves = [
+            [
+                JudgeOutput(
+                    output.judge,
+                    {name: votes for name, votes in output.votes.items() if name in names},
+                )
+                for output in half
+            ]
+            for half in given
         ]
         chosen = read_document(args.decisions) if args.decisions else {}
         decisions = {
             occupation: {course: Relevance(label) for course, label in courses.items()}
             for occupation, courses in chosen.items()
         }
-        judged = decide(combine(halves, list(judges), judgments["parts"], pages, names), decisions)
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        sys.exit(f"判定者の出力か決定を読めません: {error}")
+        judged = decide(combine(halves, judgments["parts"], pages, names), decisions)
+        earlier = {
+            occupation["name"]: judged_courses(occupation)
+            for occupation in judgments["occupations"]
+        }
+    except JudgingError as error:
+        sys.exit(f"判定の決まりに合いません: {error}")
+    except UNREADABLE as error:
+        sys.exit(f"判定者の出力か決定を読めません: {error!r}")
+    if extra:
+        print(f"評価データに無い職業の票は使わない: {'、'.join(extra)}")
     if any(course.undecided for courses in judged.values() for course in courses):
         print(undecided_text(judged, judges))
         sys.exit(1)
-    empty = [name for name in names if not expected_courses(judged[name])]
+    expected = {name: expected_courses(judged[name]) for name in names}
+    empty = [name for name, courses in expected.items() if not courses]
     if empty:
         sys.exit(
             f"期待する科目が 1 つも無い職業があります: {'、'.join(empty)}"
@@ -188,17 +264,38 @@ def _merge(args: argparse.Namespace) -> None:
         {"name": name, "courses": [course_document(course) for course in judged[name]]}
         for name in names
     ]
-    every = {
-        occupation["name"]: judged_courses(occupation) for occupation in judgments["occupations"]
-    }
-    for occupation in dataset["occupations"]:
-        occupation["expected"] = expected_courses(every[occupation["name"]])
-    write_document(args.judgments, judgments, frozenset(judges))
-    write_document(args.dataset, dataset, DATASET_LINES)
+    _rebuild(dataset, {**earlier, **judged})
+    _save(args.judgments, judgments, frozenset(JUDGES))
+    _save(args.dataset, dataset, DATASET_LINES)
     print(
         f"判定に {len(names)} 職業を足し、期待する科目を作り直した: "
-        + "、".join(f"{name} {len(expected_courses(judged[name]))}" for name in names)
+        + "、".join(f"{name} {len(expected[name])}" for name in names)
     )
+
+
+def _expected(args: argparse.Namespace) -> None:
+    dataset, judgments = _read(args)
+    try:
+        judged = {
+            occupation["name"]: judged_courses(occupation)
+            for occupation in judgments["occupations"]
+        }
+        missing = [
+            occupation["name"]
+            for occupation in dataset["occupations"]
+            if occupation["name"] not in judged
+        ]
+        if missing:
+            sys.exit(
+                f"判定に無い職業があります: {'、'.join(missing)}(materials と merge で判定する)"
+            )
+        _rebuild(dataset, judged)
+    except JudgingError as error:
+        sys.exit(f"判定の決まりに合いません: {error}")
+    except UNREADABLE as error:
+        sys.exit(f"判定を読めません: {error!r}")
+    _save(args.dataset, dataset, DATASET_LINES)
+    print(f"{len(judged)} 職業の期待する科目を判定から作り直した")
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -219,6 +316,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     merge.add_argument("--materials", type=Path, required=True)
     merge.add_argument("--decisions", type=Path)
     merge.set_defaults(handle=_merge)
+    expected = commands.add_parser("expected", help="全ての職業の期待する科目を判定から作り直す")
+    expected.set_defaults(handle=_expected)
     args = parser.parse_args(argv)
     args.handle(args)
 

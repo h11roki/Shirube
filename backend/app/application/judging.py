@@ -4,16 +4,16 @@ from dataclasses import dataclass
 
 from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.ports import CourseRepository
-from app.domain.course import CourseSection
+from app.domain.course import ALL_GRADES, CourseSection
 from app.domain.recommendation import Relevance
 from app.domain.roadmap import ALL_SEMESTERS, opens_in
 
+JUDGES = ("engineer", "professor", "student")
 REASON_ORDER = ("professor", "student", "engineer")
 EVIDENCE_LENGTH = 40
 OVERVIEW_LENGTH = 450
 OBJECTIVES_LENGTH = 250
 SCHEDULE_LENGTH = 350
-GRADES = range(1, 5)
 
 
 class JudgingError(ValueError):
@@ -48,6 +48,11 @@ class JudgedCourse:
     votes: dict[str, Vote]
     decision: Relevance | None = None
 
+    def __post_init__(self) -> None:
+        unknown = sorted(set(self.votes) - set(JUDGES))
+        if unknown:
+            raise JudgingError(f"{self.name}: 知らない判定者の票があります: {'、'.join(unknown)}")
+
     @property
     def cores(self) -> list[str]:
         return [
@@ -79,7 +84,6 @@ def expected_courses(courses: Sequence[JudgedCourse]) -> dict[str, str]:
 
 def combine(
     halves: Sequence[Sequence[JudgeOutput]],
-    judges: Sequence[str],
     parts: Sequence[Sequence[str]],
     pages: Mapping[str, str],
     occupations: Sequence[str],
@@ -91,7 +95,7 @@ def combine(
     }
     for index, (outputs, part) in enumerate(zip(halves, parts, strict=True), 1):
         given = sorted(output.judge for output in outputs)
-        if given != sorted(judges):
+        if given != sorted(JUDGES):
             raise JudgingError(
                 f"{index} つ目の組の判定者が 1 体ずつそろっていません: {'、'.join(given)}"
             )
@@ -112,7 +116,7 @@ def combine(
             JudgedCourse(
                 course,
                 pages[course],
-                {judge: by_judge[judge] for judge in judges if judge in by_judge},
+                {judge: by_judge[judge] for judge in JUDGES if judge in by_judge},
             )
             for course, by_judge in sorted(votes[occupation].items())
         ]
@@ -186,7 +190,7 @@ class JudgingMaterials:
                 ),
                 tuple(
                     grade
-                    for grade in GRADES
+                    for grade in sorted(ALL_GRADES)
                     if any(section.offered_to(department, grade, year) for section in group)
                 ),
                 pages[name],

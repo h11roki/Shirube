@@ -33,6 +33,7 @@ def test_the_committed_files_are_written_back_unchanged(
     write_document(written, read_document(path), one_line)
 
     assert written.read_text(encoding="utf-8") == path.read_text(encoding="utf-8")
+    assert [file.name for file in tmp_path.iterdir()] == [path.name]
 
 
 def test_the_committed_judges_are_the_three_documented_roles() -> None:
@@ -73,7 +74,7 @@ def judging_files(directory: Path) -> tuple[Path, Path, Path]:
                     "courses": [
                         {
                             "name": "科目A",
-                            "page": "1",
+                            "page": "A",
                             "votes": {judge: vote("core", "教員の根拠") for judge in ROLES},
                         }
                     ],
@@ -229,3 +230,87 @@ def test_nothing_is_merged_when_every_occupation_is_judged(tmp_path: Path) -> No
         merge(dataset, judgments, materials, "--first", "unused", "--second", "unused")
 
     assert str(stopped.value.code).startswith("判定していない職業がありません")
+
+
+def test_merge_leaves_out_votes_for_an_occupation_taken_out_of_the_dataset(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    dataset, judgments, materials = judging_files(tmp_path)
+    decisions = tmp_path / "decisions.json"
+    decisions.write_text(json.dumps({"職業乙": {"科目C": "core"}}), encoding="utf-8")
+    dropped = {"職業丙": {"中心": [{"course": "科目A", "evidence": "根拠"}]}}
+    first = {key: CORE_B[key] | dropped for key in ROLES}
+
+    merge(
+        dataset,
+        judgments,
+        materials,
+        *judge_outputs(tmp_path, first, SPLIT),
+        "--decisions",
+        str(decisions),
+    )
+
+    assert capsys.readouterr().out.startswith("評価データに無い職業の票は使わない: 職業丙\n")
+    names = [occupation["name"] for occupation in read_document(judgments)["occupations"]]
+    assert names == ["職業甲", "職業乙"]
+
+
+def test_merge_refuses_materials_whose_syllabus_differs_from_the_judgments(tmp_path: Path) -> None:
+    dataset, judgments, materials = judging_files(tmp_path)
+    stale = [{"name": "科目A", "page": "Z"}, {"name": "科目B", "page": "B"}]
+    (materials / "courses-1.json").write_text(json.dumps(stale), encoding="utf-8")
+
+    with pytest.raises(SystemExit) as stopped:
+        merge(dataset, judgments, materials, *judge_outputs(tmp_path, CORE_B, SPLIT))
+
+    assert "資料のシラバスが判定と違う科目があります: 科目A" in str(stopped.value.code)
+
+
+def test_merge_refuses_a_label_other_than_core_or_foundation(tmp_path: Path) -> None:
+    dataset, judgments, materials = judging_files(tmp_path)
+    unrelated = SPLIT | {
+        "student": {"職業乙": {"関係なし": [{"course": "科目C", "evidence": "根拠"}]}}
+    }
+
+    with pytest.raises(SystemExit) as stopped:
+        merge(dataset, judgments, materials, *judge_outputs(tmp_path, CORE_B, unrelated))
+
+    assert "中心と土台のほかの分け方があります: 関係なし" in str(stopped.value.code)
+
+
+def test_merge_refuses_judges_other_than_the_three_roles(tmp_path: Path) -> None:
+    dataset, judgments, materials = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(judgments)
+    document["judges"] = {"engineer": ROLES["engineer"], "teacher": ROLES["professor"]}
+    write_document(judgments, document, frozenset(ROLES))
+
+    with pytest.raises(SystemExit) as stopped:
+        merge(dataset, judgments, materials, *judge_outputs(tmp_path, CORE_B, SPLIT))
+
+    assert str(stopped.value.code).startswith("判定の決まりに合いません: 判定者の一覧が")
+
+
+def expected(dataset: Path, judgments: Path) -> None:
+    main(["--dataset", str(dataset), "--judgments", str(judgments), "expected"])
+
+
+def test_expected_rebuilds_every_expected_course_from_the_judgments(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(dataset)
+    document["occupations"] = [
+        {"name": "職業甲", "skills": ["甲"], "expected": {"科目Z": "古い理由"}}
+    ]
+    write_document(dataset, document, DATASET_LINES)
+
+    expected(dataset, judgments)
+
+    assert read_document(dataset)["occupations"][0]["expected"] == {"科目A": "教員の根拠"}
+
+
+def test_expected_refuses_an_occupation_missing_from_the_judgments(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+
+    with pytest.raises(SystemExit) as stopped:
+        expected(dataset, judgments)
+
+    assert str(stopped.value.code).startswith("判定に無い職業があります: 職業乙")

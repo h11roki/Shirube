@@ -26,7 +26,9 @@ def read_document(path: Path) -> Any:
 
 
 def write_document(path: Path, document: Any, one_line: Set[str]) -> None:
-    path.write_text(_dumped(document, 0, one_line) + "\n", encoding="utf-8")
+    written = path.with_name(f".{path.name}.writing")
+    written.write_text(_dumped(document, 0, one_line) + "\n", encoding="utf-8")
+    written.replace(path)
 
 
 def _dumped(value: Any, indent: int, one_line: Set[str]) -> str:
