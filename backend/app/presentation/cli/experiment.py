@@ -93,13 +93,13 @@ UNRECORDED_SETTINGS = {
 }
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
 PAIRABLE_SETTINGS = (
-    "CHAT_MODEL",
+    *READING_SETTINGS,
     "SELECTION_MODEL",
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
-    "OCCUPATION_READING_CACHE_SIZE",
 )
 SIDE_NAMES = {Side.BEFORE: "前", Side.AFTER: "後"}
 METRICS = (
@@ -145,8 +145,8 @@ def label(text: str) -> str:
 
 
 def setting(text: str) -> tuple[str, str]:
-    name, separator, value = text.partition("=")
-    if not separator or name not in PAIRABLE_SETTINGS:
+    name, _, value = text.partition("=")
+    if not value or name not in PAIRABLE_SETTINGS:
         raise argparse.ArgumentTypeError(
             f"設定=値 の形で書いてください。替えられるのは {'、'.join(PAIRABLE_SETTINGS)}"
         )
@@ -188,6 +188,7 @@ def collect(
     total: int,
     budget: float,
     spent: Callable[[], dict[str, TokenUsage]],
+    unit: int = 1,
 ) -> Collection:
     collected: list[tuple[Side | None, Trial | FailedTrial]] = []
     streak = 0
@@ -213,7 +214,7 @@ def collect(
                 )
             if streak >= FAILURE_STREAK_LIMIT:
                 return Collection(collected, f"推薦が {streak} 回続けて失敗した", False)
-            if yen(usage) >= budget and len(collected) < total:
+            if yen(usage) >= budget and len(collected) < total and len(collected) % unit == 0:
                 return Collection(collected, f"費用の上限 {budget:g} 円に達した", True)
     except EvaluationError as error:
         return Collection(collected, f"評価データが合わない: {error}", False)
@@ -423,14 +424,13 @@ def _change(kind: str, change: Change) -> str:
     )
     if change.p_value is None:
         return f"{difference}({interval})、判定なし"
+    p_value = (
+        "p < 0.001"
+        if change.p_value < 0.001
+        else f"p = {math.floor(change.p_value * 1000 + TOLERANCE) / 1000:.3f}"
+    )
     verdict = "差あり" if change.clear else "はっきりしない"
-    return f"{difference}({interval}、{_p_text(change.p_value)})、{verdict}"
-
-
-def _p_text(value: float) -> str:
-    if value < 0.001:
-        return "p < 0.001"
-    return f"p = {math.floor(value * 1000 + TOLERANCE) / 1000:.3f}"
+    return f"{difference}({interval}、{p_value})、{verdict}"
 
 
 def ran_interleaved(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
@@ -479,9 +479,23 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
             lines.append("  区間なしの指標は、職業を選び直すと割合を出せない組がある")
         if any(change.p_value is None for change in measured):
             lines.append("  判定なしの指標は、前と後を入れ替えると割合を出せない組がある")
-    if any(run["config"]["occupations"] != comparison.occupations for run in (before, after)):
+    narrowed = any(
+        run["summary"]["scored_repeats"] != len(comparison.repeats) for run in (before, after)
+    )
+    if narrowed:
+        numbers = "、".join(str(number) for number in comparison.repeats)
+        lines.append(
+            f"  両方で採点した回({numbers} 回目)だけで比べる"
+            if comparison.repeats
+            else "  両方で採点した回が無いので比べられない"
+        )
+    if narrowed or any(
+        run["config"]["occupations"] != comparison.occupations for run in (before, after)
+    ):
         sizes = "、".join(
-            f"{run['label']} {run['config']['occupations']} 職業" for run in (before, after)
+            f"{run['label']} {run['config']['occupations']} 職業 × "
+            f"{run['summary']['scored_repeats']} 回"
+            for run in (before, after)
         )
         lines.append(f"  前と後の値は、それぞれの集計({sizes})と違うことがある")
     for key, name, kind in (*METRICS, *OVERLAPS):
@@ -586,6 +600,7 @@ def _collected(
     outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
     total: int,
     budget: float,
+    unit: int,
     meter: LangChainUsageMeter,
     engine: Engine,
 ) -> tuple[Collection, float]:
@@ -593,7 +608,7 @@ def _collected(
         signal.signal(stop, signal.default_int_handler)
     with meter.meter() as spent:
         try:
-            collection = collect(outcomes, total, budget, spent)
+            collection = collect(outcomes, total, budget, spent, unit)
         finally:
             engine.dispose()
     return collection, yen(spent())
@@ -674,6 +689,7 @@ def _run(args: argparse.Namespace) -> None:
         ((None, outcome) for outcome in experiment.trials(dataset, judgments, args.repeat)),
         len(dataset.cases) * args.repeat,
         args.budget,
+        1,
         meter,
         engine,
     )
@@ -726,6 +742,7 @@ def _pair(args: argparse.Namespace) -> None:
         ),
         len(Side) * len(dataset.cases) * args.repeat,
         args.budget,
+        len(Side),
         meter,
         engine,
     )
@@ -818,6 +835,15 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
         for overrides in (args.before, args.after)
     ):
         parser.error("--before と --after のそれぞれで、同じ設定は 1 回だけ書いてください")
+    if (
+        args.command == "pair"
+        and args.profiles == "handwritten"
+        and any(name in READING_SETTINGS for name, _ in (*args.before, *args.after))
+    ):
+        parser.error(
+            "--profiles handwritten では職業の読み取りを使わないので、"
+            f"{' と '.join(READING_SETTINGS)} は替えられません"
+        )
     return args
 
 

@@ -1,4 +1,4 @@
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Sequence, Set
 from dataclasses import dataclass
 from random import Random
 
@@ -57,6 +57,7 @@ class Change:
 @dataclass(frozen=True)
 class Comparison:
     occupations: int
+    repeats: tuple[int, ...]
     changes: dict[str, Change]
 
 
@@ -98,32 +99,34 @@ def _interval(old: Rows, new: Rows, samples: Sequence[Sequence[int]]) -> Interva
     return Interval(differences[cut], differences[len(differences) - 1 - cut])
 
 
-def _by_occupation(rows: Rows) -> list[Ratio]:
+def _mixed(keep: Rows, take: Rows, swap: Sequence[bool]) -> Rows:
     return [
-        Ratio(sum(cell.numerator for cell in cells), sum(cell.denominator for cell in cells))
-        for cells in zip(*rows, strict=True)
+        [taken if flipped else kept for kept, taken, flipped in zip(own, other, swap, strict=True)]
+        for own, other in zip(keep, take, strict=True)
     ]
 
 
-def _p_value(old: Rows, new: Rows, swaps: Sequence[Sequence[bool]]) -> float | None:
-    first, second = _by_occupation(old), _by_occupation(new)
-    before, after = pooled(first), pooled(second)
-    if not swaps or before is None or after is None:
+def _p_value(
+    old: Rows, new: Rows, swaps: Sequence[Sequence[bool]], observed: float
+) -> float | None:
+    if not swaps:
         return None
-    observed = abs(after - before)
+    everyone = range(len(swaps[0]))
     extreme = 0
     for swap in swaps:
-        sides = [
-            (taken, kept) if flipped else (kept, taken)
-            for kept, taken, flipped in zip(first, second, swap, strict=True)
-        ]
-        shuffled_before = pooled([pair[0] for pair in sides])
-        shuffled_after = pooled([pair[1] for pair in sides])
-        if shuffled_before is None or shuffled_after is None:
+        before = _measure(_mixed(old, new, swap), everyone)
+        after = _measure(_mixed(new, old, swap), everyone)
+        if before is None or after is None:
             return None
-        if abs(shuffled_after - shuffled_before) >= observed - TOLERANCE:
+        if abs(after - before) >= abs(observed) - TOLERANCE:
             extreme += 1
     return (extreme + 1) / (len(swaps) + 1)
+
+
+def _within(run: ScoredRun, repeats: Set[int]) -> ScoredRun:
+    return ScoredRun(
+        tuple(group for group in run.repeats if group[0].repeat in repeats), run.complete_repeats
+    )
 
 
 def compare_experiments(
@@ -133,19 +136,21 @@ def compare_experiments(
     shuffles: int = SHUFFLES,
     seed: int = SEED,
 ) -> Comparison:
-    occupations = sorted(before.occupations & after.occupations)
+    repeats = {group[0].repeat for group in before.repeats} & {
+        group[0].repeat for group in after.repeats
+    }
+    old_run, new_run = _within(before, repeats), _within(after, repeats)
+    occupations = sorted(old_run.occupations & new_run.occupations)
     everyone = range(len(occupations))
-    generator = Random(seed)
     enough = len(occupations) >= MIN_OCCUPATIONS
+    resampler, shuffler = Random(seed), Random(f"{seed} shuffles")
     samples = (
-        [generator.choices(everyone, k=len(occupations)) for _ in range(resamples)]
+        [resampler.choices(everyone, k=len(occupations)) for _ in range(resamples)]
         if enough
         else []
     )
-    swaps = (
-        [[generator.random() < 0.5 for _ in everyone] for _ in range(shuffles)] if enough else []
-    )
-    old, new = _rows(before, occupations), _rows(after, occupations)
+    swaps = [[shuffler.random() < 0.5 for _ in everyone] for _ in range(shuffles)] if enough else []
+    old, new = _rows(old_run, occupations), _rows(new_run, occupations)
     changes = {}
     for key in (*METRICS, *OVERLAPS):
         old_value, new_value = _measure(old[key], everyone), _measure(new[key], everyone)
@@ -156,6 +161,6 @@ def compare_experiments(
             old_value,
             new_value,
             _interval(old[key], new[key], samples),
-            _p_value(old[key], new[key], swaps),
+            _p_value(old[key], new[key], swaps, new_value - old_value),
         )
-    return Comparison(len(occupations), changes)
+    return Comparison(len(occupations), tuple(sorted(repeats)), changes)

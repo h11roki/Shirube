@@ -60,6 +60,7 @@ def test_the_same_results_differ_by_nothing() -> None:
     comparison = compared(cards, cards)
 
     assert comparison.occupations == MIN_OCCUPATIONS
+    assert comparison.repeats == (1,)
     assert comparison.changes.keys() == METRICS | {"overlap", "core_overlap"}
     measured = {key: change for key, change in comparison.changes.items() if key in METRICS}
     assert {
@@ -144,21 +145,35 @@ def test_the_values_average_the_repeats_like_the_summary() -> None:
     assert unrelated.after == 0.0
 
 
-def test_runs_over_different_repeats_are_tested_on_each_occupations_repeats_together() -> None:
+def test_only_the_repeats_both_runs_scored_are_compared() -> None:
     before = [
         card(occupation, 1, WITH_UNRELATED if index < 5 else ONLY_EXPECTED)
         for index, occupation in enumerate(OCCUPATIONS)
     ] + [card(occupation, 2, WITH_UNRELATED) for occupation in OCCUPATIONS]
     after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
 
-    unrelated = compared(before, after).changes["unrelated"]
+    comparison = compared(before, after)
 
-    assert unrelated.before == pytest.approx((5 / 15 + 10 / 20) / 2)
+    unrelated = comparison.changes["unrelated"]
+    assert comparison.repeats == (1,)
+    assert unrelated.before == pytest.approx(5 / 15)
     assert unrelated.after == 0.0
-    assert unrelated.interval is not None
-    assert unrelated.p_value is not None
-    assert unrelated.p_value < 0.01
-    assert unrelated.clear
+    assert unrelated.p_value == pytest.approx(2 / 32, abs=0.03)
+    assert not unrelated.clear
+
+
+def test_the_p_value_does_not_depend_on_how_many_times_the_interval_resamples() -> None:
+    before = [
+        card(occupation, 1, WITH_UNRELATED if index < 6 else ONLY_EXPECTED)
+        for index, occupation in enumerate(OCCUPATIONS)
+    ]
+    after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
+    runs = (scored_run(before, MIN_OCCUPATIONS), scored_run(after, MIN_OCCUPATIONS))
+
+    few = compare_experiments(*runs, resamples=100, shuffles=1_000)
+    many = compare_experiments(*runs, resamples=1_000, shuffles=1_000)
+
+    assert few.changes["unrelated"].p_value == many.changes["unrelated"].p_value
 
 
 def test_fewer_paired_occupations_than_were_checked_get_values_but_no_interval_or_test() -> None:
@@ -189,14 +204,16 @@ def test_an_occupation_missing_from_a_scored_repeat_is_left_out_of_the_pairs() -
         *(card(occupation, 2, ONLY_EXPECTED) for occupation in everyone[1:]),
     ]
     after = [
-        card(occupation, 1, WITH_UNRELATED)
+        card(occupation, repeat, WITH_UNRELATED)
         if occupation in (everyone[0], everyone[-1])
-        else card(occupation, 1, ONLY_EXPECTED)
+        else card(occupation, repeat, ONLY_EXPECTED)
+        for repeat in (1, 2)
         for occupation in everyone
     ]
 
     comparison = compared(before, after)
 
+    assert comparison.repeats == (1, 2)
     assert comparison.occupations == len(everyone) - 2
     assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0), 1.0)
 

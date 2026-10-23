@@ -208,6 +208,15 @@ def test_collect_stops_before_the_next_recommendation_once_the_budget_is_spent()
     assert (collection.stopped, collection.over_budget) == ("費用の上限 50 円に達した", True)
 
 
+def test_collect_checks_the_budget_only_between_pairs_when_given_a_unit_of_two() -> None:
+    paid = Paid([succeeded(1), succeeded(1), succeeded(2), succeeded(2)])
+
+    collection = collect(iter(paid), 4, 20, paid.spent, unit=2)
+
+    assert len(collection.outcomes) == 2
+    assert (collection.stopped, collection.over_budget) == ("費用の上限 20 円に達した", True)
+
+
 def test_collect_finishes_when_the_last_recommendation_crosses_the_budget() -> None:
     paid = Paid([succeeded(1), succeeded(2)])
 
@@ -296,9 +305,10 @@ def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
         "SELECTION_VOTES",
         "selection_votes=1",
         "DATABASE_URL=postgresql://other",
+        "SELECTION_MODEL=",
         "EMBEDDING_MODEL=x",
     ],
-    ids=["no-value", "lowercase", "database", "embedding"],
+    ids=["no-value", "lowercase", "database", "empty", "embedding"],
 )
 def test_a_pair_setting_off_the_recommendation_path_is_refused(text: str) -> None:
     with pytest.raises(argparse.ArgumentTypeError, match="替えられるのは"):
@@ -369,6 +379,17 @@ def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
     ]
     assert args.after == [("SELECTION_VOTES", "3")]
     assert args.budget == 200
+
+
+@pytest.mark.parametrize("override", ["CHAT_MODEL=gpt-5.4-nano", "OCCUPATION_READING_CACHE_SIZE=0"])
+def test_pair_refuses_reading_settings_when_the_skills_are_handwritten(
+    override: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        main(["pair", "--label", "skills", "--profiles", "handwritten", "--after", override])
+
+    assert stopped.value.code == 2
+    assert "職業の読み取りを使わない" in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -471,6 +492,7 @@ def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
     unknown = Change(None, None, None, None)
     return Comparison(
         occupations,
+        (1, 2, 3),
         {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
     )
 
@@ -536,9 +558,29 @@ def test_compare_gives_no_interval_or_verdict_for_fewer_occupations_than_were_ch
 
     assert lines[4:6] == [
         "  両方にそろった 7 職業で比べる。10 職業に満たないので区間と判定は出さない",
-        "  前と後の値は、それぞれの集計(before 10 職業、after 10 職業)と違うことがある",
+        "  前と後の値は、それぞれの集計(before 10 職業 × 3 回、after 10 職業 × 3 回)"
+        "と違うことがある",
     ]
     assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間と判定なし" in lines
+
+
+@pytest.mark.parametrize(
+    ("repeats", "note"),
+    [
+        ((1, 3), "  両方で採点した回(1、3 回目)だけで比べる"),
+        ((), "  両方で採点した回が無いので比べられない"),
+    ],
+    ids=["some", "none"],
+)
+def test_compare_says_which_repeats_both_runs_scored_when_they_differ(
+    repeats: tuple[int, ...], note: str
+) -> None:
+    comparison = Comparison(10, repeats, NOTHING_MEASURED.changes)
+
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert note in lines
+    assert line_of(lines, "  前と後の値は、それぞれの集計")
 
 
 @pytest.mark.parametrize(
