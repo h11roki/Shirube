@@ -83,7 +83,9 @@ def course_selector(settings: Settings) -> CourseSelector:
     )
     if settings.selection_votes == 1:
         return selector
-    return VotingCourseSelector(selector, settings.selection_votes)
+    return VotingCourseSelector(
+        selector, settings.selection_votes, settings.selection_vote_delay_seconds
+    )
 
 
 def search_courses(settings: Settings, engine: Engine) -> SearchCourses:
