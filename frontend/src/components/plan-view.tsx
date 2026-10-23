@@ -46,10 +46,11 @@ export function PlanView() {
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
-  const [sawProgress, setSawProgress] = useState(false);
+  const [progressSeenFor, setProgressSeenFor] = useState<string>();
   const [notice, setNotice] = useState("");
   const deleted = useRef(false);
-  const baseTitle = useRef<string>(undefined);
+  const sawProgress = progressSeenFor === id;
+  const completion = plan ? completionNotice(plan, sawProgress) : "";
 
   useEffect(() => {
     let active = true;
@@ -75,7 +76,7 @@ export function PlanView() {
         seen = true;
         setPlan(latest);
         if (state !== "finished") {
-          setSawProgress(true);
+          setProgressSeenFor(id);
         }
         setWatch(state);
         setError(undefined);
@@ -114,8 +115,7 @@ export function PlanView() {
     if (!plan || error) {
       return;
     }
-    baseTitle.current ??= document.title;
-    const base = baseTitle.current;
+    const base = document.title;
     const title = planTabTitle(base, plan, sawProgress);
     document.title = title;
     return () => {
@@ -126,10 +126,9 @@ export function PlanView() {
   }, [plan, error, sawProgress]);
 
   useEffect(() => {
-    const text = plan ? completionNotice(plan, sawProgress) : "";
-    const timer = setTimeout(() => setNotice(text), ANNOUNCE_DELAY_MS);
+    const timer = setTimeout(() => setNotice(completion), ANNOUNCE_DELAY_MS);
     return () => clearTimeout(timer);
-  }, [plan, sawProgress]);
+  }, [completion]);
 
   function retry() {
     setError(undefined);
