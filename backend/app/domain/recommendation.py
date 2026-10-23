@@ -109,10 +109,17 @@ class Recommendation:
 def majority_choices(samples: Sequence[Sequence[CourseChoice]]) -> list[CourseChoice]:
     chosen: dict[str, list[CourseChoice]] = defaultdict(list)
     for sample in samples:
-        first: dict[str, CourseChoice] = {}
-        for choice in sample:
-            first.setdefault(choice.name, choice)
-        for name, choice in first.items():
+        cores = [choice for choice in sample if choice.relevance is Relevance.CORE]
+        core_names = {choice.name for choice in cores}
+        linked = [
+            choice
+            for choice in sample
+            if choice.relevance is Relevance.FOUNDATION and choice.prerequisite_for in core_names
+        ]
+        settled: dict[str, CourseChoice] = {}
+        for choice in (*cores, *linked, *sample):
+            settled.setdefault(choice.name, choice)
+        for name, choice in settled.items():
             chosen[name].append(choice)
     kept = []
     for choices in chosen.values():

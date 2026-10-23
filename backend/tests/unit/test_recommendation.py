@@ -244,3 +244,29 @@ def test_majority_counts_a_course_listed_twice_in_one_sample_once() -> None:
     ]
 
     assert majority_choices(samples) == []
+
+
+@pytest.mark.parametrize(
+    "answer",
+    [
+        [
+            CourseChoice("科目A", CORE, "理由A"),
+            CourseChoice("科目B", FOUNDATION, "理由B", "科目C"),
+            CourseChoice("科目B", FOUNDATION, "理由B'", "科目A"),
+        ],
+        [
+            CourseChoice("科目B", FOUNDATION, "理由B", "科目A"),
+            CourseChoice("科目A", CORE, "理由A"),
+            CourseChoice("科目B", CORE, "理由B'"),
+        ],
+    ],
+    ids=["linked-foundation-after-unlinked", "core-after-foundation"],
+)
+def test_the_same_answer_in_every_vote_arranges_like_a_single_answer(
+    answer: list[CourseChoice],
+) -> None:
+    matches = matches_of("科目A", "科目B", "科目C")
+
+    assert arrange(PROFILE, matches, majority_choices([answer] * 3)) == arrange(
+        PROFILE, matches, answer
+    )

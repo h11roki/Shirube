@@ -281,7 +281,7 @@ def render(document: Mapping[str, Any]) -> str:
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
         f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']}、"
-        f"選び直し {config.get('selection_votes', 1)} 回)",
+        f"選び直し {config['selection_votes']} 回)",
     ]
     if document["stopped"] is not None:
         lines.append(f"  途中で止めた: {document['stopped']}")
