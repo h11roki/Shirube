@@ -1,18 +1,32 @@
 import argparse
+import json
+import math
 from collections.abc import Iterator, Sequence
+from pathlib import Path
 from typing import Any
 
 import pytest
 from langchain_core.messages import HumanMessage
 
-from app.application.evaluate_selection import Judgment, Pick, SelectionResult, UnlinkedPick
+from app.application.compare_experiments import MIN_OCCUPATIONS, Change, Comparison, Interval
+from app.application.compare_experiments import OVERLAPS as MEASURED_OVERLAPS
+from app.application.evaluate_search import EvaluationCase
+from app.application.evaluate_selection import (
+    ExpectedCourse,
+    Judgment,
+    Pick,
+    SelectionResult,
+    UnlinkedPick,
+)
 from app.application.ports import TokenUsage
+from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
     Spread,
     StageSeconds,
     Trial,
+    summarize,
 )
 from app.application.search_courses import SearchError
 from app.domain.occupation import OccupationProfile
@@ -25,11 +39,13 @@ from app.domain.recommendation import (
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     METRICS,
+    OVERLAPS,
     collect,
     compare,
     label,
     main,
     render,
+    scorecard,
     summary_document,
     trial_document,
     unpriced,
@@ -230,10 +246,6 @@ def test_collect_keeps_what_ran_before_the_run_was_stopped(
     assert (collection.stopped, collection.over_budget) == (stopped, False)
 
 
-def spread(value: float, std: float) -> dict[str, float]:
-    return {"mean": value, "std": std, "low": value - std, "high": value + std}
-
-
 def document(summary: dict[str, Any] | None) -> dict[str, Any]:
     return {
         "label": "baseline",
@@ -263,13 +275,7 @@ def test_the_summary_document_names_every_metric_it_shows() -> None:
         failures=0,
         complete_repeats=2,
         scored_repeats=2,
-        recall=(value, value),
-        candidate_recall=value,
-        core_precision=None,
-        expected_as_core=value,
-        unrelated=value,
-        cores=value,
-        foundations=value,
+        metrics={key: value for key, _, _ in METRICS} | {"core_precision": None},
         overlap=None,
         core_overlap=None,
         usage=THIRTY_YEN,
@@ -290,69 +296,242 @@ def test_a_run_whose_recommendations_all_failed_is_shown_without_scores() -> Non
     assert lines[1:] == ["  使った費用 24.0 円", "  推薦が全て失敗したので集計していない"]
 
 
-def run(name: str, scored: int, unrelated: float, std: float, **config: Any) -> dict[str, Any]:
-    summary: dict[str, Any] = {key: spread(0.5, 0.0) for key, _, _ in METRICS}
-    summary |= {
+def run(name: str, **config: Any) -> dict[str, Any]:
+    summary = {
         "trials": 30,
         "failures": 0,
-        "complete_repeats": scored,
-        "scored_repeats": scored,
-        "unrelated": spread(unrelated, std),
-        "overlap": 0.6,
-        "core_overlap": 0.7,
+        "complete_repeats": 3,
+        "scored_repeats": 3,
         "yen_per_plan": 1.5,
         "seconds": {"total": 12.0},
     }
-    return document(summary) | {"label": name, "config": {"repeats": 3, **config}}
+    return document(summary) | {
+        "label": name,
+        "config": {"occupations": 10, "repeats": 3, **config},
+    }
 
 
 def line_of(lines: list[str], start: str) -> str:
     return next(line for line in lines if line.startswith(start))
 
 
-def test_compare_tells_whether_a_difference_is_larger_than_the_spread() -> None:
-    lines = compare(run("before", 3, 0.20, 0.02), run("after", 3, 0.10, 0.03)).splitlines()
+def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
+    unknown = Change(None, None, None)
+    return Comparison(
+        occupations,
+        {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
+    )
 
-    unrelated = line_of(lines, "  選んだ科目のうち関係なし")
-    assert "差 -10 ポイント" in unrelated
-    assert unrelated.endswith("揺れより大きい")
-    assert line_of(lines, "  中心の適合率").endswith("揺れの範囲")
+
+NOTHING_MEASURED = measured(MIN_OCCUPATIONS, {})
 
 
-def test_compare_does_not_judge_the_spread_of_a_run_scored_from_one_repeat() -> None:
-    lines = compare(run("before", 1, 0.20, 0.0), run("after", 3, 0.10, 0.03)).splitlines()
+def test_the_cli_shows_every_metric_and_overlap_the_comparison_measures() -> None:
+    assert [key for key, _, _ in METRICS] == list(MEASURED_METRICS)
+    assert [key for key, _, _ in OVERLAPS] == list(MEASURED_OVERLAPS)
 
-    assert line_of(lines, "  選んだ科目のうち関係なし").endswith("、-")
-    assert "  before: 推薦 30 回、失敗 0 回、全職業がそろった回 1、採点した回 1" in lines
+
+def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_out() -> None:
+    comparison = measured(
+        10,
+        {
+            "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05)),
+            "core_precision": Change(0.5, math.nextafter(0.5, 0.0), Interval(-0.05, 0.05)),
+            "overlap": Change(0.6, 0.6, Interval(-0.1, 0.1)),
+            "cores": Change(5.0, 4.4, None),
+            "foundations": Change(None, 3.9, None),
+        },
+    )
+
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert lines[3:] == [
+        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
+        "(職業を選び直すブートストラップ 10,000 回)",
+        "  検索の再現率 @10: - → -",
+        "  検索の再現率 @20: - → -",
+        "  選び直しに渡した候補の再現率: - → -",
+        "  中心の適合率: 50.0% → 50.0%、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない",
+        "  期待する科目を中心に選んだ割合: - → -",
+        "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり",
+        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60、区間なし(選び直すと割合を出せない組がある)",
+        "  1 職業に選んだ土台: - → 3.90",
+        "  揺れ(選んだ科目の重なり): 0.60 → 0.60、差 +0.00(区間 -0.10〜+0.10)、はっきりしない",
+        "  揺れ(中心の重なり): - → -",
+        "  1 回の推薦あたりの費用: 1.50 円 → 1.50 円",
+        "  1 回の推薦の時間: 12.0 秒 → 12.0 秒",
+    ]
+
+
+def test_compare_gives_no_interval_for_fewer_occupations_than_were_checked() -> None:
+    comparison = measured(7, {"unrelated": Change(0.2, 0.1, None)})
+
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert lines[3:5] == [
+        "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない",
+        "  前と後の値は、それぞれの集計(before 10 職業、after 10 職業)と違うことがある",
+    ]
+    assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間なし" in lines
 
 
 def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
-    before = run("before", 3, 0.2, 0.0, selection_model="gpt-5.4-nano", budget=100)
-    after = run("after", 3, 0.2, 0.0, selection_model="gpt-5.4-mini", budget=50)
+    before = run("before", selection_model="gpt-5.4-nano", budget=100)
+    after = run("after", selection_model="gpt-5.4-mini", budget=50)
 
-    lines = compare(before, after).splitlines()
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
     assert "  設定の違い: selection_model gpt-5.4-nano → gpt-5.4-mini" in lines
+    assert not any(line.startswith("  評価データか判定が違う") for line in lines)
+
+
+@pytest.mark.parametrize("key", ["dataset", "judgments"])
+def test_compare_warns_that_a_regraded_run_mixes_in_the_new_labels(key: str) -> None:
+    before = run("before", **{key: "aaaa1111"})
+    after = run("after", **{key: "bbbb2222"})
+
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
+
+    assert "  評価データか判定が違うので、差には正解の付け直しの分も入る" in lines
 
 
 def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
-    before = run("before", 3, 0.2, 0.0)
-    after = run("after", 3, 0.2, 0.0, selection_votes=3)
+    before = run("before")
+    after = run("after", selection_votes=3)
 
-    lines = compare(before, after).splitlines()
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
     assert "  設定の違い: selection_votes 1 → 3" in lines
     single = compare(
         before,
-        run("after", 3, 0.2, 0.0, selection_votes=1, selection_vote_delay_seconds=0.0),
+        run("after", selection_votes=1, selection_vote_delay_seconds=0.0),
+        NOTHING_MEASURED,
     ).splitlines()
     assert not any(line.startswith("  設定の違い") for line in single)
 
 
-def test_compare_shows_a_metric_an_older_run_lacks_without_a_difference() -> None:
-    before = run("before", 3, 0.2, 0.0)
-    del before["summary"]["candidate_recall"]
+def test_the_raw_output_reads_back_into_the_scorecard_it_was_written_from() -> None:
+    outcome = Trial(
+        "職業",
+        2,
+        Recommendation(
+            PROFILE,
+            (
+                RecommendedCourse("科目A", "10000", Relevance.CORE, "理由A"),
+                RecommendedCourse("科目B", "10001", Relevance.FOUNDATION, "理由B", "科目A"),
+            ),
+            ("科目A", "科目B", "科目C", "科目D"),
+            (CourseChoice("科目C", Relevance.FOUNDATION, "理由C", "科目D"),),
+        ),
+        SelectionResult(
+            "職業",
+            (
+                Pick("科目A", Relevance.CORE, Judgment.EXPECTED),
+                Pick("科目B", Relevance.FOUNDATION, Judgment.UNRELATED),
+            ),
+            (
+                ExpectedCourse("科目A", Relevance.CORE, True, False),
+                ExpectedCourse("科目E", None, False, False),
+            ),
+            (UnlinkedPick("科目C", "科目D", Judgment.FOUNDATION),),
+        ),
+        THIRTY_YEN,
+        StageSeconds(1.0, 1.0, 1.0),
+    )
 
-    lines = compare(before, run("after", 3, 0.2, 0.0)).splitlines()
+    assert scorecard(trial_document(outcome)) == outcome.scorecard
 
-    assert line_of(lines, "  選び直しに渡した候補の再現率").endswith(": - → 50% ± 0(50%〜50%)")
+
+def picking(occupation: str, unrelated: int) -> Trial:
+    names = ("科目A", *(f"科目{number}" for number in range(unrelated)))
+    return Trial(
+        occupation,
+        1,
+        Recommendation(
+            PROFILE,
+            tuple(RecommendedCourse(name, "10000", Relevance.CORE, "理由") for name in names),
+            names,
+        ),
+        SelectionResult(
+            occupation,
+            tuple(
+                Pick(
+                    name,
+                    Relevance.CORE,
+                    Judgment.EXPECTED if name == "科目A" else Judgment.UNRELATED,
+                )
+                for name in names
+            ),
+            (ExpectedCourse("科目A", Relevance.CORE, True, False),),
+            (),
+        ),
+        THIRTY_YEN,
+        StageSeconds(1.0, 1.0, 1.0),
+    )
+
+
+def saved_run(directory: Path, name: str, unrelated: Sequence[int]) -> Path:
+    cases = tuple(EvaluationCase(f"職業{index}", ("甲",), ("科目A",)) for index in range(10))
+    outcomes: list[Trial | FailedTrial] = [
+        picking(case.occupation, count) for case, count in zip(cases, unrelated, strict=True)
+    ]
+    outcomes.append(FailedTrial("職業0", 2, "失敗", THIRTY_YEN))
+    summary = summarize(outcomes, cases)
+    assert summary is not None
+    written = document(summary_document(summary)) | {
+        "label": name,
+        "trials": [trial_document(outcome) for outcome in outcomes],
+    }
+    path = directory / f"{name}.json"
+    path.write_text(json.dumps(written, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+def test_compare_pairs_the_occupations_of_two_saved_runs(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before = saved_run(tmp_path, "before", (1, 2) * 5)
+    after = saved_run(tmp_path, "after", (0,) * 10)
+
+    main(["compare", str(before), str(after)])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert (
+        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
+        "(職業を選び直すブートストラップ 10,000 回)"
+    ) in lines
+    unrelated = line_of(lines, "  選んだ科目のうち関係なし")
+    assert unrelated.startswith(
+        "  選んだ科目のうち関係なし: 60.0% → 0.0%、差 -60.0 ポイント(区間 -"
+    )
+    assert unrelated.endswith("、差あり")
+    assert (
+        "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント(区間 +0.0〜+0.0)、"
+        "はっきりしない"
+    ) in lines
+
+
+@pytest.mark.parametrize(
+    ("replacement", "reason"),
+    [
+        (
+            {"courses": [{"name": "科目A", "relevance": "central", "judgment": "expected"}]},
+            "'central' is not a valid Relevance",
+        ),
+        ({"expected": []}, "職業0: 期待する科目がありません"),
+    ],
+    ids=["unknown-relevance", "no-expected-course"],
+)
+def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_scored(
+    tmp_path: Path, replacement: dict[str, Any], reason: str
+) -> None:
+    before = saved_run(tmp_path, "before", (1,) * 10)
+    broken = json.loads(before.read_text(encoding="utf-8"))
+    broken["trials"][0] |= replacement
+    before.write_text(json.dumps(broken, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(SystemExit) as stopped:
+        main(["compare", str(before), str(saved_run(tmp_path, "after", (0,) * 10))])
+
+    assert str(stopped.value.code).startswith("実験の結果の推薦を読めません: ValueError(")
+    assert reason in str(stopped.value.code)

@@ -264,13 +264,16 @@ def test_summary_averages_each_repeat_and_measures_the_spread_and_overlap() -> N
     assert (summary.trials, summary.failures) == (3, 1)
     assert (summary.complete_repeats, summary.scored_repeats) == (2, 2)
     halves = pytest.approx((0.75, HALF_APART, 0.5, 1.0))
-    assert [values(recall) for recall in summary.recall] == [halves, halves]
-    assert values(summary.candidate_recall) == halves
-    assert values(summary.core_precision) == (1.0, 0.0, 1.0, 1.0)
-    assert values(summary.expected_as_core) == halves
-    assert values(summary.unrelated) == pytest.approx((0.25, HALF_APART, 0.0, 0.5))
-    assert values(summary.cores) == pytest.approx((1.5, 2 * HALF_APART, 1.0, 2.0))
-    assert values(summary.foundations) == pytest.approx((0.5, 2 * HALF_APART, 0.0, 1.0))
+    assert {key: values(spread) for key, spread in summary.metrics.items()} == {
+        "recall@10": halves,
+        "recall@20": halves,
+        "candidate_recall": halves,
+        "core_precision": (1.0, 0.0, 1.0, 1.0),
+        "expected_as_core": halves,
+        "unrelated": pytest.approx((0.25, HALF_APART, 0.0, 0.5)),
+        "cores": pytest.approx((1.5, 2 * HALF_APART, 1.0, 2.0)),
+        "foundations": pytest.approx((0.5, 2 * HALF_APART, 0.0, 1.0)),
+    }
     assert summary.overlap == pytest.approx(1 / 3)
     assert summary.core_overlap == pytest.approx(1 / 2)
     assert summary.usage == {"gpt-5.4-nano": TokenUsage(900, 300, 150)}
@@ -288,8 +291,22 @@ def test_a_repeat_cut_short_is_left_out_of_the_scores_but_not_of_the_cost() -> N
 
     assert summary is not None
     assert (summary.complete_repeats, summary.scored_repeats) == (1, 1)
-    assert values(summary.unrelated) == (0.0, 0.0, 0.0, 0.0)
+    assert values(summary.metrics["unrelated"]) == (0.0, 0.0, 0.0, 0.0)
     assert summary.usage == {"gpt-5.4-nano": TokenUsage(900, 300, 150)}
+
+
+def test_the_overlap_also_leaves_out_a_repeat_cut_short() -> None:
+    full = [
+        trial(case, repeat, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0)
+        for repeat in (1, 2)
+        for case in (CASE, OTHER)
+    ]
+    cut = trial(CASE, 3, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
+
+    summary = summarize([*full, cut], (CASE, OTHER))
+
+    assert summary is not None
+    assert (summary.overlap, summary.core_overlap) == (1.0, 1.0)
 
 
 def test_without_a_complete_repeat_the_scores_come_from_the_repeats_cut_short() -> None:
@@ -299,7 +316,7 @@ def test_without_a_complete_repeat_the_scores_come_from_the_repeats_cut_short() 
 
     assert summary is not None
     assert (summary.complete_repeats, summary.scored_repeats) == (0, 1)
-    assert values(summary.unrelated) == (1.0, 0.0, 1.0, 1.0)
+    assert values(summary.metrics["unrelated"]) == (1.0, 0.0, 1.0, 1.0)
 
 
 def test_shares_of_nothing_picked_are_left_undefined_rather_than_zero() -> None:
@@ -308,9 +325,9 @@ def test_shares_of_nothing_picked_are_left_undefined_rather_than_zero() -> None:
     summary = summarize([empty], DATASET.cases)
 
     assert summary is not None
-    assert (summary.core_precision, summary.unrelated) == (None, None)
-    assert values(summary.expected_as_core) == (0.0, 0.0, 0.0, 0.0)
-    assert values(summary.cores) == (0.0, 0.0, 0.0, 0.0)
+    assert (summary.metrics["core_precision"], summary.metrics["unrelated"]) == (None, None)
+    assert values(summary.metrics["expected_as_core"]) == (0.0, 0.0, 0.0, 0.0)
+    assert values(summary.metrics["cores"]) == (0.0, 0.0, 0.0, 0.0)
 
 
 def test_candidate_recall_counts_expected_courses_searched_but_not_picked() -> None:
@@ -319,7 +336,8 @@ def test_candidate_recall_counts_expected_courses_searched_but_not_picked() -> N
     summary = summarize([only], DATASET.cases)
 
     assert summary is not None
-    assert (summary.candidate_recall.mean, summary.expected_as_core.mean) == (1.0, 0.5)
+    assert values(summary.metrics["candidate_recall"]) == (1.0, 0.0, 1.0, 1.0)
+    assert values(summary.metrics["expected_as_core"]) == (0.5, 0.0, 0.5, 0.5)
 
 
 def test_a_single_repeat_has_no_overlap_to_measure() -> None:
@@ -329,7 +347,7 @@ def test_a_single_repeat_has_no_overlap_to_measure() -> None:
 
     assert summary is not None
     assert (summary.overlap, summary.core_overlap) == (None, None)
-    assert summary.recall[0].std == 0.0
+    assert values(summary.metrics["recall@10"]) == (0.5, 0.0, 0.5, 0.5)
 
 
 def test_nothing_is_summarized_when_every_recommendation_failed() -> None:
