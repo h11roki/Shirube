@@ -12,43 +12,41 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
   const table = weekTable(courses);
   return (
     <div className="grid min-w-0 gap-2">
-      <div className="hidden overflow-x-auto sm:block">
-        <table className="w-full min-w-[34rem] table-fixed border-separate border-spacing-1.5 text-xs">
-          <thead>
-            <tr>
-              <th className="w-6" />
-              {table.weekdays.map((weekday) => (
-                <th
-                  key={weekday}
-                  scope="col"
-                  className="font-serif font-bold text-sub"
+      <table className="hidden w-full table-fixed border-separate border-spacing-1.5 text-xs sm:table">
+        <thead>
+          <tr>
+            <th className="w-6" />
+            {table.weekdays.map((weekday) => (
+              <th
+                key={weekday}
+                scope="col"
+                className="font-serif font-bold text-sub"
+              >
+                {WEEKDAY_LABELS[weekday]}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {table.rows.map((row) => (
+            <tr key={row.period}>
+              <th scope="row" className="font-serif font-bold text-sub">
+                {row.period}
+              </th>
+              {row.cells.map((cell, index) => (
+                <td
+                  key={table.weekdays[index]}
+                  className={`h-14 align-top ${cell.length === 0 ? "rounded-md border-[1.5px] border-dashed border-line" : ""}`}
                 >
-                  {WEEKDAY_LABELS[weekday]}
-                </th>
+                  {cell.map((course) => (
+                    <CourseNote key={course.section_code} course={course} />
+                  ))}
+                </td>
               ))}
             </tr>
-          </thead>
-          <tbody>
-            {table.rows.map((row) => (
-              <tr key={row.period}>
-                <th scope="row" className="font-serif font-bold text-sub">
-                  {row.period}
-                </th>
-                {row.cells.map((cell, index) => (
-                  <td
-                    key={table.weekdays[index]}
-                    className={`h-14 align-top ${cell.length === 0 ? "rounded-md border-[1.5px] border-dashed border-line" : ""}`}
-                  >
-                    {cell.map((course) => (
-                      <CourseNote key={course.section_code} course={course} />
-                    ))}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </tbody>
+      </table>
       <dl className="grid gap-1.5 text-xs sm:hidden">
         {daySchedules(table).map((day) => (
           <div
