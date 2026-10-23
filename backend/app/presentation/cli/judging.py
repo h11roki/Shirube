@@ -1,6 +1,7 @@
 import argparse
 import json
 import sys
+from collections import Counter
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict
 from pathlib import Path
@@ -25,6 +26,8 @@ from app.presentation.cli.evaluation_data import (
     DATASET_LINES,
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    course_document,
+    judged_courses,
     read_document,
     write_document,
 )
@@ -33,7 +36,7 @@ from app.presentation.composition import database_engine, load_settings
 
 LABELS = {label: relevance for relevance, label in RELEVANCE_LABELS.items()}
 PART_FILES = ("courses-1.json", "courses-2.json")
-OCCUPATION_FILE = "occupations.json"
+OCCUPATION_FILE = "occupation-names.json"
 UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
@@ -69,46 +72,13 @@ def judge_output(document: Mapping[str, Any], judges: Mapping[str, str]) -> Judg
     return JudgeOutput(keys[role], votes)
 
 
-def judged_courses(occupation: Mapping[str, Any]) -> list[JudgedCourse]:
+def undecided_courses(judged: Mapping[str, Sequence[JudgedCourse]]) -> list[str]:
     return [
-        JudgedCourse(
-            course["name"],
-            course["page"],
-            {
-                judge: Vote(Relevance(vote["label"]), vote["evidence"])
-                for judge, vote in course["votes"].items()
-            },
-            None if course.get("decision") is None else Relevance(course["decision"]),
-        )
-        for course in occupation["courses"]
+        f"{occupation} / {course.name}"
+        for occupation, courses in judged.items()
+        for course in courses
+        if course.undecided
     ]
-
-
-def course_document(course: JudgedCourse) -> dict[str, Any]:
-    document: dict[str, Any] = {
-        "name": course.name,
-        "page": course.page,
-        "votes": {
-            judge: {"label": vote.label.value, "evidence": vote.evidence}
-            for judge, vote in course.votes.items()
-        },
-    }
-    if course.decision is not None:
-        document["decision"] = course.decision.value
-    return document
-
-
-def undecided_text(judged: Mapping[str, Sequence[JudgedCourse]], judges: Mapping[str, str]) -> str:
-    lines = ["中心が 1 票だけの科目を、中心(core)か土台(foundation)に決めてください"]
-    for occupation, courses in judged.items():
-        for course in courses:
-            if course.undecided:
-                votes = "、".join(
-                    f"{judges[judge]} {RELEVANCE_LABELS[vote.label]}「{vote.evidence}」"
-                    for judge, vote in course.votes.items()
-                )
-                lines.append(f"  {occupation} / {course.name}: {votes}")
-    return "\n".join(lines)
 
 
 def material_pages(directory: Path, judgments: Mapping[str, Any]) -> dict[str, str]:
@@ -131,33 +101,31 @@ def material_pages(directory: Path, judgments: Mapping[str, Any]) -> dict[str, s
     return pages
 
 
-def undecided_courses(judged: Mapping[str, Sequence[JudgedCourse]]) -> list[str]:
-    return [
-        f"{occupation} / {course.name}"
-        for occupation, courses in judged.items()
-        for course in courses
-        if course.undecided
-    ]
-
-
 def _read(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any]]:
     try:
         dataset, judgments = read_document(args.dataset), read_document(args.judgments)
-        names = [occupation["name"] for occupation in dataset["occupations"]]
+        occupation_counts = {
+            "評価データ": Counter(occupation["name"] for occupation in dataset["occupations"]),
+            "判定": Counter(occupation["name"] for occupation in judgments["occupations"]),
+        }
+        same_place = (dataset["year"], dataset["department"]) == (
+            judgments["year"],
+            judgments["department"],
+        )
     except UNREADABLE as error:
         sys.exit(f"評価データか判定を読めません: {error!r}")
-    repeated = sorted({name for name in names if names.count(name) > 1})
-    if repeated:
-        sys.exit(f"評価データに同じ職業が 2 回あります: {'、'.join(repeated)}")
+    if not same_place:
+        sys.exit("評価データと判定の年度か学科が違います")
+    for where, counts in occupation_counts.items():
+        repeated = sorted(name for name, count in counts.items() if count > 1)
+        if repeated:
+            sys.exit(f"{where}に同じ職業が 2 回あります: {'、'.join(repeated)}")
     return dataset, judgments
 
 
 def _documents(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, Any], list[str]]:
     dataset, judgments = _read(args)
-    try:
-        names = unjudged(dataset, judgments)
-    except UNREADABLE as error:
-        sys.exit(f"評価データか判定を読めません: {error!r}")
+    names = unjudged(dataset, judgments)
     if not names:
         sys.exit("判定していない職業がありません(評価データに職業を足してから流す)")
     return dataset, judgments, names
@@ -232,13 +200,16 @@ def _merge(args: argparse.Namespace) -> None:
             for paths in (args.first, args.second)
         ]
         chosen = read_document(args.decisions) if args.decisions else {}
-        extra = sorted(
-            (
-                {occupation for half in given for output in half for occupation in output.votes}
-                | chosen.keys()
+        mentioned = {
+            occupation for half in given for output in half for occupation in output.votes
+        } | chosen.keys()
+        again = sorted(mentioned & {occupation["name"] for occupation in judgments["occupations"]})
+        if again:
+            raise JudgingError(
+                f"判定済みの職業の票か決定があります: {'、'.join(again)}"
+                "(判定済みの職業は judgments.json を直して judging expected を流す)"
             )
-            - set(names)
-        )
+        dropped = sorted(mentioned - set(names))
         halves = [
             [
                 JudgeOutput(
@@ -263,15 +234,23 @@ def _merge(args: argparse.Namespace) -> None:
         sys.exit(f"判定の決まりに合いません: {error}")
     except UNREADABLE as error:
         sys.exit(f"判定者の出力か決定を読めません: {error!r}")
-    if extra:
-        print(f"評価データに無い職業の票と決定は使わない: {'、'.join(extra)}")
+    if dropped:
+        print(f"評価データに無い職業の票と決定は使わない: {'、'.join(dropped)}")
     if missing := undecided_courses(earlier):
         sys.exit(
             f"判定に決定の足りない科目があります: {'、'.join(missing)}"
             "(judgments.json の decision を確かめる)"
         )
     if undecided_courses(judged):
-        print(undecided_text(judged, judges))
+        print("中心が 1 票だけの科目を、中心(core)か土台(foundation)に決めてください")
+        for occupation, courses in judged.items():
+            for course in courses:
+                if course.undecided:
+                    votes = "、".join(
+                        f"{judges[judge]} {RELEVANCE_LABELS[vote.label]}「{vote.evidence}」"
+                        for judge, vote in course.votes.items()
+                    )
+                    print(f"  {occupation} / {course.name}: {votes}")
         sys.exit(1)
     expected = {name: expected_courses(judged[name]) for name in names}
     empty = [name for name, courses in expected.items() if not courses]
@@ -300,12 +279,11 @@ def _expected(args: argparse.Namespace) -> None:
             occupation["name"]: judged_courses(occupation)
             for occupation in judgments["occupations"]
         }
-        missing = unjudged(dataset, judgments)
     except JudgingError as error:
         sys.exit(f"判定の決まりに合いません: {error}")
     except UNREADABLE as error:
         sys.exit(f"判定を読めません: {error!r}")
-    if missing:
+    if missing := unjudged(dataset, judgments):
         sys.exit(f"判定に無い職業があります: {'、'.join(missing)}(materials と merge で判定する)")
     if undecided := undecided_courses(judged):
         sys.exit(

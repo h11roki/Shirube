@@ -52,6 +52,12 @@ def opens_in(section: CourseSection, department: str, year: int, semester: Semes
     )
 
 
+def opens_in_any(
+    section: CourseSection, department: str, year: int, semesters: Sequence[Semester]
+) -> bool:
+    return any(opens_in(section, department, year, semester) for semester in semesters)
+
+
 @dataclass(frozen=True)
 class PlacedCourse:
     course: RecommendedCourse
@@ -138,7 +144,7 @@ def _split_classes(
         section
         for section in sorted(sections, key=_code)
         if department in (section.departments or ())
-        and any(opens_in(section, department, year, semester) for semester in semesters)
+        and opens_in_any(section, department, year, semesters)
     ]
     open_together = [
         {_code(section) for section in own if opens_in(section, department, year, semester)}

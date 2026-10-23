@@ -2,7 +2,7 @@
 
 ADR 0017 の判定で判定者に渡した指示文。`{立場}` `{重視すること}` `{学科}` `{科目の資料}` `{科目数}` `{職業の資料}` `{職業数}` `{出力先}` を判定者ごとに置き換え、Claude Code のサブエージェント 1 体に渡した。科目は名前順に前半と後半に分け、同じ立場の判定者 2 体に 1 つずつ渡した。
 
-資料作りと集計は `python -m app.presentation.cli.judging` で行う(ADR 0054)。`materials --out <dir>` が、評価データにあって判定に無い職業について、科目の前半(`courses-1.json`)と後半(`courses-2.json`)と職業名(`occupations.json`)を書く。判定者の出力は `merge --first <前半の 3 つ> --second <後半の 3 つ> --materials <dir>` でまとめ、中心が 1 票だけの科目は高橋さんの決定を `--decisions <JSON>`(職業名から科目名と core か foundation への対応)で渡す。`expected` は全ての職業の期待する科目を判定から作り直すだけ。
+資料作りと集計は `python -m app.presentation.cli.judging` で行う(ADR 0054)。`materials --out <dir>` が、評価データにあって判定に無い職業について、科目の前半(`courses-1.json`)と後半(`courses-2.json`)と職業名(`occupation-names.json`。評価データの `occupations.json` を上書きしない名前)を書く。判定者の出力は `merge --first <前半の 3 つ> --second <後半の 3 つ> --materials <dir>` でまとめ、中心が 1 票だけの科目は高橋さんの決定を `--decisions <JSON>`(職業名から科目名と core か foundation への対応)で渡す。`expected` は全ての職業の期待する科目を判定から作り直すだけ。
 
 | 立場 | 重視すること |
 |---|---|

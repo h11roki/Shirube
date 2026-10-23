@@ -346,3 +346,47 @@ def test_an_occupation_listed_twice_in_the_dataset_is_refused(tmp_path: Path) ->
         expected(dataset, judgments)
 
     assert str(stopped.value.code) == "評価データに同じ職業が 2 回あります: 職業乙"
+
+
+def test_an_occupation_judged_twice_is_refused(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(judgments)
+    document["occupations"].append(document["occupations"][0])
+    write_document(judgments, document, frozenset(ROLES))
+
+    with pytest.raises(SystemExit) as stopped:
+        expected(dataset, judgments)
+
+    assert str(stopped.value.code) == "判定に同じ職業が 2 回あります: 職業甲"
+
+
+def test_a_dataset_and_judgments_of_another_year_are_refused(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(dataset)
+    document["year"] = 2027
+    write_document(dataset, document, DATASET_LINES)
+
+    with pytest.raises(SystemExit) as stopped:
+        expected(dataset, judgments)
+
+    assert str(stopped.value.code) == "評価データと判定の年度か学科が違います"
+
+
+def test_merge_refuses_a_decision_for_an_occupation_already_judged(tmp_path: Path) -> None:
+    dataset, judgments, materials = judging_files(tmp_path)
+    decisions = tmp_path / "decisions.json"
+    decisions.write_text(
+        json.dumps({"職業乙": {"科目C": "core"}, "職業甲": {"科目A": "core"}}), encoding="utf-8"
+    )
+
+    with pytest.raises(SystemExit) as stopped:
+        merge(
+            dataset,
+            judgments,
+            materials,
+            *judge_outputs(tmp_path, CORE_B, SPLIT),
+            "--decisions",
+            str(decisions),
+        )
+
+    assert "判定済みの職業の票か決定があります: 職業甲" in str(stopped.value.code)

@@ -1,11 +1,12 @@
 import json
 from collections import Counter
-from collections.abc import Set
+from collections.abc import Mapping, Set
 from pathlib import Path
 from typing import Any
 
 from app.application.evaluate_search import EvaluationCase, EvaluationDataset
 from app.application.evaluate_selection import Judgment, Judgments, judgment_of
+from app.application.judging import JudgedCourse, Vote
 from app.domain.recommendation import Relevance
 
 DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
@@ -72,21 +73,49 @@ def load_dataset(path: Path) -> EvaluationDataset:
     return EvaluationDataset(year, department, tuple(cases))
 
 
+def judged_courses(occupation: Mapping[str, Any]) -> list[JudgedCourse]:
+    return [
+        JudgedCourse(
+            course["name"],
+            course["page"],
+            {
+                judge: Vote(Relevance(vote["label"]), vote["evidence"])
+                for judge, vote in course["votes"].items()
+            },
+            None if course.get("decision") is None else Relevance(course["decision"]),
+        )
+        for course in occupation["courses"]
+    ]
+
+
+def course_document(course: JudgedCourse) -> dict[str, Any]:
+    document: dict[str, Any] = {
+        "name": course.name,
+        "page": course.page,
+        "votes": {
+            judge: {"label": vote.label.value, "evidence": vote.evidence}
+            for judge, vote in course.votes.items()
+        },
+    }
+    if course.decision is not None:
+        document["decision"] = course.decision.value
+    return document
+
+
 def load_judgments(path: Path, dataset: EvaluationDataset) -> Judgments:
     document = read_document(path)
     if (document["year"], document["department"]) != (dataset.year, dataset.department):
         raise ValueError("判定の年度と学科が評価データと違います")
     by_course: dict[tuple[str, str], Judgment] = {}
     for occupation in document["occupations"]:
-        for course in occupation["courses"]:
-            key = (occupation["name"], course["name"])
+        for course in judged_courses(occupation):
+            key = (occupation["name"], course.name)
             if key in by_course:
                 raise ValueError(f"同じ科目の判定が 2 回あります: {key}")
-            votes = [Relevance(vote["label"]) for vote in course["votes"].values()]
-            decision = course.get("decision")
-            decided = None if decision is None else Relevance(decision)
-            if (decided is not None) != (votes.count(Relevance.CORE) == 1):
-                raise ValueError(f"決定は中心の票が 1 つだけの科目にだけ付けます: {key}")
-            by_course[key] = judgment_of(votes, decided)
+            if course.undecided:
+                raise ValueError(f"中心が 1 票だけの科目に決定がありません: {key}")
+            by_course[key] = judgment_of(
+                [vote.label for vote in course.votes.values()], course.decision
+            )
     courses = frozenset(name for part in document["parts"] for name in part)
     return Judgments(courses, by_course)

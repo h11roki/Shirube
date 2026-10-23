@@ -18,10 +18,10 @@ from app.presentation.cli.evaluate import render
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    judged_courses,
     load_dataset,
     read_document,
 )
-from app.presentation.cli.judging import judged_courses
 from tests.fakes import (
     FakeOccupationAnalyzer,
     courses_ranked_by,

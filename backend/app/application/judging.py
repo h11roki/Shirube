@@ -6,7 +6,7 @@ from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.ports import CourseRepository
 from app.domain.course import ALL_GRADES, CourseSection
 from app.domain.recommendation import Relevance
-from app.domain.roadmap import ALL_SEMESTERS, opens_in
+from app.domain.roadmap import ALL_SEMESTERS, opens_in_any
 
 JUDGES = ("engineer", "professor", "student")
 REASON_ORDER = ("professor", "student", "engineer")
@@ -163,9 +163,7 @@ class JudgingMaterials:
         page_of = self._courses.syllabus_codes(year)
         by_name: dict[str, list[CourseSection]] = defaultdict(list)
         for section in self._courses.sections(year):
-            if section.code in page_of and any(
-                opens_in(section, department, year, semester) for semester in ALL_SEMESTERS
-            ):
+            if section.code in page_of and opens_in_any(section, department, year, ALL_SEMESTERS):
                 by_name[section.name].append(section)
         if not by_name:
             raise JudgingError(

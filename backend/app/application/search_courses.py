@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence, Set
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
 from app.domain.course import left_out_codes
 from app.domain.ranking import CourseMatch, rank_courses
-from app.domain.roadmap import Semester, opens_in
+from app.domain.roadmap import Semester, opens_in_any
 
 EXCLUDED_NOTE = "(もう取ったと答えた授業は除いています)"
 
@@ -74,7 +74,7 @@ class SearchCourses:
         names_of_page: dict[str, set[str]] = defaultdict(set)
         removed = False
         for section in sections:
-            offered = any(opens_in(section, department, year, semester) for semester in semesters)
+            offered = opens_in_any(section, department, year, semesters)
             if not offered or section.code not in page_of:
                 continue
             if section.code in left_out:
