@@ -2,6 +2,8 @@ import argparse
 import json
 import math
 from collections.abc import Iterator, Sequence
+from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,7 @@ from app.application.run_experiment import (
     summarize,
 )
 from app.application.search_courses import SearchError
+from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CourseChoice,
@@ -41,10 +44,13 @@ from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     METRICS,
     OVERLAPS,
+    Collection,
     collect,
     compare,
     label,
     main,
+    pair_documents,
+    ran_interleaved,
     render,
     scorecard,
     setting,
@@ -296,6 +302,47 @@ def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
 def test_a_pair_setting_off_the_recommendation_path_is_refused(text: str) -> None:
     with pytest.raises(argparse.ArgumentTypeError, match="替えられるのは"):
         setting(text)
+
+
+def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
+    collection = Collection(
+        [
+            (Side.BEFORE, replace(picking("職業", 0), repeat=1)),
+            (Side.AFTER, failed(1)),
+            (Side.AFTER, replace(picking("職業", 1), repeat=2)),
+            (Side.BEFORE, replace(picking("職業", 0), repeat=2)),
+            (Side.BEFORE, replace(picking("職業", 0), repeat=3)),
+        ],
+        "中断した",
+        False,
+    )
+
+    documents = pair_documents(
+        "votes",
+        datetime(2026, 10, 23, 18, 0, tzinfo=UNIVERSITY_TIME),
+        "abc1234",
+        collection,
+        151.0,
+        {Side.BEFORE: {"selection_votes": 1}, Side.AFTER: {"selection_votes": 3}},
+        {Side.BEFORE: "votes-before.json", Side.AFTER: "votes-after.json"},
+        (EvaluationCase("職業", ("甲",), ("科目A",)),),
+    )
+
+    before, after = documents[Side.BEFORE], documents[Side.AFTER]
+    assert (before["label"], after["label"]) == ("votes-before", "votes-after")
+    assert [trial["repeat"] for trial in before["trials"]] == [1, 2, 3]
+    assert ["failure" in trial for trial in after["trials"]] == [True, False]
+    assert (before["spent_yen"], after["spent_yen"]) == (pytest.approx(90.0), pytest.approx(60.0))
+    assert (before["config"], after["config"]) == ({"selection_votes": 1}, {"selection_votes": 3})
+    assert before["pair"] == {
+        "label": "votes",
+        "side": "before",
+        "partner": "votes-after.json",
+        "spent_yen": 151.0,
+    }
+    assert after["pair"]["partner"] == "votes-before.json"
+    assert before["stopped"] == after["stopped"] == "中断した"
+    assert ran_interleaved(before, after)
 
 
 def test_pair_refuses_the_same_setting_twice_on_one_side(

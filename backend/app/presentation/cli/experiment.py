@@ -615,6 +615,39 @@ def run_document(
     }
 
 
+def pair_documents(
+    label: str,
+    created: datetime,
+    commit: str | None,
+    collection: Collection,
+    spent_yen: float,
+    configs: Mapping[Side, dict[str, Any]],
+    names: Mapping[Side, str],
+    cases: Sequence[EvaluationCase],
+) -> dict[Side, dict[str, Any]]:
+    documents: dict[Side, dict[str, Any]] = {}
+    for side, partner in ((Side.BEFORE, Side.AFTER), (Side.AFTER, Side.BEFORE)):
+        outcomes = collection.of(side)
+        documents[side] = run_document(
+            f"{label}-{side.value}",
+            created,
+            commit,
+            collection.stopped,
+            sum(yen(outcome.usage) for outcome in outcomes),
+            configs[side],
+            outcomes,
+            cases,
+        ) | {
+            "pair": {
+                "label": label,
+                "side": side.value,
+                "partner": names[partner],
+                "spent_yen": spent_yen,
+            }
+        }
+    return documents
+
+
 def _write(path: Path, document: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(document, ensure_ascii=False, indent=1) + "\n", "utf-8")
 
@@ -692,28 +725,19 @@ def _pair(args: argparse.Namespace) -> None:
         for path in paths.values():
             path.unlink()
         sys.exit(f"前と後の両方に推薦がそろう前に止まった: {collection.stopped}")
-    documents: dict[Side, dict[str, Any]] = {}
     try:
-        for side, partner in ((Side.BEFORE, Side.AFTER), (Side.AFTER, Side.BEFORE)):
-            outcomes = collection.of(side)
-            documents[side] = run_document(
-                f"{args.label}-{side.value}",
-                created,
-                commit,
-                collection.stopped,
-                sum(yen(outcome.usage) for outcome in outcomes),
-                config_document(args, settings[side], dataset),
-                outcomes,
-                dataset.cases,
-            ) | {
-                "pair": {
-                    "label": args.label,
-                    "side": side.value,
-                    "partner": paths[partner].name,
-                    "spent_yen": spent_yen,
-                }
-            }
-            _write(paths[side], documents[side])
+        documents = pair_documents(
+            args.label,
+            created,
+            commit,
+            collection,
+            spent_yen,
+            {side: config_document(args, settings[side], dataset) for side in Side},
+            {side: path.name for side, path in paths.items()},
+            dataset.cases,
+        )
+        for side, document in documents.items():
+            _write(paths[side], document)
     except BaseException:
         for path in paths.values():
             path.unlink(missing_ok=True)
