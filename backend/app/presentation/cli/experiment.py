@@ -43,7 +43,7 @@ from app.presentation.composition import (
     course_selector,
     database_engine,
     load_settings,
-    openai_occupation_analyzer,
+    occupation_analyzer,
     search_courses,
 )
 from app.settings import Settings
@@ -56,7 +56,11 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 RUN_CONTROLS = frozenset({"budget"})
-UNRECORDED_SETTINGS = {"selection_votes": 1, "selection_vote_delay_seconds": 0.0}
+UNRECORDED_SETTINGS = {
+    "selection_votes": 1,
+    "selection_vote_delay_seconds": 0.0,
+    "occupation_reading_cache_size": 0,
+}
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 METRICS = (
@@ -367,6 +371,7 @@ def config_document(
         "budget": args.budget,
         "occupations": len(dataset.cases),
         "chat_model": settings.chat_model if analyzed else None,
+        "occupation_reading_cache_size": settings.occupation_reading_cache_size if analyzed else 0,
         "selection_model": settings.selection_model,
         "selection_votes": settings.selection_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
@@ -402,7 +407,7 @@ def _run(args: argparse.Namespace) -> None:
         analyzer = (
             HandwrittenProfiles(dataset)
             if args.profiles == "handwritten"
-            else openai_occupation_analyzer(settings)
+            else occupation_analyzer(settings)
         )
     except OccupationProfileError as error:
         sys.exit(f"評価データの手書きのスキルを使えません: {error}")

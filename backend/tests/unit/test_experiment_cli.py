@@ -246,6 +246,7 @@ def document(summary: dict[str, Any] | None) -> dict[str, Any]:
             "repeats": 3,
             "profiles": "analyzed",
             "chat_model": "gpt-5.4-mini",
+            "occupation_reading_cache_size": 0,
             "selection_model": "gpt-5.4-nano",
             "selection_votes": 1,
             "selection_vote_delay_seconds": 0.0,
