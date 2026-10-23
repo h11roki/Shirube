@@ -2,10 +2,12 @@ import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import type { PlacedCourse, Weekday } from "@/lib/api/client";
 import {
   NO_LESSONS_LABEL,
+  PERIOD_HEADER_LABEL,
+  PERIOD_SUFFIX,
   RELEVANCE_LABELS,
   WEEKDAY_LABELS,
+  WEEKDAY_SUFFIX,
   classLabel,
-  weekdayName,
 } from "@/lib/labels";
 import { daySchedules, weekTable } from "@/lib/timetable";
 
@@ -16,7 +18,9 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
       <table className="hidden w-full table-fixed border-separate border-spacing-1.5 text-xs sm:table">
         <thead>
           <tr>
-            <th className="w-6" />
+            <th className="w-6">
+              <span className="sr-only">{PERIOD_HEADER_LABEL}</span>
+            </th>
             {table.weekdays.map((weekday) => (
               <th
                 key={weekday}
@@ -33,6 +37,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
             <tr key={row.period}>
               <th scope="row" className="font-serif font-bold text-sub">
                 {row.period}
+                <span className="sr-only"> {PERIOD_SUFFIX}</span>
               </th>
               {row.cells.map((cell, index) => (
                 <td
@@ -69,7 +74,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
                     className="grid grid-cols-[2.25rem_minmax(0,1fr)] items-start gap-1.5"
                   >
                     <span className="pt-1.5 font-serif text-sub">
-                      {period} 限
+                      {period} {PERIOD_SUFFIX}
                     </span>
                     <CourseNote course={course} />
                   </span>
@@ -93,7 +98,10 @@ function WeekdayName({ weekday }: { weekday: Weekday }) {
   return (
     <>
       <span aria-hidden>{WEEKDAY_LABELS[weekday]}</span>
-      <span className="sr-only">{weekdayName(weekday)}</span>
+      <span className="sr-only">
+        {WEEKDAY_LABELS[weekday]}
+        {WEEKDAY_SUFFIX}
+      </span>
     </>
   );
 }

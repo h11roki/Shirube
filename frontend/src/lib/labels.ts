@@ -64,6 +64,12 @@ export const EMPTY_SEMESTER_LABEL = "この学期に置いた授業はありま�
 
 export const NO_LESSONS_LABEL = "授業なし";
 
+export const WEEKDAY_SUFFIX = "曜日";
+
+export const PERIOD_SUFFIX = "限";
+
+export const PERIOD_HEADER_LABEL = "時限";
+
 export const CONTINUING_LABEL = "春学期からの続き";
 
 export const RESULT_VIEW_LABELS: Record<ResultView, string> = {
@@ -99,10 +105,6 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   sat: "土",
   sun: "日",
 };
-
-export function weekdayName(weekday: Weekday): string {
-  return `${WEEKDAY_LABELS[weekday]}曜日`;
-}
 
 export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;

@@ -24,7 +24,6 @@ import {
   leaveSummary,
   planTitlePrefix,
   completionNotice,
-  weekdayName,
 } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
@@ -172,11 +171,6 @@ describe("labels", () => {
   it("adds nothing for a plan done before it was opened or done without a result", () => {
     expect(planTitlePrefix(SAMPLE_PLAN, false)).toBe("");
     expect(planTitlePrefix(inState("succeeded"), true)).toBe("");
-  });
-
-  it("spells out the weekday for the screen reader", () => {
-    expect(weekdayName("mon")).toBe("月曜日");
-    expect(weekdayName("sat")).toBe("土曜日");
   });
 
   it("announces completion only for a result that came after the plan was seen in progress", () => {
