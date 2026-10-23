@@ -332,6 +332,16 @@ def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
     assert "  設定の違い: selection_model gpt-5.4-nano → gpt-5.4-mini" in lines
 
 
+def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
+    before = run("before", 3, 0.2, 0.0)
+    after = run("after", 3, 0.2, 0.0, selection_votes=3)
+
+    lines = compare(before, after).splitlines()
+
+    assert "  設定の違い: selection_votes 1 → 3" in lines
+    assert not any(line.startswith("  設定の違い") for line in compare(before, before).splitlines())
+
+
 def test_compare_shows_a_metric_an_older_run_lacks_without_a_difference() -> None:
     before = run("before", 3, 0.2, 0.0)
     del before["summary"]["candidate_recall"]

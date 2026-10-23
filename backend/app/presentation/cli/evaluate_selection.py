@@ -27,9 +27,9 @@ from app.presentation.cli.evaluation_data import (
 )
 from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
 from app.presentation.composition import (
+    course_selector,
     database_engine,
     load_settings,
-    openai_course_selector,
     openai_embedder,
 )
 
@@ -124,7 +124,7 @@ def main() -> None:
         sys.exit(f"判定を読めません: {args.judgments}: {error!r}")
     settings = load_settings()
     embedder = openai_embedder(settings)
-    selector = openai_course_selector(settings)
+    selector = course_selector(settings)
     engine = database_engine(settings)
     courses = SqlCourseRepository(engine)
     search = SearchCourses(courses, SqlChunkRepository(engine), embedder)

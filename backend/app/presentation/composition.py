@@ -7,9 +7,11 @@ from sqlalchemy.exc import ArgumentError
 
 from app.application.build_plans import BuildPlans
 from app.application.forget_deleted_plans import ForgetDeletedPlans
+from app.application.ports import CourseSelector
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
+from app.application.voting_course_selector import VotingCourseSelector
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.quota import PlanQuota
 from app.infrastructure.db.chunks import SqlChunkRepository
@@ -72,13 +74,16 @@ def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
     )
 
 
-def openai_course_selector(settings: Settings) -> OpenAICourseSelector:
-    return OpenAICourseSelector.connect(
+def course_selector(settings: Settings) -> CourseSelector:
+    selector = OpenAICourseSelector.connect(
         settings.selection_model,
         openai_api_key(settings),
         settings.openai_timeout_seconds,
         settings.openai_max_retries,
     )
+    if settings.selection_votes == 1:
+        return selector
+    return VotingCourseSelector(selector, settings.selection_votes)
 
 
 def search_courses(settings: Settings, engine: Engine) -> SearchCourses:
@@ -92,7 +97,7 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
         search_courses(settings, engine),
         SqlCourseRepository(engine),
         openai_occupation_analyzer(settings),
-        openai_course_selector(settings),
+        course_selector(settings),
         settings.selection_candidate_limit,
     )
 
