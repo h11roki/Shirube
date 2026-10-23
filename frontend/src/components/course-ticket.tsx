@@ -80,7 +80,7 @@ export function CourseTicket({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={syllabusLinkLabel(course.name)}
-            className={`justify-self-start text-xs ${STANDALONE_LINK}`}
+            className={`justify-self-start gap-1 text-xs ${STANDALONE_LINK}`}
           >
             シラバス
             <span aria-hidden> ↗</span>
