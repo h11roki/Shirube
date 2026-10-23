@@ -1,5 +1,6 @@
 import sys
 from datetime import UTC, date, datetime
+from typing import Any
 
 from pydantic import SecretStr, ValidationError
 from sqlalchemy import Engine, create_engine
@@ -26,15 +27,16 @@ from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAn
 from app.settings import Settings
 
 
-def load_settings() -> Settings:
+def load_settings(**overrides: Any) -> Settings:
     try:
-        return Settings()
+        return Settings(**overrides)
     except ValidationError as error:
         problems = "; ".join(
             f"{str(problem['loc'][0]).upper() if problem['loc'] else '設定'}: {problem['msg']}"
             for problem in error.errors()
         )
-        sys.exit(f"環境変数を確かめてください: {problems}")
+        source = "環境変数か、指定した設定" if overrides else "環境変数"
+        sys.exit(f"{source}を確かめてください: {problems}")
 
 
 def database_engine(settings: Settings) -> Engine:

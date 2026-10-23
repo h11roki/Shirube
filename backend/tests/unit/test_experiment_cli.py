@@ -2,6 +2,8 @@ import argparse
 import json
 import math
 from collections.abc import Iterator, Sequence
+from dataclasses import replace
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -23,12 +25,14 @@ from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
+    Side,
     Spread,
     StageSeconds,
     Trial,
     summarize,
 )
 from app.application.search_courses import SearchError
+from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CourseChoice,
@@ -40,12 +44,17 @@ from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     METRICS,
     OVERLAPS,
+    Collection,
+    arguments,
     collect,
     compare,
     label,
     main,
+    pair_documents,
+    ran_interleaved,
     render,
     scorecard,
+    setting,
     summary_document,
     trial_document,
     unpriced,
@@ -178,13 +187,13 @@ class Paid:
         self._outcomes = outcomes
         self._usage: dict[str, TokenUsage] = {}
 
-    def __iter__(self) -> Iterator[Trial | FailedTrial]:
+    def __iter__(self) -> Iterator[tuple[Side | None, Trial | FailedTrial]]:
         for outcome in self._outcomes:
             if isinstance(outcome, BaseException):
                 raise outcome
             for model, tokens in outcome.usage.items():
                 self._usage[model] = self._usage[model] + tokens if model in self._usage else tokens
-            yield outcome
+            yield None, outcome
 
     def spent(self) -> dict[str, TokenUsage]:
         return dict(self._usage)
@@ -197,6 +206,15 @@ def test_collect_stops_before_the_next_recommendation_once_the_budget_is_spent()
 
     assert len(collection.outcomes) == 2
     assert (collection.stopped, collection.over_budget) == ("費用の上限 50 円に達した", True)
+
+
+def test_collect_checks_the_budget_only_between_pairs_when_given_a_unit_of_two() -> None:
+    paid = Paid([succeeded(1), succeeded(1), succeeded(2), succeeded(2)])
+
+    collection = collect(iter(paid), 4, 20, paid.spent, unit=2)
+
+    assert len(collection.outcomes) == 2
+    assert (collection.stopped, collection.over_budget) == ("費用の上限 20 円に達した", True)
 
 
 def test_collect_finishes_when_the_last_recommendation_crosses_the_budget() -> None:
@@ -215,6 +233,23 @@ def test_collect_stops_after_three_failures_in_a_row() -> None:
 
     assert len(collection.outcomes) == 5
     assert (collection.stopped, collection.over_budget) == ("推薦が 3 回続けて失敗した", False)
+
+
+def test_collect_counts_failures_in_a_row_for_each_side_of_a_pair() -> None:
+    pairs: list[tuple[Side | None, Trial | FailedTrial]] = [
+        (Side.BEFORE, succeeded(1)),
+        (Side.AFTER, failed(1)),
+        (Side.AFTER, failed(1)),
+        (Side.BEFORE, succeeded(1)),
+        (Side.BEFORE, succeeded(2)),
+        (Side.AFTER, failed(2)),
+        (Side.AFTER, succeeded(2)),
+    ]
+
+    collection = collect(iter(pairs), 8, 1000, dict, unit=2)
+
+    assert len(collection.outcomes) == 6
+    assert collection.stopped == "後の推薦が 3 回続けて失敗した"
 
 
 def test_collect_stops_when_a_model_without_a_price_answered() -> None:
@@ -242,8 +277,154 @@ def test_collect_keeps_what_ran_before_the_run_was_stopped(
 
     collection = collect(iter(paid), 2, 1000, paid.spent)
 
-    assert collection.outcomes == [succeeded(1)]
+    assert collection.of(None) == [succeeded(1)]
     assert (collection.stopped, collection.over_budget) == (stopped, False)
+
+
+def test_collect_shows_and_keeps_the_side_each_recommendation_ran_for(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    pairs: list[tuple[Side | None, Trial | FailedTrial]] = [
+        (Side.BEFORE, succeeded(1)),
+        (Side.AFTER, failed(1)),
+        (Side.AFTER, succeeded(2)),
+    ]
+
+    collection = collect(iter(pairs), 4, 1000, dict)
+
+    assert [line.split("(")[0] for line in capsys.readouterr().err.splitlines()] == [
+        "1/4 前 職業",
+        "2/4 後 職業",
+        "3/4 後 職業",
+    ]
+    assert collection.of(Side.BEFORE) == [succeeded(1)]
+    assert collection.of(Side.AFTER) == [failed(1), succeeded(2)]
+    assert collection.of(None) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "parsed"),
+    [
+        ("SELECTION_VOTES=1", ("SELECTION_VOTES", "1")),
+        ("OCCUPATION_READING_CACHE_SIZE=0", ("OCCUPATION_READING_CACHE_SIZE", "0")),
+        ("CHAT_MODEL=gpt-5.4-nano", ("CHAT_MODEL", "gpt-5.4-nano")),
+    ],
+)
+def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
+    text: str, parsed: tuple[str, str]
+) -> None:
+    assert setting(text) == parsed
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "SELECTION_VOTES",
+        "selection_votes=1",
+        "DATABASE_URL=postgresql://other",
+        "SELECTION_MODEL=",
+        "EMBEDDING_MODEL=x",
+    ],
+    ids=["no-value", "lowercase", "database", "empty", "embedding"],
+)
+def test_a_pair_setting_off_the_recommendation_path_is_refused(text: str) -> None:
+    with pytest.raises(argparse.ArgumentTypeError, match="替えられるのは"):
+        setting(text)
+
+
+def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
+    collection = Collection(
+        [
+            (Side.BEFORE, replace(picking("職業", 0), repeat=1)),
+            (Side.AFTER, failed(1)),
+            (Side.AFTER, replace(picking("職業", 1), repeat=2)),
+            (Side.BEFORE, replace(picking("職業", 0), repeat=2)),
+            (Side.BEFORE, replace(picking("職業", 0), repeat=3)),
+        ],
+        "中断した",
+        False,
+    )
+
+    documents = pair_documents(
+        "votes",
+        datetime(2026, 10, 23, 18, 0, tzinfo=UNIVERSITY_TIME),
+        "abc1234",
+        collection,
+        151.0,
+        {Side.BEFORE: {"selection_votes": 1}, Side.AFTER: {"selection_votes": 3}},
+        {Side.BEFORE: "votes-before.json", Side.AFTER: "votes-after.json"},
+        (EvaluationCase("職業", ("甲",), ("科目A",)),),
+    )
+
+    before, after = documents[Side.BEFORE], documents[Side.AFTER]
+    assert (before["label"], after["label"]) == ("votes-before", "votes-after")
+    assert [trial["repeat"] for trial in before["trials"]] == [1, 2, 3]
+    assert ["failure" in trial for trial in after["trials"]] == [True, False]
+    assert (before["spent_yen"], after["spent_yen"]) == (pytest.approx(90.0), pytest.approx(60.0))
+    assert (before["config"], after["config"]) == ({"selection_votes": 1}, {"selection_votes": 3})
+    assert before["pair"] == {
+        "label": "votes",
+        "side": "before",
+        "partner": "votes-after.json",
+        "spent_yen": 151.0,
+    }
+    assert after["pair"]["partner"] == "votes-before.json"
+    assert before["stopped"] == after["stopped"] == "中断した"
+    assert ran_interleaved(before, after)
+
+
+def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
+    args = arguments(
+        [
+            "pair",
+            "--label",
+            "votes",
+            "--before",
+            "CHAT_MODEL=gpt-5.4-nano",
+            "--before",
+            "SELECTION_VOTES=1",
+            "SELECTION_CANDIDATE_LIMIT=30",
+            "--after",
+            "SELECTION_VOTES=3",
+        ]
+    )
+
+    assert args.before == [
+        ("CHAT_MODEL", "gpt-5.4-nano"),
+        ("SELECTION_VOTES", "1"),
+        ("SELECTION_CANDIDATE_LIMIT", "30"),
+    ]
+    assert args.after == [("SELECTION_VOTES", "3")]
+    assert args.budget == 200
+
+
+@pytest.mark.parametrize("override", ["CHAT_MODEL=gpt-5.4-nano", "OCCUPATION_READING_CACHE_SIZE=0"])
+def test_pair_refuses_reading_settings_when_the_skills_are_handwritten(
+    override: str, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        main(["pair", "--label", "skills", "--profiles", "handwritten", "--after", override])
+
+    assert stopped.value.code == 2
+    assert "職業の読み取りを使わない" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--after", "SELECTION_VOTES=1", "SELECTION_VOTES=3"],
+        ["--before", "SELECTION_VOTES=1", "--before", "SELECTION_VOTES=3"],
+    ],
+    ids=["one-flag", "two-flags"],
+)
+def test_pair_refuses_the_same_setting_twice_on_one_side(
+    flags: list[str], capsys: pytest.CaptureFixture[str]
+) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        main(["pair", "--label", "votes", *flags])
+
+    assert stopped.value.code == 2
+    assert "同じ設定は 1 回だけ" in capsys.readouterr().err
 
 
 def document(summary: dict[str, Any] | None) -> dict[str, Any]:
@@ -265,6 +446,7 @@ def document(summary: dict[str, Any] | None) -> dict[str, Any]:
             "candidate_limit": 30,
         },
         "summary": summary,
+        "trials": [{"occupation": "職業", "repeat": 1, "failure": "失敗"}],
     }
 
 
@@ -296,6 +478,21 @@ def test_a_run_whose_recommendations_all_failed_is_shown_without_scores() -> Non
     assert lines[1:] == ["  使った費用 24.0 円", "  推薦が全て失敗したので集計していない"]
 
 
+def test_a_side_stopped_before_it_ran_anything_says_so() -> None:
+    lines = render(document(None) | {"trials": []}).splitlines()
+
+    assert lines[-1] == "  この側の推薦を流す前に止まったので集計していない"
+
+
+def test_one_side_of_a_pair_shows_its_own_cost_beside_the_cost_of_the_pair() -> None:
+    side = document(None) | {"pair": {"label": "votes", "side": "before", "spent_yen": 50.0}}
+
+    assert render(side).splitlines()[1] == (
+        "  使った費用 24.0 円(この側の推薦の分。交互に流した組 votes の 2 つで 50.0 円、"
+        "途中で止めた推薦の分を含む)"
+    )
+
+
 def run(name: str, **config: Any) -> dict[str, Any]:
     summary = {
         "trials": 30,
@@ -316,11 +513,16 @@ def line_of(lines: list[str], start: str) -> str:
 
 
 def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
-    unknown = Change(None, None, None)
+    unknown = Change(None, None, None, None)
     return Comparison(
         occupations,
+        (3, 3),
         {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
     )
+
+
+def paired(name: str, side: str, **pair: str) -> dict[str, Any]:
+    return run(name) | {"pair": {"label": "votes", "side": side, "partner": "other.json"} | pair}
 
 
 NOTHING_MEASURED = measured(MIN_OCCUPATIONS, {})
@@ -331,48 +533,127 @@ def test_the_cli_shows_every_metric_and_overlap_the_comparison_measures() -> Non
     assert [key for key, _, _ in OVERLAPS] == list(MEASURED_OVERLAPS)
 
 
-def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_out() -> None:
+def test_compare_decides_each_change_by_its_p_value_and_shows_the_interval_beside_it() -> None:
     comparison = measured(
         10,
         {
-            "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05)),
-            "core_precision": Change(0.5, math.nextafter(0.5, 0.0), Interval(-0.05, 0.05)),
-            "overlap": Change(0.6, 0.6, Interval(-0.1, 0.1)),
-            "cores": Change(5.0, 4.4, None),
-            "foundations": Change(None, 3.9, None),
+            "candidate_recall": Change(1.0, 0.9, Interval(-0.2, 0.0), None),
+            "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05), 0.0004),
+            "core_precision": Change(0.5, math.nextafter(0.5, 0.0), Interval(-0.05, 0.05), 1.0),
+            "expected_as_core": Change(0.8, 0.7, Interval(-0.2, -0.01), 0.06),
+            "overlap": Change(0.6, 0.6, Interval(-0.1, 0.1), 0.5),
+            "cores": Change(5.0, 4.4, None, 0.03),
+            "foundations": Change(None, 3.9, None, None),
         },
     )
 
     lines = compare(run("before"), run("after"), comparison).splitlines()
 
     assert lines[3:] == [
-        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
-        "(職業を選び直すブートストラップ 10,000 回)",
+        "  交互に流した組でないので、差に流した時刻の揺れも入る(交互に流すのは pair)",
+        "  両方にそろった 10 職業で比べる。差ありは職業ごとに前と後を入れ替える並べ替え検定"
+        "(10,000 通り)で p < 0.05、区間は 95% 信頼区間(職業を選び直すブートストラップ 10,000 回)",
+        "  区間なしの指標は、職業を選び直すと割合を出せない組がある",
+        "  判定なしの指標は、前と後を入れ替えると割合を出せない組がある",
         "  検索の再現率 @10: - → -",
         "  検索の再現率 @20: - → -",
-        "  選び直しに渡した候補の再現率: - → -",
-        "  中心の適合率: 50.0% → 50.0%、差 +0.0 ポイント(区間 -5.0〜+5.0)、はっきりしない",
-        "  期待する科目を中心に選んだ割合: - → -",
-        "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント(区間 -15.0〜-5.0)、差あり",
-        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60、区間なし(選び直すと割合を出せない組がある)",
+        "  選び直しに渡した候補の再現率: 100.0% → 90.0%、差 -10.0 ポイント(区間 -20.0〜+0.0)、"
+        "判定なし",
+        "  中心の適合率: 50.0% → 50.0%、差 +0.0 ポイント(区間 -5.0〜+5.0、p = 1.000)、"
+        "はっきりしない",
+        "  期待する科目を中心に選んだ割合: 80.0% → 70.0%、差 -10.0 ポイント"
+        "(区間 -20.0〜-1.0、p = 0.060)、はっきりしない",
+        "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント"
+        "(区間 -15.0〜-5.0、p < 0.001)、差あり",
+        "  1 職業に選んだ中心: 5.00 → 4.40、差 -0.60(区間なし、p = 0.030)、差あり",
         "  1 職業に選んだ土台: - → 3.90",
-        "  揺れ(選んだ科目の重なり): 0.60 → 0.60、差 +0.00(区間 -0.10〜+0.10)、はっきりしない",
+        "  揺れ(選んだ科目の重なり): 0.60 → 0.60、差 +0.00(区間 -0.10〜+0.10、p = 0.500)、"
+        "はっきりしない",
         "  揺れ(中心の重なり): - → -",
         "  1 回の推薦あたりの費用: 1.50 円 → 1.50 円",
         "  1 回の推薦の時間: 12.0 秒 → 12.0 秒",
     ]
 
 
-def test_compare_gives_no_interval_for_fewer_occupations_than_were_checked() -> None:
-    comparison = measured(7, {"unrelated": Change(0.2, 0.1, None)})
+def test_compare_gives_no_interval_or_verdict_for_fewer_occupations_than_were_checked() -> None:
+    comparison = measured(7, {"unrelated": Change(0.2, 0.1, None, None)})
 
     lines = compare(run("before"), run("after"), comparison).splitlines()
 
-    assert lines[3:5] == [
-        "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない",
-        "  前と後の値は、それぞれの集計(before 10 職業、after 10 職業)と違うことがある",
+    assert lines[4:6] == [
+        "  両方にそろった 7 職業で比べる。10 職業に満たないので区間と判定は出さない",
+        "  前と後の値は、それぞれの集計(before 10 職業 × 3 回、after 10 職業 × 3 回)"
+        "と違うことがある",
     ]
-    assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間なし" in lines
+    assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間と判定なし" in lines
+
+
+@pytest.mark.parametrize(
+    ("repeats", "note"),
+    [
+        ((2, 2), "  前と後の両方で採点した 2 回だけで比べる"),
+        (
+            (3, 1),
+            "  採点した回の数が違う(3 回と 1 回)ので、重なり以外は前と後を入れ替えられず判定なし",
+        ),
+    ],
+    ids=["aligned-pair", "different-counts"],
+)
+def test_compare_says_when_the_repeats_it_compares_differ_from_the_runs(
+    repeats: tuple[int, int], note: str
+) -> None:
+    comparison = Comparison(10, repeats, NOTHING_MEASURED.changes)
+
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert note in lines
+    assert line_of(lines, "  前と後の値は、それぞれの集計")
+
+
+@pytest.mark.parametrize(
+    ("p_value", "shown"),
+    [
+        (500 / 10_001, "p = 0.049)、差あり"),
+        (501 / 10_001, "p = 0.050)、はっきりしない"),
+        (0.03, "p = 0.030)、差あり"),
+    ],
+    ids=["just-below", "just-above", "exact-decimal"],
+)
+def test_compare_cuts_the_p_value_down_so_it_never_reads_against_the_verdict(
+    p_value: float, shown: str
+) -> None:
+    comparison = measured(10, {"unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05), p_value)})
+
+    lines = compare(run("before"), run("after"), comparison).splitlines()
+
+    assert line_of(lines, "  選んだ科目のうち関係なし").endswith(shown)
+
+
+def test_compare_does_not_warn_about_the_time_for_the_two_sides_of_one_pair() -> None:
+    lines = compare(
+        paired("votes-before", "before"), paired("votes-after", "after"), NOTHING_MEASURED
+    ).splitlines()
+
+    assert not any(line.startswith("  交互に流した組でない") for line in lines)
+
+
+@pytest.mark.parametrize(
+    ("before", "after"),
+    [
+        (paired("a", "before"), paired("b", "before")),
+        (paired("a", "before"), paired("b", "after", label="other")),
+        (paired("a", "before"), paired("b", "after") | {"created": "2026-10-24T04:00:00+09:00"}),
+        (paired("a", "before"), run("b")),
+        (run("a") | {"pair": {"side": "before"}}, run("b") | {"pair": {"side": "after"}}),
+    ],
+    ids=["same-side", "other-pair", "other-time", "single-run", "no-label"],
+)
+def test_compare_warns_about_the_time_unless_both_runs_are_one_pair(
+    before: dict[str, Any], after: dict[str, Any]
+) -> None:
+    lines = compare(before, after, NOTHING_MEASURED).splitlines()
+
+    assert "  交互に流した組でないので、差に流した時刻の揺れも入る(交互に流すのは pair)" in lines
 
 
 def test_compare_lists_the_settings_that_differ_but_not_the_budget() -> None:
@@ -470,18 +751,22 @@ def picking(occupation: str, unrelated: int) -> Trial:
     )
 
 
-def saved_run(directory: Path, name: str, unrelated: Sequence[int]) -> Path:
+def saved_run(
+    directory: Path, name: str, unrelated: Sequence[int], repeat: int = 1, **extra: Any
+) -> Path:
     cases = tuple(EvaluationCase(f"職業{index}", ("甲",), ("科目A",)) for index in range(10))
     outcomes: list[Trial | FailedTrial] = [
-        picking(case.occupation, count) for case, count in zip(cases, unrelated, strict=True)
+        replace(picking(case.occupation, count), repeat=repeat)
+        for case, count in zip(cases, unrelated, strict=True)
     ]
-    outcomes.append(FailedTrial("職業0", 2, "失敗", THIRTY_YEN))
+    outcomes.append(FailedTrial("職業0", repeat + 1, "失敗", THIRTY_YEN))
     summary = summarize(outcomes, cases)
     assert summary is not None
-    written = document(summary_document(summary)) | {
-        "label": name,
-        "trials": [trial_document(outcome) for outcome in outcomes],
-    }
+    written = (
+        document(summary_document(summary))
+        | {"label": name, "trials": [trial_document(outcome) for outcome in outcomes]}
+        | extra
+    )
     path = directory / f"{name}.json"
     path.write_text(json.dumps(written, ensure_ascii=False), encoding="utf-8")
     return path
@@ -496,19 +781,27 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
     main(["compare", str(before), str(after)])
 
     lines = capsys.readouterr().out.splitlines()
-    assert (
-        "  両方にそろった 10 職業で比べる。差の区間は 95% 信頼区間"
-        "(職業を選び直すブートストラップ 10,000 回)"
-    ) in lines
+    assert line_of(lines, "  両方にそろった 10 職業で比べる。差ありは職業ごとに")
     unrelated = line_of(lines, "  選んだ科目のうち関係なし")
     assert unrelated.startswith(
         "  選んだ科目のうち関係なし: 60.0% → 0.0%、差 -60.0 ポイント(区間 -"
     )
-    assert unrelated.endswith("、差あり")
+    assert unrelated.endswith(")、差あり") and "、p = 0.00" in unrelated
     assert (
-        "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント(区間 +0.0〜+0.0)、"
-        "はっきりしない"
+        "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント"
+        "(区間 +0.0〜+0.0、p = 1.000)、はっきりしない"
     ) in lines
+
+
+def test_compare_refuses_the_two_sides_of_a_pair_that_share_no_scored_repeat(
+    tmp_path: Path,
+) -> None:
+    pair = {"label": "votes", "partner": "other.json"}
+    before = saved_run(tmp_path, "votes-before", (0,) * 10, pair=pair | {"side": "before"})
+    after = saved_run(tmp_path, "votes-after", (0,) * 10, repeat=2, pair=pair | {"side": "after"})
+
+    with pytest.raises(SystemExit, match="前と後の両方で採点した回が無い"):
+        main(["compare", str(before), str(after)])
 
 
 @pytest.mark.parametrize(
