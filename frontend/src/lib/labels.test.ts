@@ -22,6 +22,8 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   leaveSummary,
+  planTabTitle,
+  completionNotice,
 } from "@/lib/labels";
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
@@ -150,5 +152,25 @@ describe("labels", () => {
     expect(leaveSummary(3, { failure: "サーバーに届きませんでした" })).toBe(
       "作った道標 3 件と、もう取ったと答えた授業を全て消し、ログアウトします。もう取ったと答えた授業の数は確かめられませんでした(サーバーに届きませんでした)。",
     );
+  });
+
+  it("titles the tab while the plan is made, when it is done and when it failed", () => {
+    expect(planTabTitle("pending", false)).toBe("作成中: 道標 | shirube");
+    expect(planTabTitle("running", true)).toBe("作成中: 道標 | shirube");
+    expect(planTabTitle("succeeded", true)).toBe("できました: 道標 | shirube");
+    expect(planTabTitle("failed", false)).toBe(
+      "作れませんでした: 道標 | shirube",
+    );
+  });
+
+  it("keeps the plain tab title for a plan that was already done when opened", () => {
+    expect(planTabTitle("succeeded", false)).toBe("道標 | shirube");
+  });
+
+  it("announces completion only after the plan was seen in progress", () => {
+    expect(completionNotice("succeeded", true)).toBe("道標ができました");
+    expect(completionNotice("succeeded", false)).toBe("");
+    expect(completionNotice("running", true)).toBe("");
+    expect(completionNotice("failed", true)).toBe("");
   });
 });

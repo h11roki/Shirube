@@ -9,6 +9,7 @@ import type {
 } from "@/lib/api/client";
 import type { ResultView } from "@/lib/result-view";
 import type { Transfer } from "@/lib/roadmap";
+import { SITE_NAME } from "@/lib/site";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -30,6 +31,28 @@ export const STAGE_LABELS: Record<PlanStage, string> = {
 };
 
 export const WAITING_LABEL = "順番を待っています";
+
+export const PLAN_PAGE_TITLE = "道標";
+
+const PLAN_TITLE_PREFIXES: Record<PlanStatus, string> = {
+  pending: "作成中: ",
+  running: "作成中: ",
+  succeeded: "できました: ",
+  failed: "作れませんでした: ",
+};
+
+export function planTabTitle(status: PlanStatus, sawProgress: boolean): string {
+  const prefix =
+    status === "succeeded" && !sawProgress ? "" : PLAN_TITLE_PREFIXES[status];
+  return `${prefix}${PLAN_PAGE_TITLE} | ${SITE_NAME}`;
+}
+
+export function completionNotice(
+  status: PlanStatus,
+  sawProgress: boolean,
+): string {
+  return status === "succeeded" && sawProgress ? "道標ができました" : "";
+}
 
 export const DEPARTMENT_NAME = "電子情報工学科";
 
