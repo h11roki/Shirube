@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
+import { SMALL_BUTTON } from "@/components/styles";
 import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
 import { forgetTakenLabel } from "@/lib/labels";
 
@@ -102,7 +103,7 @@ export function TakenCourseList({
               disabled={busy}
               onClick={() => void forget(name)}
               aria-label={forgetTakenLabel(name)}
-              className="rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+              className={SMALL_BUTTON}
             >
               取り消す
             </button>

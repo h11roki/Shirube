@@ -12,7 +12,7 @@ import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
-import { STANDALONE_LINK } from "@/components/styles";
+import { SMALL_BUTTON, STANDALONE_LINK } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { TimetableBook } from "@/components/timetable-book";
 import {
@@ -236,7 +236,7 @@ export function PlanResultView({
                     disabled={busy}
                     onClick={() => void answer(course.name, "unmark")}
                     aria-label={unmarkTakenLabel(course.name)}
-                    className="rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+                    className={SMALL_BUTTON}
                   >
                     戻す
                   </button>

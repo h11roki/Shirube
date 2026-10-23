@@ -9,6 +9,9 @@ export const NAV_LINK = `${TARGET} hover:text-ink`;
 export const OUTLINE_BUTTON =
   "rounded-full border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
 
+export const SMALL_BUTTON =
+  "rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
+
 export const PHRASE_WRAP = "[overflow-wrap:anywhere] [word-break:auto-phrase]";
 
 export const TICKET_NOTCH =

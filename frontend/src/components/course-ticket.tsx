@@ -4,6 +4,7 @@ import { useContext } from "react";
 
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import {
+  SMALL_BUTTON,
   STANDALONE_LINK,
   TICKET_NOTCH,
   TICKET_STAMP,
@@ -111,7 +112,7 @@ export function CourseTicket({
               answering.answer(course.name, "mark");
             }}
             aria-label={markTakenLabel(course.name)}
-            className="mt-1 justify-self-start rounded-full border border-edge bg-sheet px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+            className={`mt-1 justify-self-start bg-sheet ${SMALL_BUTTON}`}
           >
             もう取った
           </button>
