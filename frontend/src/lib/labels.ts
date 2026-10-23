@@ -32,9 +32,10 @@ export const STAGE_LABELS: Record<PlanStage, string> = {
 
 export const WAITING_LABEL = "順番を待っています";
 
-const PLAN_TITLE_PREFIXES: Record<Exclude<PlanStatus, "succeeded">, string> = {
+const PLAN_TITLE_PREFIXES: Record<PlanStatus, string> = {
   pending: "作成中: ",
   running: "作成中: ",
+  succeeded: "できました: ",
   failed: "作れませんでした: ",
 };
 
@@ -49,10 +50,9 @@ export function planTabTitle(
   plan: PlanState,
   sawProgress: boolean,
 ): string {
-  if (plan.status !== "succeeded") {
-    return `${PLAN_TITLE_PREFIXES[plan.status]}${base}`;
-  }
-  return completedInView(plan, sawProgress) ? `できました: ${base}` : base;
+  const plain =
+    plan.status === "succeeded" && !completedInView(plan, sawProgress);
+  return plain ? base : `${PLAN_TITLE_PREFIXES[plan.status]}${base}`;
 }
 
 export function completionNotice(
