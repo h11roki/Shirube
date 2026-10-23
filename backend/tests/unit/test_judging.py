@@ -1,3 +1,4 @@
+import re
 from dataclasses import replace
 
 import pytest
@@ -67,6 +68,18 @@ def test_a_vote_from_an_unknown_judge_is_refused() -> None:
         judged("科目A", ("teacher", CORE), ("student", CORE))
 
 
+@pytest.mark.parametrize(
+    "labels",
+    [(("engineer", FOUNDATION),), (("engineer", CORE), ("student", CORE))],
+    ids=["no-core", "two-cores"],
+)
+def test_a_decision_belongs_only_to_a_course_with_a_single_core_vote(
+    labels: tuple[tuple[str, Relevance], ...],
+) -> None:
+    with pytest.raises(JudgingError, match="決定は中心が 1 票だけの科目にだけ付けます"):
+        judged("科目A", *labels, decision=CORE)
+
+
 @pytest.mark.parametrize("evidence", ["", "あ" * (EVIDENCE_LENGTH + 1)], ids=["empty", "long"])
 def test_evidence_is_a_short_summary(evidence: str) -> None:
     with pytest.raises(JudgingError, match="根拠は"):
@@ -129,7 +142,7 @@ def test_a_judge_may_find_nothing_in_a_half() -> None:
         ),
         (
             [every_judge({"別の職業": {"科目A": CORE}}), every_judge(SECOND)],
-            "判定する職業がそろっていません",
+            re.escape("判定する職業がそろっていません(足りない職業: 職業、多い職業: 別の職業。"),
         ),
         (
             [every_judge({"職業": {"科目A": CORE, "科目C": CORE}}), every_judge(SECOND)],

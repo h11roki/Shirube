@@ -52,6 +52,8 @@ class JudgedCourse:
         unknown = sorted(set(self.votes) - set(JUDGES))
         if unknown:
             raise JudgingError(f"{self.name}: 知らない判定者の票があります: {'、'.join(unknown)}")
+        if self.decision is not None and len(self.cores) != 1:
+            raise JudgingError(f"{self.name}: 決定は中心が 1 票だけの科目にだけ付けます")
 
     @property
     def cores(self) -> list[str]:
@@ -101,7 +103,13 @@ def combine(
             )
         for output in outputs:
             if output.votes.keys() != set(occupations):
-                raise JudgingError(f"{output.judge}: 判定する職業がそろっていません")
+                missing = sorted(set(occupations) - output.votes.keys())
+                extra = sorted(output.votes.keys() - set(occupations))
+                raise JudgingError(
+                    f"{output.judge}: 判定する職業がそろっていません"
+                    f"(足りない職業: {'、'.join(missing) or 'なし'}、"
+                    f"多い職業: {'、'.join(extra) or 'なし'}。materials から作り直す)"
+                )
             for occupation, courses in output.votes.items():
                 outside = sorted(set(courses) - set(part))
                 if outside:

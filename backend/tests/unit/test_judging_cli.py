@@ -232,12 +232,14 @@ def test_nothing_is_merged_when_every_occupation_is_judged(tmp_path: Path) -> No
     assert str(stopped.value.code).startswith("判定していない職業がありません")
 
 
-def test_merge_leaves_out_votes_for_an_occupation_taken_out_of_the_dataset(
+def test_merge_leaves_out_votes_and_decisions_for_an_occupation_taken_out_of_the_dataset(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     dataset, judgments, materials = judging_files(tmp_path)
     decisions = tmp_path / "decisions.json"
-    decisions.write_text(json.dumps({"職業乙": {"科目C": "core"}}), encoding="utf-8")
+    decisions.write_text(
+        json.dumps({"職業乙": {"科目C": "core"}, "職業丙": {"科目A": "core"}}), encoding="utf-8"
+    )
     dropped = {"職業丙": {"中心": [{"course": "科目A", "evidence": "根拠"}]}}
     first = {key: CORE_B[key] | dropped for key in ROLES}
 
@@ -250,7 +252,7 @@ def test_merge_leaves_out_votes_for_an_occupation_taken_out_of_the_dataset(
         str(decisions),
     )
 
-    assert capsys.readouterr().out.startswith("評価データに無い職業の票は使わない: 職業丙\n")
+    assert capsys.readouterr().out.startswith("評価データに無い職業の票と決定は使わない: 職業丙\n")
     names = [occupation["name"] for occupation in read_document(judgments)["occupations"]]
     assert names == ["職業甲", "職業乙"]
 
@@ -314,3 +316,33 @@ def test_expected_refuses_an_occupation_missing_from_the_judgments(tmp_path: Pat
         expected(dataset, judgments)
 
     assert str(stopped.value.code).startswith("判定に無い職業があります: 職業乙")
+
+
+def test_expected_refuses_a_course_whose_decision_is_missing(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(dataset)
+    document["occupations"].pop()
+    write_document(dataset, document, DATASET_LINES)
+    judged: dict[str, Any] = read_document(judgments)
+    judged["occupations"][0]["courses"][0]["votes"] = {
+        "engineer": vote("core", "根拠"),
+        "professor": vote("foundation", "根拠"),
+    }
+    write_document(judgments, judged, frozenset(ROLES))
+
+    with pytest.raises(SystemExit) as stopped:
+        expected(dataset, judgments)
+
+    assert str(stopped.value.code).startswith("判定に決定の足りない科目があります: 職業甲 / 科目A")
+
+
+def test_an_occupation_listed_twice_in_the_dataset_is_refused(tmp_path: Path) -> None:
+    dataset, judgments, _ = judging_files(tmp_path)
+    document: dict[str, Any] = read_document(dataset)
+    document["occupations"].append(document["occupations"][-1])
+    write_document(dataset, document, DATASET_LINES)
+
+    with pytest.raises(SystemExit) as stopped:
+        expected(dataset, judgments)
+
+    assert str(stopped.value.code) == "評価データに同じ職業が 2 回あります: 職業乙"
