@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Account } from "@/components/account";
+import { NAV_LINK } from "@/components/styles";
 
 export function SiteHeader() {
   return (
@@ -14,10 +15,10 @@ export function SiteHeader() {
           <span className="text-[11px] tracking-[0.3em] text-sub">道標</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub">
-          <Link href="/" className="hover:text-ink">
+          <Link href="/" className={NAV_LINK}>
             道標を作る
           </Link>
-          <Link href="/plans" className="hover:text-ink">
+          <Link href="/plans" className={NAV_LINK}>
             自分の道標
           </Link>
           <Suspense fallback={null}>

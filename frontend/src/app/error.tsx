@@ -5,7 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { startTransition } from "react";
 
 import { Notice } from "@/components/notice";
-import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
+import { OUTLINE_BUTTON, STANDALONE_LINK } from "@/components/styles";
 
 export default function ErrorPage({ reset }: { reset: () => void }) {
   const pathname = usePathname();
@@ -27,7 +27,7 @@ export default function ErrorPage({ reset }: { reset: () => void }) {
           もう一度試す
         </button>
         {pathname !== "/" && (
-          <Link href="/" className={TEXT_LINK}>
+          <Link href="/" className={STANDALONE_LINK}>
             トップへ
           </Link>
         )}

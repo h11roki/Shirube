@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { NAV_LINK } from "@/components/styles";
 import { ISSUES_URL, OPERATOR, REPOSITORY_URL } from "@/lib/site";
 
 export function SiteFooter() {
@@ -14,17 +15,17 @@ export function SiteFooter() {
           aria-label="アプリについて"
           className="flex flex-wrap gap-x-5 gap-y-1"
         >
-          <Link href="/terms" className="hover:text-ink">
+          <Link href="/terms" className={NAV_LINK}>
             利用規約
           </Link>
-          <Link href="/privacy" className="hover:text-ink">
+          <Link href="/privacy" className={NAV_LINK}>
             プライバシーポリシー
           </Link>
           <a
             href={REPOSITORY_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-ink"
+            className={NAV_LINK}
           >
             GitHub
           </a>
@@ -32,7 +33,7 @@ export function SiteFooter() {
             href={ISSUES_URL}
             target="_blank"
             rel="noopener noreferrer"
-            className="hover:text-ink"
+            className={NAV_LINK}
           >
             問い合わせ(Issue)
           </a>

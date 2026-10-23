@@ -3,7 +3,11 @@
 import { useContext } from "react";
 
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { TEXT_LINK, TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
+import {
+  STANDALONE_LINK,
+  TICKET_NOTCH,
+  TICKET_STAMP,
+} from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
@@ -76,7 +80,7 @@ export function CourseTicket({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={syllabusLinkLabel(course.name)}
-            className={`justify-self-start text-xs ${TEXT_LINK}`}
+            className={`justify-self-start text-xs ${STANDALONE_LINK}`}
           >
             シラバス
             <span aria-hidden> ↗</span>
@@ -88,7 +92,7 @@ export function CourseTicket({
               <button
                 type="button"
                 onClick={() => focusing.follow(course.name, transfer)}
-                className="text-left underline underline-offset-4"
+                className="min-h-6 text-left underline underline-offset-4"
               >
                 {transferLabel(transfer)}
               </button>
@@ -107,7 +111,7 @@ export function CourseTicket({
               answering.answer(course.name, "mark");
             }}
             aria-label={markTakenLabel(course.name)}
-            className="mt-1 justify-self-start rounded-full border border-edge bg-sheet px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+            className="mt-1 justify-self-start rounded-full border border-edge bg-sheet px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
           >
             もう取った
           </button>

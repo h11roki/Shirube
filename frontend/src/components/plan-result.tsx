@@ -12,7 +12,7 @@ import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
-import { TEXT_LINK } from "@/components/styles";
+import { STANDALONE_LINK } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { TimetableBook } from "@/components/timetable-book";
 import {
@@ -231,7 +231,7 @@ export function PlanResultView({
                     disabled={busy}
                     onClick={() => void answer(course.name, "unmark")}
                     aria-label={unmarkTakenLabel(course.name)}
-                    className="rounded-full border border-edge px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+                    className="rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
                   >
                     戻す
                   </button>
@@ -275,7 +275,7 @@ export function PlanResultView({
 
         <SourceNote year={conditions.year} />
         <p>
-          <Link href="/" className={`text-sm ${TEXT_LINK}`}>
+          <Link href="/" className={`text-sm ${STANDALONE_LINK}`}>
             別の職業で作る
           </Link>
         </p>
@@ -296,7 +296,7 @@ export function PlanResultView({
                 type="button"
                 disabled={busy}
                 onClick={() => void answer(undo, "unmark")}
-                className={TEXT_LINK}
+                className={STANDALONE_LINK}
               >
                 戻す
               </button>

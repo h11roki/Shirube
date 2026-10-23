@@ -184,7 +184,7 @@ export function PlanForm() {
 
       {choices && choices.courses.length > 0 && (
         <details className="rounded-lg border border-line bg-paper p-4">
-          <summary className="cursor-pointer text-sm font-medium">
+          <summary className="cursor-pointer py-1 text-sm font-medium">
             学科でクラスが分かれている科目({choices.courses.length}
             科目、任意)
           </summary>

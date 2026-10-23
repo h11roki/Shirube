@@ -75,7 +75,10 @@ export function TakenCourseList({
   }
   return (
     <details className="rounded-lg border border-line bg-paper p-4">
-      <summary ref={summary} className="cursor-pointer text-sm font-medium">
+      <summary
+        ref={summary}
+        className="cursor-pointer py-1 text-sm font-medium"
+      >
         もう取ったと答えた授業({names.length} 科目)
       </summary>
       <p className="mt-3 text-sm text-sub">
@@ -99,7 +102,7 @@ export function TakenCourseList({
               disabled={busy}
               onClick={() => void forget(name)}
               aria-label={forgetTakenLabel(name)}
-              className="rounded-full border border-edge px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+              className="rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
             >
               取り消す
             </button>

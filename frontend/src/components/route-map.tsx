@@ -14,7 +14,7 @@ import { CourseGrid } from "@/components/course-grid";
 import { revealTicket } from "@/components/course-ticket";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
-import { TEXT_LINK } from "@/components/styles";
+import { STANDALONE_LINK } from "@/components/styles";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -308,7 +308,7 @@ function Station({
             aria-expanded={open}
             aria-controls={weekId}
             onClick={() => setOpen(!open)}
-            className={TEXT_LINK}
+            className={STANDALONE_LINK}
           >
             {open ? "この学期の時間割を閉じる ▴" : "この学期の時間割を開く ▾"}
           </button>
@@ -322,7 +322,7 @@ function Station({
               onNavigate={() =>
                 document.getElementById(VIEWS_ANCHOR)?.scrollIntoView()
               }
-              className={TEXT_LINK}
+              className={STANDALONE_LINK}
             >
               時間割帳で見る →
             </QueryLink>
