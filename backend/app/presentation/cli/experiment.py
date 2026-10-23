@@ -269,6 +269,8 @@ def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
 
 def scorecard(document: Mapping[str, Any]) -> Scorecard:
     occupation = document["occupation"]
+    if not document["expected"]:
+        raise ValueError(f"{occupation}: 期待する科目がありません")
     return Scorecard(
         occupation,
         document["repeat"],
@@ -403,9 +405,13 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
             f"  両方にそろった {comparison.occupations} 職業で比べる。{MIN_OCCUPATIONS} 職業に"
             "満たないので差の区間は出さない"
         )
-    unknown = Change(None, None, None)
+    if any(run["config"]["occupations"] != comparison.occupations for run in (before, after)):
+        sizes = "、".join(
+            f"{run['label']} {run['config']['occupations']} 職業" for run in (before, after)
+        )
+        lines.append(f"  前と後の値は、それぞれの集計({sizes})と違うことがある")
     for key, name, kind in (*METRICS, *OVERLAPS):
-        lines.append(f"  {name}: {_change(kind, comparison.changes.get(key, unknown))}")
+        lines.append(f"  {name}: {_change(kind, comparison.changes[key])}")
     lines.append(
         f"  1 回の推薦あたりの費用: {old_summary['yen_per_plan']:.2f} 円 → "
         f"{new_summary['yen_per_plan']:.2f} 円"

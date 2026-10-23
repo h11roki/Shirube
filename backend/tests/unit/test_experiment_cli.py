@@ -8,13 +8,8 @@ from typing import Any
 import pytest
 from langchain_core.messages import HumanMessage
 
-from app.application.compare_experiments import (
-    MIN_OCCUPATIONS,
-    Change,
-    Comparison,
-    Interval,
-    compare_experiments,
-)
+from app.application.compare_experiments import MIN_OCCUPATIONS, Change, Comparison, Interval
+from app.application.compare_experiments import OVERLAPS as MEASURED_OVERLAPS
 from app.application.evaluate_search import EvaluationCase
 from app.application.evaluate_selection import (
     ExpectedCourse,
@@ -24,13 +19,13 @@ from app.application.evaluate_selection import (
     UnlinkedPick,
 )
 from app.application.ports import TokenUsage
+from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
     Spread,
     StageSeconds,
     Trial,
-    scored_run,
     summarize,
 )
 from app.application.search_courses import SearchError
@@ -310,18 +305,34 @@ def run(name: str, **config: Any) -> dict[str, Any]:
         "yen_per_plan": 1.5,
         "seconds": {"total": 12.0},
     }
-    return document(summary) | {"label": name, "config": {"repeats": 3, **config}}
+    return document(summary) | {
+        "label": name,
+        "config": {"occupations": 10, "repeats": 3, **config},
+    }
 
 
 def line_of(lines: list[str], start: str) -> str:
     return next(line for line in lines if line.startswith(start))
 
 
-NOTHING_MEASURED = Comparison(MIN_OCCUPATIONS, {})
+def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
+    unknown = Change(None, None, None)
+    return Comparison(
+        occupations,
+        {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
+    )
+
+
+NOTHING_MEASURED = measured(MIN_OCCUPATIONS, {})
+
+
+def test_the_cli_shows_every_metric_and_overlap_the_comparison_measures() -> None:
+    assert [key for key, _, _ in METRICS] == list(MEASURED_METRICS)
+    assert [key for key, _, _ in OVERLAPS] == list(MEASURED_OVERLAPS)
 
 
 def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_out() -> None:
-    comparison = Comparison(
+    comparison = measured(
         10,
         {
             "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05)),
@@ -353,11 +364,14 @@ def test_compare_shows_each_change_with_its_interval_and_whether_zero_is_left_ou
 
 
 def test_compare_gives_no_interval_for_fewer_occupations_than_were_checked() -> None:
-    comparison = Comparison(7, {"unrelated": Change(0.2, 0.1, None)})
+    comparison = measured(7, {"unrelated": Change(0.2, 0.1, None)})
 
     lines = compare(run("before"), run("after"), comparison).splitlines()
 
-    assert "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない" in lines
+    assert lines[3:5] == [
+        "  両方にそろった 7 職業で比べる。10 職業に満たないので差の区間は出さない",
+        "  前と後の値は、それぞれの集計(before 10 職業、after 10 職業)と違うことがある",
+    ]
     assert "  選んだ科目のうち関係なし: 20% → 10%、差 -10.0 ポイント、区間なし" in lines
 
 
@@ -484,23 +498,27 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
     ) in lines
 
 
-def test_the_shown_changes_are_the_ones_the_comparison_measures() -> None:
-    run = scored_run([picking(f"職業{index}", 1).scorecard for index in range(10)], 10)
-
-    comparison = compare_experiments(run, run, resamples=10)
-
-    assert comparison.changes.keys() == {key for key, _, _ in (*METRICS, *OVERLAPS)}
-
-
-def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_read(
-    tmp_path: Path,
+@pytest.mark.parametrize(
+    ("replacement", "reason"),
+    [
+        (
+            {"courses": [{"name": "科目A", "relevance": "central", "judgment": "expected"}]},
+            "'central' is not a valid Relevance",
+        ),
+        ({"expected": []}, "職業0: 期待する科目がありません"),
+    ],
+    ids=["unknown-relevance", "no-expected-course"],
+)
+def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_scored(
+    tmp_path: Path, replacement: dict[str, Any], reason: str
 ) -> None:
     before = saved_run(tmp_path, "before", (1,) * 10)
     broken = json.loads(before.read_text(encoding="utf-8"))
-    broken["trials"][0]["courses"][0]["relevance"] = "central"
+    broken["trials"][0] |= replacement
     before.write_text(json.dumps(broken, ensure_ascii=False), encoding="utf-8")
 
     with pytest.raises(SystemExit) as stopped:
         main(["compare", str(before), str(saved_run(tmp_path, "after", (0,) * 10))])
 
     assert str(stopped.value.code).startswith("実験の結果の推薦を読めません: ValueError(")
+    assert reason in str(stopped.value.code)

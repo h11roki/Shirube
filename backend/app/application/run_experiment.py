@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from itertools import combinations
+from math import fsum
 from statistics import mean, stdev
 from time import perf_counter
 
@@ -31,6 +32,16 @@ from app.application.search_courses import SearchCourses
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
+
+METRICS = (
+    *(f"recall@{cutoff}" for cutoff in RECALL_CUTOFFS),
+    "candidate_recall",
+    "core_precision",
+    "expected_as_core",
+    "unrelated",
+    "cores",
+    "foundations",
+)
 
 
 @dataclass(frozen=True)
@@ -171,11 +182,15 @@ class Ratio:
 class ScoredRun:
     repeats: tuple[tuple[Scorecard, ...], ...]
     complete_repeats: int
-    cards: tuple[Scorecard, ...]
+
+    @property
+    def cards(self) -> list[Scorecard]:
+        return [card for group in self.repeats for card in group]
 
     @property
     def occupations(self) -> frozenset[str]:
-        return frozenset(card.occupation for group in self.repeats for card in group)
+        scored = [frozenset(card.occupation for card in group) for group in self.repeats]
+        return frozenset.intersection(*scored) if scored else frozenset()
 
 
 @dataclass(frozen=True)
@@ -202,7 +217,7 @@ def _defined_spread(values: Sequence[float | None]) -> Spread | None:
 
 def mean_of_defined(values: Iterable[float | None]) -> float | None:
     defined = [value for value in values if value is not None]
-    return mean(defined) if defined else None
+    return fsum(defined) / len(defined) if defined else None
 
 
 def ratios(card: Scorecard) -> dict[str, Ratio]:
@@ -237,7 +252,7 @@ def pooled(parts: Sequence[Ratio]) -> float | None:
 
 def repeat_scores(cards: Sequence[Scorecard]) -> dict[str, float | None]:
     per_card = [ratios(card) for card in cards]
-    return {key: pooled([entry[key] for entry in per_card]) for key in per_card[0]}
+    return {key: pooled([entry[key] for entry in per_card]) for key in METRICS}
 
 
 def jaccard(left: set[str], right: set[str]) -> float:
@@ -272,7 +287,7 @@ def scored_run(cards: Sequence[Scorecard], occupations: int) -> ScoredRun:
         by_repeat[card.repeat].append(card)
     groups = [tuple(group) for group in by_repeat.values()]
     complete = [group for group in groups if len(group) == occupations]
-    return ScoredRun(tuple(complete or groups), len(complete), tuple(cards))
+    return ScoredRun(tuple(complete or groups), len(complete))
 
 
 def summarize(
@@ -292,7 +307,7 @@ def summarize(
         failures=len(outcomes) - len(trials),
         complete_repeats=run.complete_repeats,
         scored_repeats=len(run.repeats),
-        metrics={key: _defined_spread([score[key] for score in scores]) for key in scores[0]},
+        metrics={key: _defined_spread([score[key] for score in scores]) for key in METRICS},
         overlap=mean_of_defined(overlaps(run.cards, picked).values()),
         core_overlap=mean_of_defined(overlaps(run.cards, picked_cores).values()),
         usage=dict(sorted(usage.items())),

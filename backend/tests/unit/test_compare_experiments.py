@@ -144,6 +144,25 @@ def test_an_occupation_only_one_run_has_is_left_out_of_the_values() -> None:
     assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0))
 
 
+def test_an_occupation_missing_from_a_scored_repeat_is_left_out_of_the_pairs() -> None:
+    everyone = (*OCCUPATIONS, "職業10", "職業11")
+    before = [
+        *(card(occupation, 1, ONLY_EXPECTED) for occupation in everyone[:-1]),
+        *(card(occupation, 2, ONLY_EXPECTED) for occupation in everyone[1:]),
+    ]
+    after = [
+        card(occupation, 1, (("科目A", EXPECTED), ("科目B", UNRELATED)))
+        if occupation in (everyone[0], everyone[-1])
+        else card(occupation, 1, ONLY_EXPECTED)
+        for occupation in everyone
+    ]
+
+    comparison = compared(before, after)
+
+    assert comparison.occupations == len(everyone) - 2
+    assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0))
+
+
 def test_the_overlap_between_repeats_is_compared_by_occupation() -> None:
     before = [
         card(occupation, repeat, ((name, EXPECTED),))

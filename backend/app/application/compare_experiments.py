@@ -1,11 +1,13 @@
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import partial
 from random import Random
 
 from app.application.run_experiment import (
+    METRICS,
     Ratio,
+    Scorecard,
     ScoredRun,
     mean_of_defined,
     overlaps,
@@ -20,8 +22,12 @@ SEED = 0
 CONFIDENCE = 0.95
 MIN_OCCUPATIONS = 10
 TOLERANCE = 1e-9
+OVERLAPS: dict[str, Callable[[Scorecard], set[str]]] = {
+    "overlap": picked,
+    "core_overlap": picked_cores,
+}
 
-Statistic = Callable[[Sequence[str]], float | None]
+Statistic = Callable[[Sequence[int]], float | None]
 
 
 @dataclass(frozen=True)
@@ -53,30 +59,33 @@ class Comparison:
     changes: dict[str, Change]
 
 
-def _pooled_mean(
-    key: str, repeats: Sequence[Mapping[str, Mapping[str, Ratio]]], chosen: Sequence[str]
-) -> float | None:
-    return mean_of_defined(
-        pooled([cells[occupation][key] for occupation in chosen if occupation in cells])
-        for cells in repeats
-    )
+def _pooled_mean(rows: Sequence[Sequence[Ratio]], chosen: Sequence[int]) -> float | None:
+    return mean_of_defined(pooled([row[index] for index in chosen]) for row in rows)
 
 
-def _overlap_mean(values: Mapping[str, float], chosen: Sequence[str]) -> float | None:
-    return mean_of_defined(values.get(occupation) for occupation in chosen)
+def _overlap_mean(values: Sequence[float | None], chosen: Sequence[int]) -> float | None:
+    return mean_of_defined(values[index] for index in chosen)
 
 
-def _statistics(run: ScoredRun) -> dict[str, Statistic]:
+def _statistics(run: ScoredRun, occupations: Sequence[str]) -> dict[str, Statistic]:
     per_repeat = [{card.occupation: ratios(card) for card in group} for group in run.repeats]
-    keys = {key for cells in per_repeat for entry in cells.values() for key in entry}
+    within = {key: overlaps(run.cards, names) for key, names in OVERLAPS.items()}
     return {
-        **{key: partial(_pooled_mean, key, per_repeat) for key in keys},
-        "overlap": partial(_overlap_mean, overlaps(run.cards, picked)),
-        "core_overlap": partial(_overlap_mean, overlaps(run.cards, picked_cores)),
+        **{
+            key: partial(
+                _pooled_mean,
+                [[cells[occupation][key] for occupation in occupations] for cells in per_repeat],
+            )
+            for key in METRICS
+        },
+        **{
+            key: partial(_overlap_mean, [values.get(occupation) for occupation in occupations])
+            for key, values in within.items()
+        },
     }
 
 
-def _interval(old: Statistic, new: Statistic, samples: Sequence[Sequence[str]]) -> Interval | None:
+def _interval(old: Statistic, new: Statistic, samples: Sequence[Sequence[int]]) -> Interval | None:
     differences = []
     for chosen in samples:
         before, after = old(chosen), new(chosen)
@@ -93,30 +102,25 @@ def _interval(old: Statistic, new: Statistic, samples: Sequence[Sequence[str]]) 
     )
 
 
-def _change(
-    old: Statistic, new: Statistic, occupations: Sequence[str], samples: Sequence[Sequence[str]]
-) -> Change:
-    before, after = old(occupations), new(occupations)
-    if before is None or after is None:
-        return Change(before, after, None)
-    return Change(before, after, _interval(old, new, samples))
-
-
 def compare_experiments(
     before: ScoredRun, after: ScoredRun, resamples: int = RESAMPLES, seed: int = SEED
 ) -> Comparison:
     occupations = sorted(before.occupations & after.occupations)
+    everyone = range(len(occupations))
     generator = Random(seed)
     samples = (
-        [generator.choices(occupations, k=len(occupations)) for _ in range(resamples)]
+        [generator.choices(everyone, k=len(occupations)) for _ in range(resamples)]
         if len(occupations) >= MIN_OCCUPATIONS
         else []
     )
-    old, new = _statistics(before), _statistics(after)
-    return Comparison(
-        len(occupations),
-        {
-            key: _change(old[key], new[key], occupations, samples)
-            for key in sorted(old.keys() & new.keys())
-        },
-    )
+    old, new = _statistics(before, occupations), _statistics(after, occupations)
+    changes = {}
+    for key in (*METRICS, *OVERLAPS):
+        old_value, new_value = old[key](everyone), new[key](everyone)
+        interval = (
+            None
+            if old_value is None or new_value is None
+            else _interval(old[key], new[key], samples)
+        )
+        changes[key] = Change(old_value, new_value, interval)
+    return Comparison(len(occupations), changes)

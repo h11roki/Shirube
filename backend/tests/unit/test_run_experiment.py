@@ -295,6 +295,20 @@ def test_a_repeat_cut_short_is_left_out_of_the_scores_but_not_of_the_cost() -> N
     assert summary.usage == {"gpt-5.4-nano": TokenUsage(900, 300, 150)}
 
 
+def test_the_overlap_also_leaves_out_a_repeat_cut_short() -> None:
+    full = [
+        trial(case, repeat, ("科目A",), (Pick("科目A", CORE, Judgment.EXPECTED),), 1.0)
+        for repeat in (1, 2)
+        for case in (CASE, OTHER)
+    ]
+    cut = trial(CASE, 3, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
+
+    summary = summarize([*full, cut], (CASE, OTHER))
+
+    assert summary is not None
+    assert (summary.overlap, summary.core_overlap) == (1.0, 1.0)
+
+
 def test_without_a_complete_repeat_the_scores_come_from_the_repeats_cut_short() -> None:
     cut = trial(CASE, 1, ("科目B",), (Pick("科目B", CORE, Judgment.UNRELATED),), 1.0)
 
