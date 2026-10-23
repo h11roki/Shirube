@@ -1,3 +1,4 @@
+import json
 from pathlib import Path
 
 import pytest
@@ -161,15 +162,36 @@ def write_judgments(tmp_path: Path, body: str) -> Path:
     return path
 
 
+def judged(name: str, decision: str | None = None, **labels: str) -> dict[str, object]:
+    course: dict[str, object] = {
+        "name": name,
+        "page": "10000",
+        "votes": {judge: {"label": label, "evidence": "根拠"} for judge, label in labels.items()},
+    }
+    if decision is not None:
+        course["decision"] = decision
+    return course
+
+
+def judgments_of(*courses: dict[str, object], year: int = 2026) -> str:
+    return json.dumps(
+        {
+            "year": year,
+            "department": "情",
+            "parts": [["科目A"], ["科目B"]],
+            "occupations": [{"name": "職業", "courses": list(courses)}],
+        },
+        ensure_ascii=False,
+    )
+
+
 def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> None:
     path = write_judgments(
         tmp_path,
-        '{"year": 2026, "department": "情", "parts": [["科目A"], ["科目B"]],'
-        ' "occupations": [{"name": "職業", "courses": ['
-        '{"name": "科目A", "votes": {"a": {"label": "core"}, "b": {"label": "core"}}},'
-        '{"name": "科目B", "votes": {"a": {"label": "core"}, "b": {"label": "foundation"}},'
-        ' "decision": "foundation"}'
-        "]}]}",
+        judgments_of(
+            judged("科目A", engineer="core", professor="core"),
+            judged("科目B", "foundation", engineer="core", professor="foundation"),
+        ),
     )
 
     assert load_judgments(path, DATASET) == Judgments(
@@ -184,31 +206,19 @@ def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> No
 @pytest.mark.parametrize(
     ("body", "message"),
     [
+        (judgments_of(year=2025), "年度と学科が評価データと違います"),
+        (judgments_of(judged("科目A"), judged("科目A")), "同じ科目の判定が 2 回あります"),
+        (judgments_of(judged("科目A", engineer="unrelated")), "is not a valid Relevance"),
+        (judgments_of(judged("科目A", "Core", engineer="core")), "is not a valid Relevance"),
         (
-            '{"year": 2025, "department": "情", "occupations": []}',
-            "年度と学科が評価データと違います",
+            judgments_of(judged("科目A", "foundation", engineer="core", professor="core")),
+            "決定は中心が 1 票だけの科目にだけ付けます",
         ),
         (
-            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
-            '{"name": "科目A", "votes": {}}, {"name": "科目A", "votes": {}}]}]}',
-            "同じ科目の判定が 2 回あります",
+            judgments_of(judged("科目A", engineer="core", professor="foundation")),
+            "中心が 1 票だけの科目に決定がありません",
         ),
-        (
-            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
-            '{"name": "科目A", "votes": {"a": {"label": "unrelated"}}}]}]}',
-            "is not a valid Relevance",
-        ),
-        (
-            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
-            '{"name": "科目A", "votes": {"a": {"label": "core"}}, "decision": "Core"}]}]}',
-            "is not a valid Relevance",
-        ),
-        (
-            '{"year": 2026, "department": "情", "occupations": [{"name": "職業", "courses": ['
-            '{"name": "科目A", "votes": {"a": {"label": "core"}, "b": {"label": "core"}},'
-            ' "decision": "foundation"}]}]}',
-            "決定は中心の票が 1 つだけの科目にだけ付けます",
-        ),
+        (judgments_of(judged("科目A", teacher="core")), "知らない判定者の票があります: teacher"),
     ],
     ids=[
         "other-year",
@@ -216,6 +226,8 @@ def test_judgments_are_loaded_from_the_votes_and_decisions(tmp_path: Path) -> No
         "unknown-label",
         "unknown-decision",
         "decision-without-a-split",
+        "split-without-a-decision",
+        "unknown-judge",
     ],
 )
 def test_judgments_for_another_year_or_with_wrong_entries_are_rejected(
