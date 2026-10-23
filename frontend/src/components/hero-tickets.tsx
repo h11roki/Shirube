@@ -61,7 +61,7 @@ export function HeroTickets() {
                       ] as const
                     ).map(([label, value]) => (
                       <div key={label}>
-                        <dt className="text-[0.59375rem] tracking-[0.14em] text-sub">
+                        <dt className="text-[0.6875rem] tracking-[0.14em] text-sub">
                           {label}
                         </dt>
                         <dd className="text-sm font-bold md:text-base">

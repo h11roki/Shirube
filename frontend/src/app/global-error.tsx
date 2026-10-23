@@ -3,7 +3,7 @@
 import Link from "next/link";
 
 import { Notice } from "@/components/notice";
-import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
+import { OUTLINE_BUTTON, STANDALONE_LINK } from "@/components/styles";
 import { gothic, mincho } from "@/lib/fonts";
 import { THEME_SCRIPT } from "@/lib/theme";
 
@@ -33,7 +33,7 @@ export default function GlobalError() {
               >
                 ページを読み直す
               </button>
-              <Link href="/" className={TEXT_LINK}>
+              <Link href="/" className={STANDALONE_LINK}>
                 トップへ
               </Link>
             </div>

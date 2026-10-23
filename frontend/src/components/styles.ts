@@ -1,7 +1,16 @@
 export const TEXT_LINK = "text-route underline underline-offset-4";
 
+const TARGET = "inline-flex min-h-6 items-center";
+
+export const STANDALONE_LINK = `${TARGET} ${TEXT_LINK}`;
+
+export const NAV_LINK = `${TARGET} hover:text-ink`;
+
 export const OUTLINE_BUTTON =
-  "rounded-full border border-line bg-sheet px-4 py-1.5 text-ink hover:border-ink";
+  "rounded-full border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
+
+export const SMALL_BUTTON =
+  "rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
 
 export const PHRASE_WRAP = "[overflow-wrap:anywhere] [word-break:auto-phrase]";
 

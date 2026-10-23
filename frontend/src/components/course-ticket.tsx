@@ -3,7 +3,12 @@
 import { useContext } from "react";
 
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { TEXT_LINK, TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
+import {
+  SMALL_BUTTON,
+  STANDALONE_LINK,
+  TICKET_NOTCH,
+  TICKET_STAMP,
+} from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
@@ -58,7 +63,7 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 scroll-mt-28 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
+      className={`relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
@@ -76,10 +81,12 @@ export function CourseTicket({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={syllabusLinkLabel(course.name)}
-            className={`justify-self-start text-xs ${TEXT_LINK}`}
+            className={`justify-self-start text-xs ${STANDALONE_LINK}`}
           >
-            シラバス
-            <span aria-hidden> ↗</span>
+            <span>
+              シラバス
+              <span aria-hidden> ↗</span>
+            </span>
           </a>
         )}
         {transfer && (
@@ -88,7 +95,7 @@ export function CourseTicket({
               <button
                 type="button"
                 onClick={() => focusing.follow(course.name, transfer)}
-                className="text-left underline underline-offset-4"
+                className="min-h-6 text-left underline underline-offset-4"
               >
                 {transferLabel(transfer)}
               </button>
@@ -107,7 +114,7 @@ export function CourseTicket({
               answering.answer(course.name, "mark");
             }}
             aria-label={markTakenLabel(course.name)}
-            className="mt-1 justify-self-start rounded-full border border-line bg-sheet px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+            className={`mt-1 justify-self-start bg-sheet ${SMALL_BUTTON}`}
           >
             もう取った
           </button>
@@ -118,22 +125,22 @@ export function CourseTicket({
           className={`relative grid w-[4.75rem] content-center gap-1.5 border-l-2 border-dashed border-line px-2 py-3 text-center tabular-nums ${TICKET_NOTCH}`}
         >
           <div>
-            <dt className="text-[9.5px] tracking-[0.14em] text-sub">コマ</dt>
+            <dt className="text-[11px] tracking-[0.14em] text-sub">コマ</dt>
             <dd className="text-sm font-bold">{slotsLabel(course)}</dd>
           </div>
           <div>
-            <dt className="text-[9.5px] tracking-[0.14em] text-sub">クラス</dt>
+            <dt className="text-[11px] tracking-[0.14em] text-sub">クラス</dt>
             <dd className="text-sm font-bold">
               {course.class_code === null ? "—" : classLabel(course.class_code)}
               {!course.class_confirmed && (
-                <span className="block text-[10px] font-medium text-pillar">
+                <span className="block text-[11px] font-medium text-pillar">
                   未確定
                 </span>
               )}
             </dd>
           </div>
           <div>
-            <dt className="text-[9.5px] tracking-[0.14em] text-sub">単位</dt>
+            <dt className="text-[11px] tracking-[0.14em] text-sub">単位</dt>
             <dd className="text-sm font-bold">{course.credits}</dd>
           </div>
         </dl>

@@ -22,7 +22,7 @@ const TERMS: Term[] = ["spring", "autumn"];
 const MAX_OCCUPATION_LENGTH = 100;
 
 const fieldClass =
-  "w-full rounded-md border border-line bg-paper px-3 py-2 text-ink focus:border-route focus:ring-2 focus:ring-route/20 focus:outline-none";
+  "w-full rounded-md border border-edge bg-paper px-3 py-2 text-ink";
 
 export function PlanForm() {
   const router = useRouter();
@@ -184,7 +184,7 @@ export function PlanForm() {
 
       {choices && choices.courses.length > 0 && (
         <details className="rounded-lg border border-line bg-paper p-4">
-          <summary className="cursor-pointer text-sm font-medium">
+          <summary className="cursor-pointer py-1 text-sm font-medium">
             学科でクラスが分かれている科目({choices.courses.length}
             科目、任意)
           </summary>

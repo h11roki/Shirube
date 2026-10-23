@@ -8,7 +8,11 @@ import { ConfirmButton } from "@/components/confirm-button";
 import { Notice } from "@/components/notice";
 import { PlanProgress } from "@/components/plan-progress";
 import { PlanResultView } from "@/components/plan-result";
-import { OUTLINE_BUTTON, TEXT_LINK } from "@/components/styles";
+import {
+  OUTLINE_BUTTON,
+  STANDALONE_LINK,
+  TEXT_LINK,
+} from "@/components/styles";
 import {
   ApiError,
   type Plan,
@@ -106,7 +110,7 @@ export function PlanView() {
     return (
       <Notice title="道標が見つかりません">
         <p>消した道標か、URL が違うかもしれません。</p>
-        <Link href="/plans" className={TEXT_LINK}>
+        <Link href="/plans" className={STANDALONE_LINK}>
           自分の道標へ
         </Link>
       </Notice>
@@ -136,7 +140,7 @@ export function PlanView() {
     body = (
       <Notice title="道標を作れませんでした">
         <p>{plan.failure}</p>
-        <Link href="/" className={TEXT_LINK}>
+        <Link href="/" className={STANDALONE_LINK}>
           もう一度作る
         </Link>
       </Notice>

@@ -63,7 +63,7 @@ export function ConfirmButton({
           setAsking(true);
           onOpen?.();
         }}
-        className="rounded-full border border-line px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
+        className="rounded-full border border-edge px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
       >
         {label}
       </button>

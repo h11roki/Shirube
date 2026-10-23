@@ -105,7 +105,11 @@ export function PlanList() {
 
   return (
     <div className="grid gap-10">
-      <p ref={notice} tabIndex={-1} className="text-sm text-sub empty:hidden">
+      <p
+        ref={notice}
+        tabIndex={-1}
+        className="justify-self-start text-sm text-sub empty:hidden"
+      >
         {deleted}
       </p>
       {error && (

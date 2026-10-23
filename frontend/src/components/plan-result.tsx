@@ -12,7 +12,7 @@ import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
-import { TEXT_LINK } from "@/components/styles";
+import { SMALL_BUTTON, STANDALONE_LINK } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { TimetableBook } from "@/components/timetable-book";
 import {
@@ -44,7 +44,12 @@ const TAKEN_METHODS: Record<TakenChange, string> = {
   unmark: "DELETE",
 };
 
-type Answered = { message: string; failed: boolean; undo: string | null };
+type Answered = {
+  message: string;
+  failed: boolean;
+  undo: string | null;
+  held: boolean;
+};
 
 export function PlanResultView({
   plan,
@@ -66,14 +71,17 @@ export function PlanResultView({
   const undo = answered?.undo ?? null;
 
   useEffect(() => {
-    if (!answered) {
+    if (!answered || answered.held) {
       return;
     }
     const timer = setTimeout(() => {
-      if (notice.current?.contains(document.activeElement)) {
-        notice.current.focus({ preventScroll: true });
-      }
-      setAnswered(undefined);
+      const box = notice.current;
+      const active = document.activeElement;
+      const keyboardInside =
+        box !== null &&
+        box.contains(active) &&
+        (active !== box || box.matches(":focus-visible"));
+      setAnswered(keyboardInside ? { ...answered, held: true } : undefined);
     }, ANSWERED_MS);
     return () => clearTimeout(timer);
   }, [answered]);
@@ -90,6 +98,7 @@ export function PlanResultView({
   }
 
   async function answer(name: string, change: TakenChange) {
+    const held = document.activeElement?.matches(":focus-visible") ?? false;
     setBusy(true);
     try {
       onAnswered(
@@ -102,12 +111,14 @@ export function PlanResultView({
         message: answeredLabel(name, change),
         failed: false,
         undo: change === "mark" ? name : null,
+        held,
       });
     } catch (caught) {
       setAnswered({
         message: failedAnswerLabel(messageOf(caught), await reloadFailure()),
         failed: true,
         undo: null,
+        held,
       });
     } finally {
       setBusy(false);
@@ -166,7 +177,7 @@ export function PlanResultView({
         >
           <nav
             aria-label="見え方"
-            className="inline-flex rounded-full border border-line bg-sheet p-0.5 text-sm"
+            className="inline-flex gap-1 rounded-full border border-edge bg-sheet p-0.5 text-sm"
           >
             {VIEWS.map((each) => (
               <QueryLink
@@ -231,7 +242,7 @@ export function PlanResultView({
                     disabled={busy}
                     onClick={() => void answer(course.name, "unmark")}
                     aria-label={unmarkTakenLabel(course.name)}
-                    className="rounded-full border border-line px-3 py-0.5 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50"
+                    className={SMALL_BUTTON}
                   >
                     戻す
                   </button>
@@ -275,7 +286,7 @@ export function PlanResultView({
 
         <SourceNote year={conditions.year} />
         <p>
-          <Link href="/" className={`text-sm ${TEXT_LINK}`}>
+          <Link href="/" className={`text-sm ${STANDALONE_LINK}`}>
             別の職業で作る
           </Link>
         </p>
@@ -284,11 +295,19 @@ export function PlanResultView({
         ref={notice}
         role="status"
         tabIndex={-1}
-        className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4"
+        onBlur={(event) => {
+          if (
+            document.hasFocus() &&
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            setAnswered(undefined);
+          }
+        }}
+        className="group pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4 outline-none"
       >
         {answered && (
           <p
-            className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
+            className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
           >
             {answered.message}
             {undo && (
@@ -296,7 +315,7 @@ export function PlanResultView({
                 type="button"
                 disabled={busy}
                 onClick={() => void answer(undo, "unmark")}
-                className={TEXT_LINK}
+                className={STANDALONE_LINK}
               >
                 戻す
               </button>

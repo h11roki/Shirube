@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signIn } from "@/auth";
-import { TEXT_LINK } from "@/components/styles";
+import { NAV_LINK, TEXT_LINK } from "@/components/styles";
 import { currentSession } from "@/lib/session";
 import { signOutToTop } from "@/lib/sign-out";
 
@@ -9,7 +9,7 @@ export async function Account() {
   const session = await currentSession();
   if (!session?.googleSubject) {
     return (
-      <Link href="/login" className="hover:text-ink">
+      <Link href="/login" className={NAV_LINK}>
         ログイン
       </Link>
     );
@@ -19,7 +19,7 @@ export async function Account() {
       <span className="hidden sm:inline">
         {session.user?.name ?? "Google のアカウント"}
       </span>
-      <button type="submit" className="hover:text-ink">
+      <button type="submit" className={NAV_LINK}>
         ログアウト
       </button>
     </form>

@@ -7,6 +7,7 @@
   --ink: #2a2520;
   --sub: #6b6257;
   --line: #d8cfbe;
+  --edge: #8c8173;
   --grid: rgb(47 88 116 / 0.05);
   --pillar: #b23d27;
   --pillar-soft: #f6dfd6;
@@ -27,6 +28,7 @@
   --ink: #ede6d8;
   --sub: #a99f90;
   --line: #3d3730;
+  --edge: #80766a;
   --grid: rgb(134 175 204 / 0.04);
   --pillar: #e2775d;
   --pillar-soft: #4a2b23;
@@ -53,6 +55,7 @@
   --color-ink: var(--ink);
   --color-sub: var(--sub);
   --color-line: var(--line);
+  --color-edge: var(--edge);
   --color-pillar: var(--pillar);
   --color-pillar-soft: var(--pillar-soft);
   --color-route: var(--route);
@@ -167,6 +170,11 @@
 }
 
 @layer base {
+  :focus-visible {
+    outline: 2px solid var(--route);
+    outline-offset: 2px;
+  }
+
   body {
     background-color: var(--paper);
     background-image:

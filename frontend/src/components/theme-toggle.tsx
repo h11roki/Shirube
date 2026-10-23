@@ -40,11 +40,11 @@ export function ThemeToggle() {
       type="button"
       aria-pressed={dark}
       onClick={toggle}
-      className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 flex items-center gap-2 rounded-full border border-line bg-sheet/90 py-1.5 pr-3.5 pl-2 text-xs text-sub shadow-paper backdrop-blur hover:text-ink"
+      className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 flex items-center gap-2 rounded-full border border-edge bg-sheet/90 py-1.5 pr-3.5 pl-2 text-xs text-sub shadow-paper backdrop-blur hover:text-ink"
     >
       <span
         aria-hidden
-        className={`relative h-4 w-7 rounded-full transition-colors ${dark ? "bg-route" : "bg-line"}`}
+        className={`relative h-4 w-7 rounded-full transition-colors ${dark ? "bg-route" : "bg-edge"}`}
       >
         <span
           className={`absolute top-0.5 left-0.5 size-3 rounded-full bg-paper transition-transform ${dark ? "translate-x-3" : ""}`}

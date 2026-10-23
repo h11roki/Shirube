@@ -14,7 +14,7 @@ import { CourseGrid } from "@/components/course-grid";
 import { revealTicket } from "@/components/course-ticket";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
-import { TEXT_LINK } from "@/components/styles";
+import { STANDALONE_LINK } from "@/components/styles";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -140,7 +140,9 @@ export function RouteMap({
             onPick={pick}
           />
         )}
-        <ol className="relative grid gap-9 pl-12">
+        <ol
+          className={`relative grid gap-9 pl-12 ${withStrip ? "**:scroll-mt-28" : ""}`}
+        >
           {visible.map((semester, index) => (
             <Station
               key={semesterKey(semester)}
@@ -155,7 +157,7 @@ export function RouteMap({
           <li
             data-station
             style={{ animationDelay: `${arrive}ms` }}
-            className="relative min-w-0 scroll-mt-28 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
+            className="relative min-w-0 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             <div className="grid min-h-24 content-center gap-1">
               <h2 className="font-serif text-2xl font-bold">
@@ -204,7 +206,7 @@ function RouteStrip({
     <nav
       ref={strip}
       aria-label="路線図"
-      className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-4 py-2 shadow-paper backdrop-blur"
+      className="sticky top-2 z-20 scroll-px-6 overflow-x-auto rounded-full border border-line bg-sheet/90 px-6 py-2 shadow-paper backdrop-blur"
     >
       <ol className="flex w-max min-w-full items-start justify-between">
         {stops.map((stop, index) => {
@@ -225,7 +227,7 @@ function RouteStrip({
                   <span className="font-bold tabular-nums">{stop.station}</span>
                 )}
                 <span
-                  className={`${goal ? "max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
+                  className={`${goal ? "line-clamp-2 max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
                 >
                   {stop.name}
                 </span>
@@ -272,7 +274,7 @@ function Station({
           "--line-delay": `${delayMs + LINE_DELAY_MS}ms`,
         } as CSSProperties
       }
-      className={`relative grid min-w-0 scroll-mt-28 gap-3 before:absolute before:top-7 before:-left-[39px] before:z-[1] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper after:absolute ${index === 0 ? "after:top-9" : "after:top-0"} after:-bottom-9 after:-left-[32px] after:w-1 after:origin-top after:bg-route motion-safe:animate-rise motion-safe:after:animate-draw motion-safe:after:[animation-delay:var(--line-delay)]`}
+      className={`relative grid min-w-0 gap-3 before:absolute before:top-7 before:-left-[39px] before:z-[1] before:size-[18px] before:rounded-full before:border-4 before:border-route before:bg-paper after:absolute ${index === 0 ? "after:top-9" : "after:top-0"} after:-bottom-9 after:-left-[32px] after:w-1 after:origin-top after:bg-route motion-safe:animate-rise motion-safe:after:animate-draw motion-safe:after:[animation-delay:var(--line-delay)]`}
     >
       <StationBoard
         index={index}
@@ -307,7 +309,7 @@ function Station({
             aria-expanded={open}
             aria-controls={weekId}
             onClick={() => setOpen(!open)}
-            className={TEXT_LINK}
+            className={STANDALONE_LINK}
           >
             {open ? "この学期の時間割を閉じる ▴" : "この学期の時間割を開く ▾"}
           </button>
@@ -321,7 +323,7 @@ function Station({
               onNavigate={() =>
                 document.getElementById(VIEWS_ANCHOR)?.scrollIntoView()
               }
-              className={TEXT_LINK}
+              className={STANDALONE_LINK}
             >
               時間割帳で見る →
             </QueryLink>
