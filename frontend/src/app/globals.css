@@ -170,14 +170,6 @@
 }
 
 @layer base {
-  html {
-    scroll-padding-bottom: 5rem;
-  }
-
-  html:has([data-sticky-band]) {
-    scroll-padding-top: 7rem;
-  }
-
   :focus-visible {
     outline: 2px solid var(--route);
     outline-offset: 2px;

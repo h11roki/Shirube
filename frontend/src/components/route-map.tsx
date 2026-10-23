@@ -140,7 +140,9 @@ export function RouteMap({
             onPick={pick}
           />
         )}
-        <ol className="relative grid gap-9 pl-12">
+        <ol
+          className={`relative grid gap-9 pl-12 ${withStrip ? "**:scroll-mt-28" : ""}`}
+        >
           {visible.map((semester, index) => (
             <Station
               key={semesterKey(semester)}
@@ -204,7 +206,6 @@ function RouteStrip({
     <nav
       ref={strip}
       aria-label="路線図"
-      data-sticky-band
       className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-4 py-2 shadow-paper backdrop-blur"
     >
       <ol className="flex w-max min-w-full items-start justify-between">
