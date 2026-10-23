@@ -1,8 +1,10 @@
 export const TEXT_LINK = "text-route underline underline-offset-4";
 
-export const STANDALONE_LINK = `inline-flex min-h-6 items-center ${TEXT_LINK}`;
+const TARGET = "inline-flex min-h-6 items-center";
 
-export const NAV_LINK = "inline-flex min-h-6 items-center hover:text-ink";
+export const STANDALONE_LINK = `${TARGET} ${TEXT_LINK}`;
+
+export const NAV_LINK = `${TARGET} hover:text-ink`;
 
 export const OUTLINE_BUTTON =
   "rounded-full border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
