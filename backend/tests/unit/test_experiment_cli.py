@@ -235,6 +235,23 @@ def test_collect_stops_after_three_failures_in_a_row() -> None:
     assert (collection.stopped, collection.over_budget) == ("推薦が 3 回続けて失敗した", False)
 
 
+def test_collect_counts_failures_in_a_row_for_each_side_of_a_pair() -> None:
+    pairs: list[tuple[Side | None, Trial | FailedTrial]] = [
+        (Side.BEFORE, succeeded(1)),
+        (Side.AFTER, failed(1)),
+        (Side.AFTER, failed(1)),
+        (Side.BEFORE, succeeded(1)),
+        (Side.BEFORE, succeeded(2)),
+        (Side.AFTER, failed(2)),
+        (Side.AFTER, succeeded(2)),
+    ]
+
+    collection = collect(iter(pairs), 8, 1000, dict, unit=2)
+
+    assert len(collection.outcomes) == 6
+    assert collection.stopped == "後の推薦が 3 回続けて失敗した"
+
+
 def test_collect_stops_when_a_model_without_a_price_answered() -> None:
     paid = Paid([FailedTrial("職業", 1, "失敗", {"other-model": TokenUsage(1, 0, 1)})])
 
@@ -429,6 +446,7 @@ def document(summary: dict[str, Any] | None) -> dict[str, Any]:
             "candidate_limit": 30,
         },
         "summary": summary,
+        "trials": [{"occupation": "職業", "repeat": 1, "failure": "失敗"}],
     }
 
 
@@ -458,6 +476,12 @@ def test_a_run_whose_recommendations_all_failed_is_shown_without_scores() -> Non
     lines = render(document(None)).splitlines()
 
     assert lines[1:] == ["  使った費用 24.0 円", "  推薦が全て失敗したので集計していない"]
+
+
+def test_a_side_stopped_before_it_ran_anything_says_so() -> None:
+    lines = render(document(None) | {"trials": []}).splitlines()
+
+    assert lines[-1] == "  この側の推薦を流す前に止まったので集計していない"
 
 
 def test_one_side_of_a_pair_shows_its_own_cost_beside_the_cost_of_the_pair() -> None:
@@ -492,7 +516,7 @@ def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
     unknown = Change(None, None, None, None)
     return Comparison(
         occupations,
-        (1, 2, 3),
+        (3, 3),
         {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
     )
 
@@ -567,13 +591,16 @@ def test_compare_gives_no_interval_or_verdict_for_fewer_occupations_than_were_ch
 @pytest.mark.parametrize(
     ("repeats", "note"),
     [
-        ((1, 3), "  両方で採点した回(1、3 回目)だけで比べる"),
-        ((), "  両方で採点した回が無いので比べられない"),
+        ((2, 2), "  前と後の両方で採点した 2 回だけで比べる"),
+        (
+            (3, 1),
+            "  採点した回の数が違う(3 回と 1 回)ので、重なり以外は前と後を入れ替えられず判定なし",
+        ),
     ],
-    ids=["some", "none"],
+    ids=["aligned-pair", "different-counts"],
 )
-def test_compare_says_which_repeats_both_runs_scored_when_they_differ(
-    repeats: tuple[int, ...], note: str
+def test_compare_says_when_the_repeats_it_compares_differ_from_the_runs(
+    repeats: tuple[int, int], note: str
 ) -> None:
     comparison = Comparison(10, repeats, NOTHING_MEASURED.changes)
 
@@ -724,18 +751,22 @@ def picking(occupation: str, unrelated: int) -> Trial:
     )
 
 
-def saved_run(directory: Path, name: str, unrelated: Sequence[int]) -> Path:
+def saved_run(
+    directory: Path, name: str, unrelated: Sequence[int], repeat: int = 1, **extra: Any
+) -> Path:
     cases = tuple(EvaluationCase(f"職業{index}", ("甲",), ("科目A",)) for index in range(10))
     outcomes: list[Trial | FailedTrial] = [
-        picking(case.occupation, count) for case, count in zip(cases, unrelated, strict=True)
+        replace(picking(case.occupation, count), repeat=repeat)
+        for case, count in zip(cases, unrelated, strict=True)
     ]
-    outcomes.append(FailedTrial("職業0", 2, "失敗", THIRTY_YEN))
+    outcomes.append(FailedTrial("職業0", repeat + 1, "失敗", THIRTY_YEN))
     summary = summarize(outcomes, cases)
     assert summary is not None
-    written = document(summary_document(summary)) | {
-        "label": name,
-        "trials": [trial_document(outcome) for outcome in outcomes],
-    }
+    written = (
+        document(summary_document(summary))
+        | {"label": name, "trials": [trial_document(outcome) for outcome in outcomes]}
+        | extra
+    )
     path = directory / f"{name}.json"
     path.write_text(json.dumps(written, ensure_ascii=False), encoding="utf-8")
     return path
@@ -760,6 +791,17 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
         "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント"
         "(区間 +0.0〜+0.0、p = 1.000)、はっきりしない"
     ) in lines
+
+
+def test_compare_refuses_the_two_sides_of_a_pair_that_share_no_scored_repeat(
+    tmp_path: Path,
+) -> None:
+    pair = {"label": "votes", "partner": "other.json"}
+    before = saved_run(tmp_path, "votes-before", (0,) * 10, pair=pair | {"side": "before"})
+    after = saved_run(tmp_path, "votes-after", (0,) * 10, repeat=2, pair=pair | {"side": "after"})
+
+    with pytest.raises(SystemExit, match="前と後の両方で採点した回が無い"):
+        main(["compare", str(before), str(after)])
 
 
 @pytest.mark.parametrize(

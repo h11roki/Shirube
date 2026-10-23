@@ -7,6 +7,7 @@ from app.application.compare_experiments import (
     Change,
     Comparison,
     Interval,
+    aligned,
     compare_experiments,
 )
 from app.application.evaluate_selection import ExpectedCourse, Judgment, Pick, SelectionResult
@@ -60,7 +61,7 @@ def test_the_same_results_differ_by_nothing() -> None:
     comparison = compared(cards, cards)
 
     assert comparison.occupations == MIN_OCCUPATIONS
-    assert comparison.repeats == (1,)
+    assert comparison.repeats == (1, 1)
     assert comparison.changes.keys() == METRICS | {"overlap", "core_overlap"}
     measured = {key: change for key, change in comparison.changes.items() if key in METRICS}
     assert {
@@ -145,21 +146,53 @@ def test_the_values_average_the_repeats_like_the_summary() -> None:
     assert unrelated.after == 0.0
 
 
-def test_only_the_repeats_both_runs_scored_are_compared() -> None:
+def test_runs_over_different_numbers_of_repeats_get_an_interval_but_no_test() -> None:
+    before = [
+        card(occupation, repeat, WITH_UNRELATED) for repeat in (1, 2) for occupation in OCCUPATIONS
+    ]
+    after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
+
+    comparison = compared(before, after)
+
+    unrelated = comparison.changes["unrelated"]
+    assert comparison.repeats == (2, 1)
+    assert unrelated.interval == Interval(-0.5, -0.5)
+    assert unrelated.p_value is None
+    assert not unrelated.clear
+
+
+def test_aligning_keeps_only_the_repeats_both_runs_scored_and_then_tests_them() -> None:
     before = [
         card(occupation, 1, WITH_UNRELATED if index < 5 else ONLY_EXPECTED)
         for index, occupation in enumerate(OCCUPATIONS)
     ] + [card(occupation, 2, WITH_UNRELATED) for occupation in OCCUPATIONS]
     after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
 
-    comparison = compared(before, after)
+    old, new = aligned(scored_run(before, MIN_OCCUPATIONS), scored_run(after, MIN_OCCUPATIONS))
+    comparison = compare_experiments(old, new, resamples=1_000, shuffles=1_000)
 
+    assert [group[0].repeat for group in old.repeats] == [1]
+    assert (old.complete_repeats, new.complete_repeats) == (1, 1)
     unrelated = comparison.changes["unrelated"]
-    assert comparison.repeats == (1,)
+    assert comparison.repeats == (1, 1)
     assert unrelated.before == pytest.approx(5 / 15)
     assert unrelated.after == 0.0
     assert unrelated.p_value == pytest.approx(2 / 32, abs=0.03)
     assert not unrelated.clear
+
+
+def test_aligning_a_run_without_a_complete_repeat_keeps_none_counted_complete() -> None:
+    before = [
+        card(occupation, repeat, ONLY_EXPECTED)
+        for repeat in (1, 2)
+        for occupation in OCCUPATIONS[1:]
+    ]
+    after = [card(occupation, 2, ONLY_EXPECTED) for occupation in OCCUPATIONS]
+
+    old, new = aligned(scored_run(before, MIN_OCCUPATIONS), scored_run(after, MIN_OCCUPATIONS))
+
+    assert [group[0].repeat for group in old.repeats] == [2]
+    assert (old.complete_repeats, new.complete_repeats) == (0, 1)
 
 
 def test_the_p_value_does_not_depend_on_how_many_times_the_interval_resamples() -> None:
@@ -213,7 +246,7 @@ def test_an_occupation_missing_from_a_scored_repeat_is_left_out_of_the_pairs() -
 
     comparison = compared(before, after)
 
-    assert comparison.repeats == (1, 2)
+    assert comparison.repeats == (2, 2)
     assert comparison.occupations == len(everyone) - 2
     assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0), 1.0)
 

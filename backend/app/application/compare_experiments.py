@@ -57,7 +57,7 @@ class Change:
 @dataclass(frozen=True)
 class Comparison:
     occupations: int
-    repeats: tuple[int, ...]
+    repeats: tuple[int, int]
     changes: dict[str, Change]
 
 
@@ -109,7 +109,7 @@ def _mixed(keep: Rows, take: Rows, swap: Sequence[bool]) -> Rows:
 def _p_value(
     old: Rows, new: Rows, swaps: Sequence[Sequence[bool]], observed: float
 ) -> float | None:
-    if not swaps:
+    if len(old) != len(new) or not swaps:
         return None
     everyone = range(len(swaps[0]))
     extreme = 0
@@ -124,9 +124,15 @@ def _p_value(
 
 
 def _within(run: ScoredRun, repeats: Set[int]) -> ScoredRun:
-    return ScoredRun(
-        tuple(group for group in run.repeats if group[0].repeat in repeats), run.complete_repeats
-    )
+    kept = tuple(group for group in run.repeats if group[0].repeat in repeats)
+    return ScoredRun(kept, len(kept) if run.complete_repeats else 0)
+
+
+def aligned(before: ScoredRun, after: ScoredRun) -> tuple[ScoredRun, ScoredRun]:
+    shared = {group[0].repeat for group in before.repeats} & {
+        group[0].repeat for group in after.repeats
+    }
+    return _within(before, shared), _within(after, shared)
 
 
 def compare_experiments(
@@ -136,11 +142,7 @@ def compare_experiments(
     shuffles: int = SHUFFLES,
     seed: int = SEED,
 ) -> Comparison:
-    repeats = {group[0].repeat for group in before.repeats} & {
-        group[0].repeat for group in after.repeats
-    }
-    old_run, new_run = _within(before, repeats), _within(after, repeats)
-    occupations = sorted(old_run.occupations & new_run.occupations)
+    occupations = sorted(before.occupations & after.occupations)
     everyone = range(len(occupations))
     enough = len(occupations) >= MIN_OCCUPATIONS
     resampler, shuffler = Random(seed), Random(f"{seed} shuffles")
@@ -150,7 +152,7 @@ def compare_experiments(
         else []
     )
     swaps = [[shuffler.random() < 0.5 for _ in everyone] for _ in range(shuffles)] if enough else []
-    old, new = _rows(old_run, occupations), _rows(new_run, occupations)
+    old, new = _rows(before, occupations), _rows(after, occupations)
     changes = {}
     for key in (*METRICS, *OVERLAPS):
         old_value, new_value = _measure(old[key], everyone), _measure(new[key], everyone)
@@ -163,4 +165,4 @@ def compare_experiments(
             _interval(old[key], new[key], samples),
             _p_value(old[key], new[key], swaps, new_value - old_value),
         )
-    return Comparison(len(occupations), tuple(sorted(repeats)), changes)
+    return Comparison(len(occupations), (len(before.repeats), len(after.repeats)), changes)

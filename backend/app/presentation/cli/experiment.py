@@ -7,6 +7,7 @@ import signal
 import subprocess
 import sys
 import traceback
+from collections import Counter
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -25,6 +26,7 @@ from app.application.compare_experiments import (
     TOLERANCE,
     Change,
     Comparison,
+    aligned,
     compare_experiments,
 )
 from app.application.evaluate_search import (
@@ -191,11 +193,11 @@ def collect(
     unit: int = 1,
 ) -> Collection:
     collected: list[tuple[Side | None, Trial | FailedTrial]] = []
-    streak = 0
+    streaks: Counter[Side | None] = Counter()
     try:
         for side, outcome in outcomes:
             collected.append((side, outcome))
-            streak = streak + 1 if isinstance(outcome, FailedTrial) else 0
+            streaks[side] = streaks[side] + 1 if isinstance(outcome, FailedTrial) else 0
             usage = spent()
             detail = (
                 f"{outcome.seconds.total:.1f} 秒"
@@ -212,8 +214,11 @@ def collect(
                 return Collection(
                     collected, f"料金表に無いモデルが答えた: {'、'.join(missing)}", False
                 )
-            if streak >= FAILURE_STREAK_LIMIT:
-                return Collection(collected, f"推薦が {streak} 回続けて失敗した", False)
+            if streaks[side] >= FAILURE_STREAK_LIMIT:
+                whose = "" if side is None else f"{SIDE_NAMES[side]}の"
+                return Collection(
+                    collected, f"{whose}推薦が {streaks[side]} 回続けて失敗した", False
+                )
             if yen(usage) >= budget and len(collected) < total and len(collected) % unit == 0:
                 return Collection(collected, f"費用の上限 {budget:g} 円に達した", True)
     except EvaluationError as error:
@@ -376,7 +381,11 @@ def render(document: Mapping[str, Any]) -> str:
     else:
         lines.append(f"  使った費用 {document['spent_yen']:.1f} 円")
     if summary is None:
-        lines.append("  推薦が全て失敗したので集計していない")
+        lines.append(
+            "  推薦が全て失敗したので集計していない"
+            if document["trials"]
+            else "  この側の推薦を流す前に止まったので集計していない"
+        )
         return "\n".join(lines)
     lines.append(f"  {_counts(summary)}")
     lines += [f"  {name} {_format(kind, summary.get(key))}" for key, name, kind in METRICS]
@@ -473,22 +482,24 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
             f"  両方にそろった {comparison.occupations} 職業で比べる。{MIN_OCCUPATIONS} 職業に"
             "満たないので区間と判定は出さない"
         )
+    old_repeats, new_repeats = comparison.repeats
     measured = [change for change in comparison.changes.values() if change.difference is not None]
     if comparison.occupations >= MIN_OCCUPATIONS:
         if any(change.interval is None for change in measured):
             lines.append("  区間なしの指標は、職業を選び直すと割合を出せない組がある")
-        if any(change.p_value is None for change in measured):
+        if old_repeats != new_repeats:
+            lines.append(
+                f"  採点した回の数が違う({old_repeats} 回と {new_repeats} 回)ので、"
+                "重なり以外は前と後を入れ替えられず判定なし"
+            )
+        elif any(change.p_value is None for change in measured):
             lines.append("  判定なしの指標は、前と後を入れ替えると割合を出せない組がある")
-    narrowed = any(
-        run["summary"]["scored_repeats"] != len(comparison.repeats) for run in (before, after)
+    narrowed = (old_repeats, new_repeats) != (
+        before["summary"]["scored_repeats"],
+        after["summary"]["scored_repeats"],
     )
     if narrowed:
-        numbers = "、".join(str(number) for number in comparison.repeats)
-        lines.append(
-            f"  両方で採点した回({numbers} 回目)だけで比べる"
-            if comparison.repeats
-            else "  両方で採点した回が無いので比べられない"
-        )
+        lines.append(f"  前と後の両方で採点した {old_repeats} 回だけで比べる")
     if narrowed or any(
         run["config"]["occupations"] != comparison.occupations for run in (before, after)
     ):
@@ -746,10 +757,10 @@ def _pair(args: argparse.Namespace) -> None:
         meter,
         engine,
     )
-    if not all(collection.of(side) for side in Side):
+    if not collection.outcomes:
         for path in paths.values():
             path.unlink()
-        sys.exit(f"前と後の両方に推薦がそろう前に止まった: {collection.stopped}")
+        sys.exit(f"推薦を 1 回も流せませんでした: {collection.stopped}")
     try:
         documents = pair_documents(
             args.label,
@@ -792,6 +803,10 @@ def _compare(args: argparse.Namespace) -> None:
         )
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"実験の結果の推薦を読めません: {error!r}")
+    if ran_interleaved(before, after):
+        old_run, new_run = aligned(old_run, new_run)
+        if not old_run.repeats:
+            sys.exit("交互に流した組の前と後の両方で採点した回が無いので比べられません")
     print(compare(before, after, compare_experiments(old_run, new_run)))
 
 
