@@ -72,7 +72,7 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 flowchart LR
   J[職業名] -->|gpt-5.4-mini| R[読み取り<br/>解釈とスキル]
   R -->|text-embedding-3-small<br/>pgvector| S[シラバスの節を検索<br/>上位 30 科目]
-  S -->|gpt-5.4-nano| C[中心と土台を<br/>理由つきで選ぶ]
+  S -->|gpt-5.4-nano × 3 回の多数決| C[中心と土台を<br/>理由つきで選ぶ]
   C --> T[学期ごとの<br/>時間割に並べる]
 ```
 
@@ -80,7 +80,7 @@ flowchart LR
 
 基準(2026-10-23、commit 7c4feb5、10 職業 × 3 回の平均 ± 標本標準偏差。`backend/eval/runs/20261023-104015-baseline.json` と `20261023-104147-baseline-handwritten.json`)
 
-| 指標 | 通し(本番と同じ) | 読み取りを手書きのスキルに固定 |
+| 指標 | 通し(選び直し 1 回) | 読み取りを手書きのスキルに固定 |
 |---|---|---|
 | 検索の再現率 @10 / @20 | 84% ± 6 / 96% ± 2 | 93% ± 0 / 100% ± 0 |
 | 選び直しに渡した候補(30 件)の再現率 | 100% | 100% |
@@ -92,7 +92,7 @@ flowchart LR
 
 検索は期待する科目を全て候補に入れていて、誤りと揺れは選び直しの段で起きる。LLM の職業の読み取りの揺れがそれを広げている(関係なし 14% → 23%、重なり 0.65 → 0.45)。精度を上げる手は、この基準と `experiment compare` で比べて選ぶ。
 
-改善: 選び直しを 3 回並べて呼び、過半数が選んだ科目だけを残す(ADR 0049、`SELECTION_VOTES=3`。2026-10-23、commit d1e8dce、`backend/eval/runs/20261023-125956-votes-3.json`)
+改善: 選び直しを 3 回並べて呼び、過半数が選んだ科目だけを残す(ADR 0049、`SELECTION_VOTES=3` を本番の既定にした。2026-10-23、commit d1e8dce、`backend/eval/runs/20261023-125956-votes-3.json`)
 
 | 指標 | 基準(通し) | 多数決 3 回 | 差 |
 |---|---|---|---|
