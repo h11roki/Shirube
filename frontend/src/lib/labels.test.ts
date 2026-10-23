@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PlacedCourse } from "@/lib/api/client";
+import type { PlacedCourse, Plan } from "@/lib/api/client";
 import {
   classLabel,
   roleLabel,
@@ -25,6 +25,11 @@ import {
   planTabTitle,
   completionNotice,
 } from "@/lib/labels";
+import { SAMPLE_PLAN } from "@/lib/sample-plan";
+
+function inState(status: Plan["status"]): Plan {
+  return { ...SAMPLE_PLAN, status, result: null };
+}
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
   return {
@@ -154,23 +159,35 @@ describe("labels", () => {
     );
   });
 
-  it("titles the tab while the plan is made, when it is done and when it failed", () => {
-    expect(planTabTitle("pending", false)).toBe("作成中: 道標 | shirube");
-    expect(planTabTitle("running", true)).toBe("作成中: 道標 | shirube");
-    expect(planTabTitle("succeeded", true)).toBe("できました: 道標 | shirube");
-    expect(planTabTitle("failed", false)).toBe(
+  it("puts the state of the plan in front of the title the page opened with", () => {
+    const base = "道標 | shirube";
+
+    expect(planTabTitle(base, inState("pending"), false)).toBe(
+      "作成中: 道標 | shirube",
+    );
+    expect(planTabTitle(base, inState("running"), true)).toBe(
+      "作成中: 道標 | shirube",
+    );
+    expect(planTabTitle(base, SAMPLE_PLAN, true)).toBe(
+      "できました: 道標 | shirube",
+    );
+    expect(planTabTitle(base, inState("failed"), false)).toBe(
       "作れませんでした: 道標 | shirube",
     );
   });
 
-  it("keeps the plain tab title for a plan that was already done when opened", () => {
-    expect(planTabTitle("succeeded", false)).toBe("道標 | shirube");
+  it("keeps the title the page opened with for a plan done before it was opened or done without a result", () => {
+    const base = "道標 | shirube";
+
+    expect(planTabTitle(base, SAMPLE_PLAN, false)).toBe(base);
+    expect(planTabTitle(base, inState("succeeded"), true)).toBe(base);
   });
 
-  it("announces completion only after the plan was seen in progress", () => {
-    expect(completionNotice("succeeded", true)).toBe("道標ができました");
-    expect(completionNotice("succeeded", false)).toBe("");
-    expect(completionNotice("running", true)).toBe("");
-    expect(completionNotice("failed", true)).toBe("");
+  it("announces completion only for a result that came after the plan was seen in progress", () => {
+    expect(completionNotice(SAMPLE_PLAN, true)).toBe("道標ができました");
+    expect(completionNotice(SAMPLE_PLAN, false)).toBe("");
+    expect(completionNotice(inState("succeeded"), true)).toBe("");
+    expect(completionNotice(inState("running"), true)).toBe("");
+    expect(completionNotice(inState("failed"), true)).toBe("");
   });
 });

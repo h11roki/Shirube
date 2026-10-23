@@ -46,7 +46,7 @@ export function PlanView() {
   const [round, setRound] = useState(0);
   const [sawProgress, setSawProgress] = useState(false);
   const deleted = useRef(false);
-  const status = plan?.status;
+  const baseTitle = useRef<string>(undefined);
 
   useEffect(() => {
     let active = true;
@@ -108,10 +108,19 @@ export function PlanView() {
   }, [id, round]);
 
   useEffect(() => {
-    if (status) {
-      document.title = planTabTitle(status, sawProgress);
+    if (!plan || error) {
+      return;
     }
-  }, [status, sawProgress]);
+    baseTitle.current ??= document.title;
+    const base = baseTitle.current;
+    const title = planTabTitle(base, plan, sawProgress);
+    document.title = title;
+    return () => {
+      if (document.title === title) {
+        document.title = base;
+      }
+    };
+  }, [plan, error, sawProgress]);
 
   function retry() {
     setError(undefined);
@@ -182,7 +191,7 @@ export function PlanView() {
   return (
     <div className="grid gap-6">
       <p role="status" className="sr-only">
-        {completionNotice(plan.status, sawProgress)}
+        {completionNotice(plan, sawProgress)}
       </p>
       {body}
       <div
