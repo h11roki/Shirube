@@ -1,5 +1,5 @@
 from collections import defaultdict
-from collections.abc import Callable, Iterator, Sequence
+from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 from itertools import combinations
 from statistics import mean, stdev
@@ -45,6 +45,14 @@ class StageSeconds:
 
 
 @dataclass(frozen=True)
+class Scorecard:
+    occupation: str
+    repeat: int
+    candidates: tuple[str, ...]
+    result: SelectionResult
+
+
+@dataclass(frozen=True)
 class Trial:
     occupation: str
     repeat: int
@@ -52,6 +60,10 @@ class Trial:
     result: SelectionResult
     usage: dict[str, TokenUsage]
     seconds: StageSeconds
+
+    @property
+    def scorecard(self) -> Scorecard:
+        return Scorecard(self.occupation, self.repeat, self.recommendation.candidates, self.result)
 
 
 @dataclass(frozen=True)
@@ -150,14 +162,20 @@ class Spread:
 
 
 @dataclass(frozen=True)
-class RepeatScores:
-    recall: tuple[float, ...]
-    candidate_recall: float
-    core_precision: float | None
-    expected_as_core: float
-    unrelated: float | None
-    cores: float
-    foundations: float
+class Ratio:
+    numerator: float
+    denominator: float
+
+
+@dataclass(frozen=True)
+class ScoredRun:
+    repeats: tuple[tuple[Scorecard, ...], ...]
+    complete_repeats: int
+    cards: tuple[Scorecard, ...]
+
+    @property
+    def occupations(self) -> frozenset[str]:
+        return frozenset(card.occupation for group in self.repeats for card in group)
 
 
 @dataclass(frozen=True)
@@ -166,13 +184,7 @@ class ExperimentSummary:
     failures: int
     complete_repeats: int
     scored_repeats: int
-    recall: tuple[Spread, ...]
-    candidate_recall: Spread
-    core_precision: Spread | None
-    expected_as_core: Spread
-    unrelated: Spread | None
-    cores: Spread
-    foundations: Spread
+    metrics: dict[str, Spread | None]
     overlap: float | None
     core_overlap: float | None
     usage: dict[str, TokenUsage]
@@ -188,32 +200,44 @@ def _defined_spread(values: Sequence[float | None]) -> Spread | None:
     return spread(defined) if defined else None
 
 
-def _ratio(part: int, whole: int) -> float | None:
-    return part / whole if whole else None
+def mean_of_defined(values: Iterable[float | None]) -> float | None:
+    defined = [value for value in values if value is not None]
+    return mean(defined) if defined else None
 
 
-def repeat_scores(trials: Sequence[Trial], cases: Sequence[EvaluationCase]) -> RepeatScores:
-    expected_of = {case.occupation: set(case.expected) for case in cases}
-    recall = tuple(
-        mean(
-            len(expected_of[trial.occupation] & set(trial.recommendation.candidates[:cutoff]))
-            / len(expected_of[trial.occupation])
-            for trial in trials
-        )
-        for cutoff in RECALL_CUTOFFS
-    )
-    picks = [pick for trial in trials for pick in trial.result.picks]
-    cores = [pick for pick in picks if pick.relevance is Relevance.CORE]
-    return RepeatScores(
-        recall,
-        mean(1 - len(trial.result.unsearched) / len(trial.result.expected) for trial in trials),
-        _ratio(sum(1 for pick in cores if pick.judgment is Judgment.EXPECTED), len(cores)),
-        sum(trial.result.expected_as(Relevance.CORE) for trial in trials)
-        / sum(len(trial.result.expected) for trial in trials),
-        _ratio(sum(1 for pick in picks if pick.judgment is Judgment.UNRELATED), len(picks)),
-        len(cores) / len(trials),
-        (len(picks) - len(cores)) / len(trials),
-    )
+def ratios(card: Scorecard) -> dict[str, Ratio]:
+    result = card.result
+    expected = {course.name for course in result.expected}
+    cores = [pick for pick in result.picks if pick.relevance is Relevance.CORE]
+    return {
+        **{
+            f"recall@{cutoff}": Ratio(
+                len(expected & set(card.candidates[:cutoff])) / len(expected), 1
+            )
+            for cutoff in RECALL_CUTOFFS
+        },
+        "candidate_recall": Ratio(1 - len(result.unsearched) / len(result.expected), 1),
+        "core_precision": Ratio(
+            sum(1 for pick in cores if pick.judgment is Judgment.EXPECTED), len(cores)
+        ),
+        "expected_as_core": Ratio(result.expected_as(Relevance.CORE), len(result.expected)),
+        "unrelated": Ratio(
+            sum(1 for pick in result.picks if pick.judgment is Judgment.UNRELATED),
+            len(result.picks),
+        ),
+        "cores": Ratio(len(cores), 1),
+        "foundations": Ratio(len(result.picks) - len(cores), 1),
+    }
+
+
+def pooled(parts: Sequence[Ratio]) -> float | None:
+    denominator = sum(part.denominator for part in parts)
+    return sum(part.numerator for part in parts) / denominator if denominator else None
+
+
+def repeat_scores(cards: Sequence[Scorecard]) -> dict[str, float | None]:
+    per_card = [ratios(card) for card in cards]
+    return {key: pooled([entry[key] for entry in per_card]) for key in per_card[0]}
 
 
 def jaccard(left: set[str], right: set[str]) -> float:
@@ -221,13 +245,34 @@ def jaccard(left: set[str], right: set[str]) -> float:
     return len(left & right) / len(union) if union else 1.0
 
 
-def overlap(groups: Sequence[Sequence[set[str]]]) -> float | None:
-    within = [
-        mean(jaccard(left, right) for left, right in combinations(sets, 2))
-        for sets in groups
+def picked(card: Scorecard) -> set[str]:
+    return {pick.name for pick in card.result.picks}
+
+
+def picked_cores(card: Scorecard) -> set[str]:
+    return {pick.name for pick in card.result.picks if pick.relevance is Relevance.CORE}
+
+
+def overlaps(
+    cards: Sequence[Scorecard], names: Callable[[Scorecard], set[str]]
+) -> dict[str, float]:
+    by_occupation: dict[str, list[set[str]]] = defaultdict(list)
+    for card in cards:
+        by_occupation[card.occupation].append(names(card))
+    return {
+        occupation: mean(jaccard(left, right) for left, right in combinations(sets, 2))
+        for occupation, sets in by_occupation.items()
         if len(sets) >= 2
-    ]
-    return mean(within) if within else None
+    }
+
+
+def scored_run(cards: Sequence[Scorecard], occupations: int) -> ScoredRun:
+    by_repeat: dict[int, list[Scorecard]] = defaultdict(list)
+    for card in cards:
+        by_repeat[card.repeat].append(card)
+    groups = [tuple(group) for group in by_repeat.values()]
+    complete = [group for group in groups if len(group) == occupations]
+    return ScoredRun(tuple(complete or groups), len(complete), tuple(cards))
 
 
 def summarize(
@@ -236,13 +281,8 @@ def summarize(
     trials = [outcome for outcome in outcomes if isinstance(outcome, Trial)]
     if not trials:
         return None
-    by_repeat: dict[int, list[Trial]] = defaultdict(list)
-    by_occupation: dict[str, list[Trial]] = defaultdict(list)
-    for trial in trials:
-        by_repeat[trial.repeat].append(trial)
-        by_occupation[trial.occupation].append(trial)
-    complete = [group for group in by_repeat.values() if len(group) == len(cases)]
-    scores = [repeat_scores(group, cases) for group in complete or list(by_repeat.values())]
+    run = scored_run([trial.scorecard for trial in trials], len(cases))
+    scores = [repeat_scores(group) for group in run.repeats]
     usage: dict[str, TokenUsage] = {}
     for outcome in outcomes:
         for model, tokens in outcome.usage.items():
@@ -250,33 +290,11 @@ def summarize(
     return ExperimentSummary(
         trials=len(outcomes),
         failures=len(outcomes) - len(trials),
-        complete_repeats=len(complete),
-        scored_repeats=len(scores),
-        recall=tuple(
-            spread([score.recall[index] for score in scores])
-            for index in range(len(RECALL_CUTOFFS))
-        ),
-        candidate_recall=spread([score.candidate_recall for score in scores]),
-        core_precision=_defined_spread([score.core_precision for score in scores]),
-        expected_as_core=spread([score.expected_as_core for score in scores]),
-        unrelated=_defined_spread([score.unrelated for score in scores]),
-        cores=spread([score.cores for score in scores]),
-        foundations=spread([score.foundations for score in scores]),
-        overlap=overlap(
-            [
-                [{pick.name for pick in trial.result.picks} for trial in group]
-                for group in by_occupation.values()
-            ]
-        ),
-        core_overlap=overlap(
-            [
-                [
-                    {pick.name for pick in trial.result.picks if pick.relevance is Relevance.CORE}
-                    for trial in group
-                ]
-                for group in by_occupation.values()
-            ]
-        ),
+        complete_repeats=run.complete_repeats,
+        scored_repeats=len(run.repeats),
+        metrics={key: _defined_spread([score[key] for score in scores]) for key in scores[0]},
+        overlap=mean_of_defined(overlaps(run.cards, picked).values()),
+        core_overlap=mean_of_defined(overlaps(run.cards, picked_cores).values()),
         usage=dict(sorted(usage.items())),
         seconds=StageSeconds(
             mean(trial.seconds.reading for trial in trials),

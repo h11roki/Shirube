@@ -15,20 +15,37 @@ from typing import Any
 
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
+from app.application.compare_experiments import (
+    CONFIDENCE,
+    MIN_OCCUPATIONS,
+    RESAMPLES,
+    Comparison,
+    Difference,
+    compare_experiments,
+)
 from app.application.evaluate_search import RECALL_CUTOFFS, EvaluationDataset, EvaluationError
-from app.application.evaluate_selection import HandwrittenProfiles
+from app.application.evaluate_selection import (
+    ExpectedCourse,
+    HandwrittenProfiles,
+    Judgment,
+    Pick,
+    SelectionResult,
+    UnlinkedPick,
+)
 from app.application.ports import TokenUsage
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
     RunExperiment,
-    Spread,
+    Scorecard,
     Trial,
+    scored_run,
     summarize,
 )
 from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfileError
+from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_course_selector as selection_prompt
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
@@ -178,24 +195,12 @@ def collect(
 
 
 def summary_document(summary: ExperimentSummary) -> dict[str, Any]:
-    metrics: dict[str, Spread | None] = {
-        **{
-            f"recall@{cutoff}": value
-            for cutoff, value in zip(RECALL_CUTOFFS, summary.recall, strict=True)
-        },
-        "candidate_recall": summary.candidate_recall,
-        "core_precision": summary.core_precision,
-        "expected_as_core": summary.expected_as_core,
-        "unrelated": summary.unrelated,
-        "cores": summary.cores,
-        "foundations": summary.foundations,
-    }
     return {
         "trials": summary.trials,
         "failures": summary.failures,
         "complete_repeats": summary.complete_repeats,
         "scored_repeats": summary.scored_repeats,
-        **{key: None if value is None else asdict(value) for key, value in metrics.items()},
+        **{key: None if value is None else asdict(value) for key, value in summary.metrics.items()},
         "overlap": summary.overlap,
         "core_overlap": summary.core_overlap,
         "yen_per_plan": yen(summary.usage) / summary.trials,
@@ -258,6 +263,37 @@ def trial_document(outcome: Trial | FailedTrial) -> dict[str, Any]:
     }
 
 
+def scorecard(document: Mapping[str, Any]) -> Scorecard:
+    occupation = document["occupation"]
+    return Scorecard(
+        occupation,
+        document["repeat"],
+        tuple(document["candidates"]),
+        SelectionResult(
+            occupation,
+            tuple(
+                Pick(course["name"], Relevance(course["relevance"]), Judgment(course["judgment"]))
+                for course in document["courses"]
+            ),
+            tuple(
+                ExpectedCourse(
+                    course["name"],
+                    None if course["picked"] is None else Relevance(course["picked"]),
+                    course["searched"],
+                    course["unlinked"],
+                )
+                for course in document["expected"]
+            ),
+            tuple(
+                UnlinkedPick(
+                    course["name"], course["prerequisite_for"], Judgment(course["judgment"])
+                )
+                for course in document["unlinked"]
+            ),
+        ),
+    )
+
+
 def _format(kind: str, value: Mapping[str, float] | None) -> str:
     if value is None:
         return "-"
@@ -315,7 +351,22 @@ def render(document: Mapping[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
+def _signed(kind: str, value: float) -> str:
+    return f"{value * 100:+z.1f}" if kind == "ratio" else f"{value:+z.2f}"
+
+
+def _change(kind: str, delta: float, difference: Difference | None) -> str:
+    unit = " ポイント" if kind == "ratio" else ""
+    if difference is None:
+        return f"差 {_signed(kind, delta)}{unit}"
+    verdict = "差あり" if difference.clear else "はっきりしない"
+    return (
+        f"差 {_signed(kind, difference.estimate)}{unit}"
+        f"(区間 {_signed(kind, difference.low)}〜{_signed(kind, difference.high)})、{verdict}"
+    )
+
+
+def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Comparison) -> str:
     old_summary, new_summary = before["summary"], after["summary"]
     lines = [f"比べる: {before['label']} → {after['label']}"]
     for run in (before, after):
@@ -330,26 +381,31 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
     ]
     if differences:
         lines.append(f"  設定の違い: {'、'.join(differences)}")
-    judged = old_summary["scored_repeats"] > 1 and new_summary["scored_repeats"] > 1
+    if comparison.occupations >= MIN_OCCUPATIONS:
+        lines.append(
+            f"  差の区間は {CONFIDENCE:.0%} 信頼区間(両方にそろった {comparison.occupations} 職業を"
+            f"選び直すブートストラップ {RESAMPLES:,} 回)"
+        )
+    else:
+        lines.append(
+            f"  差の区間は出さない(両方にそろった職業が {comparison.occupations} で、"
+            f"{MIN_OCCUPATIONS} に満たない)"
+        )
     for key, name, kind in METRICS:
         old, new = old_summary.get(key), new_summary.get(key)
         if old is None or new is None:
             lines.append(f"  {name}: {_format(kind, old)} → {_format(kind, new)}")
             continue
-        delta = new["mean"] - old["mean"]
-        noise = max(old["std"], new["std"])
-        verdict = ("揺れより大きい" if abs(delta) > noise else "揺れの範囲") if judged else "-"
-        difference = f"{delta * 100:+.0f} ポイント" if kind == "ratio" else f"{delta:+.2f}"
-        lines.append(
-            f"  {name}: {_format(kind, old)} → {_format(kind, new)}、差 {difference}、{verdict}"
-        )
+        change = _change(kind, new["mean"] - old["mean"], comparison.differences.get(key))
+        lines.append(f"  {name}: {_format(kind, old)} → {_format(kind, new)}、{change}")
     for key, name in (
         ("overlap", "揺れ(選んだ科目の重なり)"),
         ("core_overlap", "揺れ(中心の重なり)"),
     ):
         old, new = old_summary[key], new_summary[key]
         if old is not None and new is not None:
-            lines.append(f"  {name}: {old:.2f} → {new:.2f}、差 {new - old:+.2f}")
+            change = _change("coefficient", new - old, comparison.differences.get(key))
+            lines.append(f"  {name}: {old:.2f} → {new:.2f}、{change}")
     lines.append(
         f"  1 回の推薦あたりの費用: {old_summary['yen_per_plan']:.2f} 円 → "
         f"{new_summary['yen_per_plan']:.2f} 円"
@@ -478,7 +534,17 @@ def _compare(args: argparse.Namespace) -> None:
     unscored = [run["label"] for run in (before, after) if run["summary"] is None]
     if unscored:
         sys.exit(f"集計の無い結果は比べられません: {'、'.join(unscored)}")
-    print(compare(before, after))
+    try:
+        old_run, new_run = (
+            scored_run(
+                [scorecard(trial) for trial in run["trials"] if "failure" not in trial],
+                run["config"]["occupations"],
+            )
+            for run in (before, after)
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        sys.exit(f"実験の結果の推薦を読めません: {error!r}")
+    print(compare(before, after, compare_experiments(old_run, new_run)))
 
 
 def main(argv: Sequence[str] | None = None) -> None:
