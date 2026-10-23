@@ -1,6 +1,8 @@
 import json
 from collections import Counter
+from collections.abc import Set
 from pathlib import Path
+from typing import Any
 
 from app.application.evaluate_search import EvaluationCase, EvaluationDataset
 from app.application.evaluate_selection import Judgment, Judgments, judgment_of
@@ -8,6 +10,7 @@ from app.domain.recommendation import Relevance
 
 DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
 DEFAULT_JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
+DATASET_LINES = frozenset({"skills"})
 
 
 def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
@@ -18,8 +21,35 @@ def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return dict(pairs)
 
 
+def read_document(path: Path) -> Any:
+    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+
+
+def write_document(path: Path, document: Any, one_line: Set[str]) -> None:
+    path.write_text(_dumped(document, 0, one_line) + "\n", encoding="utf-8")
+
+
+def _dumped(value: Any, indent: int, one_line: Set[str]) -> str:
+    inner = " " * (indent + 2)
+    if isinstance(value, dict) and value:
+        items = [
+            f"{inner}{json.dumps(key, ensure_ascii=False)}: "
+            + (
+                json.dumps(item, ensure_ascii=False)
+                if key in one_line
+                else _dumped(item, indent + 2, one_line)
+            )
+            for key, item in value.items()
+        ]
+        return "{\n" + ",\n".join(items) + "\n" + " " * indent + "}"
+    if isinstance(value, list) and value:
+        items = [inner + _dumped(item, indent + 2, one_line) for item in value]
+        return "[\n" + ",\n".join(items) + "\n" + " " * indent + "]"
+    return json.dumps(value, ensure_ascii=False)
+
+
 def load_dataset(path: Path) -> EvaluationDataset:
-    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+    document = read_document(path)
     year, department = document["year"], document["department"]
     if isinstance(year, bool) or not isinstance(year, int) or not isinstance(department, str):
         raise ValueError("year は整数、department は文字列にしてください")
@@ -41,7 +71,7 @@ def load_dataset(path: Path) -> EvaluationDataset:
 
 
 def load_judgments(path: Path, dataset: EvaluationDataset) -> Judgments:
-    document = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+    document = read_document(path)
     if (document["year"], document["department"]) != (dataset.year, dataset.department):
         raise ValueError("判定の年度と学科が評価データと違います")
     by_course: dict[tuple[str, str], Judgment] = {}
