@@ -23,6 +23,7 @@ from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
+    Side,
     Spread,
     StageSeconds,
     Trial,
@@ -46,6 +47,7 @@ from app.presentation.cli.experiment import (
     main,
     render,
     scorecard,
+    setting,
     summary_document,
     trial_document,
     unpriced,
@@ -178,13 +180,13 @@ class Paid:
         self._outcomes = outcomes
         self._usage: dict[str, TokenUsage] = {}
 
-    def __iter__(self) -> Iterator[Trial | FailedTrial]:
+    def __iter__(self) -> Iterator[tuple[Side | None, Trial | FailedTrial]]:
         for outcome in self._outcomes:
             if isinstance(outcome, BaseException):
                 raise outcome
             for model, tokens in outcome.usage.items():
                 self._usage[model] = self._usage[model] + tokens if model in self._usage else tokens
-            yield outcome
+            yield None, outcome
 
     def spent(self) -> dict[str, TokenUsage]:
         return dict(self._usage)
@@ -242,8 +244,68 @@ def test_collect_keeps_what_ran_before_the_run_was_stopped(
 
     collection = collect(iter(paid), 2, 1000, paid.spent)
 
-    assert collection.outcomes == [succeeded(1)]
+    assert collection.of(None) == [succeeded(1)]
     assert (collection.stopped, collection.over_budget) == (stopped, False)
+
+
+def test_collect_shows_and_keeps_the_side_each_recommendation_ran_for(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    pairs: list[tuple[Side | None, Trial | FailedTrial]] = [
+        (Side.BEFORE, succeeded(1)),
+        (Side.AFTER, failed(1)),
+        (Side.AFTER, succeeded(2)),
+    ]
+
+    collection = collect(iter(pairs), 4, 1000, dict)
+
+    assert [line.split("(")[0] for line in capsys.readouterr().err.splitlines()] == [
+        "1/4 前 職業",
+        "2/4 後 職業",
+        "3/4 後 職業",
+    ]
+    assert collection.of(Side.BEFORE) == [succeeded(1)]
+    assert collection.of(Side.AFTER) == [failed(1), succeeded(2)]
+    assert collection.of(None) == []
+
+
+@pytest.mark.parametrize(
+    ("text", "parsed"),
+    [
+        ("SELECTION_VOTES=1", ("SELECTION_VOTES", "1")),
+        ("OCCUPATION_READING_CACHE_SIZE=0", ("OCCUPATION_READING_CACHE_SIZE", "0")),
+        ("CHAT_MODEL=gpt-5.4-nano", ("CHAT_MODEL", "gpt-5.4-nano")),
+    ],
+)
+def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
+    text: str, parsed: tuple[str, str]
+) -> None:
+    assert setting(text) == parsed
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "SELECTION_VOTES",
+        "selection_votes=1",
+        "DATABASE_URL=postgresql://other",
+        "EMBEDDING_MODEL=x",
+    ],
+    ids=["no-value", "lowercase", "database", "embedding"],
+)
+def test_a_pair_setting_off_the_recommendation_path_is_refused(text: str) -> None:
+    with pytest.raises(argparse.ArgumentTypeError, match="替えられるのは"):
+        setting(text)
+
+
+def test_pair_refuses_the_same_setting_twice_on_one_side(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    with pytest.raises(SystemExit) as stopped:
+        main(["pair", "--label", "votes", "--after", "SELECTION_VOTES=1", "SELECTION_VOTES=3"])
+
+    assert stopped.value.code == 2
+    assert "同じ設定は 1 回だけ" in capsys.readouterr().err
 
 
 def document(summary: dict[str, Any] | None) -> dict[str, Any]:

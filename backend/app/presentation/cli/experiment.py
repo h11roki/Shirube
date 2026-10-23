@@ -13,6 +13,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from sqlalchemy import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.compare_experiments import (
@@ -25,11 +26,17 @@ from app.application.compare_experiments import (
     Comparison,
     compare_experiments,
 )
-from app.application.evaluate_search import RECALL_CUTOFFS, EvaluationDataset, EvaluationError
+from app.application.evaluate_search import (
+    RECALL_CUTOFFS,
+    EvaluationCase,
+    EvaluationDataset,
+    EvaluationError,
+)
 from app.application.evaluate_selection import (
     ExpectedCourse,
     HandwrittenProfiles,
     Judgment,
+    Judgments,
     Pick,
     SelectionResult,
     UnlinkedPick,
@@ -40,7 +47,9 @@ from app.application.run_experiment import (
     FailedTrial,
     RunExperiment,
     Scorecard,
+    Side,
     Trial,
+    interleave,
     scored_run,
     summarize,
 )
@@ -83,6 +92,15 @@ UNRECORDED_SETTINGS = {
 }
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+PAIRABLE_SETTINGS = (
+    "CHAT_MODEL",
+    "SELECTION_MODEL",
+    "SELECTION_CANDIDATE_LIMIT",
+    "SELECTION_VOTES",
+    "SELECTION_VOTE_DELAY_SECONDS",
+    "OCCUPATION_READING_CACHE_SIZE",
+)
+SIDE_NAMES = {Side.BEFORE: "前", Side.AFTER: "後"}
 METRICS = (
     *((f"recall@{cutoff}", f"検索の再現率 @{cutoff}", "ratio") for cutoff in RECALL_CUTOFFS),
     ("candidate_recall", "選び直しに渡した候補の再現率", "ratio"),
@@ -125,6 +143,15 @@ def label(text: str) -> str:
     return text
 
 
+def setting(text: str) -> tuple[str, str]:
+    name, separator, value = text.partition("=")
+    if not separator or name not in PAIRABLE_SETTINGS:
+        raise argparse.ArgumentTypeError(
+            f"設定=値 の形で書いてください。替えられるのは {'、'.join(PAIRABLE_SETTINGS)}"
+        )
+    return name, value
+
+
 def _digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:8]
 
@@ -147,22 +174,25 @@ def _commit() -> str | None:
 
 @dataclass(frozen=True)
 class Collection:
-    outcomes: list[Trial | FailedTrial]
+    outcomes: list[tuple[Side | None, Trial | FailedTrial]]
     stopped: str | None
     over_budget: bool
 
+    def of(self, side: Side | None) -> list[Trial | FailedTrial]:
+        return [outcome for taken, outcome in self.outcomes if taken is side]
+
 
 def collect(
-    outcomes: Iterator[Trial | FailedTrial],
+    outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
     total: int,
     budget: float,
     spent: Callable[[], dict[str, TokenUsage]],
 ) -> Collection:
-    collected: list[Trial | FailedTrial] = []
+    collected: list[tuple[Side | None, Trial | FailedTrial]] = []
     streak = 0
     try:
-        for outcome in outcomes:
-            collected.append(outcome)
+        for side, outcome in outcomes:
+            collected.append((side, outcome))
             streak = streak + 1 if isinstance(outcome, FailedTrial) else 0
             usage = spent()
             detail = (
@@ -170,8 +200,9 @@ def collect(
                 if isinstance(outcome, Trial)
                 else f"失敗: {outcome.failure}"
             )
+            where = "" if side is None else f"{SIDE_NAMES[side]} "
             print(
-                f"{len(collected)}/{total} {outcome.occupation}({outcome.repeat} 回目)"
+                f"{len(collected)}/{total} {where}{outcome.occupation}({outcome.repeat} 回目)"
                 f"{yen(outcome.usage):.2f} 円、{detail}、ここまで {yen(usage):.1f} 円",
                 file=sys.stderr,
             )
@@ -486,7 +517,7 @@ def config_document(
     }
 
 
-def _run(args: argparse.Namespace) -> None:
+def _inputs(args: argparse.Namespace) -> tuple[EvaluationDataset, Judgments]:
     try:
         dataset = load_dataset(args.dataset)
     except (OSError, ValueError, KeyError, TypeError) as error:
@@ -495,7 +526,16 @@ def _run(args: argparse.Namespace) -> None:
         judgments = load_judgments(args.judgments, dataset)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         sys.exit(f"判定を読めません: {args.judgments}: {error!r}")
-    settings = load_settings()
+    return dataset, judgments
+
+
+def _experiment(
+    args: argparse.Namespace,
+    settings: Settings,
+    dataset: EvaluationDataset,
+    engine: Engine,
+    meter: LangChainUsageMeter,
+) -> RunExperiment:
     models = [settings.selection_model]
     if args.profiles == "analyzed":
         models.append(settings.chat_model)
@@ -509,10 +549,8 @@ def _run(args: argparse.Namespace) -> None:
         )
     except OccupationProfileError as error:
         sys.exit(f"評価データの手書きのスキルを使えません: {error}")
-    engine = database_engine(settings)
-    meter = LangChainUsageMeter()
     try:
-        experiment = RunExperiment(
+        return RunExperiment(
             search_courses(settings, engine),
             SqlCourseRepository(engine),
             analyzer,
@@ -522,48 +560,168 @@ def _run(args: argparse.Namespace) -> None:
         )
     except EvaluationError as error:
         sys.exit(str(error))
-    created = datetime.now(UNIVERSITY_TIME)
-    commit = _commit()
-    config = config_document(args, settings, dataset)
-    path = args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
+
+
+def _reserve(out: Path, paths: Sequence[Path]) -> None:
+    reserved: list[Path] = []
     try:
-        args.out.mkdir(parents=True, exist_ok=True)
-        path.touch(exist_ok=False)
+        out.mkdir(parents=True, exist_ok=True)
+        for path in paths:
+            path.touch(exist_ok=False)
+            reserved.append(path)
     except OSError as error:
+        for path in reserved:
+            path.unlink(missing_ok=True)
         sys.exit(f"結果を書く場所を作れません: {error}")
+
+
+def _collected(
+    outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
+    total: int,
+    budget: float,
+    meter: LangChainUsageMeter,
+    engine: Engine,
+) -> tuple[Collection, float]:
     for stop in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(stop, signal.default_int_handler)
     with meter.meter() as spent:
         try:
-            collection = collect(
-                experiment.trials(dataset, judgments, args.repeat),
-                len(dataset.cases) * args.repeat,
-                args.budget,
-                spent,
-            )
+            collection = collect(outcomes, total, budget, spent)
         finally:
             engine.dispose()
-    if not collection.outcomes:
+    return collection, yen(spent())
+
+
+def run_document(
+    label: str,
+    created: datetime,
+    commit: str | None,
+    stopped: str | None,
+    spent_yen: float,
+    config: dict[str, Any],
+    outcomes: Sequence[Trial | FailedTrial],
+    cases: Sequence[EvaluationCase],
+) -> dict[str, Any]:
+    summary = summarize(outcomes, cases)
+    return {
+        "label": label,
+        "created": created.isoformat(timespec="seconds"),
+        "commit": commit,
+        "stopped": stopped,
+        "spent_yen": spent_yen,
+        "config": config,
+        "summary": None if summary is None else summary_document(summary),
+        "trials": [trial_document(outcome) for outcome in outcomes],
+    }
+
+
+def _write(path: Path, document: Mapping[str, Any]) -> None:
+    path.write_text(json.dumps(document, ensure_ascii=False, indent=1) + "\n", "utf-8")
+
+
+def _run(args: argparse.Namespace) -> None:
+    dataset, judgments = _inputs(args)
+    settings = load_settings()
+    engine = database_engine(settings)
+    meter = LangChainUsageMeter()
+    experiment = _experiment(args, settings, dataset, engine, meter)
+    created = datetime.now(UNIVERSITY_TIME)
+    commit = _commit()
+    config = config_document(args, settings, dataset)
+    path = args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
+    _reserve(args.out, [path])
+    collection, spent_yen = _collected(
+        ((None, outcome) for outcome in experiment.trials(dataset, judgments, args.repeat)),
+        len(dataset.cases) * args.repeat,
+        args.budget,
+        meter,
+        engine,
+    )
+    outcomes = collection.of(None)
+    if not outcomes:
         path.unlink()
         sys.exit(f"推薦を 1 回も流せませんでした: {collection.stopped}")
     try:
-        summary = summarize(collection.outcomes, dataset.cases)
-        document = {
-            "label": args.label,
-            "created": created.isoformat(timespec="seconds"),
-            "commit": commit,
-            "stopped": collection.stopped,
-            "spent_yen": yen(spent()),
-            "config": config,
-            "summary": None if summary is None else summary_document(summary),
-            "trials": [trial_document(outcome) for outcome in collection.outcomes],
-        }
-        path.write_text(json.dumps(document, ensure_ascii=False, indent=1) + "\n", "utf-8")
+        document = run_document(
+            args.label,
+            created,
+            commit,
+            collection.stopped,
+            spent_yen,
+            config,
+            outcomes,
+            dataset.cases,
+        )
+        _write(path, document)
     except BaseException:
         path.unlink(missing_ok=True)
         raise
     print(render(document))
     print(f"保存した: {path}")
+    if collection.stopped is not None and not collection.over_budget:
+        sys.exit(1)
+
+
+def _pair(args: argparse.Namespace) -> None:
+    dataset, judgments = _inputs(args)
+    overrides = {Side.BEFORE: args.before, Side.AFTER: args.after}
+    settings = {
+        side: load_settings(**{name.lower(): value for name, value in overrides[side]})
+        for side in Side
+    }
+    engine = database_engine(settings[Side.BEFORE])
+    meter = LangChainUsageMeter()
+    experiments = {side: _experiment(args, settings[side], dataset, engine, meter) for side in Side}
+    created = datetime.now(UNIVERSITY_TIME)
+    commit = _commit()
+    paths = {
+        side: args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side
+    }
+    _reserve(args.out, list(paths.values()))
+    collection, spent_yen = _collected(
+        interleave(
+            experiments[Side.BEFORE].trials(dataset, judgments, args.repeat),
+            experiments[Side.AFTER].trials(dataset, judgments, args.repeat),
+        ),
+        len(Side) * len(dataset.cases) * args.repeat,
+        args.budget,
+        meter,
+        engine,
+    )
+    if not all(collection.of(side) for side in Side):
+        for path in paths.values():
+            path.unlink()
+        sys.exit(f"前と後の両方に推薦がそろう前に止まった: {collection.stopped}")
+    documents: dict[Side, dict[str, Any]] = {}
+    try:
+        for side, partner in ((Side.BEFORE, Side.AFTER), (Side.AFTER, Side.BEFORE)):
+            outcomes = collection.of(side)
+            documents[side] = run_document(
+                f"{args.label}-{side.value}",
+                created,
+                commit,
+                collection.stopped,
+                sum(yen(outcome.usage) for outcome in outcomes),
+                config_document(args, settings[side], dataset),
+                outcomes,
+                dataset.cases,
+            ) | {
+                "pair": {
+                    "label": args.label,
+                    "side": side.value,
+                    "partner": paths[partner].name,
+                    "spent_yen": spent_yen,
+                }
+            }
+            _write(paths[side], documents[side])
+    except BaseException:
+        for path in paths.values():
+            path.unlink(missing_ok=True)
+        raise
+    for side in Side:
+        print(render(documents[side]))
+        print(f"保存した: {paths[side]}")
+    print(f"2 つで使った費用 {spent_yen:.1f} 円(途中で止めた推薦の分を含む)")
     if collection.stopped is not None and not collection.over_budget:
         sys.exit(1)
 
@@ -601,14 +759,32 @@ def main(argv: Sequence[str] | None = None) -> None:
     run.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
     run.add_argument("--out", type=Path, default=RUNS)
     run.set_defaults(handle=_run)
+    pair = commands.add_parser(
+        "pair", help="2 つの設定を職業と回の組ごとに交互に流して結果を JSON に 1 つずつ残す"
+    )
+    pair.add_argument("--label", type=label, required=True)
+    pair.add_argument("--before", type=setting, nargs="+", default=[], metavar="設定=値")
+    pair.add_argument("--after", type=setting, nargs="+", default=[], metavar="設定=値")
+    pair.add_argument("--repeat", type=int, default=3)
+    pair.add_argument("--profiles", choices=PROFILES, default="analyzed")
+    pair.add_argument("--budget", type=float, default=200)
+    pair.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    pair.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
+    pair.add_argument("--out", type=Path, default=RUNS)
+    pair.set_defaults(handle=_pair)
     versus = commands.add_parser("compare", help="2 つの実験の結果を比べる")
     versus.add_argument("runs", type=Path, nargs=2)
     versus.set_defaults(handle=_compare)
     args = parser.parse_args(argv)
-    if args.command == "run" and args.repeat < 1:
+    if args.command in ("run", "pair") and args.repeat < 1:
         parser.error("--repeat は 1 以上にしてください")
-    if args.command == "run" and not (math.isfinite(args.budget) and args.budget > 0):
+    if args.command in ("run", "pair") and not (math.isfinite(args.budget) and args.budget > 0):
         parser.error("--budget は 0 より大きい数にしてください")
+    if args.command == "pair" and any(
+        len({name for name, _ in overrides}) != len(overrides)
+        for overrides in (args.before, args.after)
+    ):
+        parser.error("--before と --after のそれぞれで、同じ設定は 1 回だけ書いてください")
     args.handle(args)
 
 
