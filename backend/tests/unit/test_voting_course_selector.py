@@ -1,6 +1,6 @@
 import json
 from collections.abc import Sequence
-from threading import Lock
+from threading import Event, Lock
 
 import pytest
 from pydantic import SecretStr
@@ -47,7 +47,7 @@ def test_the_selector_is_asked_once_per_vote_and_the_majority_is_kept() -> None:
         ]
     )
 
-    choices = VotingCourseSelector(selector, 3).select(PROFILE, [])
+    choices = VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
 
     assert selector.calls == 3
     assert [choice.name for choice in choices] == ["科目A", "科目B"]
@@ -58,7 +58,7 @@ def test_one_failed_vote_fails_the_whole_selection_after_every_vote_answered() -
     selector = TakingTurns([answer, UPSTREAM, answer])
 
     with pytest.raises(CourseSelectionError, match="外部のサービスの呼び出しに失敗"):
-        VotingCourseSelector(selector, 3).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
 
     assert selector.calls == 3
 
@@ -75,10 +75,31 @@ def test_one_failure_is_raised_and_the_other_failed_votes_are_logged(
     )
 
     with pytest.raises(CourseSelectionError) as raised:
-        VotingCourseSelector(selector, 3).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
 
     other = "二つ目の失敗" if str(raised.value) == "一つ目の失敗" else "一つ目の失敗"
     assert other in caplog.text
+
+
+def test_the_later_votes_are_sent_after_the_wait_so_the_first_prompt_can_be_cached() -> None:
+    events: list[str] = []
+    first_asked = Event()
+
+    class Recording:
+        def select(
+            self, profile: OccupationProfile, candidates: list[CandidateCourse]
+        ) -> list[CourseChoice]:
+            events.append("vote")
+            first_asked.set()
+            return []
+
+    def wait(seconds: float) -> None:
+        first_asked.wait(timeout=5)
+        events.append(f"wait {seconds}")
+
+    VotingCourseSelector(Recording(), 3, 0.5, wait).select(PROFILE, [])
+
+    assert events == ["vote", "wait 0.5", "vote", "vote"]
 
 
 def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() -> None:
@@ -88,7 +109,7 @@ def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() 
     )
 
     with LangChainUsageMeter().meter() as usage:
-        choices = VotingCourseSelector(selector, 3).select(
+        choices = VotingCourseSelector(selector, 3, 0).select(
             PROFILE, [CandidateCourse("科目A", syllabus("10000"))]
         )
 

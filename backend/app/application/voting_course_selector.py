@@ -1,4 +1,6 @@
 import logging
+import time
+from collections.abc import Callable
 from contextvars import Context, copy_context
 from threading import Thread
 
@@ -10,9 +12,17 @@ logger = logging.getLogger(__name__)
 
 
 class VotingCourseSelector:
-    def __init__(self, selector: CourseSelector, votes: int) -> None:
+    def __init__(
+        self,
+        selector: CourseSelector,
+        votes: int,
+        delay_seconds: float,
+        wait: Callable[[float], None] = time.sleep,
+    ) -> None:
         self._selector = selector
         self._votes = votes
+        self._delay_seconds = delay_seconds
+        self._wait = wait
 
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
@@ -29,7 +39,9 @@ class VotingCourseSelector:
             Thread(target=vote, args=(index, copy_context()), daemon=True)
             for index in range(self._votes)
         ]
-        for thread in threads:
+        threads[0].start()
+        self._wait(self._delay_seconds)
+        for thread in threads[1:]:
             thread.start()
         for thread in threads:
             thread.join()

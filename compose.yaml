@@ -39,6 +39,7 @@ services:
       DATABASE_URL: postgresql+psycopg://shirube:shirube@db:5432/shirube
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       SELECTION_VOTES: ${SELECTION_VOTES:-}
+      SELECTION_VOTE_DELAY_SECONDS: ${SELECTION_VOTE_DELAY_SECONDS:-}
     volumes:
       - ./backend:/app
     stop_grace_period: 17m

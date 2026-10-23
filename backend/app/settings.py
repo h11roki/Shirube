@@ -20,6 +20,7 @@ class Settings(CurriculumSettings):
     selection_model: str = "gpt-5.4-nano"
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 20
     selection_votes: Annotated[int, Field(ge=1, le=5)] = 3
+    selection_vote_delay_seconds: Annotated[float, Field(ge=0, le=10)] = 0.5
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
     openai_timeout_seconds: Annotated[float, Field(gt=0)] = 45
     openai_max_retries: Annotated[int, Field(ge=0)] = 1
