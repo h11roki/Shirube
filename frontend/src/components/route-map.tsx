@@ -227,7 +227,7 @@ function RouteStrip({
                   <span className="font-bold tabular-nums">{stop.station}</span>
                 )}
                 <span
-                  className={`${goal ? "max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
+                  className={`${goal ? "line-clamp-2 max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
                 >
                   {stop.name}
                 </span>
