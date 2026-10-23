@@ -37,6 +37,8 @@ import {
   watchState,
 } from "@/lib/polling";
 
+const ANNOUNCE_DELAY_MS = 500;
+
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -45,6 +47,7 @@ export function PlanView() {
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
   const [sawProgress, setSawProgress] = useState(false);
+  const [notice, setNotice] = useState("");
   const deleted = useRef(false);
   const baseTitle = useRef<string>(undefined);
 
@@ -122,6 +125,12 @@ export function PlanView() {
     };
   }, [plan, error, sawProgress]);
 
+  useEffect(() => {
+    const text = plan ? completionNotice(plan, sawProgress) : "";
+    const timer = setTimeout(() => setNotice(text), ANNOUNCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [plan, sawProgress]);
+
   function retry() {
     setError(undefined);
     setWatch("waiting");
@@ -191,7 +200,7 @@ export function PlanView() {
   return (
     <div className="grid gap-6">
       <p role="status" className="sr-only">
-        {completionNotice(plan, sawProgress)}
+        {notice}
       </p>
       {body}
       <div
