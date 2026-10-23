@@ -1,10 +1,11 @@
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import type { PlacedCourse } from "@/lib/api/client";
+import type { PlacedCourse, Weekday } from "@/lib/api/client";
 import {
   NO_LESSONS_LABEL,
   RELEVANCE_LABELS,
   WEEKDAY_LABELS,
   classLabel,
+  weekdayName,
 } from "@/lib/labels";
 import { daySchedules, weekTable } from "@/lib/timetable";
 
@@ -22,7 +23,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
                 scope="col"
                 className="font-serif font-bold text-sub"
               >
-                {WEEKDAY_LABELS[weekday]}
+                <WeekdayName weekday={weekday} />
               </th>
             ))}
           </tr>
@@ -54,7 +55,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
             className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-2"
           >
             <dt className="pt-1.5 text-center font-serif font-bold text-sub">
-              {WEEKDAY_LABELS[day.weekday]}
+              <WeekdayName weekday={day.weekday} />
             </dt>
             <dd className="grid gap-1">
               {day.lessons.length === 0 ? (
@@ -85,6 +86,15 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
         </p>
       )}
     </div>
+  );
+}
+
+function WeekdayName({ weekday }: { weekday: Weekday }) {
+  return (
+    <>
+      <span aria-hidden>{WEEKDAY_LABELS[weekday]}</span>
+      <span className="sr-only">{weekdayName(weekday)}</span>
+    </>
   );
 }
 

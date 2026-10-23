@@ -104,6 +104,10 @@ export const WEEKDAY_LABELS: Record<Weekday, string> = {
   sun: "日",
 };
 
+export function weekdayName(weekday: Weekday): string {
+  return `${WEEKDAY_LABELS[weekday]}曜日`;
+}
+
 export function semesterLabel(grade: number, term: Term): string {
   return `${grade} 回生 ${TERM_LABELS[term]}`;
 }
