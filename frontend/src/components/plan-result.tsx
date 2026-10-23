@@ -284,7 +284,7 @@ export function PlanResultView({
         ref={notice}
         role="status"
         tabIndex={-1}
-        className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4"
+        className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4 outline-none"
       >
         {answered && (
           <p
