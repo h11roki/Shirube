@@ -22,6 +22,7 @@ from app.application.compare_experiments import (
     RESAMPLES,
     SHUFFLES,
     SIGNIFICANCE,
+    TOLERANCE,
     Change,
     Comparison,
     compare_experiments,
@@ -366,7 +367,13 @@ def render(document: Mapping[str, Any]) -> str:
     ]
     if document["stopped"] is not None:
         lines.append(f"  途中で止めた: {document['stopped']}")
-    lines.append(f"  使った費用 {document['spent_yen']:.1f} 円")
+    if pair := document.get("pair"):
+        lines.append(
+            f"  使った費用 {document['spent_yen']:.1f} 円(この側の推薦の分。交互に流した組 "
+            f"{pair['label']} の 2 つで {pair['spent_yen']:.1f} 円、途中で止めた推薦の分を含む)"
+        )
+    else:
+        lines.append(f"  使った費用 {document['spent_yen']:.1f} 円")
     if summary is None:
         lines.append("  推薦が全て失敗したので集計していない")
         return "\n".join(lines)
@@ -416,17 +423,23 @@ def _change(kind: str, change: Change) -> str:
     )
     if change.p_value is None:
         return f"{difference}({interval})、判定なし"
-    p_value = "p < 0.001" if change.p_value < 0.001 else f"p = {change.p_value:.3f}"
     verdict = "差あり" if change.clear else "はっきりしない"
-    return f"{difference}({interval}、{p_value})、{verdict}"
+    return f"{difference}({interval}、{_p_text(change.p_value)})、{verdict}"
+
+
+def _p_text(value: float) -> str:
+    if value < 0.001:
+        return "p < 0.001"
+    return f"p = {math.floor(value * 1000 + TOLERANCE) / 1000:.3f}"
 
 
 def ran_interleaved(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
-    sides = {run["pair"]["side"] for run in (before, after) if run.get("pair")}
+    pairs = [run.get("pair") or {} for run in (before, after)]
     return (
-        sides == {"before", "after"}
-        and before["pair"]["label"] == after["pair"]["label"]
-        and before["created"] == after["created"]
+        {pair.get("side") for pair in pairs} == {"before", "after"}
+        and pairs[0].get("label") is not None
+        and pairs[0].get("label") == pairs[1].get("label")
+        and before.get("created") == after.get("created")
     )
 
 
@@ -464,13 +477,7 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     if comparison.occupations >= MIN_OCCUPATIONS:
         if any(change.interval is None for change in measured):
             lines.append("  区間なしの指標は、職業を選び直すと割合を出せない組がある")
-        old_repeats, new_repeats = comparison.repeats
-        if old_repeats != new_repeats:
-            lines.append(
-                f"  採点した回の数が違う({old_repeats} 回と {new_repeats} 回)ので、"
-                "重なり以外は前と後を入れ替えられず判定なし"
-            )
-        elif any(change.p_value is None for change in measured):
+        if any(change.p_value is None for change in measured):
             lines.append("  判定なしの指標は、前と後を入れ替えると割合を出せない組がある")
     if any(run["config"]["occupations"] != comparison.occupations for run in (before, after)):
         sizes = "、".join(
@@ -715,6 +722,7 @@ def _pair(args: argparse.Namespace) -> None:
         interleave(
             experiments[Side.BEFORE].trials(dataset, judgments, args.repeat),
             experiments[Side.AFTER].trials(dataset, judgments, args.repeat),
+            len(dataset.cases),
         ),
         len(Side) * len(dataset.cases) * args.repeat,
         args.budget,
@@ -745,7 +753,6 @@ def _pair(args: argparse.Namespace) -> None:
     for side in Side:
         print(render(documents[side]))
         print(f"保存した: {paths[side]}")
-    print(f"2 つで使った費用 {spent_yen:.1f} 円(途中で止めた推薦の分を含む)")
     if collection.stopped is not None and not collection.over_budget:
         sys.exit(1)
 
@@ -771,7 +778,7 @@ def _compare(args: argparse.Namespace) -> None:
     print(compare(before, after, compare_experiments(old_run, new_run)))
 
 
-def main(argv: Sequence[str] | None = None) -> None:
+def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="推薦を通しで流して、精度・揺れ・費用・時間を測る")
     commands = parser.add_subparsers(dest="command", required=True)
     run = commands.add_parser("run", help="評価データの職業ごとに推薦を流して結果を JSON に残す")
@@ -787,8 +794,10 @@ def main(argv: Sequence[str] | None = None) -> None:
         "pair", help="2 つの設定を職業と回の組ごとに交互に流して結果を JSON に 1 つずつ残す"
     )
     pair.add_argument("--label", type=label, required=True)
-    pair.add_argument("--before", type=setting, nargs="+", default=[], metavar="設定=値")
-    pair.add_argument("--after", type=setting, nargs="+", default=[], metavar="設定=値")
+    for side in ("--before", "--after"):
+        pair.add_argument(
+            side, type=setting, nargs="+", action="extend", default=[], metavar="設定=値"
+        )
     pair.add_argument("--repeat", type=int, default=3)
     pair.add_argument("--profiles", choices=PROFILES, default="analyzed")
     pair.add_argument("--budget", type=float, default=200)
@@ -809,6 +818,11 @@ def main(argv: Sequence[str] | None = None) -> None:
         for overrides in (args.before, args.after)
     ):
         parser.error("--before と --after のそれぞれで、同じ設定は 1 回だけ書いてください")
+    return args
+
+
+def main(argv: Sequence[str] | None = None) -> None:
+    args = arguments(argv)
     args.handle(args)
 
 

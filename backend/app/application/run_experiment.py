@@ -171,11 +171,12 @@ class Side(Enum):
 
 
 def interleave(
-    before: Iterator[Trial | FailedTrial], after: Iterator[Trial | FailedTrial]
+    before: Iterator[Trial | FailedTrial], after: Iterator[Trial | FailedTrial], cases: int
 ) -> Iterator[tuple[Side, Trial | FailedTrial]]:
     sides = ((Side.BEFORE, before), (Side.AFTER, after))
     for pair in count():
-        for side, outcomes in sides if pair % 2 == 0 else sides[::-1]:
+        repeat, case = divmod(pair, cases)
+        for side, outcomes in sides if (repeat + case) % 2 == 0 else sides[::-1]:
             outcome = next(outcomes, None)
             if outcome is None:
                 return

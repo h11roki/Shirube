@@ -60,7 +60,6 @@ def test_the_same_results_differ_by_nothing() -> None:
     comparison = compared(cards, cards)
 
     assert comparison.occupations == MIN_OCCUPATIONS
-    assert comparison.repeats == (1, 1)
     assert comparison.changes.keys() == METRICS | {"overlap", "core_overlap"}
     measured = {key: change for key, change in comparison.changes.items() if key in METRICS}
     assert {
@@ -145,19 +144,21 @@ def test_the_values_average_the_repeats_like_the_summary() -> None:
     assert unrelated.after == 0.0
 
 
-def test_runs_scored_over_different_repeats_get_an_interval_but_no_test() -> None:
+def test_runs_over_different_repeats_are_tested_on_each_occupations_repeats_together() -> None:
     before = [
-        card(occupation, repeat, WITH_UNRELATED) for repeat in (1, 2) for occupation in OCCUPATIONS
-    ]
+        card(occupation, 1, WITH_UNRELATED if index < 5 else ONLY_EXPECTED)
+        for index, occupation in enumerate(OCCUPATIONS)
+    ] + [card(occupation, 2, WITH_UNRELATED) for occupation in OCCUPATIONS]
     after = [card(occupation, 1, ONLY_EXPECTED) for occupation in OCCUPATIONS]
 
-    comparison = compared(before, after)
+    unrelated = compared(before, after).changes["unrelated"]
 
-    unrelated = comparison.changes["unrelated"]
-    assert comparison.repeats == (2, 1)
-    assert unrelated.interval == Interval(-0.5, -0.5)
-    assert unrelated.p_value is None
-    assert not unrelated.clear
+    assert unrelated.before == pytest.approx((5 / 15 + 10 / 20) / 2)
+    assert unrelated.after == 0.0
+    assert unrelated.interval is not None
+    assert unrelated.p_value is not None
+    assert unrelated.p_value < 0.01
+    assert unrelated.clear
 
 
 def test_fewer_paired_occupations_than_were_checked_get_values_but_no_interval_or_test() -> None:
@@ -197,7 +198,7 @@ def test_an_occupation_missing_from_a_scored_repeat_is_left_out_of_the_pairs() -
     comparison = compared(before, after)
 
     assert comparison.occupations == len(everyone) - 2
-    assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0), None)
+    assert comparison.changes["unrelated"] == Change(0.0, 0.0, Interval(0.0, 0.0), 1.0)
 
 
 def test_the_overlap_between_repeats_is_compared_by_occupation() -> None:

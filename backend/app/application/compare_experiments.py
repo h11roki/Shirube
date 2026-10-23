@@ -57,7 +57,6 @@ class Change:
 @dataclass(frozen=True)
 class Comparison:
     occupations: int
-    repeats: tuple[int, int]
     changes: dict[str, Change]
 
 
@@ -99,26 +98,30 @@ def _interval(old: Rows, new: Rows, samples: Sequence[Sequence[int]]) -> Interva
     return Interval(differences[cut], differences[len(differences) - 1 - cut])
 
 
-def _mixed(keep: Rows, take: Rows, swap: Sequence[bool]) -> Rows:
+def _by_occupation(rows: Rows) -> list[Ratio]:
     return [
-        [taken if flipped else kept for kept, taken, flipped in zip(own, other, swap, strict=True)]
-        for own, other in zip(keep, take, strict=True)
+        Ratio(sum(cell.numerator for cell in cells), sum(cell.denominator for cell in cells))
+        for cells in zip(*rows, strict=True)
     ]
 
 
-def _p_value(
-    old: Rows, new: Rows, swaps: Sequence[Sequence[bool]], observed: float
-) -> float | None:
-    if len(old) != len(new) or not swaps:
+def _p_value(old: Rows, new: Rows, swaps: Sequence[Sequence[bool]]) -> float | None:
+    first, second = _by_occupation(old), _by_occupation(new)
+    before, after = pooled(first), pooled(second)
+    if not swaps or before is None or after is None:
         return None
-    everyone = range(len(swaps[0]))
+    observed = abs(after - before)
     extreme = 0
     for swap in swaps:
-        before = _measure(_mixed(old, new, swap), everyone)
-        after = _measure(_mixed(new, old, swap), everyone)
-        if before is None or after is None:
+        sides = [
+            (taken, kept) if flipped else (kept, taken)
+            for kept, taken, flipped in zip(first, second, swap, strict=True)
+        ]
+        shuffled_before = pooled([pair[0] for pair in sides])
+        shuffled_after = pooled([pair[1] for pair in sides])
+        if shuffled_before is None or shuffled_after is None:
             return None
-        if abs(after - before) >= abs(observed) - TOLERANCE:
+        if abs(shuffled_after - shuffled_before) >= observed - TOLERANCE:
             extreme += 1
     return (extreme + 1) / (len(swaps) + 1)
 
@@ -153,6 +156,6 @@ def compare_experiments(
             old_value,
             new_value,
             _interval(old[key], new[key], samples),
-            _p_value(old[key], new[key], swaps, new_value - old_value),
+            _p_value(old[key], new[key], swaps),
         )
-    return Comparison(len(occupations), (len(before.repeats), len(after.repeats)), changes)
+    return Comparison(len(occupations), changes)

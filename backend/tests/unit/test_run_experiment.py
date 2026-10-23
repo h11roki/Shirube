@@ -367,24 +367,27 @@ def test_jaccard_is_the_shared_part_of_the_union(
     assert jaccard(left, right) == pytest.approx(expected)
 
 
-def test_interleaving_runs_one_at_a_time_and_alternates_which_side_goes_first() -> None:
-    started: list[tuple[str, int]] = []
+def test_interleaving_runs_one_at_a_time_and_each_occupation_alternates_the_side_first() -> None:
+    started: list[str] = []
 
     def outcomes(side: str) -> Iterator[Trial | FailedTrial]:
-        for number in range(3):
-            started.append((side, number))
-            yield FailedTrial(f"職業{number}", 1, side, USAGE)
+        for repeat in (1, 2):
+            for occupation in ("職業A", "職業B"):
+                started.append(side)
+                yield FailedTrial(occupation, repeat, side, USAGE)
 
-    pairs = interleave(outcomes("前"), outcomes("後"))
+    pairs = interleave(outcomes("前"), outcomes("後"), cases=2)
     first = next(pairs)
 
-    assert started == [("前", 0)]
-    assert [(side, outcome.occupation) for side, outcome in (first, *pairs)] == [
-        (Side.BEFORE, "職業0"),
-        (Side.AFTER, "職業0"),
-        (Side.AFTER, "職業1"),
-        (Side.BEFORE, "職業1"),
-        (Side.BEFORE, "職業2"),
-        (Side.AFTER, "職業2"),
+    assert started == ["前"]
+    assert [(outcome.occupation, outcome.repeat, side) for side, outcome in (first, *pairs)] == [
+        ("職業A", 1, Side.BEFORE),
+        ("職業A", 1, Side.AFTER),
+        ("職業B", 1, Side.AFTER),
+        ("職業B", 1, Side.BEFORE),
+        ("職業A", 2, Side.AFTER),
+        ("職業A", 2, Side.BEFORE),
+        ("職業B", 2, Side.BEFORE),
+        ("職業B", 2, Side.AFTER),
     ]
-    assert started == [("前", 0), ("後", 0), ("後", 1), ("前", 1), ("前", 2), ("後", 2)]
+    assert started == ["前", "後", "後", "前", "後", "前", "前", "後"]

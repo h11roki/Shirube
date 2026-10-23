@@ -45,6 +45,7 @@ from app.presentation.cli.experiment import (
     METRICS,
     OVERLAPS,
     Collection,
+    arguments,
     collect,
     compare,
     label,
@@ -345,11 +346,44 @@ def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
     assert ran_interleaved(before, after)
 
 
+def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
+    args = arguments(
+        [
+            "pair",
+            "--label",
+            "votes",
+            "--before",
+            "CHAT_MODEL=gpt-5.4-nano",
+            "--before",
+            "SELECTION_VOTES=1",
+            "SELECTION_CANDIDATE_LIMIT=30",
+            "--after",
+            "SELECTION_VOTES=3",
+        ]
+    )
+
+    assert args.before == [
+        ("CHAT_MODEL", "gpt-5.4-nano"),
+        ("SELECTION_VOTES", "1"),
+        ("SELECTION_CANDIDATE_LIMIT", "30"),
+    ]
+    assert args.after == [("SELECTION_VOTES", "3")]
+    assert args.budget == 200
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [
+        ["--after", "SELECTION_VOTES=1", "SELECTION_VOTES=3"],
+        ["--before", "SELECTION_VOTES=1", "--before", "SELECTION_VOTES=3"],
+    ],
+    ids=["one-flag", "two-flags"],
+)
 def test_pair_refuses_the_same_setting_twice_on_one_side(
-    capsys: pytest.CaptureFixture[str],
+    flags: list[str], capsys: pytest.CaptureFixture[str]
 ) -> None:
     with pytest.raises(SystemExit) as stopped:
-        main(["pair", "--label", "votes", "--after", "SELECTION_VOTES=1", "SELECTION_VOTES=3"])
+        main(["pair", "--label", "votes", *flags])
 
     assert stopped.value.code == 2
     assert "同じ設定は 1 回だけ" in capsys.readouterr().err
@@ -405,6 +439,15 @@ def test_a_run_whose_recommendations_all_failed_is_shown_without_scores() -> Non
     assert lines[1:] == ["  使った費用 24.0 円", "  推薦が全て失敗したので集計していない"]
 
 
+def test_one_side_of_a_pair_shows_its_own_cost_beside_the_cost_of_the_pair() -> None:
+    side = document(None) | {"pair": {"label": "votes", "side": "before", "spent_yen": 50.0}}
+
+    assert render(side).splitlines()[1] == (
+        "  使った費用 24.0 円(この側の推薦の分。交互に流した組 votes の 2 つで 50.0 円、"
+        "途中で止めた推薦の分を含む)"
+    )
+
+
 def run(name: str, **config: Any) -> dict[str, Any]:
     summary = {
         "trials": 30,
@@ -424,13 +467,10 @@ def line_of(lines: list[str], start: str) -> str:
     return next(line for line in lines if line.startswith(start))
 
 
-def measured(
-    occupations: int, changes: dict[str, Change], repeats: tuple[int, int] = (3, 3)
-) -> Comparison:
+def measured(occupations: int, changes: dict[str, Change]) -> Comparison:
     unknown = Change(None, None, None, None)
     return Comparison(
         occupations,
-        repeats,
         {key: changes.get(key, unknown) for key, _, _ in (*METRICS, *OVERLAPS)},
     )
 
@@ -501,26 +541,23 @@ def test_compare_gives_no_interval_or_verdict_for_fewer_occupations_than_were_ch
     assert "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント、区間と判定なし" in lines
 
 
-def test_compare_explains_that_runs_scored_over_different_repeats_get_no_verdict() -> None:
-    comparison = measured(
-        10,
-        {
-            "unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05), None),
-            "overlap": Change(0.6, 0.7, Interval(0.0, 0.2), 0.04),
-        },
-        repeats=(3, 1),
-    )
+@pytest.mark.parametrize(
+    ("p_value", "shown"),
+    [
+        (500 / 10_001, "p = 0.049)、差あり"),
+        (501 / 10_001, "p = 0.050)、はっきりしない"),
+        (0.03, "p = 0.030)、差あり"),
+    ],
+    ids=["just-below", "just-above", "exact-decimal"],
+)
+def test_compare_cuts_the_p_value_down_so_it_never_reads_against_the_verdict(
+    p_value: float, shown: str
+) -> None:
+    comparison = measured(10, {"unrelated": Change(0.2, 0.1, Interval(-0.15, -0.05), p_value)})
 
     lines = compare(run("before"), run("after"), comparison).splitlines()
 
-    assert (
-        "  採点した回の数が違う(3 回と 1 回)ので、重なり以外は前と後を入れ替えられず判定なし"
-    ) in lines
-    assert not any(line.startswith("  判定なしの指標") for line in lines)
-    assert (
-        "  選んだ科目のうち関係なし: 20.0% → 10.0%、差 -10.0 ポイント(区間 -15.0〜-5.0)、判定なし"
-    ) in lines
-    assert line_of(lines, "  揺れ(選んだ科目の重なり)").endswith("、差あり")
+    assert line_of(lines, "  選んだ科目のうち関係なし").endswith(shown)
 
 
 def test_compare_does_not_warn_about_the_time_for_the_two_sides_of_one_pair() -> None:
@@ -538,8 +575,9 @@ def test_compare_does_not_warn_about_the_time_for_the_two_sides_of_one_pair() ->
         (paired("a", "before"), paired("b", "after", label="other")),
         (paired("a", "before"), paired("b", "after") | {"created": "2026-10-24T04:00:00+09:00"}),
         (paired("a", "before"), run("b")),
+        (run("a") | {"pair": {"side": "before"}}, run("b") | {"pair": {"side": "after"}}),
     ],
-    ids=["same-side", "other-pair", "other-time", "single-run"],
+    ids=["same-side", "other-pair", "other-time", "single-run", "no-label"],
 )
 def test_compare_warns_about_the_time_unless_both_runs_are_one_pair(
     before: dict[str, Any], after: dict[str, Any]
@@ -675,7 +713,7 @@ def test_compare_pairs_the_occupations_of_two_saved_runs(
     assert unrelated.startswith(
         "  選んだ科目のうち関係なし: 60.0% → 0.0%、差 -60.0 ポイント(区間 -"
     )
-    assert unrelated.endswith("、p = 0.002)、差あり")
+    assert unrelated.endswith(")、差あり") and "、p = 0.00" in unrelated
     assert (
         "  期待する科目を中心に選んだ割合: 100.0% → 100.0%、差 +0.0 ポイント"
         "(区間 +0.0〜+0.0、p = 1.000)、はっきりしない"
