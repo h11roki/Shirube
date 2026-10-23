@@ -1,4 +1,4 @@
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -104,6 +104,24 @@ class Recommendation:
             raise RecommendationError(
                 f"外した科目に、中心か中心につながる土台があります: {'、'.join(not_dropped)}"
             )
+
+
+def majority_choices(samples: Sequence[Sequence[CourseChoice]]) -> list[CourseChoice]:
+    chosen: dict[str, list[CourseChoice]] = defaultdict(list)
+    for sample in samples:
+        first: dict[str, CourseChoice] = {}
+        for choice in sample:
+            first.setdefault(choice.name, choice)
+        for name, choice in first.items():
+            chosen[name].append(choice)
+    kept = []
+    for choices in chosen.values():
+        if len(choices) * 2 <= len(samples):
+            continue
+        cores = [choice for choice in choices if choice.relevance is Relevance.CORE]
+        foundations = [choice for choice in choices if choice.relevance is Relevance.FOUNDATION]
+        kept.append(cores[0] if len(cores) > len(foundations) else foundations[0])
+    return kept
 
 
 def arrange(

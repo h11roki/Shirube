@@ -10,6 +10,7 @@ from app.domain.recommendation import (
     RecommendedCourse,
     Relevance,
     arrange,
+    majority_choices,
 )
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
@@ -195,3 +196,51 @@ def test_arrange_without_core_courses_drops_every_foundation() -> None:
 def test_arrange_rejects_a_choice_outside_the_matches(choice: CourseChoice) -> None:
     with pytest.raises(RecommendationError, match="候補に無い科目.*: 科目Z"):
         arrange(PROFILE, matches_of("科目A"), [choice])
+
+
+def test_majority_keeps_courses_chosen_in_more_than_half_of_the_samples() -> None:
+    samples = [
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目C", CORE, "理由C")],
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
+    ]
+
+    assert [choice.name for choice in majority_choices(samples)] == ["科目A", "科目B"]
+
+
+def test_majority_needs_more_than_half_so_a_tie_between_two_samples_is_dropped() -> None:
+    samples = [[CourseChoice("科目A", CORE, "理由A")], []]
+
+    assert majority_choices(samples) == []
+
+
+def test_majority_takes_the_role_most_samples_gave_and_its_first_reason() -> None:
+    samples = [
+        [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")],
+        [CourseChoice("科目B", CORE, "中心の理由 1")],
+        [CourseChoice("科目B", CORE, "中心の理由 2")],
+    ]
+
+    assert majority_choices(samples) == [CourseChoice("科目B", CORE, "中心の理由 1")]
+
+
+def test_majority_breaks_an_even_split_between_roles_toward_foundation() -> None:
+    samples = [
+        [CourseChoice("科目B", CORE, "中心の理由")],
+        [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")],
+        [CourseChoice("科目C", CORE, "理由C")],
+        [CourseChoice("科目B", FOUNDATION, "土台の理由 2", "科目C")],
+        [CourseChoice("科目B", CORE, "中心の理由 2")],
+    ]
+
+    assert majority_choices(samples) == [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")]
+
+
+def test_majority_counts_a_course_listed_twice_in_one_sample_once() -> None:
+    samples = [
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目A", CORE, "理由A")],
+        [],
+        [],
+    ]
+
+    assert majority_choices(samples) == []
