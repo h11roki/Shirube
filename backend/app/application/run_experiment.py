@@ -1,7 +1,8 @@
 from collections import defaultdict
 from collections.abc import Callable, Iterable, Iterator, Sequence
 from dataclasses import dataclass
-from itertools import combinations
+from enum import Enum
+from itertools import combinations, count
 from math import fsum
 from statistics import mean, stdev
 from time import perf_counter
@@ -162,6 +163,23 @@ class RunExperiment:
                 finished - selecting,
             ),
         )
+
+
+class Side(Enum):
+    BEFORE = "before"
+    AFTER = "after"
+
+
+def interleave(
+    before: Iterator[Trial | FailedTrial], after: Iterator[Trial | FailedTrial]
+) -> Iterator[tuple[Side, Trial | FailedTrial]]:
+    sides = ((Side.BEFORE, before), (Side.AFTER, after))
+    for pair in count():
+        for side, outcomes in sides if pair % 2 == 0 else sides[::-1]:
+            outcome = next(outcomes, None)
+            if outcome is None:
+                return
+            yield side, outcome
 
 
 @dataclass(frozen=True)

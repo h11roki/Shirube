@@ -17,9 +17,11 @@ from app.application.ports import CourseSelectionError, TokenUsage
 from app.application.run_experiment import (
     FailedTrial,
     RunExperiment,
+    Side,
     Spread,
     StageSeconds,
     Trial,
+    interleave,
     jaccard,
     summarize,
 )
@@ -363,3 +365,26 @@ def test_jaccard_is_the_shared_part_of_the_union(
     left: set[str], right: set[str], expected: float
 ) -> None:
     assert jaccard(left, right) == pytest.approx(expected)
+
+
+def test_interleaving_runs_one_at_a_time_and_alternates_which_side_goes_first() -> None:
+    started: list[tuple[str, int]] = []
+
+    def outcomes(side: str) -> Iterator[Trial | FailedTrial]:
+        for number in range(3):
+            started.append((side, number))
+            yield FailedTrial(f"職業{number}", 1, side, USAGE)
+
+    pairs = interleave(outcomes("前"), outcomes("後"))
+    first = next(pairs)
+
+    assert started == [("前", 0)]
+    assert [(side, outcome.occupation) for side, outcome in (first, *pairs)] == [
+        (Side.BEFORE, "職業0"),
+        (Side.AFTER, "職業0"),
+        (Side.AFTER, "職業1"),
+        (Side.BEFORE, "職業1"),
+        (Side.BEFORE, "職業2"),
+        (Side.AFTER, "職業2"),
+    ]
+    assert started == [("前", 0), ("後", 0), ("後", 1), ("前", 1), ("前", 2), ("後", 2)]
