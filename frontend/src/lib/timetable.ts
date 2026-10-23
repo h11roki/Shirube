@@ -37,3 +37,16 @@ export function weekTable(courses: PlacedCourse[]): WeekTable {
     unscheduled: courses.filter((course) => course.slots.length === 0),
   };
 }
+
+export type DayLesson = { period: number; course: PlacedCourse };
+
+export type DaySchedule = { weekday: Weekday; lessons: DayLesson[] };
+
+export function daySchedules(table: WeekTable): DaySchedule[] {
+  return table.weekdays.map((weekday, index) => ({
+    weekday,
+    lessons: table.rows.flatMap((row) =>
+      row.cells[index].map((course) => ({ period: row.period, course })),
+    ),
+  }));
+}

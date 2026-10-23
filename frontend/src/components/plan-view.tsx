@@ -26,6 +26,8 @@ import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   DELETE_PLAN_NOTE,
+  completionNotice,
+  planTitlePrefix,
 } from "@/lib/labels";
 import {
   POLL_INTERVAL_MS,
@@ -35,6 +37,8 @@ import {
   watchState,
 } from "@/lib/polling";
 
+const ANNOUNCE_DELAY_MS = 500;
+
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -42,7 +46,13 @@ export function PlanView() {
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
+  const [progressSeenFor, setProgressSeenFor] = useState<string>();
+  const [notice, setNotice] = useState("");
   const deleted = useRef(false);
+  const sawProgress = progressSeenFor === id;
+  const completion = plan ? completionNotice(plan, sawProgress) : "";
+  const prefix =
+    plan && !error ? planTitlePrefix(plan, sawProgress) : undefined;
 
   useEffect(() => {
     let active = true;
@@ -67,6 +77,9 @@ export function PlanView() {
         const state = watchState(latest.status, Date.now() - startedAt);
         seen = true;
         setPlan(latest);
+        if (state !== "finished") {
+          setProgressSeenFor(id);
+        }
         setWatch(state);
         setError(undefined);
         if (state === "waiting") {
@@ -99,6 +112,25 @@ export function PlanView() {
       leaving.abort();
     };
   }, [id, round]);
+
+  useEffect(() => {
+    if (prefix === undefined) {
+      return;
+    }
+    const base = document.title;
+    const title = `${prefix}${base}`;
+    document.title = title;
+    return () => {
+      if (document.title === title) {
+        document.title = base;
+      }
+    };
+  }, [prefix]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setNotice(completion), ANNOUNCE_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [completion]);
 
   function retry() {
     setError(undefined);
@@ -168,6 +200,9 @@ export function PlanView() {
   }
   return (
     <div className="grid gap-6">
+      <p role="status" className="sr-only">
+        {notice}
+      </p>
       {body}
       <div
         className={

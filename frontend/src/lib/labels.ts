@@ -1,6 +1,7 @@
 import type {
   Course,
   PlacedCourse,
+  Plan,
   PlanStage,
   PlanStatus,
   Relevance,
@@ -31,9 +32,43 @@ export const STAGE_LABELS: Record<PlanStage, string> = {
 
 export const WAITING_LABEL = "順番を待っています";
 
+const PLAN_TITLE_PREFIXES: Record<PlanStatus, string> = {
+  pending: "作成中: ",
+  running: "作成中: ",
+  succeeded: "できました: ",
+  failed: "作れませんでした: ",
+};
+
+type PlanState = Pick<Plan, "status" | "result">;
+
+function completedInView(plan: PlanState, sawProgress: boolean): boolean {
+  return plan.status === "succeeded" && plan.result !== null && sawProgress;
+}
+
+export function planTitlePrefix(plan: PlanState, sawProgress: boolean): string {
+  const plain =
+    plan.status === "succeeded" && !completedInView(plan, sawProgress);
+  return plain ? "" : PLAN_TITLE_PREFIXES[plan.status];
+}
+
+export function completionNotice(
+  plan: PlanState,
+  sawProgress: boolean,
+): string {
+  return completedInView(plan, sawProgress) ? "道標ができました" : "";
+}
+
 export const DEPARTMENT_NAME = "電子情報工学科";
 
 export const EMPTY_SEMESTER_LABEL = "この学期に置いた授業はありません。";
+
+export const NO_LESSONS_LABEL = "授業なし";
+
+export const WEEKDAY_SUFFIX = "曜日";
+
+export const PERIOD_SUFFIX = "限";
+
+export const PERIOD_HEADER_LABEL = "時限";
 
 export const CONTINUING_LABEL = "春学期からの続き";
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { PlacedCourse } from "@/lib/api/client";
+import type { PlacedCourse, Plan } from "@/lib/api/client";
 import {
   classLabel,
   roleLabel,
@@ -22,7 +22,14 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   leaveSummary,
+  planTitlePrefix,
+  completionNotice,
 } from "@/lib/labels";
+import { SAMPLE_PLAN } from "@/lib/sample-plan";
+
+function inState(status: Plan["status"]): Plan {
+  return { ...SAMPLE_PLAN, status, result: null };
+}
 
 function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
   return {
@@ -150,5 +157,27 @@ describe("labels", () => {
     expect(leaveSummary(3, { failure: "サーバーに届きませんでした" })).toBe(
       "作った道標 3 件と、もう取ったと答えた授業を全て消し、ログアウトします。もう取ったと答えた授業の数は確かめられませんでした(サーバーに届きませんでした)。",
     );
+  });
+
+  it("puts the state of the plan in front of the tab title", () => {
+    expect(planTitlePrefix(inState("pending"), false)).toBe("作成中: ");
+    expect(planTitlePrefix(inState("running"), true)).toBe("作成中: ");
+    expect(planTitlePrefix(SAMPLE_PLAN, true)).toBe("できました: ");
+    expect(planTitlePrefix(inState("failed"), false)).toBe(
+      "作れませんでした: ",
+    );
+  });
+
+  it("adds nothing for a plan done before it was opened or done without a result", () => {
+    expect(planTitlePrefix(SAMPLE_PLAN, false)).toBe("");
+    expect(planTitlePrefix(inState("succeeded"), true)).toBe("");
+  });
+
+  it("announces completion only for a result that came after the plan was seen in progress", () => {
+    expect(completionNotice(SAMPLE_PLAN, true)).toBe("道標ができました");
+    expect(completionNotice(SAMPLE_PLAN, false)).toBe("");
+    expect(completionNotice(inState("succeeded"), true)).toBe("");
+    expect(completionNotice(inState("running"), true)).toBe("");
+    expect(completionNotice(inState("failed"), true)).toBe("");
   });
 });
