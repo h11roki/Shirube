@@ -69,9 +69,14 @@ export function PlanResultView({
     if (!answered) {
       return;
     }
-    const timer = setTimeout(() => {
-      if (notice.current?.contains(document.activeElement)) {
-        notice.current.focus({ preventScroll: true });
+    let timer = setTimeout(function hide() {
+      const box = notice.current;
+      if (box?.matches(":focus-visible, :has(:focus-visible)")) {
+        timer = setTimeout(hide, ANSWERED_MS);
+        return;
+      }
+      if (box?.contains(document.activeElement)) {
+        box.focus({ preventScroll: true });
       }
       setAnswered(undefined);
     }, ANSWERED_MS);
@@ -284,11 +289,11 @@ export function PlanResultView({
         ref={notice}
         role="status"
         tabIndex={-1}
-        className="pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4 outline-none"
+        className="group pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4 outline-none"
       >
         {answered && (
           <p
-            className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
+            className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
           >
             {answered.message}
             {undo && (
