@@ -17,6 +17,7 @@ class Settings(CurriculumSettings):
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
     chat_model: str = "gpt-5.4-mini"
+    occupation_reading_cache_size: Annotated[int, Field(ge=0, le=10_000)] = 500
     selection_model: str = "gpt-5.4-nano"
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 20
     selection_votes: Annotated[int, Field(ge=1, le=5)] = 3

@@ -6,8 +6,9 @@ from sqlalchemy import Engine, create_engine
 from sqlalchemy.exc import ArgumentError
 
 from app.application.build_plans import BuildPlans
+from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.forget_deleted_plans import ForgetDeletedPlans
-from app.application.ports import CourseSelector
+from app.application.ports import CourseSelector, OccupationAnalyzer
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses
@@ -74,6 +75,13 @@ def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
     )
 
 
+def occupation_analyzer(settings: Settings) -> OccupationAnalyzer:
+    analyzer = openai_occupation_analyzer(settings)
+    if settings.occupation_reading_cache_size == 0:
+        return analyzer
+    return CachedOccupationAnalyzer(analyzer, settings.occupation_reading_cache_size)
+
+
 def course_selector(settings: Settings) -> CourseSelector:
     selector = OpenAICourseSelector.connect(
         settings.selection_model,
@@ -98,7 +106,7 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
     return RecommendCourses(
         search_courses(settings, engine),
         SqlCourseRepository(engine),
-        openai_occupation_analyzer(settings),
+        occupation_analyzer(settings),
         course_selector(settings),
         settings.selection_candidate_limit,
     )
