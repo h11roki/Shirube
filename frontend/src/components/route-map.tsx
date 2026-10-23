@@ -206,7 +206,7 @@ function RouteStrip({
     <nav
       ref={strip}
       aria-label="路線図"
-      className="sticky top-2 z-20 overflow-x-auto rounded-full border border-line bg-sheet/90 px-6 py-2 shadow-paper backdrop-blur"
+      className="sticky top-2 z-20 scroll-px-6 overflow-x-auto rounded-full border border-line bg-sheet/90 px-6 py-2 shadow-paper backdrop-blur"
     >
       <ol className="flex w-max min-w-full items-start justify-between">
         {stops.map((stop, index) => {
