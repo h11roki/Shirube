@@ -40,9 +40,9 @@ from app.presentation.cli.evaluation_data import (
     load_judgments,
 )
 from app.presentation.composition import (
+    course_selector,
     database_engine,
     load_settings,
-    openai_course_selector,
     openai_occupation_analyzer,
     search_courses,
 )
@@ -56,6 +56,7 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 RUN_CONTROLS = frozenset({"budget"})
+SINGLE_VOTE = {"selection_votes": 1}
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 METRICS = (
@@ -279,7 +280,8 @@ def render(document: Mapping[str, Any]) -> str:
     lines = [
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
-        f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']})",
+        f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']}、"
+        f"選び直し {config['selection_votes']} 回)",
     ]
     if document["stopped"] is not None:
         lines.append(f"  途中で止めた: {document['stopped']}")
@@ -314,8 +316,8 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any]) -> str:
     for run in (before, after):
         stopped = "" if run["stopped"] is None else f"、途中で止めた({run['stopped']})"
         lines.append(f"  {run['label']}: {_counts(run['summary'])}{stopped}")
-    old_config = before["config"] | {"commit": before["commit"]}
-    new_config = after["config"] | {"commit": after["commit"]}
+    old_config = SINGLE_VOTE | before["config"] | {"commit": before["commit"]}
+    new_config = SINGLE_VOTE | after["config"] | {"commit": after["commit"]}
     differences = [
         f"{key} {old_config.get(key)} → {new_config.get(key)}"
         for key in sorted(old_config.keys() | new_config.keys())
@@ -365,6 +367,7 @@ def config_document(
         "occupations": len(dataset.cases),
         "chat_model": settings.chat_model if analyzed else None,
         "selection_model": settings.selection_model,
+        "selection_votes": settings.selection_votes,
         "embedding_model": settings.embedding_model,
         "candidate_limit": settings.selection_candidate_limit,
         "prompts": {
@@ -408,7 +411,7 @@ def _run(args: argparse.Namespace) -> None:
             search_courses(settings, engine),
             SqlCourseRepository(engine),
             analyzer,
-            openai_course_selector(settings),
+            course_selector(settings),
             settings.selection_candidate_limit,
             meter,
         )
