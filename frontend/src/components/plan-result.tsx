@@ -44,7 +44,12 @@ const TAKEN_METHODS: Record<TakenChange, string> = {
   unmark: "DELETE",
 };
 
-type Answered = { message: string; failed: boolean; undo: string | null };
+type Answered = {
+  message: string;
+  failed: boolean;
+  undo: string | null;
+  held: boolean;
+};
 
 export function PlanResultView({
   plan,
@@ -66,19 +71,17 @@ export function PlanResultView({
   const undo = answered?.undo ?? null;
 
   useEffect(() => {
-    if (!answered) {
+    if (!answered || answered.held) {
       return;
     }
-    let timer = setTimeout(function hide() {
+    const timer = setTimeout(() => {
       const box = notice.current;
-      if (box?.matches(":focus-visible, :has(:focus-visible)")) {
-        timer = setTimeout(hide, ANSWERED_MS);
-        return;
-      }
-      if (box?.contains(document.activeElement)) {
-        box.focus({ preventScroll: true });
-      }
-      setAnswered(undefined);
+      const active = document.activeElement;
+      const keyboardInside =
+        box !== null &&
+        box.contains(active) &&
+        (active !== box || box.matches(":focus-visible"));
+      setAnswered(keyboardInside ? { ...answered, held: true } : undefined);
     }, ANSWERED_MS);
     return () => clearTimeout(timer);
   }, [answered]);
@@ -95,6 +98,7 @@ export function PlanResultView({
   }
 
   async function answer(name: string, change: TakenChange) {
+    const held = document.activeElement?.matches(":focus-visible") ?? false;
     setBusy(true);
     try {
       onAnswered(
@@ -107,12 +111,14 @@ export function PlanResultView({
         message: answeredLabel(name, change),
         failed: false,
         undo: change === "mark" ? name : null,
+        held,
       });
     } catch (caught) {
       setAnswered({
         message: failedAnswerLabel(messageOf(caught), await reloadFailure()),
         failed: true,
         undo: null,
+        held,
       });
     } finally {
       setBusy(false);
@@ -289,6 +295,14 @@ export function PlanResultView({
         ref={notice}
         role="status"
         tabIndex={-1}
+        onBlur={(event) => {
+          if (
+            document.hasFocus() &&
+            !event.currentTarget.contains(event.relatedTarget)
+          ) {
+            setAnswered(undefined);
+          }
+        }}
         className="group pointer-events-none fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-30 flex justify-center px-4 outline-none"
       >
         {answered && (
