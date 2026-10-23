@@ -16,8 +16,10 @@ from app.application.run_experiment import (
 )
 
 RESAMPLES = 10_000
+SHUFFLES = 10_000
 SEED = 0
 CONFIDENCE = 0.95
+SIGNIFICANCE = 0.05
 MIN_OCCUPATIONS = 10
 TOLERANCE = 1e-9
 OVERLAPS: dict[str, Callable[[Scorecard], set[str]]] = {
@@ -33,16 +35,13 @@ class Interval:
     low: float
     high: float
 
-    @property
-    def clear(self) -> bool:
-        return self.low > TOLERANCE or self.high < -TOLERANCE
-
 
 @dataclass(frozen=True)
 class Change:
     before: float | None
     after: float | None
     interval: Interval | None
+    p_value: float | None
 
     @property
     def difference(self) -> float | None:
@@ -50,10 +49,15 @@ class Change:
             return None
         return self.after - self.before
 
+    @property
+    def clear(self) -> bool:
+        return self.p_value is not None and self.p_value < SIGNIFICANCE
+
 
 @dataclass(frozen=True)
 class Comparison:
     occupations: int
+    repeats: tuple[int, int]
     changes: dict[str, Change]
 
 
@@ -95,25 +99,60 @@ def _interval(old: Rows, new: Rows, samples: Sequence[Sequence[int]]) -> Interva
     return Interval(differences[cut], differences[len(differences) - 1 - cut])
 
 
+def _mixed(keep: Rows, take: Rows, swap: Sequence[bool]) -> Rows:
+    return [
+        [taken if flipped else kept for kept, taken, flipped in zip(own, other, swap, strict=True)]
+        for own, other in zip(keep, take, strict=True)
+    ]
+
+
+def _p_value(
+    old: Rows, new: Rows, swaps: Sequence[Sequence[bool]], observed: float
+) -> float | None:
+    if len(old) != len(new) or not swaps:
+        return None
+    everyone = range(len(swaps[0]))
+    extreme = 0
+    for swap in swaps:
+        before = _measure(_mixed(old, new, swap), everyone)
+        after = _measure(_mixed(new, old, swap), everyone)
+        if before is None or after is None:
+            return None
+        if abs(after - before) >= abs(observed) - TOLERANCE:
+            extreme += 1
+    return (extreme + 1) / (len(swaps) + 1)
+
+
 def compare_experiments(
-    before: ScoredRun, after: ScoredRun, resamples: int = RESAMPLES, seed: int = SEED
+    before: ScoredRun,
+    after: ScoredRun,
+    resamples: int = RESAMPLES,
+    shuffles: int = SHUFFLES,
+    seed: int = SEED,
 ) -> Comparison:
     occupations = sorted(before.occupations & after.occupations)
     everyone = range(len(occupations))
     generator = Random(seed)
+    enough = len(occupations) >= MIN_OCCUPATIONS
     samples = (
         [generator.choices(everyone, k=len(occupations)) for _ in range(resamples)]
-        if len(occupations) >= MIN_OCCUPATIONS
+        if enough
         else []
+    )
+    swaps = (
+        [[generator.random() < 0.5 for _ in everyone] for _ in range(shuffles)] if enough else []
     )
     old, new = _rows(before, occupations), _rows(after, occupations)
     changes = {}
     for key in (*METRICS, *OVERLAPS):
         old_value, new_value = _measure(old[key], everyone), _measure(new[key], everyone)
-        interval = (
-            None
-            if old_value is None or new_value is None
-            else _interval(old[key], new[key], samples)
+        if old_value is None or new_value is None:
+            changes[key] = Change(old_value, new_value, None, None)
+            continue
+        changes[key] = Change(
+            old_value,
+            new_value,
+            _interval(old[key], new[key], samples),
+            _p_value(old[key], new[key], swaps, new_value - old_value),
         )
-        changes[key] = Change(old_value, new_value, interval)
-    return Comparison(len(occupations), changes)
+    return Comparison(len(occupations), (len(before.repeats), len(after.repeats)), changes)
