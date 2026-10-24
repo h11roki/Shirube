@@ -45,10 +45,8 @@ export function PlanProgress({
         <div className="grid min-w-0 gap-1.5">
           <DestinationPlate destination={conditions.occupation} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
-            <Phrases
-              parts={PROGRESS_HEADING}
-              spokenPrefix={`${conditions.occupation}への`}
-            />
+            <span className="sr-only">{conditions.occupation}への</span>
+            <Phrases parts={PROGRESS_HEADING} />
           </h1>
           <p className="text-sm text-sub">
             {semesterLabel(conditions.grade, conditions.term)}
