@@ -41,11 +41,11 @@ const SCREENS: {
   },
 ];
 
-const LONG_PLATES: Record<string, string[]> = {
-  組込みソフトウェアエンジニア: ["組込み", "ソフトウェア", "エンジニア行"],
-  "半導体・LSI 設計エンジニア": ["半導体・", "LSI ", "設計", "エンジニア行"],
-  電子情報システム保守技術者: ["電子", "情報", "システム", "保守", "技術者行"],
-};
+const LONG_PLATES = [
+  ["組込み", "ソフトウェア", "エンジニア"],
+  ["半導体・", "LSI ", "設計", "エンジニア"],
+  ["電子", "情報", "システム", "保守", "技術者"],
+];
 
 const FIXED_HEADINGS: {
   screen: string;
@@ -174,7 +174,8 @@ for (const width of NARROW_WIDTHS) {
   });
 
   for (const screen of SCREENS) {
-    for (const [destination, words] of Object.entries(LONG_PLATES)) {
+    for (const words of LONG_PLATES) {
+      const destination = words.join("");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
         api,
@@ -184,13 +185,18 @@ for (const width of NARROW_WIDTHS) {
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
         const lines = await renderedLines(text);
-        expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
         expect(
-          await text.evaluate(
-            (element) =>
-              element.parentElement?.getBoundingClientRect().right ?? Infinity,
-          ),
-        ).toBeLessThanOrEqual(width);
+          breaksOnlyBetween(lines, words.with(-1, `${words.at(-1)}行`)),
+          lines.join(" / "),
+        ).toBe(true);
+        const { plate, column } = await text.evaluate((element) => ({
+          plate:
+            element.parentElement?.getBoundingClientRect().right ?? Infinity,
+          column:
+            element.parentElement?.parentElement?.getBoundingClientRect()
+              .right ?? 0,
+        }));
+        expect(plate).toBeLessThanOrEqual(Math.min(column, width));
       });
     }
   }
