@@ -10,6 +10,7 @@ import {
   markTakenLabel,
   unmarkTakenLabel,
 } from "@/lib/labels";
+import { POLL_INTERVAL_MS } from "@/lib/polling";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 import {
@@ -22,12 +23,24 @@ import {
   test,
 } from "./fixtures";
 
-const ANNOUNCE_WAIT_MS = 1_000;
-const NOTICE_HOLD_WAIT_MS = 7_000;
-const NOTICE_DISMISS_TIMEOUT_MS = 10_000;
+const LATER = "01:00";
 const TAKEN = SAMPLE_PLAN.result.semesters[0].courses[0];
 const CONFLICT = "ほかの画面の答えで道標が変わりました。";
 const RUNNING_REFUSAL = "作成中の道標は消せません。";
+
+const SAMPLE_RUNNING: Plan = {
+  ...SAMPLE_PLAN,
+  status: "running",
+  stage: "selecting",
+  result: null,
+};
+
+const SAMPLE_FAILED: Plan = {
+  ...SAMPLE_PLAN,
+  status: "failed",
+  result: null,
+  failure: FAILED_PLAN.failure,
+};
 
 const ASKED_PLAN: Plan = {
   ...SAMPLE_PLAN,
@@ -63,18 +76,23 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("完成の知らせとタブの題", () => {
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install();
+  });
+
   test("作成中を見ていた道標ができたら、タブの題に「できました」を付けて読み上げる", async ({
     page,
     api,
   }) => {
     await api.respond(
       "GET",
-      planApi(RUNNING_PLAN),
-      { json: RUNNING_PLAN },
-      { json: { ...SAMPLE_PLAN, id: RUNNING_PLAN.id } },
+      planApi(SAMPLE_PLAN),
+      { json: SAMPLE_RUNNING },
+      { json: SAMPLE_PLAN },
     );
-    await page.goto(`/plans/${RUNNING_PLAN.id}`);
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(page).toHaveTitle(/^作成中: /);
+    await page.clock.fastForward(POLL_INTERVAL_MS);
     await expect(page).toHaveTitle(/^できました: /);
     await expect(
       page.getByRole("status").filter({ hasText: "道標ができました" }),
@@ -87,12 +105,13 @@ test.describe("完成の知らせとタブの題", () => {
   }) => {
     await api.respond(
       "GET",
-      planApi(RUNNING_PLAN),
-      { json: RUNNING_PLAN },
-      { json: { ...FAILED_PLAN, id: RUNNING_PLAN.id } },
+      planApi(SAMPLE_PLAN),
+      { json: SAMPLE_RUNNING },
+      { json: SAMPLE_FAILED },
     );
-    await page.goto(`/plans/${RUNNING_PLAN.id}`);
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(page).toHaveTitle(/^作成中: /);
+    await page.clock.fastForward(POLL_INTERVAL_MS);
     await expect(
       page.getByRole("heading", { name: "道標を作れませんでした" }),
     ).toBeVisible();
@@ -108,7 +127,7 @@ test.describe("完成の知らせとタブの題", () => {
     await expect(
       page.getByRole("navigation", { name: "路線図" }),
     ).toBeVisible();
-    await page.waitForTimeout(ANNOUNCE_WAIT_MS);
+    await page.clock.fastForward(LATER);
     await expect(page).not.toHaveTitle(
       /^(作成中|できました|作れませんでした): /,
     );
@@ -119,14 +138,15 @@ test.describe("完成の知らせとタブの題", () => {
 });
 
 test.describe("もう取った", () => {
-  test.beforeEach(async ({ api }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+  test.beforeEach(async ({ page }) => {
+    await page.clock.install();
   });
 
   test("答えると、外して置き直したことを知らせてフォーカスを移し、知らせの「戻す」で元に戻す", async ({
     page,
     api,
   }) => {
+    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
     await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
     await api.respond("DELETE", takenApi(TAKEN.name), { json: ASKED_PLAN });
     await page.goto(`/plans/${ASKED_PLAN.id}`);
@@ -158,6 +178,7 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
+    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
     await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
     await page.goto(`/plans/${ASKED_PLAN.id}`);
     await page
@@ -165,13 +186,37 @@ test.describe("もう取った", () => {
       .click();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await expect(marked).toBeHidden({ timeout: NOTICE_DISMISS_TIMEOUT_MS });
+    await page.clock.fastForward(LATER);
+    await expect(marked).toBeHidden();
+  });
+
+  test("マウスで答えたあと Tab で知らせの中へ移ると、知らせは消えない", async ({
+    page,
+    api,
+  }) => {
+    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await page
+      .getByRole("button", { name: markTakenLabel(TAKEN.name) })
+      .click();
+    const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
+    await expect(marked).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(
+      page.getByRole("status").getByRole("button", { name: "戻す" }),
+    ).toBeFocused();
+    await page.clock.fastForward(LATER);
+    await expect(marked).toBeVisible();
+    await page.keyboard.press("Tab");
+    await expect(marked).toBeHidden();
   });
 
   test("キーボードで答えた知らせは、フォーカスがあるあいだ消えない", async ({
     page,
     api,
   }) => {
+    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
     await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
     await page.goto(`/plans/${ASKED_PLAN.id}`);
     await page
@@ -180,14 +225,20 @@ test.describe("もう取った", () => {
     await page.keyboard.press("Enter");
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await page.waitForTimeout(NOTICE_HOLD_WAIT_MS);
+    await page.clock.fastForward(LATER);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
     await expect(marked).toBeHidden();
   });
 
-  test("答えられなかったときは、断りの文を知らせる", async ({ page, api }) => {
+  test("断られたら断りの文を知らせ、道標を読み直す", async ({ page, api }) => {
+    await api.respond(
+      "GET",
+      planApi(ASKED_PLAN),
+      { json: ASKED_PLAN },
+      { json: MARKED_PLAN },
+    );
     await api.respond("PUT", takenApi(TAKEN.name), {
       status: 409,
       json: { detail: CONFLICT },
@@ -200,7 +251,7 @@ test.describe("もう取った", () => {
       page.getByRole("status").filter({ hasText: CONFLICT }),
     ).toBeFocused();
     await expect(
-      page.getByRole("button", { name: markTakenLabel(TAKEN.name) }),
+      page.getByRole("button", { name: unmarkTakenLabel(TAKEN.name) }),
     ).toBeVisible();
   });
 });
@@ -285,15 +336,15 @@ test.describe("時間割帳の週", () => {
     await expect(page.locator("dl").filter({ hasText: NO_LESSONS_LABEL }))
       .toMatchAriaSnapshot(`
       - term: 月曜日
-      - definition: /確率統計/
+      - definition: 4 限 確率統計 柱 ・ 6B
       - term: 火曜日
-      - definition
+      - definition: 4 限 メディア情報処理 柱 ・ 6T 5 限 データ構造とアルゴリズム 柱 ・ 6T
       - term: 水曜日
-      - definition: ${NO_LESSONS_LABEL}
+      - definition: 授業なし
       - term: 木曜日
-      - definition
+      - definition: 2 限 電子情報基礎数学 礎 ・ 6T
       - term: 金曜日
-      - definition: ${NO_LESSONS_LABEL}
+      - definition: 授業なし
     `);
     await expect(page.getByRole("table")).toBeHidden();
   });
