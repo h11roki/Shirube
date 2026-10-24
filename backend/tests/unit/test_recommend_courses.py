@@ -1,4 +1,5 @@
 from collections.abc import Set
+from dataclasses import replace
 
 import pytest
 
@@ -87,6 +88,33 @@ def test_selector_reads_the_top_candidates_with_their_syllabi() -> None:
     assert (recommendation.courses, recommendation.candidates) == ((), ("科目A", "科目B"))
 
 
+def test_a_course_first_for_one_skill_reaches_the_selector_beside_the_whole_query() -> None:
+    names = {"10000": "科目A", "10001": "科目B", "10002": "科目C"}
+    repository = FakeCourseRepository(
+        sections=tuple(replace(course_section(code), name=name) for code, name in names.items()),
+        syllabi=tuple(syllabus(code) for code in names),
+    )
+    chunks = FakeChunkSearch(
+        [
+            ChunkHit("10000", ChunkSection.OVERVIEW, 0.9),
+            ChunkHit("10001", ChunkSection.OVERVIEW, 0.8),
+            ChunkHit("10002", ChunkSection.OVERVIEW, 0.1),
+        ],
+        hits_by_length={1.0: [ChunkHit("10002", ChunkSection.OVERVIEW, 0.9)]},
+    )
+    recommend = RecommendCourses(
+        SearchCourses(repository, chunks, FakeEmbedder(), by_skill=True),
+        repository,
+        FakeOccupationAnalyzer({"職業": PROFILE}),
+        FakeCourseSelector([]),
+        2,
+    )
+
+    recommendation = recommend.run("職業", 2026, "情", ALL_SEMESTERS)
+
+    assert recommendation.candidates == ("科目A", "科目C")
+
+
 def test_a_course_outside_the_candidates_is_an_error() -> None:
     selector = FakeCourseSelector([CourseChoice("読ませていない科目", Relevance.CORE, "理由")])
 
@@ -107,7 +135,7 @@ def test_selector_is_skipped_when_no_chunk_is_found() -> None:
     repository = FakeCourseRepository(
         sections=(course_section("10000"),), syllabi=(syllabus("10000"),)
     )
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
     selector = FakeCourseSelector([])
     analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
 
@@ -127,7 +155,10 @@ def test_a_ranked_course_whose_syllabus_is_missing_is_a_search_error() -> None:
     repository, _ = courses_ranked_by({"科目A": 0.9})
     missing = MissingSyllabi(tuple(repository.stored_sections), tuple(repository.stored_syllabi))
     search = SearchCourses(
-        missing, FakeChunkSearch([ChunkHit("10000", ChunkSection.OVERVIEW, 0.9)]), FakeEmbedder()
+        missing,
+        FakeChunkSearch([ChunkHit("10000", ChunkSection.OVERVIEW, 0.9)]),
+        FakeEmbedder(),
+        by_skill=True,
     )
     recommend = RecommendCourses(
         search, missing, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
@@ -157,7 +188,7 @@ def test_selecting_is_not_reported_when_nothing_is_found() -> None:
     repository = FakeCourseRepository(
         sections=(course_section("10000"),), syllabi=(syllabus("10000"),)
     )
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
     analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
     steps: list[RecommendStep] = []
 

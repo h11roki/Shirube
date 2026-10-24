@@ -13,7 +13,9 @@ from app.application.evaluate_search import (
 )
 from app.application.judging import expected_courses
 from app.application.search_courses import SearchCourses
+from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
+from app.domain.ranking import ChunkHit
 from app.presentation.cli.evaluate import render
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -23,6 +25,8 @@ from app.presentation.cli.evaluation_data import (
     read_document,
 )
 from tests.fakes import (
+    FakeChunkSearch,
+    FakeEmbedder,
     FakeOccupationAnalyzer,
     courses_ranked_by,
 )
@@ -44,6 +48,25 @@ def test_recall_counts_expected_courses_within_each_cutoff() -> None:
     assert result.recall(10) == 0.5
     assert result.recall(20) == 0.75
     assert report.mean_recall(10) == 0.5
+
+
+def test_a_course_first_for_a_skill_counts_at_the_turn_the_skill_gives_it() -> None:
+    similarities = {f"科目{rank:02d}": 1.0 - rank / 100 for rank in range(1, 26)}
+    repository, _ = courses_ranked_by(similarities)
+    hits = [
+        ChunkHit(f"{10000 + index}", ChunkSection.OVERVIEW, similarity)
+        for index, similarity in enumerate(similarities.values())
+    ]
+    chunks = FakeChunkSearch(
+        hits, hits_by_length={1.0: [ChunkHit("10024", ChunkSection.OVERVIEW, 0.9)]}
+    )
+    case = EvaluationCase("職業", ("甲",), ("科目25",))
+
+    report = EvaluateSearch(SearchCourses(repository, chunks, FakeEmbedder(), by_skill=True)).run(
+        EvaluationDataset(2026, "情", (case,))
+    )
+
+    assert report.results[0].ranks == (("科目25", 2),)
 
 
 def test_expected_course_names_outside_the_candidates_are_an_error() -> None:

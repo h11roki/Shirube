@@ -37,15 +37,15 @@ def courses() -> FakeCourseRepository:
 
 
 def test_candidates_are_course_names_offered_to_the_student_that_have_a_syllabus() -> None:
-    candidates = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder()).candidates(
-        2026, "情", ALL_SEMESTERS
-    )
+    candidates = SearchCourses(
+        courses(), FakeChunkSearch([]), FakeEmbedder(), by_skill=True
+    ).candidates(2026, "情", ALL_SEMESTERS)
 
     assert candidates.names == {"電子回路Ⅰ", "論理回路"}
 
 
 def test_candidates_open_in_one_of_the_given_semesters() -> None:
-    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
     autumns = (Semester(3, Term.AUTUMN), Semester(4, Term.AUTUMN))
 
     assert search.candidates(2026, "情", (Semester(4, Term.SPRING),)).names == {
@@ -56,37 +56,72 @@ def test_candidates_open_in_one_of_the_given_semesters() -> None:
         search.candidates(2026, "情", autumns)
 
 
-def test_queries_are_embedded_at_once_and_each_is_ranked_by_its_own_vector() -> None:
-    chunks = FakeChunkSearch(
+def three_courses() -> FakeCourseRepository:
+    names = {"10001": "甲", "10002": "乙", "10003": "丙"}
+    return FakeCourseRepository(
+        sections=tuple(replace(course_section(code), name=name) for code, name in names.items()),
+        syllabi=tuple(syllabus(code) for code in names),
+    )
+
+
+def ranked_apart() -> FakeChunkSearch:
+    return FakeChunkSearch(
         [],
         hits_by_length={
-            5.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.6), *HITS[1:]],
-            2.0: [ChunkHit("10001", ChunkSection.OVERVIEW, 0.9), *HITS[1:]],
+            6.0: [
+                ChunkHit("10001", ChunkSection.OVERVIEW, 0.9),
+                ChunkHit("10002", ChunkSection.OVERVIEW, 0.8),
+                ChunkHit("10003", ChunkSection.OVERVIEW, 0.1),
+            ],
+            3.0: [
+                ChunkHit("10003", ChunkSection.SCHEDULE, 0.9),
+                ChunkHit("10001", ChunkSection.OVERVIEW, 0.2),
+                ChunkHit("10002", ChunkSection.OVERVIEW, 0.1),
+            ],
         },
     )
+
+
+def test_the_query_and_each_skill_take_turns_giving_their_best_course_not_yet_taken() -> None:
+    chunks = ranked_apart()
     embedder = FakeEmbedder()
-    candidates = SearchCourses(courses(), chunks, embedder).candidates(2026, "情", ALL_SEMESTERS)
+    candidates = SearchCourses(three_courses(), chunks, embedder, by_skill=True).candidates(
+        2026, "情", ALL_SEMESTERS
+    )
 
-    rankings = candidates.rank(["回路の設計", "論理"], 10)
+    matches = candidates.pick("職業のクエリ", ("スキル",), 2)
 
-    assert embedder.calls == [["回路の設計", "論理"]]
+    assert embedder.calls == [["職業のクエリ", "スキル"]]
     assert [call[1:] for call in chunks.calls] == [
-        (FAKE_MODEL, [5.0], {"10001", "30001"}),
-        (FAKE_MODEL, [2.0], {"10001", "30001"}),
+        (FAKE_MODEL, [6.0], {"10001", "10002", "10003"}),
+        (FAKE_MODEL, [3.0], {"10001", "10002", "10003"}),
     ]
-    assert [match.name for match in rankings[0]] == ["論理回路", "電子回路Ⅰ"]
-    assert [match.name for match in rankings[1]] == ["電子回路Ⅰ", "論理回路"]
+    assert [match.name for match in matches] == ["甲", "丙"]
+
+
+def test_without_the_skill_search_only_the_whole_query_ranks_the_candidates() -> None:
+    embedder = FakeEmbedder()
+    candidates = SearchCourses(
+        three_courses(), ranked_apart(), embedder, by_skill=False
+    ).candidates(2026, "情", ALL_SEMESTERS)
+
+    matches = candidates.pick("職業のクエリ", ("スキル",), 2)
+
+    assert embedder.calls == [["職業のクエリ"]]
+    assert [match.name for match in matches] == ["甲", "乙"]
 
 
 def test_no_candidates_is_an_error_instead_of_empty_results() -> None:
-    search = SearchCourses(courses(), FakeChunkSearch(HITS), FakeEmbedder())
+    search = SearchCourses(courses(), FakeChunkSearch(HITS), FakeEmbedder(), by_skill=True)
 
     with pytest.raises(SearchError, match="候補の科目がありません"):
         search.candidates(2026, "情", ())
 
 
 def test_year_not_embedded_with_the_model_is_an_error_instead_of_empty_results() -> None:
-    search = SearchCourses(courses(), FakeChunkSearch(HITS, embedded=False), FakeEmbedder())
+    search = SearchCourses(
+        courses(), FakeChunkSearch(HITS, embedded=False), FakeEmbedder(), by_skill=True
+    )
 
     with pytest.raises(SearchError, match="2026 年度のシラバスがモデル fake-embedding で"):
         search.candidates(2026, "情", ALL_SEMESTERS)
@@ -97,16 +132,18 @@ def test_vectors_that_do_not_match_the_queries_are_an_error() -> None:
         def embed(self, texts: list[str]) -> list[list[float]]:
             return super().embed(texts)[1:]
 
-    candidates = SearchCourses(courses(), FakeChunkSearch(HITS), ShortEmbedder()).candidates(
-        2026, "情", ALL_SEMESTERS
-    )
+    candidates = SearchCourses(
+        courses(), FakeChunkSearch(HITS), ShortEmbedder(), by_skill=True
+    ).candidates(2026, "情", ALL_SEMESTERS)
 
     with pytest.raises(EmbeddingError, match="埋め込み 1 件がクエリ 2 件と合いません"):
-        candidates.rank(["回路", "論理"], 10)
+        candidates.pick("回路", ("論理",), 10)
 
 
 def test_a_year_without_timetable_or_syllabi_is_a_search_error_not_a_lack_of_candidates() -> None:
-    search = SearchCourses(FakeCourseRepository(), FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(
+        FakeCourseRepository(), FakeChunkSearch([]), FakeEmbedder(), by_skill=True
+    )
 
     with pytest.raises(
         SearchError, match="2026 年度の時間割かシラバスが DB にありません"
@@ -127,7 +164,7 @@ def test_a_taken_name_leaves_the_candidates_with_every_name_of_its_joint_page() 
             syllabus("30001"),
         ),
     )
-    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
 
     assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {"論理回路"}
     with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
@@ -135,7 +172,7 @@ def test_a_taken_name_leaves_the_candidates_with_every_name_of_its_joint_page() 
 
 
 def test_the_note_about_taken_courses_is_added_only_when_they_emptied_the_candidates() -> None:
-    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(courses(), FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
     autumns = (Semester(3, Term.AUTUMN), Semester(4, Term.AUTUMN))
 
     with pytest.raises(NoCandidatesError) as unrelated:
@@ -152,6 +189,6 @@ def test_a_taken_name_from_another_department_does_not_remove_a_joint_page() -> 
         ),
         syllabi=(syllabus("70001", aliases=(CourseName("70002", "情も取れる別名"),)),),
     )
-    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
 
     assert search.candidates(2026, "情", ALL_SEMESTERS, {"機の科目"}).names == {"情も取れる別名"}

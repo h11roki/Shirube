@@ -153,7 +153,7 @@ def test_a_failed_external_call_fails_the_plan_with_a_fixed_message_and_logs_the
 ) -> None:
     repository, _ = courses_ranked_by({"科目A": 0.9})
     hits = FakeChunkSearch([])
-    search = SearchCourses(repository, hits, FakeEmbedder(failing_call=1))
+    search = SearchCourses(repository, hits, FakeEmbedder(failing_call=1), by_skill=True)
     plans = FakePlanRepository()
     plan = waiting(plans)
 

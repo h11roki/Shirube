@@ -16,6 +16,7 @@ class Settings(CurriculumSettings):
     auth_jwt_secret: SecretStr | None = None
     embedding_model: str = "text-embedding-3-small"
     embedding_dimensions: int = 1536
+    search_by_skill: bool = True
     chat_model: str = "gpt-5.4-mini"
     occupation_reading_cache_size: Annotated[int, Field(ge=0, le=10_000)] = 500
     selection_model: str = "gpt-5.4-nano"

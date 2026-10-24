@@ -60,7 +60,9 @@ def main() -> None:
     embedder = openai_embedder(settings)
     analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
     engine = database_engine(settings)
-    search = SearchCourses(SqlCourseRepository(engine), SqlChunkRepository(engine), embedder)
+    search = SearchCourses(
+        SqlCourseRepository(engine), SqlChunkRepository(engine), embedder, settings.search_by_skill
+    )
     try:
         if analyzer is not None:
             dataset = with_analyzed_skills(dataset, analyzer)

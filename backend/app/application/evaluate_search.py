@@ -92,11 +92,10 @@ class EvaluateSearch:
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         dataset.require_courses_in(candidates.names)
-        queries = [case.query for case in dataset.cases]
-        rankings = candidates.rank(queries, max(RECALL_CUTOFFS))
         results = []
-        for case, query, matches in zip(dataset.cases, queries, rankings, strict=True):
+        for case in dataset.cases:
+            matches = candidates.pick(case.query, case.skills, max(RECALL_CUTOFFS))
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
             ranks = tuple((name, rank_of.get(name)) for name in case.expected)
-            results.append(CaseResult(case.occupation, query, ranks))
+            results.append(CaseResult(case.occupation, case.query, ranks))
         return EvaluationReport(tuple(results))

@@ -127,7 +127,7 @@ def main() -> None:
     selector = course_selector(settings)
     engine = database_engine(settings)
     courses = SqlCourseRepository(engine)
-    search = SearchCourses(courses, SqlChunkRepository(engine), embedder)
+    search = SearchCourses(courses, SqlChunkRepository(engine), embedder, settings.search_by_skill)
     evaluate = EvaluateSelection(search, courses, selector, settings.selection_candidate_limit)
     try:
         print(render(evaluate.run(dataset, judgments)))

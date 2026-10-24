@@ -352,7 +352,9 @@ def courses_ranked_by(
         ChunkHit(code, ChunkSection.OVERVIEW, similarity)
         for code, similarity in zip(codes, similarities.values(), strict=True)
     ]
-    return repository, SearchCourses(repository, FakeChunkSearch(hits), embedder or FakeEmbedder())
+    return repository, SearchCourses(
+        repository, FakeChunkSearch(hits), embedder or FakeEmbedder(), by_skill=True
+    )
 
 
 def failing_http_client(status: int) -> httpx.Client:

@@ -100,7 +100,10 @@ def course_selector(settings: Settings) -> CourseSelector:
 
 def search_courses(settings: Settings, engine: Engine) -> SearchCourses:
     return SearchCourses(
-        SqlCourseRepository(engine), SqlChunkRepository(engine), openai_embedder(settings)
+        SqlCourseRepository(engine),
+        SqlChunkRepository(engine),
+        openai_embedder(settings),
+        settings.search_by_skill,
     )
 
 

@@ -262,9 +262,11 @@ def test_a_department_without_candidates_is_unprocessable() -> None:
 
 def test_problems_on_the_server_are_server_errors_without_their_details() -> None:
     courses, _ = courses_ranked_by({"科目A": 0.9})
-    not_embedded = SearchCourses(courses, FakeChunkSearch([], embedded=False), FakeEmbedder())
+    not_embedded = SearchCourses(
+        courses, FakeChunkSearch([], embedded=False), FakeEmbedder(), by_skill=True
+    )
     empty = FakeCourseRepository()
-    no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder())
+    no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
 
     for api in (
         client((courses, not_embedded)),
