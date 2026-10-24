@@ -4,9 +4,14 @@ import { type ReactNode, useEffect, useState } from "react";
 
 import { DestinationPlate } from "@/components/destination-plate";
 import { Signpost } from "@/components/signpost";
-import { PHRASE_WRAP } from "@/components/styles";
+import { Phrases } from "@/components/phrases";
 import type { Plan } from "@/lib/api/client";
-import { STAGE_LABELS, WAITING_LABEL, semesterLabel } from "@/lib/labels";
+import {
+  PROGRESS_HEADING,
+  STAGE_LABELS,
+  WAITING_LABEL,
+  semesterLabel,
+} from "@/lib/labels";
 import {
   type Step,
   type StepState,
@@ -39,11 +44,9 @@ export function PlanProgress({
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1.5">
           <DestinationPlate destination={conditions.occupation} />
-          <h1
-            className={`font-serif text-2xl font-extrabold text-balance ${PHRASE_WRAP}`}
-          >
+          <h1 className="font-serif text-2xl font-extrabold text-balance">
             <span className="sr-only">{conditions.occupation}への</span>
-            道標を作っています
+            <Phrases parts={PROGRESS_HEADING} />
           </h1>
           <p className="text-sm text-sub">
             {semesterLabel(conditions.grade, conditions.term)}
