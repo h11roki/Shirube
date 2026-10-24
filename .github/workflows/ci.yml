@@ -62,10 +62,20 @@ jobs:
           SITE_URL: http://localhost:3100
         run: |
           for attempt in 1 2 3; do
-            pnpm build && exit 0
-            echo "next build が失敗した($attempt 回目)"
+            if pnpm build 2>&1 | tee build.log; then
+              exit 0
+            fi
+            if [ "$attempt" = 3 ] || ! grep -q "fonts.gstatic.com\|fonts.googleapis.com" build.log; then
+              exit 1
+            fi
+            echo "Google Fonts の取得で落ちたので流し直す($attempt 回目)"
             sleep 15
           done
-          exit 1
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: frontend/test-results
+          retention-days: 7
