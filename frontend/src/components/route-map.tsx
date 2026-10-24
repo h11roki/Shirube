@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -12,6 +13,8 @@ import {
 
 import { CourseGrid } from "@/components/course-grid";
 import { revealTicket } from "@/components/course-ticket";
+import { DestinationName } from "@/components/destination-name";
+import { Phrases } from "@/components/phrases";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
 import { STANDALONE_LINK } from "@/components/styles";
@@ -24,7 +27,7 @@ import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
   EMPTY_SEMESTER_LABEL,
-  routeEndLabel,
+  routeEndSuffix,
   semesterShortLabel,
   slotsLabel,
   stationLabel,
@@ -37,6 +40,7 @@ import {
   transfers,
 } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
+import { wordsOf } from "@/lib/words";
 
 const LINE_DELAY_MS = 250;
 const PICK_HOLD_MS = 1200;
@@ -59,6 +63,10 @@ export function RouteMap({
   const found = useMemo(() => transfers(semesters), [semesters]);
   const visible = semesters.slice(0, shown);
   const arrive = visible.length * STAGGER_MS;
+  const [toDestination, ...afterDestination] = routeEndSuffix(
+    shown,
+    semesters.length,
+  );
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const reachable = useCallback(
@@ -160,8 +168,16 @@ export function RouteMap({
             className="relative min-w-0 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             <div className="grid min-h-24 content-center gap-1">
-              <h2 className="font-serif text-2xl font-bold">
-                {routeEndLabel(destination, shown, semesters.length)}
+              <h2 className="font-serif text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug font-bold [overflow-wrap:anywhere] [word-break:keep-all]">
+                <DestinationName destination={destination}>
+                  {toDestination}
+                </DestinationName>
+                {afterDestination.map((part) => (
+                  <Fragment key={part}>
+                    <wbr aria-hidden />
+                    {part}
+                  </Fragment>
+                ))}
               </h2>
               <p className="text-sm text-sub">{endNote}</p>
             </div>
@@ -229,7 +245,7 @@ function RouteStrip({
                 <span
                   className={`${goal ? "line-clamp-2 max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
                 >
-                  {stop.name}
+                  {goal ? <Phrases parts={wordsOf(stop.name)} /> : stop.name}
                 </span>
               </button>
               {!goal && (

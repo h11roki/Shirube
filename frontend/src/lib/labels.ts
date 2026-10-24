@@ -127,12 +127,8 @@ export function stationLabel(index: number): string {
   return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
 }
 
-export function routeEndLabel(
-  destination: string,
-  shown: number,
-  total: number,
-): string {
-  return shown < total ? `${destination}へ続きます` : `${destination}へ`;
+export function routeEndSuffix(shown: number, total: number): string[] {
+  return shown < total ? ["へ", "続きます"] : ["へ"];
 }
 
 export function transferLabel(

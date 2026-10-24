@@ -11,7 +11,7 @@ import {
   stationLabel,
   transferLabel,
   answeredLabel,
-  routeEndLabel,
+  routeEndSuffix,
   failedAnswerLabel,
   forgetTakenLabel,
   markTakenLabel,
@@ -83,10 +83,8 @@ describe("labels", () => {
   });
 
   it("ends the route at the destination, or says it continues when cut short", () => {
-    expect(routeEndLabel("組込みエンジニア", 4, 4)).toBe("組込みエンジニアへ");
-    expect(routeEndLabel("組込みエンジニア", 2, 4)).toBe(
-      "組込みエンジニアへ続きます",
-    );
+    expect(routeEndSuffix(4, 4)).toEqual(["へ"]);
+    expect(routeEndSuffix(2, 4)).toEqual(["へ", "続きます"]);
   });
 
   it("writes a transfer to the pillar's station", () => {
