@@ -1,12 +1,12 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
+import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 import {
   type Api,
   CLASS_CHOICES,
-  DONE_PLAN,
   FAILED_PLAN,
   PLAN_LIST,
   RUNNING_PLAN,
@@ -105,17 +105,17 @@ const SCREENS: Screen[] = [
   },
   {
     name: "結果の道のり",
-    path: `/plans/${DONE_PLAN.id}`,
+    path: `/plans/${SAMPLE_PLAN.id}`,
     signedIn: true,
-    answers: { [planApi(DONE_PLAN)]: DONE_PLAN },
+    answers: { [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN },
     ready: (page) =>
       expect(page.getByRole("navigation", { name: "路線図" })).toBeVisible(),
   },
   {
     name: "結果の時間割帳",
-    path: `/plans/${DONE_PLAN.id}?view=timetable`,
+    path: `/plans/${SAMPLE_PLAN.id}?view=timetable`,
     signedIn: true,
-    answers: { [planApi(DONE_PLAN)]: DONE_PLAN },
+    answers: { [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN },
     ready: (page) =>
       expect(page.getByRole("link", { name: "時間割帳" })).toHaveAttribute(
         "aria-current",
