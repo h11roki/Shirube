@@ -1,6 +1,8 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
+import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
+
 import {
   type Api,
   CLASS_CHOICES,
@@ -9,7 +11,6 @@ import {
   PLAN_LIST,
   RUNNING_PLAN,
   TAKEN_COURSES,
-  chooseDarkTheme,
   expect,
   planApi,
   signIn,
@@ -34,7 +35,9 @@ const SCREENS: Screen[] = [
     name: "トップ(ログイン前)",
     path: "/",
     ready: (page) =>
-      expect(page.getByRole("heading", { level: 1 })).toBeVisible(),
+      expect(
+        page.getByRole("heading", { name: "自分の道標を作ってみる" }),
+      ).toBeVisible(),
   },
   {
     name: "ログイン",
@@ -76,7 +79,11 @@ const SCREENS: Screen[] = [
       await expect(
         page.getByRole("button", { name: "道標を作る" }),
       ).toBeEnabled();
-      await expect(page.getByText(/もう取ったと答えた授業/)).toBeVisible();
+      await expect(
+        page.getByText(
+          `もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`,
+        ),
+      ).toBeVisible();
     },
   },
   {
@@ -142,7 +149,10 @@ async function open(
     await signIn(page);
   }
   if (dark) {
-    await chooseDarkTheme(page);
+    await page.addInitScript(
+      ([key, value]) => localStorage.setItem(key, value),
+      [THEME_STORAGE_KEY, DARK_THEME],
+    );
   }
   await api.answer(screen.answers ?? {});
   await page.goto(screen.path);

@@ -8,7 +8,6 @@ import type {
   TakenCourses,
 } from "@/lib/api/client";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
-import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 import { E2E_AUTH_SECRET, E2E_ORIGIN } from "./env";
 
@@ -124,11 +123,4 @@ export async function signIn(page: Page) {
   await page
     .context()
     .addCookies([{ name: SESSION_COOKIE, value, url: E2E_ORIGIN }]);
-}
-
-export async function chooseDarkTheme(page: Page) {
-  await page.addInitScript(
-    ([key, value]) => localStorage.setItem(key, value),
-    [THEME_STORAGE_KEY, DARK_THEME],
-  );
 }
