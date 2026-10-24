@@ -2,8 +2,6 @@ import { defineConfig, devices } from "@playwright/test";
 
 import { E2E_ORIGIN, E2E_PORT, E2E_SERVER_ENV } from "./e2e/env";
 
-const START = `pnpm start --port ${E2E_PORT}`;
-
 export default defineConfig({
   testDir: "e2e",
   fullyParallel: true,
@@ -17,7 +15,7 @@ export default defineConfig({
     screenshot: "only-on-failure",
   },
   webServer: {
-    command: process.env.CI ? START : `pnpm build && ${START}`,
+    command: `pnpm build && pnpm start --port ${E2E_PORT}`,
     url: E2E_ORIGIN,
     reuseExistingServer: false,
     timeout: 300_000,

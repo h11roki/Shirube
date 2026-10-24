@@ -57,24 +57,21 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm format:check
-      - name: pnpm build
-        env:
-          SITE_URL: http://localhost:3100
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: pnpm test:e2e
         run: |
           set -o pipefail
-          log="$RUNNER_TEMP/build.log"
+          log="$RUNNER_TEMP/e2e.log"
           for attempt in 1 2 3; do
-            if pnpm build 2>&1 | tee "$log"; then
+            if pnpm test:e2e 2>&1 | tee "$log"; then
               exit 0
             fi
-            if [ "$attempt" = 3 ] || ! grep -qE "fonts\.gstatic\.com|fonts\.googleapis\.com|from Google Fonts|internal/font/google" "$log"; then
+            if [ "$attempt" = 3 ] || ! grep -qE "requesting https://fonts\.(googleapis|gstatic)\.com/" "$log"; then
               exit 1
             fi
             echo "Google Fonts の取得で落ちたので流し直す($attempt 回目)"
             sleep 15
           done
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
