@@ -19,6 +19,7 @@ import {
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
+const PLAIN_PAPER_CSS = "body { background-image: none !important; }";
 
 type Screen = {
   name: string;
@@ -160,6 +161,7 @@ for (const screen of SCREENS) {
           api,
         }) => {
           await open(page, api, screen, width, dark);
+          await page.addStyleTag({ content: PLAIN_PAPER_CSS });
           const results = await new AxeBuilder({ page })
             .withTags(WCAG_TAGS)
             .analyze();
