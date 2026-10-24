@@ -151,7 +151,7 @@ export function CourseTicket({
       {core && (
         <span
           aria-hidden
-          className={`size-9 ${TICKET_STAMP} ${placed ? "right-3 sm:right-[5.6rem]" : "right-3"}`}
+          className={`right-3 size-9 ${TICKET_STAMP} ${placed ? "sm:right-[5.6rem]" : ""}`}
         >
           {RELEVANCE_LABELS.core}
         </span>
