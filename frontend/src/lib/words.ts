@@ -74,7 +74,8 @@ export function splitTail(words: readonly string[]): {
   tail: string;
 } {
   const last = words.at(-1) ?? "";
-  const tail = charactersOf(last).at(-1) ?? "";
+  const end = bracketRuns(last).at(-1);
+  const tail = end?.nowrap ? end.text : (charactersOf(last).at(-1) ?? "");
   return {
     words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
     tail,

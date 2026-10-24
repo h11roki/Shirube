@@ -191,6 +191,18 @@ describe("splitTail", () => {
     });
   });
 
+  it("最後の語が閉じ括弧で終わるなら閉じ括弧と前の 1 字を外し、語の全てが組なら語の全てを外す", async () => {
+    const { splitTail } = await import("@/lib/words");
+    expect(splitTail(["技術系", "公務員", "(電気・", "情報)"])).toEqual({
+      words: ["技術系", "公務員", "(電気・", "情"],
+      tail: "報)",
+    });
+    expect(splitTail(["データ", "（AI）"])).toEqual({
+      words: ["データ", ""],
+      tail: "（AI）",
+    });
+  });
+
   it("Intl.Segmenter の無いブラウザでも、最後の 1 字だけを外す", async () => {
     vi.stubGlobal("Intl", { Segmenter: undefined });
     vi.resetModules();
