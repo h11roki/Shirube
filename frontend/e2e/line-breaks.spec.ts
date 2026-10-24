@@ -17,20 +17,25 @@ import {
 
 const NARROW_WIDTHS = [320, 375];
 
+const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
+
+const SAMPLE_WORDS = ["データ", "サイエンティスト"];
+
+function resultFor(destination: string): Plan {
+  return {
+    ...SAMPLE_PLAN,
+    result: {
+      ...SAMPLE_PLAN.result,
+      profile: { ...SAMPLE_PLAN.result.profile, interpretation: destination },
+    },
+  };
+}
+
 const SCREENS: {
   name: string;
   plan: (destination: string) => Plan;
 }[] = [
-  {
-    name: "結果の画面",
-    plan: (destination) => ({
-      ...SAMPLE_PLAN,
-      result: {
-        ...SAMPLE_PLAN.result,
-        profile: { ...SAMPLE_PLAN.result.profile, interpretation: destination },
-      },
-    }),
-  },
+  { name: "結果の画面", plan: resultFor },
   {
     name: "作成中の画面",
     plan: (destination) =>
@@ -41,10 +46,10 @@ const SCREENS: {
   },
 ];
 
-const LONG_PLATES = [
-  ["組込み", "ソフトウェア", "エンジニア行"],
-  ["半導体・", "LSI ", "設計", "エンジニア行"],
-  ["電子", "情報", "システム", "保守", "技術者行"],
+const LONG_DESTINATIONS = [
+  ["組込み", "ソフトウェア", "エンジニア"],
+  ["半導体・", "LSI ", "設計", "エンジニア"],
+  ["電子", "情報", "システム", "保守", "技術者"],
 ];
 
 const FIXED_HEADINGS: {
@@ -68,6 +73,12 @@ const FIXED_HEADINGS: {
     open: (page) => page.goto("/privacy"),
   },
 ];
+
+function endingWith(words: readonly string[], suffix: string): string[] {
+  return words.map((word, index) =>
+    index === words.length - 1 ? `${word}${suffix}` : word,
+  );
+}
 
 function plateText(page: Page, destination: string): Locator {
   return page.getByText(`${destination}行`, { exact: true });
@@ -135,6 +146,25 @@ function breaksOnlyBetween(lines: string[], parts: readonly string[]) {
   return next === parts.length;
 }
 
+async function escapedBox(text: Locator): Promise<string> {
+  return text.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const right = range.getBoundingClientRect().right;
+    for (let box: Element | null = element; box; box = box.parentElement) {
+      const style = getComputedStyle(box);
+      const inner =
+        box.getBoundingClientRect().right -
+        parseFloat(style.paddingRight) -
+        parseFloat(style.borderRightWidth);
+      if (right > inner + 0.5) {
+        return box.tagName;
+      }
+    }
+    return "";
+  });
+}
+
 async function chromeLevelOneHeadingNames(page: Page) {
   const cdp = await page.context().newCDPSession(page);
   try {
@@ -165,17 +195,16 @@ for (const width of NARROW_WIDTHS) {
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
     page,
   }) => {
-    const destination = SAMPLE_PLAN.result.profile.interpretation;
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/");
-    const text = plateText(page, destination);
+    const text = plateText(page, SAMPLE_DESTINATION);
     await expect(text).toBeVisible();
-    expect(await renderedLines(text)).toEqual([`${destination}行`]);
+    expect(await renderedLines(text)).toEqual([`${SAMPLE_DESTINATION}行`]);
   });
 
   for (const screen of SCREENS) {
-    for (const words of LONG_PLATES) {
-      const destination = words.join("").replace(/行$/, "");
+    for (const words of LONG_DESTINATIONS) {
+      const destination = words.join("");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
         api,
@@ -185,33 +214,84 @@ for (const width of NARROW_WIDTHS) {
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
         const lines = await renderedLines(text);
-        expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
         expect(
-          await text.evaluate((element) => {
-            const range = document.createRange();
-            range.selectNodeContents(element);
-            const right = range.getBoundingClientRect().right;
-            for (
-              let box: Element | null = element;
-              box;
-              box = box.parentElement
-            ) {
-              const style = getComputedStyle(box);
-              const inner =
-                box.getBoundingClientRect().right -
-                parseFloat(style.paddingRight) -
-                parseFloat(style.borderRightWidth);
-              if (right > inner + 0.5) {
-                return box.tagName;
-              }
-            }
-            return "";
-          }),
-          "板の字がはみ出した箱",
-        ).toBe("");
+          breaksOnlyBetween(lines, endingWith(words, "行")),
+          lines.join(" / "),
+        ).toBe(true);
+        expect(await escapedBox(text), "字がはみ出した箱").toBe("");
       });
     }
   }
+
+  test(`幅 ${width}px の結果の画面で、見本の道のりの終わりを 1 行に収める`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, SAMPLE_PLAN);
+    const end = page.getByRole("heading", {
+      name: `${SAMPLE_DESTINATION}へ`,
+      exact: true,
+    });
+    await expect(end).toBeVisible();
+    expect(await renderedLines(end)).toEqual([`${SAMPLE_DESTINATION}へ`]);
+  });
+
+  for (const words of LONG_DESTINATIONS) {
+    const destination = words.join("");
+    test(`幅 ${width}px の結果の画面で、${destination}への道のりの終わりを語の切れ目で折る`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page, api, resultFor(destination));
+      const end = page.getByRole("heading", {
+        name: `${destination}へ`,
+        exact: true,
+      });
+      await expect(end).toBeVisible();
+      const lines = await renderedLines(end);
+      expect(
+        breaksOnlyBetween(lines, endingWith(words, "へ")),
+        lines.join(" / "),
+      ).toBe(true);
+      expect(await escapedBox(end), "字がはみ出した箱").toBe("");
+    });
+  }
+
+  test(`幅 ${width}px のトップで、見本の道のりの終わりを語の切れ目で折る`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/");
+    const end = page.getByRole("heading", {
+      name: `${SAMPLE_DESTINATION}へ続きます`,
+      exact: true,
+    });
+    await expect(end).toBeVisible();
+    const lines = await renderedLines(end);
+    expect(
+      breaksOnlyBetween(lines, [...endingWith(SAMPLE_WORDS, "へ"), "続きます"]),
+      lines.join(" / "),
+    ).toBe(true);
+    expect(await escapedBox(end), "字がはみ出した箱").toBe("");
+  });
+
+  test(`幅 ${width}px の結果の画面で、帯の終点を語の切れ目で折る`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, SAMPLE_PLAN);
+    const goal = page
+      .getByRole("navigation", { name: "路線図" })
+      .getByRole("button", { name: SAMPLE_DESTINATION, exact: true });
+    await expect(goal).toBeVisible();
+    const lines = await renderedLines(goal);
+    expect(breaksOnlyBetween(lines, SAMPLE_WORDS), lines.join(" / ")).toBe(
+      true,
+    );
+  });
 
   for (const heading of FIXED_HEADINGS) {
     test(`幅 ${width}px の${heading.screen}で、見出しを句の途中で折らない`, async ({
