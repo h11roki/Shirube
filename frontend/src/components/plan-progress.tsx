@@ -3,8 +3,8 @@
 import { type ReactNode, useEffect, useState } from "react";
 
 import { DestinationPlate } from "@/components/destination-plate";
-import { Signpost } from "@/components/signpost";
 import { Phrases } from "@/components/phrases";
+import { Signpost } from "@/components/signpost";
 import type { Plan } from "@/lib/api/client";
 import {
   PROGRESS_HEADING,
@@ -45,8 +45,10 @@ export function PlanProgress({
         <div className="grid min-w-0 gap-1.5">
           <DestinationPlate destination={conditions.occupation} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
-            <span className="sr-only">{conditions.occupation}への</span>
-            <Phrases parts={PROGRESS_HEADING} />
+            <Phrases
+              parts={PROGRESS_HEADING}
+              spokenPrefix={`${conditions.occupation}への`}
+            />
           </h1>
           <p className="text-sm text-sub">
             {semesterLabel(conditions.grade, conditions.term)}
