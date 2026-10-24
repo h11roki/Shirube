@@ -308,6 +308,11 @@ def test_collect_shows_and_keeps_the_side_each_recommendation_ran_for(
         ("SELECTION_VOTES=1", ("SELECTION_VOTES", "1")),
         ("OCCUPATION_READING_CACHE_SIZE=0", ("OCCUPATION_READING_CACHE_SIZE", "0")),
         ("CHAT_MODEL=gpt-5.4-nano", ("CHAT_MODEL", "gpt-5.4-nano")),
+        (
+            "EMBEDDING_MODEL=text-embedding-3-small",
+            ("EMBEDDING_MODEL", "text-embedding-3-small"),
+        ),
+        ("SEARCH_BY_SKILL=false", ("SEARCH_BY_SKILL", "false")),
     ],
 )
 def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
@@ -323,9 +328,9 @@ def test_a_pair_setting_names_a_setting_on_the_recommendation_path(
         "selection_votes=1",
         "DATABASE_URL=postgresql://other",
         "SELECTION_MODEL=",
-        "EMBEDDING_MODEL=x",
+        "EMBEDDING_DIMENSIONS=3072",
     ],
-    ids=["no-value", "lowercase", "database", "empty", "embedding"],
+    ids=["no-value", "lowercase", "database", "empty", "dimensions"],
 )
 def test_a_pair_setting_off_the_recommendation_path_is_refused(text: str) -> None:
     with pytest.raises(argparse.ArgumentTypeError, match="替えられるのは"):
@@ -443,6 +448,8 @@ def document(summary: dict[str, Any] | None) -> dict[str, Any]:
             "selection_model": "gpt-5.4-nano",
             "selection_votes": 1,
             "selection_vote_delay_seconds": 0.0,
+            "embedding_model": "text-embedding-3-small",
+            "search_by_skill": False,
             "candidate_limit": 30,
         },
         "summary": summary,
@@ -689,6 +696,26 @@ def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
         NOTHING_MEASURED,
     ).splitlines()
     assert not any(line.startswith("  設定の違い") for line in single)
+
+
+def test_compare_reads_a_run_from_before_the_skill_search_as_one_query() -> None:
+    lines = compare(
+        run("before"), run("after", search_by_skill=True), NOTHING_MEASURED
+    ).splitlines()
+
+    assert "  設定の違い: search_by_skill False → True" in lines
+
+
+def test_the_heading_names_the_embedding_model_and_how_the_search_ranks() -> None:
+    one_query = render(document(None)).splitlines()[0]
+    by_skill = document(None)
+    by_skill["config"] = by_skill["config"] | {
+        "embedding_model": "text-embedding-3-large",
+        "search_by_skill": True,
+    }
+
+    assert "埋め込み text-embedding-3-small、検索 クエリ 1 つ、" in one_query
+    assert "埋め込み text-embedding-3-large、検索 スキルごと、" in render(by_skill).splitlines()[0]
 
 
 def test_the_raw_output_reads_back_into_the_scorecard_it_was_written_from() -> None:

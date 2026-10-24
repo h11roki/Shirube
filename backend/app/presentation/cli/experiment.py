@@ -92,12 +92,15 @@ UNRECORDED_SETTINGS = {
     "selection_votes": 1,
     "selection_vote_delay_seconds": 0.0,
     "occupation_reading_cache_size": 0,
+    "search_by_skill": False,
 }
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
+    "EMBEDDING_MODEL",
+    "SEARCH_BY_SKILL",
     "SELECTION_MODEL",
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
@@ -367,7 +370,9 @@ def render(document: Mapping[str, Any]) -> str:
     lines = [
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
-        f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']}、"
+        f"職業の読み取り {config['profiles']}、{models}、埋め込み {config['embedding_model']}、"
+        f"検索 {'スキルごと' if config['search_by_skill'] else 'クエリ 1 つ'}、"
+        f"候補 {config['candidate_limit']}、"
         f"選び直し {config['selection_votes']} 回、"
         f"2 票目から {config['selection_vote_delay_seconds']:g} 秒遅らせる)",
     ]
@@ -537,6 +542,7 @@ def config_document(
         "selection_votes": settings.selection_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
         "embedding_model": settings.embedding_model,
+        "search_by_skill": settings.search_by_skill,
         "candidate_limit": settings.selection_candidate_limit,
         "prompts": {
             "occupation": (
