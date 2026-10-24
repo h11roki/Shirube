@@ -14,6 +14,7 @@ import {
   RUNNING_PLAN,
   TAKEN_COURSES,
   expect,
+  fontsReady,
   planApi,
   signIn,
   test,
@@ -183,9 +184,7 @@ async function open(
   if (dark) {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   }
-  await page.evaluate(async () => {
-    await document.fonts.ready;
-  });
+  await fontsReady(page);
 }
 
 for (const screen of SCREENS) {

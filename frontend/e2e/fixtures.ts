@@ -164,6 +164,12 @@ export function planApi(plan: Plan): string {
   return `/api/plans/${plan.id}`;
 }
 
+export async function fontsReady(page: Page) {
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
+}
+
 export async function signIn(page: Page) {
   const value = await encode({
     token: { name: "試験の利用者", sub: "e2e", googleSubject: "e2e" },

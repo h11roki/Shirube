@@ -3,52 +3,92 @@ import type { Locator, Page } from "@playwright/test";
 import type { Plan } from "@/lib/api/client";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
-import { expect, planApi, signIn, test } from "./fixtures";
+import {
+  type Api,
+  asRunning,
+  expect,
+  fontsReady,
+  planApi,
+  signIn,
+  test,
+} from "./fixtures";
 
 const NARROW_WIDTHS = [320, 375];
-const LONG_PLATES = [
+
+const SCREENS: {
+  name: string;
+  plan: (destination: string) => Plan;
+}[] = [
   {
-    destination: "組込みソフトウェアエンジニア",
-    lines: ["組込みソフトウェア", "エンジニア行"],
+    name: "結果の画面",
+    plan: (destination) => ({
+      ...SAMPLE_PLAN,
+      result: {
+        ...SAMPLE_PLAN.result,
+        profile: { ...SAMPLE_PLAN.result.profile, interpretation: destination },
+      },
+    }),
   },
   {
-    destination: "半導体・LSI 設計エンジニア",
-    lines: ["半導体・LSI", "設計エンジニア行"],
-  },
-  {
-    destination: "電子情報システム保守技術者",
-    lines: ["電子情報システム", "保守技術者行"],
+    name: "作成中の画面",
+    plan: (destination) =>
+      asRunning({
+        ...SAMPLE_PLAN,
+        conditions: { ...SAMPLE_PLAN.conditions, occupation: destination },
+      }),
   },
 ];
+
+const LONG_PLATES: Record<string, Record<string, string[]>> = {
+  組込みソフトウェアエンジニア: {
+    結果の画面: ["組込みソフトウェア", "エンジニア行"],
+    作成中の画面: ["組込み", "ソフトウェア", "エンジニア行"],
+  },
+  "半導体・LSI 設計エンジニア": {
+    結果の画面: ["半導体・LSI", "設計エンジニア行"],
+    作成中の画面: ["半導体・", "LSI 設計", "エンジニア行"],
+  },
+  電子情報システム保守技術者: {
+    結果の画面: ["電子情報システム", "保守技術者行"],
+    作成中の画面: ["電子情報", "システム", "保守技術者行"],
+  },
+};
 
 function plateText(page: Page, destination: string): Locator {
   return page.getByText(`${destination}行`, { exact: true });
 }
 
 async function renderedLines(text: Locator): Promise<string[]> {
-  await text.page().evaluate(async () => {
-    await document.fonts.ready;
-  });
+  await fontsReady(text.page());
   return text.evaluate((element) => {
+    const characters = new Intl.Segmenter("ja", { granularity: "grapheme" });
     const lines: { top: number; text: string }[] = [];
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-      const content = node.textContent ?? "";
-      for (let index = 0; index < content.length; index += 1) {
+      for (const { segment, index } of characters.segment(
+        node.textContent ?? "",
+      )) {
         const range = document.createRange();
         range.setStart(node, index);
-        range.setEnd(node, index + 1);
+        range.setEnd(node, index + segment.length);
         const top = range.getBoundingClientRect().top;
         const line = lines.find((each) => Math.abs(each.top - top) < 4);
         if (line) {
-          line.text += content[index];
+          line.text += segment;
         } else {
-          lines.push({ top, text: content[index] });
+          lines.push({ top, text: segment });
         }
       }
     }
     return lines.map((line) => line.text.trim());
   });
+}
+
+async function openPlate(page: Page, api: Api, plan: Plan, width: number) {
+  await signIn(page);
+  api.answer({ [planApi(plan)]: plan });
+  await page.setViewportSize({ width, height: 900 });
+  await page.goto(`/plans/${plan.id}`);
 }
 
 for (const width of NARROW_WIDTHS) {
@@ -63,28 +103,17 @@ for (const width of NARROW_WIDTHS) {
     expect(await renderedLines(text)).toEqual([`${destination}行`]);
   });
 
-  for (const { destination, lines } of LONG_PLATES) {
-    test(`幅 ${width}px で、${destination}の板を語の切れ目で折る`, async ({
-      page,
-      api,
-    }) => {
-      const plan: Plan = {
-        ...SAMPLE_PLAN,
-        result: {
-          ...SAMPLE_PLAN.result,
-          profile: {
-            ...SAMPLE_PLAN.result.profile,
-            interpretation: destination,
-          },
-        },
-      };
-      await signIn(page);
-      api.answer({ [planApi(plan)]: plan });
-      await page.setViewportSize({ width, height: 900 });
-      await page.goto(`/plans/${plan.id}`);
-      const text = plateText(page, destination);
-      await expect(text).toBeVisible();
-      expect(await renderedLines(text)).toEqual(lines);
-    });
+  for (const screen of SCREENS) {
+    for (const [destination, expected] of Object.entries(LONG_PLATES)) {
+      test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
+        page,
+        api,
+      }) => {
+        await openPlate(page, api, screen.plan(destination), width);
+        const text = plateText(page, destination);
+        await expect(text).toBeVisible();
+        expect(await renderedLines(text)).toEqual(expected[screen.name]);
+      });
+    }
   }
 }
