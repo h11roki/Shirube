@@ -177,7 +177,7 @@ async function open(
       [THEME_STORAGE_KEY, DARK_THEME],
     );
   }
-  await api.answer(screen.answers ?? {});
+  api.answer(screen.answers ?? {});
   await page.goto(screen.path);
   await screen.ready(page);
   if (dark) {

@@ -13,33 +13,41 @@ import { E2E_AUTH_SECRET, E2E_ORIGIN } from "./env";
 
 const SESSION_COOKIE = "authjs.session-token";
 
-export const RUNNING_PLAN: Plan = {
+export function asRunning(plan: Plan): Plan {
+  return { ...plan, status: "running", stage: "selecting", result: null };
+}
+
+export function asFailed(plan: Plan): Plan {
+  return {
+    ...plan,
+    status: "failed",
+    stage: null,
+    result: null,
+    failure: "授業の候補が見つかりませんでした。",
+  };
+}
+
+export const RUNNING_PLAN = asRunning({
   ...SAMPLE_PLAN,
   id: "7f1c2a10-0000-4000-8000-000000000002",
-  status: "running",
-  stage: "selecting",
   conditions: {
     ...SAMPLE_PLAN.conditions,
     occupation: "組込みエンジニア",
     grade: 2,
     term: "autumn",
   },
-  result: null,
-};
+});
 
-export const FAILED_PLAN: Plan = {
+export const FAILED_PLAN = asFailed({
   ...SAMPLE_PLAN,
   id: "7f1c2a10-0000-4000-8000-000000000003",
-  status: "failed",
   conditions: {
     ...SAMPLE_PLAN.conditions,
     occupation: "音響エンジニア",
     grade: 1,
     term: "spring",
   },
-  result: null,
-  failure: "授業の候補が見つかりませんでした。",
-};
+});
 
 export const PLAN_LIST: PlanList = {
   plans: [
@@ -67,40 +75,84 @@ export const CLASS_CHOICES: ClassChoices = {
 
 export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+
+type Reply = { status?: number; json?: unknown; until?: Promise<unknown> };
+
+type Stub = {
+  next: () => Reply | undefined;
+  leftover: () => string | undefined;
+};
+
 export type Api = {
-  answer: (answers: Record<string, unknown>) => Promise<void>;
+  answer: (answers: Record<string, unknown>) => void;
+  respond: (
+    method: Method,
+    path: string,
+    first: Reply,
+    ...rest: Reply[]
+  ) => void;
 };
 
 export const test = base.extend<{ api: Api }>({
   api: [
     async ({ page }, use) => {
-      const blocked: string[] = [];
-      const unused = new Set<string>();
+      const stubs = new Map<string, Stub>();
+      const blocked = new Set<string>();
+      const extra = new Set<string>();
+      function stub(call: string, entry: Stub) {
+        if (stubs.has(call)) {
+          throw new Error(`同じ /api/ を 2 度差し替えた: ${call}`);
+        }
+        stubs.set(call, entry);
+      }
       await page.route(
         (url) =>
           url.pathname.startsWith("/api/") &&
           !url.pathname.startsWith("/api/auth/"),
-        (route) => {
-          blocked.push(new URL(route.request().url()).pathname);
-          return route.abort();
+        async (route) => {
+          const call = `${route.request().method()} ${new URL(route.request().url()).pathname}`;
+          const entry = stubs.get(call);
+          const reply = entry?.next();
+          if (!reply) {
+            (entry ? extra : blocked).add(call);
+            return route.abort();
+          }
+          const { until, ...response } = reply;
+          await until;
+          return route.fulfill(response);
         },
       );
       await use({
-        answer: async (answers) => {
-          for (const [path, body] of Object.entries(answers)) {
-            unused.add(path);
-            await page.route(
-              (url) => url.pathname === path,
-              (route) => {
-                unused.delete(path);
-                return route.fulfill({ json: body });
+        answer: (answers) => {
+          for (const [path, json] of Object.entries(answers)) {
+            let served = false;
+            stub(`GET ${path}`, {
+              next: () => {
+                served = true;
+                return { json };
               },
-            );
+              leftover: () => (served ? undefined : "一度も呼ばれなかった"),
+            });
           }
         },
+        respond: (method, path, ...replies) => {
+          stub(`${method} ${path}`, {
+            next: () => replies.shift(),
+            leftover: () =>
+              replies.length > 0 ? `残り ${replies.length} 個` : undefined,
+          });
+        },
       });
-      expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
-      expect([...unused], "差し替えたのに呼ばれなかった /api/").toEqual([]);
+      expect([...blocked], "差し替えていない /api/ が呼ばれた").toEqual([]);
+      expect([...extra], "差し替えた答えより多く呼ばれた /api/").toEqual([]);
+      expect(
+        [...stubs].flatMap(([call, entry]) => {
+          const leftover = entry.leftover();
+          return leftover ? [`${call}(${leftover})`] : [];
+        }),
+        "差し替えた答えを使い切らなかった /api/",
+      ).toEqual([]);
     },
     { auto: true },
   ],
