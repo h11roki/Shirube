@@ -59,25 +59,21 @@ const LONG_PLATES: Record<string, Record<string, string[]>> = {
 const FIXED_HEADINGS: {
   screen: string;
   phrases: readonly string[];
-  spokenName: string;
   open: (page: Page, api: Api) => Promise<unknown>;
 }[] = [
   {
     screen: "トップ",
     phrases: CATCHPHRASE,
-    spokenName: "履修に迷ったら、なりたい職業から。",
     open: (page) => page.goto("/"),
   },
   {
     screen: "作成中の画面",
     phrases: PROGRESS_HEADING,
-    spokenName: "データサイエンティストへの道標を作っています",
     open: (page, api) => openPlan(page, api, asRunning(SAMPLE_PLAN)),
   },
   {
     screen: "プライバシーポリシー",
     phrases: PRIVACY_TITLE,
-    spokenName: "プライバシーポリシー",
     open: (page) => page.goto("/privacy"),
   },
 ];
@@ -92,10 +88,19 @@ async function renderedLines(text: Locator): Promise<string[]> {
     const characters = new Intl.Segmenter("ja", { granularity: "grapheme" });
     const lines: { top: number; text: string }[] = [];
     const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
-      acceptNode: (node) =>
-        node.parentElement?.closest(".sr-only")
-          ? NodeFilter.FILTER_REJECT
-          : NodeFilter.FILTER_ACCEPT,
+      acceptNode: (node) => {
+        for (
+          let parent = node.parentElement;
+          parent && element.contains(parent);
+          parent = parent.parentElement
+        ) {
+          const box = parent.getBoundingClientRect();
+          if (box.width <= 1 && box.height <= 1) {
+            return NodeFilter.FILTER_REJECT;
+          }
+        }
+        return NodeFilter.FILTER_ACCEPT;
+      },
     });
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       for (const { segment, index } of characters.segment(
@@ -133,17 +138,24 @@ function isPhraseGrouping(lines: string[], phrases: readonly string[]) {
   return next === phrases.length;
 }
 
-async function chromeHeadingName(page: Page) {
+async function chromeLevelOneHeadingNames(page: Page) {
   const cdp = await page.context().newCDPSession(page);
-  const { nodes } = await cdp.send("Accessibility.getFullAXTree");
-  await cdp.detach();
-  return nodes.find(
-    (node) =>
-      node.role?.value === "heading" &&
-      node.properties?.some(
-        (property) => property.name === "level" && property.value.value === 1,
-      ),
-  )?.name?.value;
+  try {
+    const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+    return nodes
+      .filter(
+        (node) =>
+          !node.ignored &&
+          node.role?.value === "heading" &&
+          node.properties?.some(
+            (property) =>
+              property.name === "level" && property.value.value === 1,
+          ),
+      )
+      .map((node) => node.name?.value);
+  } finally {
+    await cdp.detach();
+  }
 }
 
 async function openPlan(page: Page, api: Api, plan: Plan) {
@@ -193,6 +205,23 @@ for (const width of NARROW_WIDTHS) {
         true,
       );
     });
+
+    test(`幅 ${width}px で文字を 200% にしても、${heading.screen}の見出しが画面からはみ出さない`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await heading.open(page, api);
+      const element = page.getByRole("heading", { level: 1 });
+      await expect(element).toBeVisible();
+      await page.addStyleTag({
+        content: "html { font-size: 200% !important; }",
+      });
+      await fontsReady(page);
+      expect(
+        await element.evaluate((each) => each.getBoundingClientRect().right),
+      ).toBeLessThanOrEqual(width);
+    });
   }
 }
 
@@ -203,6 +232,8 @@ for (const heading of FIXED_HEADINGS) {
   }) => {
     await heading.open(page, api);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    expect(await chromeHeadingName(page)).toBe(heading.spokenName);
+    const names = await chromeLevelOneHeadingNames(page);
+    expect(names).toHaveLength(1);
+    expect(names[0]).toContain(heading.phrases.join(""));
   });
 }
