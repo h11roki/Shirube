@@ -15,6 +15,11 @@ import {
 
 const NARROW_WIDTHS = [320, 375];
 
+const HEADING_LINES: Record<number, string[]> = {
+  320: ["道標を", "作っています"],
+  375: ["道標を作っています"],
+};
+
 const SCREENS: {
   name: string;
   plan: (destination: string) => Plan;
@@ -63,7 +68,12 @@ async function renderedLines(text: Locator): Promise<string[]> {
   return text.evaluate((element) => {
     const characters = new Intl.Segmenter("ja", { granularity: "grapheme" });
     const lines: { top: number; text: string }[] = [];
-    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT);
+    const walker = document.createTreeWalker(element, NodeFilter.SHOW_TEXT, {
+      acceptNode: (node) =>
+        node.parentElement?.closest(".sr-only")
+          ? NodeFilter.FILTER_REJECT
+          : NodeFilter.FILTER_ACCEPT,
+    });
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {
       for (const { segment, index } of characters.segment(
         node.textContent ?? "",
@@ -84,7 +94,7 @@ async function renderedLines(text: Locator): Promise<string[]> {
   });
 }
 
-async function openPlate(page: Page, api: Api, plan: Plan, width: number) {
+async function openPlan(page: Page, api: Api, plan: Plan, width: number) {
   await signIn(page);
   api.answer({ [planApi(plan)]: plan });
   await page.setViewportSize({ width, height: 900 });
@@ -109,11 +119,21 @@ for (const width of NARROW_WIDTHS) {
         page,
         api,
       }) => {
-        await openPlate(page, api, screen.plan(destination), width);
+        await openPlan(page, api, screen.plan(destination), width);
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
         expect(await renderedLines(text)).toEqual(expected[screen.name]);
       });
     }
   }
+
+  test(`幅 ${width}px の作成中の画面で、見出しを句の切れ目で折る`, async ({
+    page,
+    api,
+  }) => {
+    await openPlan(page, api, asRunning(SAMPLE_PLAN), width);
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toBeVisible();
+    expect(await renderedLines(heading)).toEqual(HEADING_LINES[width]);
+  });
 }
