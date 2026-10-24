@@ -7,6 +7,7 @@ import type {
   Term,
 } from "@/lib/api/client";
 import {
+  courseNames,
   pickSemester,
   routeTotals,
   semesterCourses,
@@ -68,6 +69,18 @@ describe("roadmap", () => {
     expect(semesterCourses(semesters[1]).map((course) => course.name)).toEqual([
       "柱の授業",
       "通年の授業",
+    ]);
+  });
+
+  it("lists the names of every course in the plan, carried over or left unplaced", () => {
+    expect(
+      courseNames({ semesters, unplaced: [placed("置けない授業", "core")] }),
+    ).toEqual([
+      "通年の授業",
+      "礎の授業",
+      "柱の授業",
+      "通年の授業",
+      "置けない授業",
     ]);
   });
 

@@ -9,6 +9,7 @@ const SEGMENTERS =
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
 const CLOSES = /[\p{Pe}\p{Pf}]$/u;
 const PARTICLES = /^[のとやをにへでがはも]$/u;
+const OPENS_AT_START = /^[\p{Ps}\p{Pi}]/u;
 
 type Previous = "word" | "letter" | "particle" | "open" | "close" | "mark";
 
@@ -50,6 +51,12 @@ export function wordsOf(text: string): string[] {
   return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
+export function wordsByText(
+  texts: readonly string[],
+): Record<string, string[]> {
+  return Object.fromEntries(texts.map((text) => [text, wordsOf(text)]));
+}
+
 export type Destination = { name: string; words: string[] };
 
 export function destinationOf(name: string): Destination {
@@ -69,4 +76,23 @@ export function splitTail(words: readonly string[]): {
     words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
     tail,
   };
+}
+
+export function bracketRuns(word: string): { text: string; nowrap: boolean }[] {
+  const characters = SEGMENTERS
+    ? Array.from(SEGMENTERS.characters.segment(word), ({ segment }) => segment)
+    : Array.from(word);
+  const head = OPENS_AT_START.test(word) ? 2 : 0;
+  const tail = CLOSES.test(word) ? 2 : 0;
+  if (head + tail >= characters.length) {
+    return [{ text: word, nowrap: head + tail > 0 }];
+  }
+  return [
+    { text: characters.slice(0, head).join(""), nowrap: true },
+    {
+      text: characters.slice(head, characters.length - tail).join(""),
+      nowrap: false,
+    },
+    { text: characters.slice(characters.length - tail).join(""), nowrap: true },
+  ].filter((run) => run.text !== "");
 }

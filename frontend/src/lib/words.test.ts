@@ -146,6 +146,18 @@ describe("wordsOf", () => {
   });
 });
 
+describe("wordsByText", () => {
+  it("文ごとに語の並びを引ける表にする", async () => {
+    vi.stubGlobal("Intl", { Segmenter: undefined });
+    vi.resetModules();
+    const { wordsByText } = await import("@/lib/words");
+    expect(wordsByText(["確率統計", "情報処理", "確率統計"])).toEqual({
+      確率統計: ["確率統計"],
+      情報処理: ["情報処理"],
+    });
+  });
+});
+
 describe("splitTail", () => {
   it("最後の語から見た目の最後の 1 字を外す", async () => {
     const { splitTail } = await import("@/lib/words");
@@ -183,5 +195,38 @@ describe("splitTail", () => {
       words: ["データサイエンティス"],
       tail: "ト",
     });
+  });
+});
+
+describe("bracketRuns", () => {
+  it("語の頭の開き括弧は次の 1 字と、語の終わりの閉じ括弧は前の 1 字と組にする", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（深層")).toEqual([
+      { text: "（深", nowrap: true },
+      { text: "層", nowrap: false },
+    ]);
+    expect(bracketRuns("学習の応用）")).toEqual([
+      { text: "学習の応", nowrap: false },
+      { text: "用）", nowrap: true },
+    ]);
+    expect(bracketRuns("【バスケットボール】")).toEqual([
+      { text: "【バ", nowrap: true },
+      { text: "スケットボー", nowrap: false },
+      { text: "ル】", nowrap: true },
+    ]);
+  });
+
+  it("語の真ん中の括弧は組にしない", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（専門）Ⅲ")).toEqual([
+      { text: "（専", nowrap: true },
+      { text: "門）Ⅲ", nowrap: false },
+    ]);
+  });
+
+  it("両端が括弧の短い語は全てを組にし、括弧の無い語はそのまま", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("(A)")).toEqual([{ text: "(A)", nowrap: true }]);
+    expect(bracketRuns("データ")).toEqual([{ text: "データ", nowrap: false }]);
   });
 });
