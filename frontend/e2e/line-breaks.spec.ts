@@ -42,9 +42,9 @@ const SCREENS: {
 ];
 
 const LONG_PLATES = [
-  ["組込み", "ソフトウェア", "エンジニア"],
-  ["半導体・", "LSI ", "設計", "エンジニア"],
-  ["電子", "情報", "システム", "保守", "技術者"],
+  ["組込み", "ソフトウェア", "エンジニア行"],
+  ["半導体・", "LSI ", "設計", "エンジニア行"],
+  ["電子", "情報", "システム", "保守", "技術者行"],
 ];
 
 const FIXED_HEADINGS: {
@@ -175,7 +175,7 @@ for (const width of NARROW_WIDTHS) {
 
   for (const screen of SCREENS) {
     for (const words of LONG_PLATES) {
-      const destination = words.join("");
+      const destination = words.join("").replace(/行$/, "");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
         api,
@@ -185,18 +185,30 @@ for (const width of NARROW_WIDTHS) {
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
         const lines = await renderedLines(text);
+        expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
         expect(
-          breaksOnlyBetween(lines, words.with(-1, `${words.at(-1)}行`)),
-          lines.join(" / "),
-        ).toBe(true);
-        const { plate, column } = await text.evaluate((element) => ({
-          plate:
-            element.parentElement?.getBoundingClientRect().right ?? Infinity,
-          column:
-            element.parentElement?.parentElement?.getBoundingClientRect()
-              .right ?? 0,
-        }));
-        expect(plate).toBeLessThanOrEqual(Math.min(column, width));
+          await text.evaluate((element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const right = range.getBoundingClientRect().right;
+            for (
+              let box: Element | null = element;
+              box;
+              box = box.parentElement
+            ) {
+              const style = getComputedStyle(box);
+              const inner =
+                box.getBoundingClientRect().right -
+                parseFloat(style.paddingRight) -
+                parseFloat(style.borderRightWidth);
+              if (right > inner + 0.5) {
+                return box.tagName;
+              }
+            }
+            return "";
+          }),
+          "板の字がはみ出した箱",
+        ).toBe("");
       });
     }
   }
