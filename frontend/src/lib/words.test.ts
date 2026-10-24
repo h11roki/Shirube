@@ -30,9 +30,9 @@ function joined(segments: Segment[]): string {
   return segments.map(({ segment }) => segment).join("");
 }
 
-async function platePartsWith(segments: Segment[]) {
-  const { plateParts } = await wordsModuleWith(segments);
-  return plateParts(joined(segments));
+async function destinationPartsWith(segments: Segment[]) {
+  const { destinationParts } = await wordsModuleWith(segments);
+  return destinationParts(joined(segments));
 }
 
 async function wordsOfWith(segments: Segment[]) {
@@ -53,16 +53,16 @@ afterEach(() => {
   vi.resetModules();
 });
 
-describe("plateParts", () => {
+describe("destinationParts", () => {
   it("語のあいだで分け、最後の 1 字を行とつなぐために外す", async () => {
     expect(
-      await platePartsWith([word("データ"), word("サイエンティスト")]),
+      await destinationPartsWith([word("データ"), word("サイエンティスト")]),
     ).toEqual({ words: ["データ", "サイエンティス"], tail: "ト" });
   });
 
   it("記号と空白の前では折らず、あとでは次の語の前で折る", async () => {
     expect(
-      await platePartsWith([
+      await destinationPartsWith([
         word("半導体"),
         mark("・"),
         word("LSI"),
@@ -75,7 +75,7 @@ describe("plateParts", () => {
 
   it("開き括弧の前では折り、開き括弧のあとと閉じ括弧の前では折らない", async () => {
     expect(
-      await platePartsWith([
+      await destinationPartsWith([
         word("エンジニア"),
         mark("（"),
         word("組込み"),
@@ -86,7 +86,7 @@ describe("plateParts", () => {
 
   it("1 字のひらがなは前の語に付け、そのあとで折る", async () => {
     expect(
-      await platePartsWith([
+      await destinationPartsWith([
         word("社会"),
         word("の"),
         word("フィールドワーク"),
@@ -97,7 +97,7 @@ describe("plateParts", () => {
 
   it("1 字の語は、後ろに付く語(者)も頭に付く語(光、副)も、前後の語とのあいだで折らない", async () => {
     expect(
-      await platePartsWith([
+      await destinationPartsWith([
         word("電気"),
         word("主任"),
         word("技術"),
@@ -105,16 +105,24 @@ describe("plateParts", () => {
       ]),
     ).toEqual({ words: ["電気", "主任", "技術"], tail: "者" });
     expect(
-      await platePartsWith([word("光"), word("通信"), word("エンジニア")]),
+      await destinationPartsWith([
+        word("光"),
+        word("通信"),
+        word("エンジニア"),
+      ]),
     ).toEqual({ words: ["光通信", "エンジニ"], tail: "ア" });
     expect(
-      await platePartsWith([word("システム"), word("副"), word("管理者")]),
+      await destinationPartsWith([
+        word("システム"),
+        word("副"),
+        word("管理者"),
+      ]),
     ).toEqual({ words: ["システム副管理"], tail: "者" });
   });
 
   it("記号と空白のあとなら、1 字の語の前で折る", async () => {
     expect(
-      await platePartsWith([
+      await destinationPartsWith([
         word("AI"),
         mark(" "),
         word("系"),
@@ -124,18 +132,28 @@ describe("plateParts", () => {
   });
 
   it("字は見た目の 1 字で数え、異体字セレクタや絵文字の組を割らない", async () => {
-    expect(await platePartsWith([word("技術"), word("者\uFE00")])).toEqual({
+    expect(
+      await destinationPartsWith([word("技術"), word("者\uFE00")]),
+    ).toEqual({
       words: ["技術"],
       tail: "者\uFE00",
     });
-    expect(await platePartsWith([word("エンジニア"), mark("👩‍💻")])).toEqual({
+    expect(
+      await destinationPartsWith([word("エンジニア"), mark("👩‍💻")]),
+    ).toEqual({
       words: ["エンジニア"],
       tail: "👩‍💻",
     });
   });
 
+  it("最後の語が 1 字なら、空の語を残してその前で折れるようにする", async () => {
+    expect(
+      await destinationPartsWith([word("電子"), word("と"), word("光")]),
+    ).toEqual({ words: ["電子と", ""], tail: "光" });
+  });
+
   it("1 字の名前は、その字だけを行とつなぐ", async () => {
-    expect(await platePartsWith([word("医")])).toEqual({
+    expect(await destinationPartsWith([word("医")])).toEqual({
       words: [""],
       tail: "医",
     });
@@ -144,8 +162,8 @@ describe("plateParts", () => {
   it("Intl.Segmenter の無いブラウザでは分けず、最後の 1 字だけを外す", async () => {
     vi.stubGlobal("Intl", { Segmenter: undefined });
     vi.resetModules();
-    const { plateParts } = await import("@/lib/words");
-    expect(plateParts("データサイエンティスト")).toEqual({
+    const { destinationParts } = await import("@/lib/words");
+    expect(destinationParts("データサイエンティスト")).toEqual({
       words: ["データサイエンティス"],
       tail: "ト",
     });
@@ -178,6 +196,12 @@ describe("wordsOf", () => {
     ).toEqual(["電子と", "光通信"]);
   });
 
+  it("助詞でない 1 字のひらがなは、前後の語とつなぐ", async () => {
+    expect(await wordsOfWith([word("ご"), word("案内"), word("係")])).toEqual([
+      "ご案内係",
+    ]);
+  });
+
   it("Intl.Segmenter の無いブラウザでは分けない", async () => {
     vi.stubGlobal("Intl", { Segmenter: undefined });
     vi.resetModules();
@@ -185,5 +209,15 @@ describe("wordsOf", () => {
     expect(wordsOf("データ構造とアルゴリズム")).toEqual([
       "データ構造とアルゴリズム",
     ]);
+  });
+});
+
+describe("wholeWords", () => {
+  it("外した最後の 1 字を最後の語に戻す", async () => {
+    const { wholeWords } = await import("@/lib/words");
+    expect(
+      wholeWords({ words: ["データ", "サイエンティス"], tail: "ト" }),
+    ).toEqual(["データ", "サイエンティスト"]);
+    expect(wholeWords({ words: [""], tail: "医" })).toEqual(["医"]);
   });
 });

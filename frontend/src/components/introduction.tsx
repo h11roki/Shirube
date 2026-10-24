@@ -7,6 +7,7 @@ import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, sampleLabel, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { destinationParts } from "@/lib/words";
 
 const SAMPLE_SEMESTERS = 2;
 
@@ -78,7 +79,7 @@ export function Introduction() {
         <RouteMap
           semesters={result.semesters}
           shown={SAMPLE_SEMESTERS}
-          destination={result.profile.interpretation}
+          destination={destinationParts(result.profile.interpretation)}
           endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
         />
         <SourceNote year={conditions.year} />

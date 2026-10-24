@@ -1,4 +1,6 @@
 import { DestinationName } from "@/components/destination-name";
+import { DESTINATION_TEXT } from "@/components/styles";
+import { destinationParts } from "@/lib/words";
 
 export function DestinationPlate({ destination }: { destination: string }) {
   return (
@@ -6,8 +8,10 @@ export function DestinationPlate({ destination }: { destination: string }) {
       aria-hidden
       className="inline-block justify-self-start rounded-md border border-line bg-plate px-5 py-2 text-plate-ink shadow-paper"
     >
-      <span className="block font-serif text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug font-extrabold tracking-wide text-balance [overflow-wrap:anywhere] [word-break:keep-all] sm:text-3xl">
-        <DestinationName destination={destination}>
+      <span
+        className={`block font-serif font-extrabold tracking-wide text-balance sm:text-3xl ${DESTINATION_TEXT}`}
+      >
+        <DestinationName parts={destinationParts(destination)}>
           <span className="ml-1.5 text-plate-accent">行</span>
         </DestinationName>
       </span>

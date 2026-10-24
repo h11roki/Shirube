@@ -7,9 +7,11 @@ const SEGMENTERS =
     : undefined;
 
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
-const HIRAGANA = /^\p{Script=Hiragana}$/u;
+const PARTICLES = /^[のとやをにへでがはも]$/u;
 
 type Previous = "word" | "letter" | "particle" | "open" | "mark";
+
+export type DestinationParts = { words: string[]; tail: string };
 
 function splitWords(
   text: string,
@@ -23,7 +25,7 @@ function splitWords(
     const letter =
       isWordLike &&
       segmenters.characters.segment(segment).containing(0)?.segment === segment;
-    const particle = letter && HIRAGANA.test(segment);
+    const particle = isWordLike && PARTICLES.test(segment);
     const opening = !isWordLike && OPENS.test(segment);
     const breaksBefore = isWordLike
       ? !particle &&
@@ -49,19 +51,18 @@ export function wordsOf(text: string): string[] {
   return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
-export function plateParts(destination: string): {
-  words: string[];
-  tail: string;
-} {
-  if (!SEGMENTERS) {
-    const characters = Array.from(destination);
-    const tail = characters.pop() ?? "";
-    return { words: [characters.join("")], tail };
-  }
-  const words = splitWords(destination, SEGMENTERS);
+export function destinationParts(destination: string): DestinationParts {
+  const words = wordsOf(destination);
   const last = words.pop() ?? "";
-  const tail =
-    SEGMENTERS.characters.segment(last).containing(last.length - 1)?.segment ??
-    "";
+  const tail = SEGMENTERS
+    ? (SEGMENTERS.characters.segment(last).containing(last.length - 1)
+        ?.segment ?? "")
+    : (Array.from(last).at(-1) ?? "");
   return { words: [...words, last.slice(0, last.length - tail.length)], tail };
+}
+
+export function wholeWords({ words, tail }: DestinationParts): string[] {
+  return words.map((word, index) =>
+    index === words.length - 1 ? `${word}${tail}` : word,
+  );
 }

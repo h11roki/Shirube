@@ -127,8 +127,12 @@ export function stationLabel(index: number): string {
   return `${STATION_PREFIX}${String(index + 1).padStart(2, "0")}`;
 }
 
-export function routeEndSuffix(shown: number, total: number): string[] {
-  return shown < total ? ["へ", "続きます"] : ["へ"];
+export const ROUTE_END_SUFFIX = "へ";
+
+export const ROUTE_CONTINUES = "続きます";
+
+export function routeContinues(shown: number, total: number): boolean {
+  return shown < total;
 }
 
 export function transferLabel(

@@ -2,7 +2,6 @@
 
 import {
   type CSSProperties,
-  Fragment,
   useCallback,
   useEffect,
   useId,
@@ -17,7 +16,7 @@ import { DestinationName } from "@/components/destination-name";
 import { Phrases } from "@/components/phrases";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
-import { STANDALONE_LINK } from "@/components/styles";
+import { DESTINATION_TEXT, STANDALONE_LINK } from "@/components/styles";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -27,7 +26,9 @@ import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
   EMPTY_SEMESTER_LABEL,
-  routeEndSuffix,
+  ROUTE_CONTINUES,
+  ROUTE_END_SUFFIX,
+  routeContinues,
   semesterShortLabel,
   slotsLabel,
   stationLabel,
@@ -40,7 +41,7 @@ import {
   transfers,
 } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
-import { wordsOf } from "@/lib/words";
+import { type DestinationParts, wholeWords } from "@/lib/words";
 
 const LINE_DELAY_MS = 250;
 const PICK_HOLD_MS = 1200;
@@ -57,16 +58,13 @@ export function RouteMap({
   shown?: number;
   planPath?: string;
   withStrip?: boolean;
-  destination: string;
+  destination: DestinationParts;
   endNote: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
   const visible = semesters.slice(0, shown);
   const arrive = visible.length * STAGGER_MS;
-  const [toDestination, ...afterDestination] = routeEndSuffix(
-    shown,
-    semesters.length,
-  );
+  const name = [...destination.words, destination.tail].join("");
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const reachable = useCallback(
@@ -158,7 +156,7 @@ export function RouteMap({
               semesters={semesters}
               found={found}
               planPath={planPath}
-              destination={destination}
+              destination={name}
               delayMs={index * STAGGER_MS}
             />
           ))}
@@ -168,16 +166,16 @@ export function RouteMap({
             className="relative min-w-0 before:absolute before:top-9 before:-left-[42px] before:z-[1] before:size-6 before:rounded-full before:bg-pillar before:shadow-[0_0_0_4px_var(--paper)] after:absolute after:top-0 after:-left-[32px] after:h-12 after:w-1 after:bg-route motion-safe:animate-rise"
           >
             <div className="grid min-h-24 content-center gap-1">
-              <h2 className="font-serif text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug font-bold [overflow-wrap:anywhere] [word-break:keep-all]">
-                <DestinationName destination={destination}>
-                  {toDestination}
+              <h2 className={`font-serif font-bold ${DESTINATION_TEXT}`}>
+                <DestinationName parts={destination}>
+                  {ROUTE_END_SUFFIX}
                 </DestinationName>
-                {afterDestination.map((part) => (
-                  <Fragment key={part}>
+                {routeContinues(shown, semesters.length) && (
+                  <>
                     <wbr aria-hidden />
-                    {part}
-                  </Fragment>
-                ))}
+                    {ROUTE_CONTINUES}
+                  </>
+                )}
               </h2>
               <p className="text-sm text-sub">{endNote}</p>
             </div>
@@ -195,7 +193,7 @@ function RouteStrip({
   onPick,
 }: {
   semesters: SemesterPlan[];
-  destination: string;
+  destination: DestinationParts;
   active: number;
   onPick: (index: number) => void;
 }) {
@@ -205,7 +203,11 @@ function RouteStrip({
       station: stationLabel(index),
       name: semesterShortLabel(semester.grade, semester.term),
     })),
-    { key: "goal", station: null, name: destination },
+    {
+      key: "goal",
+      station: null,
+      name: <Phrases parts={wholeWords(destination)} />,
+    },
   ];
   const strip = useRef<HTMLElement>(null);
   useEffect(() => {
@@ -243,9 +245,9 @@ function RouteStrip({
                   <span className="font-bold tabular-nums">{stop.station}</span>
                 )}
                 <span
-                  className={`${goal ? "line-clamp-2 max-w-[8em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
+                  className={`${goal ? "line-clamp-2 max-w-[9em] text-center" : "whitespace-nowrap"} ${index === active ? "text-ink" : "text-sub"}`}
                 >
-                  {goal ? <Phrases parts={wordsOf(stop.name)} /> : stop.name}
+                  {stop.name}
                 </span>
               </button>
               {!goal && (
