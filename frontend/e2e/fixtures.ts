@@ -67,18 +67,25 @@ export const CLASS_CHOICES: ClassChoices = {
 
 export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
+type Method = "GET" | "POST" | "PUT" | "DELETE";
+
 export type Reply = { status?: number; json?: unknown };
 
 export type Api = {
   answer: (answers: Record<string, unknown>) => Promise<void>;
-  respond: (method: string, path: string, ...replies: Reply[]) => Promise<void>;
+  respond: (
+    method: Method,
+    path: string,
+    first: Reply,
+    ...rest: Reply[]
+  ) => Promise<void>;
 };
 
 export const test = base.extend<{ api: Api }>({
   api: [
     async ({ page }, use) => {
       const blocked: string[] = [];
-      const unused = new Set<string>();
+      const leftovers: (() => string | undefined)[] = [];
       await page.route(
         (url) =>
           url.pathname.startsWith("/api/") &&
@@ -90,39 +97,46 @@ export const test = base.extend<{ api: Api }>({
           return route.abort();
         },
       );
-      async function respond(
-        method: string,
-        path: string,
-        ...replies: Reply[]
-      ) {
-        const call = `${method} ${path}`;
-        unused.add(call);
-        let turn = 0;
-        await page.route(
-          (url) => url.pathname === path,
-          (route) => {
-            if (route.request().method() !== method) {
-              return route.fallback();
-            }
-            const reply = replies[Math.min(turn, replies.length - 1)];
-            turn += 1;
-            if (turn >= replies.length) {
-              unused.delete(call);
-            }
-            return route.fulfill(reply);
-          },
-        );
-      }
       await use({
         answer: async (answers) => {
           for (const [path, json] of Object.entries(answers)) {
-            await respond("GET", path, { json });
+            let served = false;
+            leftovers.push(() => (served ? undefined : `GET ${path}`));
+            await page.route(
+              (url) => url.pathname === path,
+              (route) => {
+                if (route.request().method() !== "GET") {
+                  return route.fallback();
+                }
+                served = true;
+                return route.fulfill({ json });
+              },
+            );
           }
         },
-        respond,
+        respond: async (method, path, ...replies) => {
+          leftovers.push(() =>
+            replies.length > 0
+              ? `${method} ${path}(残り ${replies.length} 個)`
+              : undefined,
+          );
+          await page.route(
+            (url) => url.pathname === path,
+            (route) => {
+              const reply =
+                route.request().method() === method
+                  ? replies.shift()
+                  : undefined;
+              return reply ? route.fulfill(reply) : route.fallback();
+            },
+          );
+        },
       });
       expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
-      expect([...unused], "差し替えた答えを使い切らなかった /api/").toEqual([]);
+      expect(
+        leftovers.map((leftover) => leftover()).filter(Boolean),
+        "差し替えた答えを使い切らなかった /api/",
+      ).toEqual([]);
     },
     { auto: true },
   ],
