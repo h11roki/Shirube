@@ -20,7 +20,14 @@ import {
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
-const PLAIN_PAPER_CSS = "body { background-image: none !important; }";
+const UNDECORATED_CSS =
+  "body { background-image: none !important; } ::before, ::after { content: none !important; }";
+const HAND_CHECKED_CONTRAST = new Set([
+  "nonBmp",
+  "shortTextContent",
+  "bgOverlap",
+  "elmPartiallyObscured",
+]);
 
 type Screen = {
   name: string;
@@ -171,7 +178,7 @@ for (const screen of SCREENS) {
           api,
         }) => {
           await open(page, api, screen, width, dark);
-          await page.addStyleTag({ content: PLAIN_PAPER_CSS });
+          await page.addStyleTag({ content: UNDECORATED_CSS });
           const results = await new AxeBuilder({ page })
             .withTags(WCAG_TAGS)
             .analyze();
@@ -180,6 +187,22 @@ for (const screen of SCREENS) {
               rule: violation.id,
               targets: violation.nodes.map((node) => node.target.join(" ")),
             })),
+          ).toEqual([]);
+          expect(
+            results.incomplete.flatMap((item) =>
+              item.nodes
+                .filter(
+                  (node) =>
+                    item.id !== "color-contrast" ||
+                    !node.any.some((check) =>
+                      HAND_CHECKED_CONTRAST.has(
+                        (check.data as { messageKey?: string } | null)
+                          ?.messageKey ?? "",
+                      ),
+                    ),
+                )
+                .map((node) => `${item.id} ${node.target.join(" ")}`),
+            ),
           ).toEqual([]);
         });
       }
