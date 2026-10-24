@@ -1,10 +1,12 @@
+import { Phrases } from "@/components/phrases";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { PHRASE_WRAP, TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
+import { TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
 import { Tilt } from "@/components/tilt";
 import type { Relevance } from "@/lib/api/client";
 import { RELEVANCE_LABELS, sampleLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
+import { wordsOf } from "@/lib/words";
 
 const PLACES: Record<Relevance, string> = {
   foundation:
@@ -43,9 +45,9 @@ export function HeroTickets() {
                       {RELEVANCE_LABELS[course.relevance]}
                     </p>
                     <p
-                      className={`text-lg leading-snug font-bold md:text-[1.3125rem] ${PHRASE_WRAP} ${core ? "pr-9 md:pr-10" : ""}`}
+                      className={`text-lg leading-snug font-bold md:text-[1.3125rem] ${core ? "pr-9 md:pr-10" : ""}`}
                     >
-                      {course.name}
+                      <Phrases parts={wordsOf(course.name)} />
                     </p>
                     <p className="text-xs leading-relaxed text-sub md:text-[0.8125rem]">
                       {course.reason}
