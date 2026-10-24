@@ -230,19 +230,17 @@ for (const width of NARROW_WIDTHS) {
 }
 
 for (const heading of FIXED_HEADINGS) {
-  test(`${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`, async ({
-    page,
-    api,
-    browserName,
-  }) => {
-    test.skip(
-      browserName !== "chromium",
-      "読み上げの木は Chrome の DevTools Protocol で読む",
-    );
-    await heading.open(page, api);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const names = await chromeLevelOneHeadingNames(page);
-    expect(names).toHaveLength(1);
-    expect(names[0]).toContain(heading.phrases.join(""));
-  });
+  test(
+    `${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`,
+    {
+      tag: "@cdp",
+    },
+    async ({ page, api }) => {
+      await heading.open(page, api);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const names = await chromeLevelOneHeadingNames(page);
+      expect(names).toHaveLength(1);
+      expect(names[0]).toContain(heading.phrases.join(""));
+    },
+  );
 }

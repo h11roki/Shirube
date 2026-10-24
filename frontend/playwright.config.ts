@@ -19,6 +19,7 @@ export default defineConfig({
       name: "webkit",
       use: devices["iPhone 13"],
       testMatch: "line-breaks.spec.ts",
+      grepInvert: /@cdp/,
     },
   ],
   webServer: {
