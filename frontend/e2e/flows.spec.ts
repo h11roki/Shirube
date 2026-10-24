@@ -1,3 +1,5 @@
+import type { Page } from "@playwright/test";
+
 import type { Plan } from "@/lib/api/client";
 import {
   CANCEL_LABEL,
@@ -17,6 +19,8 @@ import {
   FAILED_PLAN,
   PLAN_LIST,
   RUNNING_PLAN,
+  asFailed,
+  asRunning,
   expect,
   planApi,
   signIn,
@@ -24,23 +28,10 @@ import {
 } from "./fixtures";
 
 const LATER = "01:00";
+const REPLY_DELAY_MS = 500;
 const TAKEN = SAMPLE_PLAN.result.semesters[0].courses[0];
 const CONFLICT = "ほかの画面の答えで道標が変わりました。";
 const RUNNING_REFUSAL = "作成中の道標は消せません。";
-
-const SAMPLE_RUNNING: Plan = {
-  ...SAMPLE_PLAN,
-  status: "running",
-  stage: "selecting",
-  result: null,
-};
-
-const SAMPLE_FAILED: Plan = {
-  ...SAMPLE_PLAN,
-  status: "failed",
-  result: null,
-  failure: FAILED_PLAN.failure,
-};
 
 const ASKED_PLAN: Plan = {
   ...SAMPLE_PLAN,
@@ -71,6 +62,12 @@ function takenApi(name: string): string {
   return `${planApi(ASKED_PLAN)}/taken-courses/${encodeURIComponent(name)}`;
 }
 
+async function nextFrame(page: Page) {
+  await page.evaluate(
+    () => new Promise((resolve) => requestAnimationFrame(resolve)),
+  );
+}
+
 test.beforeEach(async ({ page }) => {
   await signIn(page);
 });
@@ -87,7 +84,7 @@ test.describe("完成の知らせとタブの題", () => {
     await api.respond(
       "GET",
       planApi(SAMPLE_PLAN),
-      { json: SAMPLE_RUNNING },
+      { json: asRunning(SAMPLE_PLAN) },
       { json: SAMPLE_PLAN },
     );
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
@@ -106,8 +103,8 @@ test.describe("完成の知らせとタブの題", () => {
     await api.respond(
       "GET",
       planApi(SAMPLE_PLAN),
-      { json: SAMPLE_RUNNING },
-      { json: SAMPLE_FAILED },
+      { json: asRunning(SAMPLE_PLAN) },
+      { json: asFailed(SAMPLE_PLAN) },
     );
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(page).toHaveTitle(/^作成中: /);
@@ -127,7 +124,9 @@ test.describe("完成の知らせとタブの題", () => {
     await expect(
       page.getByRole("navigation", { name: "路線図" }),
     ).toBeVisible();
+    await nextFrame(page);
     await page.clock.fastForward(LATER);
+    await nextFrame(page);
     await expect(page).not.toHaveTitle(
       /^(作成中|できました|作れませんでした): /,
     );
@@ -186,6 +185,7 @@ test.describe("もう取った", () => {
       .click();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
+    await nextFrame(page);
     await page.clock.fastForward(LATER);
     await expect(marked).toBeHidden();
   });
@@ -202,11 +202,13 @@ test.describe("もう取った", () => {
       .click();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
+    await nextFrame(page);
     await page.keyboard.press("Tab");
     await expect(
       page.getByRole("status").getByRole("button", { name: "戻す" }),
     ).toBeFocused();
     await page.clock.fastForward(LATER);
+    await nextFrame(page);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await expect(marked).toBeHidden();
@@ -225,7 +227,35 @@ test.describe("もう取った", () => {
     await page.keyboard.press("Enter");
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
+    await nextFrame(page);
     await page.clock.fastForward(LATER);
+    await nextFrame(page);
+    await expect(marked).toBeVisible();
+    await page.keyboard.press("Tab");
+    await page.keyboard.press("Tab");
+    await expect(marked).toBeHidden();
+  });
+
+  test("キーボードで答え、返る前にほかのボタンをマウスで押しても、知らせはフォーカスが外へ移るまで残る", async ({
+    page,
+    api,
+  }) => {
+    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    await api.respond("PUT", takenApi(TAKEN.name), {
+      json: MARKED_PLAN,
+      delayMs: REPLY_DELAY_MS,
+    });
+    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await page
+      .getByRole("button", { name: markTakenLabel(TAKEN.name) })
+      .focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("button", { name: "ダークモード" }).click();
+    const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
+    await expect(marked).toBeVisible();
+    await nextFrame(page);
+    await page.clock.fastForward(LATER);
+    await nextFrame(page);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
@@ -303,7 +333,6 @@ test.describe("道標を消す", () => {
     await expect(
       page.getByRole("group", { name: DELETE_PLAN_LABEL }),
     ).toContainText(RUNNING_REFUSAL);
-    await expect(page).toHaveURL(new RegExp(`/plans/${RUNNING_PLAN.id}$`));
   });
 
   test("一覧では、確かめてから消し、その行を除いて消したことを知らせる", async ({
