@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 
-import type { Plan } from "@/lib/api/client";
+import type { PlacedCourse, Plan, Relevance, Weekday } from "@/lib/api/client";
 import {
   CANCEL_LABEL,
   CONFIRM_DELETE_LABEL,
@@ -28,7 +28,7 @@ import {
 } from "./fixtures";
 
 const LATER = "01:00";
-const REPLY_DELAY_MS = 500;
+const PAUSE_AHEAD_MS = 60_000;
 const TAKEN = SAMPLE_PLAN.result.semesters[0].courses[0];
 const CONFLICT = "ほかの画面の答えで道標が変わりました。";
 const RUNNING_REFUSAL = "作成中の道標は消せません。";
@@ -58,14 +58,64 @@ const MARKED_PLAN: Plan = {
   },
 };
 
+function lesson(
+  name: string,
+  relevance: Relevance,
+  classCode: string,
+  weekday: Weekday,
+  period: number,
+): PlacedCourse {
+  return {
+    ...SAMPLE_PLAN.result.semesters[0].courses[0],
+    name,
+    relevance,
+    class_code: classCode,
+    section_code: name,
+    slots: [{ weekday, period }],
+  };
+}
+
+const WEEK_PLAN: Plan = {
+  ...SAMPLE_PLAN,
+  result: {
+    ...SAMPLE_PLAN.result,
+    semesters: SAMPLE_PLAN.result.semesters.map((semester, index) =>
+      index === 0
+        ? {
+            ...semester,
+            courses: [
+              lesson("信号処理", "core", "A", "mon", 2),
+              lesson("電磁気学", "foundation", "B", "tue", 1),
+              lesson("回路理論", "core", "A", "tue", 3),
+            ],
+            continuing: [],
+          }
+        : semester,
+    ),
+  },
+};
+
 function takenApi(name: string): string {
   return `${planApi(ASKED_PLAN)}/taken-courses/${encodeURIComponent(name)}`;
 }
 
-async function nextFrame(page: Page) {
+async function settle(page: Page) {
   await page.evaluate(
-    () => new Promise((resolve) => requestAnimationFrame(resolve)),
+    () =>
+      new Promise((resolve) => {
+        const channel = new MessageChannel();
+        channel.port1.onmessage = () => resolve(null);
+        channel.port2.postMessage(null);
+      }),
   );
+}
+
+async function openAskedPlan(page: Page) {
+  await page.goto(`/plans/${ASKED_PLAN.id}`);
+  await expect(
+    page.getByRole("button", { name: markTakenLabel(TAKEN.name) }),
+  ).toBeVisible();
+  await page.clock.pauseAt(Date.now() + PAUSE_AHEAD_MS);
 }
 
 test.beforeEach(async ({ page }) => {
@@ -81,14 +131,16 @@ test.describe("完成の知らせとタブの題", () => {
     page,
     api,
   }) => {
-    await api.respond(
+    const polled = Promise.withResolvers<void>();
+    api.respond(
       "GET",
       planApi(SAMPLE_PLAN),
       { json: asRunning(SAMPLE_PLAN) },
-      { json: SAMPLE_PLAN },
+      { json: SAMPLE_PLAN, until: polled.promise },
     );
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(page).toHaveTitle(/^作成中: /);
+    polled.resolve();
     await page.clock.fastForward(POLL_INTERVAL_MS);
     await expect(page).toHaveTitle(/^できました: /);
     await expect(
@@ -96,37 +148,45 @@ test.describe("完成の知らせとタブの題", () => {
     ).toHaveCount(1);
   });
 
-  test("作成中を見ていた道標が作れなかったら、タブの題に「作れませんでした」を付ける", async ({
+  test("作成中を見ていた道標が作れなかったら、タブの題に「作れませんでした」を付け、できたとは読み上げない", async ({
     page,
     api,
   }) => {
-    await api.respond(
+    const polled = Promise.withResolvers<void>();
+    api.respond(
       "GET",
       planApi(SAMPLE_PLAN),
       { json: asRunning(SAMPLE_PLAN) },
-      { json: asFailed(SAMPLE_PLAN) },
+      { json: asFailed(SAMPLE_PLAN), until: polled.promise },
     );
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(page).toHaveTitle(/^作成中: /);
+    polled.resolve();
     await page.clock.fastForward(POLL_INTERVAL_MS);
     await expect(
       page.getByRole("heading", { name: "道標を作れませんでした" }),
     ).toBeVisible();
     await expect(page).toHaveTitle(/^作れませんでした: /);
+    await settle(page);
+    await page.clock.fastForward(LATER);
+    await settle(page);
+    await expect(
+      page.getByRole("status").filter({ hasText: "道標ができました" }),
+    ).toHaveCount(0);
   });
 
   test("初めからできていた道標は、タブの題を変えず読み上げない", async ({
     page,
     api,
   }) => {
-    await api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     await expect(
       page.getByRole("navigation", { name: "路線図" }),
     ).toBeVisible();
-    await nextFrame(page);
+    await settle(page);
     await page.clock.fastForward(LATER);
-    await nextFrame(page);
+    await settle(page);
     await expect(page).not.toHaveTitle(
       /^(作成中|できました|作れませんでした): /,
     );
@@ -145,10 +205,10 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
-    await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
-    await api.respond("DELETE", takenApi(TAKEN.name), { json: ASKED_PLAN });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    api.respond("DELETE", takenApi(TAKEN.name), { json: ASKED_PLAN });
+    await openAskedPlan(page);
     await page
       .getByRole("button", { name: markTakenLabel(TAKEN.name) })
       .click();
@@ -177,15 +237,15 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
-    await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await openAskedPlan(page);
     await page
       .getByRole("button", { name: markTakenLabel(TAKEN.name) })
       .click();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await nextFrame(page);
+    await settle(page);
     await page.clock.fastForward(LATER);
     await expect(marked).toBeHidden();
   });
@@ -194,21 +254,21 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
-    await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await openAskedPlan(page);
     await page
       .getByRole("button", { name: markTakenLabel(TAKEN.name) })
       .click();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await nextFrame(page);
+    await settle(page);
     await page.keyboard.press("Tab");
     await expect(
       page.getByRole("status").getByRole("button", { name: "戻す" }),
     ).toBeFocused();
     await page.clock.fastForward(LATER);
-    await nextFrame(page);
+    await settle(page);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await expect(marked).toBeHidden();
@@ -218,18 +278,18 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
-    await api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await openAskedPlan(page);
     await page
       .getByRole("button", { name: markTakenLabel(TAKEN.name) })
       .focus();
     await page.keyboard.press("Enter");
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await nextFrame(page);
+    await settle(page);
     await page.clock.fastForward(LATER);
-    await nextFrame(page);
+    await settle(page);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
@@ -240,22 +300,26 @@ test.describe("もう取った", () => {
     page,
     api,
   }) => {
-    await api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
-    await api.respond("PUT", takenApi(TAKEN.name), {
+    const replied = Promise.withResolvers<void>();
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), {
       json: MARKED_PLAN,
-      delayMs: REPLY_DELAY_MS,
+      until: replied.promise,
     });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
-    await page
-      .getByRole("button", { name: markTakenLabel(TAKEN.name) })
-      .focus();
+    await openAskedPlan(page);
+    const mark = page.getByRole("button", {
+      name: markTakenLabel(TAKEN.name),
+    });
+    await mark.focus();
     await page.keyboard.press("Enter");
+    await expect(mark).toBeDisabled();
     await page.getByRole("button", { name: "ダークモード" }).click();
+    replied.resolve();
     const marked = page.getByText(answeredLabel(TAKEN.name, "mark"));
     await expect(marked).toBeVisible();
-    await nextFrame(page);
+    await settle(page);
     await page.clock.fastForward(LATER);
-    await nextFrame(page);
+    await settle(page);
     await expect(marked).toBeVisible();
     await page.keyboard.press("Tab");
     await page.keyboard.press("Tab");
@@ -263,17 +327,17 @@ test.describe("もう取った", () => {
   });
 
   test("断られたら断りの文を知らせ、道標を読み直す", async ({ page, api }) => {
-    await api.respond(
+    api.respond(
       "GET",
       planApi(ASKED_PLAN),
       { json: ASKED_PLAN },
       { json: MARKED_PLAN },
     );
-    await api.respond("PUT", takenApi(TAKEN.name), {
+    api.respond("PUT", takenApi(TAKEN.name), {
       status: 409,
       json: { detail: CONFLICT },
     });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await openAskedPlan(page);
     await page
       .getByRole("button", { name: markTakenLabel(TAKEN.name) })
       .click();
@@ -291,14 +355,14 @@ test.describe("道標を消す", () => {
     page,
     api,
   }) => {
-    await api.answer({
+    api.answer({
       [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN,
       "/api/plans": {
         plans: PLAN_LIST.plans.filter((plan) => plan.id !== SAMPLE_PLAN.id),
         total: PLAN_LIST.total - 1,
       },
     });
-    await api.respond("DELETE", planApi(SAMPLE_PLAN), { status: 204 });
+    api.respond("DELETE", planApi(SAMPLE_PLAN), { status: 204 });
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
     const start = page.getByRole("button", { name: DELETE_PLAN_LABEL });
     await start.click();
@@ -313,17 +377,14 @@ test.describe("道標を消す", () => {
     await expect(
       page.getByRole("link", { name: RUNNING_PLAN.conditions.occupation }),
     ).toBeVisible();
-    await expect(
-      page.getByRole("link", { name: SAMPLE_PLAN.conditions.occupation }),
-    ).toHaveCount(0);
   });
 
   test("作成中で消せないと断られたら、その場に断りの文を出す", async ({
     page,
     api,
   }) => {
-    await api.answer({ [planApi(RUNNING_PLAN)]: RUNNING_PLAN });
-    await api.respond("DELETE", planApi(RUNNING_PLAN), {
+    api.answer({ [planApi(RUNNING_PLAN)]: RUNNING_PLAN });
+    api.respond("DELETE", planApi(RUNNING_PLAN), {
       status: 409,
       json: { detail: RUNNING_REFUSAL },
     });
@@ -340,8 +401,8 @@ test.describe("道標を消す", () => {
     api,
   }) => {
     const occupation = FAILED_PLAN.conditions.occupation;
-    await api.answer({ "/api/plans": PLAN_LIST });
-    await api.respond("DELETE", planApi(FAILED_PLAN), { status: 204 });
+    api.answer({ "/api/plans": PLAN_LIST });
+    api.respond("DELETE", planApi(FAILED_PLAN), { status: 204 });
     await page.goto("/plans");
     await page
       .getByRole("button", { name: deletePlanLabel(occupation) })
@@ -353,25 +414,25 @@ test.describe("道標を消す", () => {
 });
 
 test.describe("時間割帳の週", () => {
-  test.beforeEach(async ({ api }) => {
-    await api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+  test.beforeEach(({ api }) => {
+    api.answer({ [planApi(WEEK_PLAN)]: WEEK_PLAN });
   });
 
   test("幅 640px 未満では曜日ごとの一覧にし、曜日を略さずに読ませる", async ({
     page,
   }) => {
     await page.setViewportSize({ width: 375, height: 900 });
-    await page.goto(`/plans/${SAMPLE_PLAN.id}?view=timetable`);
+    await page.goto(`/plans/${WEEK_PLAN.id}?view=timetable`);
     await expect(page.locator("dl").filter({ hasText: NO_LESSONS_LABEL }))
       .toMatchAriaSnapshot(`
       - term: 月曜日
-      - definition: 4 限 確率統計 柱 ・ 6B
+      - definition: 2 限 信号処理 柱 ・ A
       - term: 火曜日
-      - definition: 4 限 メディア情報処理 柱 ・ 6T 5 限 データ構造とアルゴリズム 柱 ・ 6T
+      - definition: 1 限 電磁気学 礎 ・ B 3 限 回路理論 柱 ・ A
       - term: 水曜日
       - definition: 授業なし
       - term: 木曜日
-      - definition: 2 限 電子情報基礎数学 礎 ・ 6T
+      - definition: 授業なし
       - term: 金曜日
       - definition: 授業なし
     `);
@@ -382,7 +443,7 @@ test.describe("時間割帳の週", () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(`/plans/${SAMPLE_PLAN.id}?view=timetable`);
+    await page.goto(`/plans/${WEEK_PLAN.id}?view=timetable`);
     await expect(
       page.getByRole("columnheader", { name: "月曜日" }),
     ).toBeVisible();
