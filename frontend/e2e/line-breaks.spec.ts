@@ -165,6 +165,19 @@ async function escapedBox(text: Locator): Promise<string> {
   });
 }
 
+async function hidesLastLine(text: Locator): Promise<boolean> {
+  return text.evaluate((element) => {
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    const lines = range.getClientRects();
+    const last = lines[lines.length - 1];
+    return (
+      !last ||
+      (last.top + last.bottom) / 2 > element.getBoundingClientRect().bottom
+    );
+  });
+}
+
 async function chromeLevelOneHeadingNames(page: Page) {
   const cdp = await page.context().newCDPSession(page);
   try {
@@ -285,17 +298,34 @@ for (const width of NARROW_WIDTHS) {
     }) => {
       await page.setViewportSize({ width, height: 900 });
       await openPlan(page, api, resultFor(destination));
-      const label = page
+      const goal = page
         .getByRole("navigation", { name: "路線図" })
-        .getByText(destination, { exact: true });
-      await expect(label).toBeVisible();
-      const lines = await renderedLines(label);
+        .getByRole("button", { name: destination, exact: true });
+      await expect(goal).toBeVisible();
+      const lines = await renderedLines(goal);
       expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
-      expect(lines.length, "帯の終点が 2 行で切れていない").toBeLessThanOrEqual(
-        2,
+      expect(lines.length).toBeLessThanOrEqual(2);
+      expect(await hidesLastLine(goal), "帯の終点の最後の行が隠れる").toBe(
+        false,
       );
     });
   }
+
+  test(`幅 ${width}px の結果の画面で、帯の終点の行より長い語を 3 行までで切らずに出す`, async ({
+    page,
+    api,
+  }) => {
+    const destination = "データベースアドミニストレーター";
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, resultFor(destination));
+    const goal = page
+      .getByRole("navigation", { name: "路線図" })
+      .getByRole("button", { name: destination, exact: true });
+    await expect(goal).toBeVisible();
+    const lines = await renderedLines(goal);
+    expect(lines.join("")).toBe(destination);
+    expect(await hidesLastLine(goal), "帯の終点の最後の行が隠れる").toBe(false);
+  });
 
   for (const heading of FIXED_HEADINGS) {
     test(`幅 ${width}px の${heading.screen}で、見出しを句の途中で折らない`, async ({
@@ -345,12 +375,18 @@ test("Intl.Segmenter の無いブラウザでも、トップの見本の道の�
     Reflect.deleteProperty(Intl, "Segmenter");
   });
   await page.goto("/");
-  await page.waitForLoadState("networkidle");
   await expect(
     page.getByRole("heading", {
       name: `${SAMPLE_DESTINATION}へ続きます`,
       exact: true,
     }),
+  ).toBeVisible();
+  await page
+    .getByRole("button", { name: "この学期の時間割を開く ▾" })
+    .first()
+    .click();
+  await expect(
+    page.getByRole("button", { name: "この学期の時間割を閉じる ▴" }),
   ).toBeVisible();
   expect(reactErrors.filter((error) => error.includes("React"))).toEqual([]);
 });
