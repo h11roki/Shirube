@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
 import { DestinationPlate } from "@/components/destination-plate";
@@ -36,6 +36,7 @@ import {
   readResultView,
   resultViewHref,
 } from "@/lib/result-view";
+import { destinationOf } from "@/lib/words";
 
 const VIEWS: ResultView[] = ["route", "timetable"];
 const ANSWERED_MS = 6000;
@@ -66,6 +67,10 @@ export function PlanResultView({
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
+  const destination = useMemo(
+    () => destinationOf(profile.interpretation),
+    [profile.interpretation],
+  );
   const { conditions } = plan;
   const last = result.semesters[result.semesters.length - 1];
   const undo = answered?.undo ?? null;
@@ -138,7 +143,7 @@ export function PlanResultView({
         <section className="grid gap-4">
           <h1 className="sr-only">{profile.interpretation}への道標</h1>
           <Kicker>目的地 ── {profile.occupation}</Kicker>
-          <DestinationPlate destination={profile.interpretation} />
+          <DestinationPlate destination={destination} />
           {profile.assumption && (
             <p className="max-w-2xl text-sm text-sub">
               前提: {profile.assumption}
@@ -208,7 +213,7 @@ export function PlanResultView({
             semesters={result.semesters}
             planPath={pathname}
             withStrip
-            destination={profile.interpretation}
+            destination={destination}
             endNote={`${semesterLabel(last.grade, last.term)}のあと、道標はここで終わります。`}
           />
         ) : (

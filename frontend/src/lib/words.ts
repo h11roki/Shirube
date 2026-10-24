@@ -7,8 +7,10 @@ const SEGMENTERS =
     : undefined;
 
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
+const CLOSES = /[\p{Pe}\p{Pf}]$/u;
+const PARTICLES = /^[のとやをにへでがはも]$/u;
 
-type Previous = "word" | "letter" | "open" | "mark";
+type Previous = "word" | "letter" | "particle" | "open" | "close" | "mark";
 
 function splitWords(
   text: string,
@@ -22,35 +24,49 @@ function splitWords(
     const letter =
       isWordLike &&
       segmenters.characters.segment(segment).containing(0)?.segment === segment;
-    const breaksBefore =
-      isWordLike && ((previous === "word" && !letter) || previous === "mark");
+    const particle = isWordLike && PARTICLES.test(segment);
+    const opening = !isWordLike && OPENS.test(segment);
+    const breaksBefore = isWordLike
+      ? !particle &&
+        (((previous === "word" || previous === "close") && !letter) ||
+          previous === "particle" ||
+          previous === "mark")
+      : opening && previous !== "open";
     if (previous === undefined || breaksBefore) {
       words.push(segment);
     } else {
       words[words.length - 1] += segment;
     }
     if (isWordLike) {
-      previous = letter ? "letter" : "word";
+      previous = particle ? "particle" : letter ? "letter" : "word";
     } else {
-      previous = OPENS.test(segment) ? "open" : "mark";
+      previous = opening ? "open" : CLOSES.test(segment) ? "close" : "mark";
     }
   }
   return words;
 }
 
-export function plateParts(destination: string): {
+export function wordsOf(text: string): string[] {
+  return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
+}
+
+export type Destination = { name: string; words: string[] };
+
+export function destinationOf(name: string): Destination {
+  return { name, words: wordsOf(name) };
+}
+
+export function splitTail(words: readonly string[]): {
   words: string[];
   tail: string;
 } {
-  if (!SEGMENTERS) {
-    const characters = Array.from(destination);
-    const tail = characters.pop() ?? "";
-    return { words: [characters.join("")], tail };
-  }
-  const words = splitWords(destination, SEGMENTERS);
-  const last = words.pop() ?? "";
-  const tail =
-    SEGMENTERS.characters.segment(last).containing(last.length - 1)?.segment ??
-    "";
-  return { words: [...words, last.slice(0, last.length - tail.length)], tail };
+  const last = words.at(-1) ?? "";
+  const tail = SEGMENTERS
+    ? (SEGMENTERS.characters.segment(last).containing(last.length - 1)
+        ?.segment ?? "")
+    : (Array.from(last).at(-1) ?? "");
+  return {
+    words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
+    tail,
+  };
 }

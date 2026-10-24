@@ -14,6 +14,9 @@ export const SMALL_BUTTON =
 
 export const PHRASE_WRAP = "[overflow-wrap:anywhere] [word-break:auto-phrase]";
 
+export const DESTINATION_TEXT =
+  "text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug";
+
 export const TICKET_NOTCH =
   "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
 
