@@ -31,11 +31,12 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run ruff check --line-length 100 ../frontend/brand/make.py
       - run: uv run mypy
       - run: uv run pytest
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -56,3 +57,24 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm format:check
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: pnpm test:e2e
+        run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/e2e.log"
+          for attempt in 1 2 3; do
+            if pnpm test:e2e 2>&1 | tee "$log"; then
+              exit 0
+            fi
+            if [ "$attempt" = 3 ] || ! grep -qE "requesting https://fonts\.(googleapis|gstatic)\.com/" "$log"; then
+              exit 1
+            fi
+            echo "Google Fonts の取得で落ちたので流し直す($attempt 回目)"
+            sleep 15
+          done
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-results
+          path: frontend/test-results
+          retention-days: 7

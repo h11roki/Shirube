@@ -18,6 +18,7 @@
   --shadow: rgb(60 40 20 / 0.08);
   --plate: #24211d;
   --plate-ink: #f4efe4;
+  --plate-accent: #e2775d;
   color-scheme: light;
 }
 
@@ -64,6 +65,7 @@
   --color-danger-soft: var(--danger-soft);
   --color-plate: var(--plate);
   --color-plate-ink: var(--plate-ink);
+  --color-plate-accent: var(--plate-accent);
   --shadow-paper: 0 1px 0 var(--shadow);
   --shadow-sticky: 0 2px 0 var(--shadow);
   --animate-rise: rise 0.5s ease both;

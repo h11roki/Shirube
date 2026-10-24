@@ -6,7 +6,7 @@ export function DestinationPlate({ destination }: { destination: string }) {
     >
       <span className="block font-serif text-2xl leading-snug font-extrabold tracking-wide text-balance sm:text-3xl">
         {destination}
-        <span className="ml-1.5 text-pillar">行</span>
+        <span className="ml-1.5 text-plate-accent">行</span>
       </span>
     </p>
   );
