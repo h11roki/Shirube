@@ -1,5 +1,5 @@
 from app.domain.chunk import ChunkSection
-from app.domain.ranking import ChunkHit, CourseMatch, rank_courses
+from app.domain.ranking import ChunkHit, CourseMatch, rank_courses, take_turns
 
 
 def test_course_scores_its_best_chunk_across_every_class_page() -> None:
@@ -37,3 +37,32 @@ def test_ranking_is_cut_at_the_limit_and_ignores_pages_outside_the_candidates() 
     ranked = rank_courses(hits, {"10001": {"甲"}, "10002": {"乙"}}, limit=1)
 
     assert [match.name for match in ranked] == ["甲"]
+
+
+def matches(*names: str) -> list[CourseMatch]:
+    return [CourseMatch(name, 0.5, "10001", ChunkSection.OVERVIEW) for name in names]
+
+
+def test_each_ranking_in_turn_gives_its_best_course_not_yet_taken() -> None:
+    rankings = [matches("甲", "乙", "丙"), matches("乙", "丁"), matches("戊")]
+
+    taken = take_turns(rankings, limit=10)
+
+    assert [match.name for match in taken] == ["甲", "乙", "戊", "丙", "丁"]
+
+
+def test_turns_stop_at_the_limit() -> None:
+    rankings = [matches("甲", "乙", "丙"), matches("乙", "丁"), matches("戊")]
+
+    assert [match.name for match in take_turns(rankings, limit=3)] == ["甲", "乙", "戊"]
+
+
+def test_a_single_ranking_is_only_cut_at_the_limit() -> None:
+    assert [match.name for match in take_turns([matches("甲", "乙", "丙")], limit=2)] == [
+        "甲",
+        "乙",
+    ]
+
+
+def test_no_ranking_takes_nothing() -> None:
+    assert take_turns([], limit=20) == []
