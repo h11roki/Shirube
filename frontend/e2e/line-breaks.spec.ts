@@ -3,6 +3,7 @@ import type { Locator, Page } from "@playwright/test";
 import type { Plan } from "@/lib/api/client";
 import { PRIVACY_TITLE, PROGRESS_HEADING } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { CATCHPHRASE } from "@/lib/site";
 
 import {
   type Api,
@@ -55,6 +56,32 @@ const LONG_PLATES: Record<string, Record<string, string[]>> = {
   },
 };
 
+const FIXED_HEADINGS: {
+  screen: string;
+  phrases: readonly string[];
+  spokenName: string;
+  open: (page: Page, api: Api) => Promise<unknown>;
+}[] = [
+  {
+    screen: "トップ",
+    phrases: CATCHPHRASE,
+    spokenName: "履修に迷ったら、なりたい職業から。",
+    open: (page) => page.goto("/"),
+  },
+  {
+    screen: "作成中の画面",
+    phrases: PROGRESS_HEADING,
+    spokenName: "データサイエンティストへの道標を作っています",
+    open: (page, api) => openPlan(page, api, asRunning(SAMPLE_PLAN)),
+  },
+  {
+    screen: "プライバシーポリシー",
+    phrases: PRIVACY_TITLE,
+    spokenName: "プライバシーポリシー",
+    open: (page) => page.goto("/privacy"),
+  },
+];
+
 function plateText(page: Page, destination: string): Locator {
   return page.getByText(`${destination}行`, { exact: true });
 }
@@ -106,10 +133,22 @@ function isPhraseGrouping(lines: string[], phrases: readonly string[]) {
   return next === phrases.length;
 }
 
-async function openPlan(page: Page, api: Api, plan: Plan, width: number) {
+async function chromeHeadingName(page: Page) {
+  const cdp = await page.context().newCDPSession(page);
+  const { nodes } = await cdp.send("Accessibility.getFullAXTree");
+  await cdp.detach();
+  return nodes.find(
+    (node) =>
+      node.role?.value === "heading" &&
+      node.properties?.some(
+        (property) => property.name === "level" && property.value.value === 1,
+      ),
+  )?.name?.value;
+}
+
+async function openPlan(page: Page, api: Api, plan: Plan) {
   await signIn(page);
   api.answer({ [planApi(plan)]: plan });
-  await page.setViewportSize({ width, height: 900 });
   await page.goto(`/plans/${plan.id}`);
 }
 
@@ -131,7 +170,8 @@ for (const width of NARROW_WIDTHS) {
         page,
         api,
       }) => {
-        await openPlan(page, api, screen.plan(destination), width);
+        await page.setViewportSize({ width, height: 900 });
+        await openPlan(page, api, screen.plan(destination));
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
         expect(await renderedLines(text)).toEqual(expected[screen.name]);
@@ -139,29 +179,30 @@ for (const width of NARROW_WIDTHS) {
     }
   }
 
-  test(`幅 ${width}px の作成中の画面で、見出しを句の途中で折らない`, async ({
+  for (const heading of FIXED_HEADINGS) {
+    test(`幅 ${width}px の${heading.screen}で、見出しを句の途中で折らない`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await heading.open(page, api);
+      const element = page.getByRole("heading", { level: 1 });
+      await expect(element).toBeVisible();
+      const lines = await renderedLines(element);
+      expect(isPhraseGrouping(lines, heading.phrases), lines.join(" / ")).toBe(
+        true,
+      );
+    });
+  }
+}
+
+for (const heading of FIXED_HEADINGS) {
+  test(`${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`, async ({
     page,
     api,
   }) => {
-    await openPlan(page, api, asRunning(SAMPLE_PLAN), width);
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toBeVisible();
-    const lines = await renderedLines(heading);
-    expect(isPhraseGrouping(lines, PROGRESS_HEADING), lines.join(" / ")).toBe(
-      true,
-    );
-  });
-
-  test(`幅 ${width}px のプライバシーポリシーで、見出しを句の途中で折らない`, async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await page.goto("/privacy");
-    const heading = page.getByRole("heading", { level: 1 });
-    await expect(heading).toBeVisible();
-    const lines = await renderedLines(heading);
-    expect(isPhraseGrouping(lines, PRIVACY_TITLE), lines.join(" / ")).toBe(
-      true,
-    );
+    await heading.open(page, api);
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    expect(await chromeHeadingName(page)).toBe(heading.spokenName);
   });
 }
