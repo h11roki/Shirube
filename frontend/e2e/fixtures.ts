@@ -77,80 +77,80 @@ export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-export type Reply = { status?: number; json?: unknown; delayMs?: number };
+type Reply = { status?: number; json?: unknown; until?: Promise<unknown> };
+
+type Stub = {
+  next: () => Reply | undefined;
+  leftover: () => string | undefined;
+};
 
 export type Api = {
-  answer: (answers: Record<string, unknown>) => Promise<void>;
+  answer: (answers: Record<string, unknown>) => void;
   respond: (
     method: Method,
     path: string,
     first: Reply,
     ...rest: Reply[]
-  ) => Promise<void>;
+  ) => void;
 };
 
 export const test = base.extend<{ api: Api }>({
   api: [
     async ({ page }, use) => {
-      const blocked: string[] = [];
-      const extra: string[] = [];
-      const leftovers: (() => string | undefined)[] = [];
+      const stubs = new Map<string, Stub>();
+      const blocked = new Set<string>();
+      const extra = new Set<string>();
+      function stub(call: string, entry: Stub) {
+        if (stubs.has(call)) {
+          throw new Error(`同じ /api/ を 2 度差し替えた: ${call}`);
+        }
+        stubs.set(call, entry);
+      }
       await page.route(
         (url) =>
           url.pathname.startsWith("/api/") &&
           !url.pathname.startsWith("/api/auth/"),
-        (route) => {
-          blocked.push(
-            `${route.request().method()} ${new URL(route.request().url()).pathname}`,
-          );
-          return route.abort();
+        async (route) => {
+          const call = `${route.request().method()} ${new URL(route.request().url()).pathname}`;
+          const entry = stubs.get(call);
+          const reply = entry?.next();
+          if (!reply) {
+            (entry ? extra : blocked).add(call);
+            return route.abort();
+          }
+          const { until, ...response } = reply;
+          await until;
+          return route.fulfill(response);
         },
       );
       await use({
-        answer: async (answers) => {
+        answer: (answers) => {
           for (const [path, json] of Object.entries(answers)) {
             let served = false;
-            leftovers.push(() => (served ? undefined : `GET ${path}`));
-            await page.route(
-              (url) => url.pathname === path,
-              (route) => {
-                if (route.request().method() !== "GET") {
-                  return route.fallback();
-                }
+            stub(`GET ${path}`, {
+              next: () => {
                 served = true;
-                return route.fulfill({ json });
+                return { json };
               },
-            );
+              leftover: () => (served ? undefined : "一度も呼ばれなかった"),
+            });
           }
         },
-        respond: async (method, path, ...replies) => {
-          leftovers.push(() =>
-            replies.length > 0
-              ? `${method} ${path}(残り ${replies.length} 個)`
-              : undefined,
-          );
-          await page.route(
-            (url) => url.pathname === path,
-            async (route) => {
-              if (route.request().method() !== method) {
-                return route.fallback();
-              }
-              const reply = replies.shift();
-              if (!reply) {
-                extra.push(`${method} ${path}`);
-                return route.abort();
-              }
-              const { delayMs = 0, ...response } = reply;
-              await new Promise((resolve) => setTimeout(resolve, delayMs));
-              return route.fulfill(response);
-            },
-          );
+        respond: (method, path, ...replies) => {
+          stub(`${method} ${path}`, {
+            next: () => replies.shift(),
+            leftover: () =>
+              replies.length > 0 ? `残り ${replies.length} 個` : undefined,
+          });
         },
       });
-      expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
-      expect(extra, "差し替えた答えより多く呼ばれた /api/").toEqual([]);
+      expect([...blocked], "差し替えていない /api/ が呼ばれた").toEqual([]);
+      expect([...extra], "差し替えた答えより多く呼ばれた /api/").toEqual([]);
       expect(
-        leftovers.map((leftover) => leftover()).filter(Boolean),
+        [...stubs].flatMap(([call, entry]) => {
+          const leftover = entry.leftover();
+          return leftover ? [`${call}(${leftover})`] : [];
+        }),
         "差し替えた答えを使い切らなかった /api/",
       ).toEqual([]);
     },
