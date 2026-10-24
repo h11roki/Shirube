@@ -277,21 +277,25 @@ for (const width of NARROW_WIDTHS) {
     expect(await escapedBox(end), "字がはみ出した箱").toBe("");
   });
 
-  test(`幅 ${width}px の結果の画面で、帯の終点を語の切れ目で折る`, async ({
-    page,
-    api,
-  }) => {
-    await page.setViewportSize({ width, height: 900 });
-    await openPlan(page, api, SAMPLE_PLAN);
-    const goal = page
-      .getByRole("navigation", { name: "路線図" })
-      .getByRole("button", { name: SAMPLE_DESTINATION, exact: true });
-    await expect(goal).toBeVisible();
-    const lines = await renderedLines(goal);
-    expect(breaksOnlyBetween(lines, SAMPLE_WORDS), lines.join(" / ")).toBe(
-      true,
-    );
-  });
+  for (const words of [SAMPLE_WORDS, ...LONG_DESTINATIONS]) {
+    const destination = words.join("");
+    test(`幅 ${width}px の結果の画面で、帯の終点の${destination}を語の切れ目で 2 行までに折る`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page, api, resultFor(destination));
+      const label = page
+        .getByRole("navigation", { name: "路線図" })
+        .getByText(destination, { exact: true });
+      await expect(label).toBeVisible();
+      const lines = await renderedLines(label);
+      expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
+      expect(lines.length, "帯の終点が 2 行で切れていない").toBeLessThanOrEqual(
+        2,
+      );
+    });
+  }
 
   for (const heading of FIXED_HEADINGS) {
     test(`幅 ${width}px の${heading.screen}で、見出しを句の途中で折らない`, async ({
@@ -326,6 +330,30 @@ for (const width of NARROW_WIDTHS) {
     });
   }
 }
+
+test("Intl.Segmenter の無いブラウザでも、トップの見本の道のりをサーバーで描いた形と食い違わせない", async ({
+  page,
+}) => {
+  const errors: string[] = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      errors.push(message.text());
+    }
+  });
+  await page.addInitScript(() => {
+    Reflect.deleteProperty(Intl, "Segmenter");
+  });
+  await page.goto("/");
+  await page.waitForLoadState("networkidle");
+  await expect(
+    page.getByRole("heading", {
+      name: `${SAMPLE_DESTINATION}へ続きます`,
+      exact: true,
+    }),
+  ).toBeVisible();
+  expect(errors).toEqual([]);
+});
 
 for (const heading of FIXED_HEADINGS) {
   test(
