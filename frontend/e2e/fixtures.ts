@@ -1,4 +1,4 @@
-import type { BrowserContext, Page } from "@playwright/test";
+import { type Page, test as base, expect } from "@playwright/test";
 import { encode } from "next-auth/jwt";
 
 import type {
@@ -70,17 +70,60 @@ export const CLASS_CHOICES: ClassChoices = {
 
 export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
+export type Api = {
+  answer: (answers: Record<string, unknown>) => Promise<void>;
+};
+
+export const test = base.extend<{ api: Api }>({
+  api: [
+    async ({ page }, use) => {
+      const blocked: string[] = [];
+      const unused = new Set<string>();
+      await page.route(
+        (url) =>
+          url.pathname.startsWith("/api/") &&
+          !url.pathname.startsWith("/api/auth/"),
+        (route) => {
+          blocked.push(new URL(route.request().url()).pathname);
+          return route.abort();
+        },
+      );
+      await use({
+        answer: async (answers) => {
+          for (const [path, body] of Object.entries(answers)) {
+            unused.add(path);
+            await page.route(
+              (url) => url.pathname === path,
+              (route) => {
+                unused.delete(path);
+                return route.fulfill({ json: body });
+              },
+            );
+          }
+        },
+      });
+      expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
+      expect([...unused], "差し替えたのに呼ばれなかった /api/").toEqual([]);
+    },
+    { auto: true },
+  ],
+});
+
+export { expect };
+
 export function planApi(plan: Plan): string {
   return `/api/plans/${plan.id}`;
 }
 
-export async function signIn(context: BrowserContext) {
+export async function signIn(page: Page) {
   const value = await encode({
     token: { name: "試験の利用者", sub: "e2e", googleSubject: "e2e" },
     secret: E2E_AUTH_SECRET,
     salt: SESSION_COOKIE,
   });
-  await context.addCookies([{ name: SESSION_COOKIE, value, url: E2E_ORIGIN }]);
+  await page
+    .context()
+    .addCookies([{ name: SESSION_COOKIE, value, url: E2E_ORIGIN }]);
 }
 
 export async function chooseDarkTheme(page: Page) {
@@ -88,19 +131,4 @@ export async function chooseDarkTheme(page: Page) {
     ([key, value]) => localStorage.setItem(key, value),
     [THEME_STORAGE_KEY, DARK_THEME],
   );
-}
-
-export async function answerApi(page: Page, answers: Record<string, unknown>) {
-  await page.route(
-    (url) =>
-      url.pathname.startsWith("/api/") &&
-      !url.pathname.startsWith("/api/auth/"),
-    (route) => route.abort(),
-  );
-  for (const [path, body] of Object.entries(answers)) {
-    await page.route(
-      (url) => url.pathname === path,
-      (route) => route.fulfill({ json: body }),
-    );
-  }
 }
