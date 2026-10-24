@@ -157,9 +157,9 @@ describe("splitTail", () => {
 
   it("字は見た目の 1 字で数え、異体字セレクタや絵文字の組を割らない", async () => {
     const { splitTail } = await import("@/lib/words");
-    expect(splitTail(["技術者︀"])).toEqual({
+    expect(splitTail(["技術者\uFE00"])).toEqual({
       words: ["技術"],
-      tail: "者︀",
+      tail: "者\uFE00",
     });
     expect(splitTail(["エンジニア👩‍💻"])).toEqual({
       words: ["エンジニア"],
