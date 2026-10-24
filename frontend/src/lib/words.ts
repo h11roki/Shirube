@@ -1,19 +1,28 @@
-const SEGMENTER =
+const WORDS =
   typeof Intl.Segmenter === "function"
     ? new Intl.Segmenter("ja", { granularity: "word" })
     : undefined;
 
-export type PlateParts = { words: string[]; tail: string };
+const GRAPHEMES =
+  typeof Intl.Segmenter === "function"
+    ? new Intl.Segmenter("ja", { granularity: "grapheme" })
+    : undefined;
+
+function graphemes(text: string): string[] {
+  return GRAPHEMES
+    ? Array.from(GRAPHEMES.segment(text), ({ segment }) => segment)
+    : Array.from(text);
+}
 
 export function splitWords(text: string): string[] {
-  if (!SEGMENTER) {
+  if (!WORDS) {
     return [text];
   }
   const words: string[] = [];
   let lastWordLike = false;
-  for (const { segment, isWordLike = false } of SEGMENTER.segment(text)) {
+  for (const { segment, isWordLike = false } of WORDS.segment(text)) {
     const startsWord =
-      isWordLike && lastWordLike && Array.from(segment).length > 1;
+      isWordLike && lastWordLike && graphemes(segment).length > 1;
     if (words.length === 0 || startsWord) {
       words.push(segment);
     } else {
@@ -24,9 +33,12 @@ export function splitWords(text: string): string[] {
   return words;
 }
 
-export function plateParts(destination: string): PlateParts {
+export function plateParts(destination: string): {
+  words: string[];
+  tail: string;
+} {
   const words = splitWords(destination);
-  const last = Array.from(words.pop() ?? "");
-  const tail = last.pop() ?? "";
-  return { words: [...words, last.join("")], tail };
+  const last = words.pop() ?? "";
+  const tail = graphemes(last).at(-1) ?? "";
+  return { words: [...words, last.slice(0, last.length - tail.length)], tail };
 }
