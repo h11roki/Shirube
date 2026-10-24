@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
+import { forgetTakenLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -86,10 +87,21 @@ const SCREENS: Screen[] = [
       await expect(
         page.getByRole("button", { name: "道標を作る" }),
       ).toBeEnabled();
+      await page
+        .getByText(
+          `学科でクラスが分かれている科目(${CLASS_CHOICES.courses.length}科目、任意)`,
+        )
+        .click();
+      await page
+        .getByText(`もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`)
+        .click();
       await expect(
-        page.getByText(
-          `もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`,
-        ),
+        page.getByLabel(CLASS_CHOICES.courses[0].name),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("button", {
+          name: forgetTakenLabel(TAKEN_COURSES.names[0]),
+        }),
       ).toBeVisible();
     },
   },
@@ -167,6 +179,9 @@ async function open(
   if (dark) {
     await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   }
+  await page.evaluate(async () => {
+    await document.fonts.ready;
+  });
 }
 
 for (const screen of SCREENS) {
