@@ -131,10 +131,6 @@ export const ROUTE_END_SUFFIX = "へ";
 
 export const ROUTE_CONTINUES = "続きます";
 
-export function routeContinues(shown: number, total: number): boolean {
-  return shown < total;
-}
-
 export function transferLabel(
   transfer: Pick<Transfer, "pillar" | "station" | "semester">,
 ): string {

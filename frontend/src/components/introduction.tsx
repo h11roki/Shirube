@@ -7,7 +7,7 @@ import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, sampleLabel, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
-import { destinationParts } from "@/lib/words";
+import { wordsOf } from "@/lib/words";
 
 const SAMPLE_SEMESTERS = 2;
 
@@ -29,6 +29,7 @@ const STEPS = [
 
 export function Introduction() {
   const { conditions, result } = SAMPLE_PLAN;
+  const destinationWords = wordsOf(result.profile.interpretation);
   return (
     <div className="grid gap-12">
       <ol className="relative grid gap-6 sm:grid-cols-3 sm:gap-8">
@@ -60,7 +61,7 @@ export function Introduction() {
         <div className="grid gap-1">
           <Kicker>{sampleLabel(conditions.occupation)}</Kicker>
           <h2 className="sr-only">{result.profile.interpretation}への道標</h2>
-          <DestinationPlate destination={result.profile.interpretation} />
+          <DestinationPlate words={destinationWords} />
           <p className="text-sm text-sub">
             {conditions.year} 年度の時間割から作った、実際の出力です(
             {semesterLabel(conditions.grade, conditions.term)}
@@ -79,7 +80,7 @@ export function Introduction() {
         <RouteMap
           semesters={result.semesters}
           shown={SAMPLE_SEMESTERS}
-          destination={destinationParts(result.profile.interpretation)}
+          destinationWords={destinationWords}
           endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
         />
         <SourceNote year={conditions.year} />

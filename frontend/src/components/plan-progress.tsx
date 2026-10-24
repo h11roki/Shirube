@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { DestinationPlate } from "@/components/destination-plate";
 import { Phrases } from "@/components/phrases";
@@ -18,6 +18,7 @@ import {
   progressSteps,
   travelled,
 } from "@/lib/progress";
+import { wordsOf } from "@/lib/words";
 
 const TICK_MS = 1_000;
 const BLINKING_DOTS = [0, 1, 2];
@@ -36,6 +37,10 @@ export function PlanProgress({
   stalled?: ReactNode;
 }) {
   const { conditions } = plan;
+  const occupationWords = useMemo(
+    () => wordsOf(conditions.occupation),
+    [conditions.occupation],
+  );
   const [startedAt] = useState(Date.now);
   const steps = progressSteps(plan.status, plan.stage);
   const current = steps.find((step) => step.state === "now");
@@ -43,7 +48,7 @@ export function PlanProgress({
     <section className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8">
       <div className="flex items-start justify-between gap-4">
         <div className="grid min-w-0 gap-1.5">
-          <DestinationPlate destination={conditions.occupation} />
+          <DestinationPlate words={occupationWords} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
             <span className="sr-only">{conditions.occupation}への</span>
             <Phrases parts={PROGRESS_HEADING} />

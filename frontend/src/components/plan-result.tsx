@@ -36,7 +36,7 @@ import {
   readResultView,
   resultViewHref,
 } from "@/lib/result-view";
-import { destinationParts } from "@/lib/words";
+import { wordsOf } from "@/lib/words";
 
 const VIEWS: ResultView[] = ["route", "timetable"];
 const ANSWERED_MS = 6000;
@@ -67,8 +67,8 @@ export function PlanResultView({
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
-  const destination = useMemo(
-    () => destinationParts(profile.interpretation),
+  const destinationWords = useMemo(
+    () => wordsOf(profile.interpretation),
     [profile.interpretation],
   );
   const { conditions } = plan;
@@ -143,7 +143,7 @@ export function PlanResultView({
         <section className="grid gap-4">
           <h1 className="sr-only">{profile.interpretation}への道標</h1>
           <Kicker>目的地 ── {profile.occupation}</Kicker>
-          <DestinationPlate destination={profile.interpretation} />
+          <DestinationPlate words={destinationWords} />
           {profile.assumption && (
             <p className="max-w-2xl text-sm text-sub">
               前提: {profile.assumption}
@@ -213,7 +213,7 @@ export function PlanResultView({
             semesters={result.semesters}
             planPath={pathname}
             withStrip
-            destination={destination}
+            destinationWords={destinationWords}
             endNote={`${semesterLabel(last.grade, last.term)}のあと、道標はここで終わります。`}
           />
         ) : (

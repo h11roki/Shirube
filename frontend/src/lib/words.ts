@@ -7,11 +7,10 @@ const SEGMENTERS =
     : undefined;
 
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
+const CLOSES = /[\p{Pe}\p{Pf}]$/u;
 const PARTICLES = /^[のとやをにへでがはも]$/u;
 
-type Previous = "word" | "letter" | "particle" | "open" | "mark";
-
-export type DestinationParts = { words: string[]; tail: string };
+type Previous = "word" | "letter" | "particle" | "open" | "close" | "mark";
 
 function splitWords(
   text: string,
@@ -29,7 +28,7 @@ function splitWords(
     const opening = !isWordLike && OPENS.test(segment);
     const breaksBefore = isWordLike
       ? !particle &&
-        ((previous === "word" && !letter) ||
+        (((previous === "word" || previous === "close") && !letter) ||
           previous === "particle" ||
           previous === "mark")
       : opening && previous !== "open";
@@ -41,7 +40,7 @@ function splitWords(
     if (isWordLike) {
       previous = particle ? "particle" : letter ? "letter" : "word";
     } else {
-      previous = opening ? "open" : "mark";
+      previous = opening ? "open" : CLOSES.test(segment) ? "close" : "mark";
     }
   }
   return words;
@@ -51,18 +50,17 @@ export function wordsOf(text: string): string[] {
   return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
-export function destinationParts(destination: string): DestinationParts {
-  const words = wordsOf(destination);
-  const last = words.pop() ?? "";
+export function splitTail(words: readonly string[]): {
+  words: string[];
+  tail: string;
+} {
+  const last = words.at(-1) ?? "";
   const tail = SEGMENTERS
     ? (SEGMENTERS.characters.segment(last).containing(last.length - 1)
         ?.segment ?? "")
     : (Array.from(last).at(-1) ?? "");
-  return { words: [...words, last.slice(0, last.length - tail.length)], tail };
-}
-
-export function wholeWords({ words, tail }: DestinationParts): string[] {
-  return words.map((word, index) =>
-    index === words.length - 1 ? `${word}${tail}` : word,
-  );
+  return {
+    words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
+    tail,
+  };
 }

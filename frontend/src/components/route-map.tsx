@@ -28,7 +28,6 @@ import {
   EMPTY_SEMESTER_LABEL,
   ROUTE_CONTINUES,
   ROUTE_END_SUFFIX,
-  routeContinues,
   semesterShortLabel,
   slotsLabel,
   stationLabel,
@@ -41,7 +40,6 @@ import {
   transfers,
 } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
-import { type DestinationParts, wholeWords } from "@/lib/words";
 
 const LINE_DELAY_MS = 250;
 const PICK_HOLD_MS = 1200;
@@ -51,20 +49,23 @@ export function RouteMap({
   shown = semesters.length,
   planPath,
   withStrip = false,
-  destination,
+  destinationWords,
   endNote,
 }: {
   semesters: SemesterPlan[];
   shown?: number;
   planPath?: string;
   withStrip?: boolean;
-  destination: DestinationParts;
+  destinationWords: readonly string[];
   endNote: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
   const visible = semesters.slice(0, shown);
   const arrive = visible.length * STAGGER_MS;
-  const name = [...destination.words, destination.tail].join("");
+  const destination = useMemo(
+    () => destinationWords.join(""),
+    [destinationWords],
+  );
   const root = useRef<HTMLDivElement>(null);
   const [active, setActive] = useState(0);
   const reachable = useCallback(
@@ -141,7 +142,7 @@ export function RouteMap({
         {withStrip && (
           <RouteStrip
             semesters={visible}
-            destination={destination}
+            destinationWords={destinationWords}
             active={active}
             onPick={pick}
           />
@@ -156,7 +157,7 @@ export function RouteMap({
               semesters={semesters}
               found={found}
               planPath={planPath}
-              destination={name}
+              destination={destination}
               delayMs={index * STAGGER_MS}
             />
           ))}
@@ -167,13 +168,13 @@ export function RouteMap({
           >
             <div className="grid min-h-24 content-center gap-1">
               <h2 className={`font-serif font-bold ${DESTINATION_TEXT}`}>
-                <DestinationName parts={destination}>
+                <DestinationName words={destinationWords}>
                   {ROUTE_END_SUFFIX}
                 </DestinationName>
-                {routeContinues(shown, semesters.length) && (
+                {shown < semesters.length && (
                   <>
                     <wbr aria-hidden />
-                    {ROUTE_CONTINUES}
+                    <span className="whitespace-nowrap">{ROUTE_CONTINUES}</span>
                   </>
                 )}
               </h2>
@@ -188,12 +189,12 @@ export function RouteMap({
 
 function RouteStrip({
   semesters,
-  destination,
+  destinationWords,
   active,
   onPick,
 }: {
   semesters: SemesterPlan[];
-  destination: DestinationParts;
+  destinationWords: readonly string[];
   active: number;
   onPick: (index: number) => void;
 }) {
@@ -206,7 +207,7 @@ function RouteStrip({
     {
       key: "goal",
       station: null,
-      name: <Phrases parts={wholeWords(destination)} />,
+      name: <Phrases parts={destinationWords} />,
     },
   ];
   const strip = useRef<HTMLElement>(null);

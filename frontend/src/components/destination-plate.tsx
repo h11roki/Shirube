@@ -1,8 +1,7 @@
 import { DestinationName } from "@/components/destination-name";
 import { DESTINATION_TEXT } from "@/components/styles";
-import { destinationParts } from "@/lib/words";
 
-export function DestinationPlate({ destination }: { destination: string }) {
+export function DestinationPlate({ words }: { words: readonly string[] }) {
   return (
     <p
       aria-hidden
@@ -11,7 +10,7 @@ export function DestinationPlate({ destination }: { destination: string }) {
       <span
         className={`block font-serif font-extrabold tracking-wide text-balance sm:text-3xl ${DESTINATION_TEXT}`}
       >
-        <DestinationName parts={destinationParts(destination)}>
+        <DestinationName words={words}>
           <span className="ml-1.5 text-plate-accent">行</span>
         </DestinationName>
       </span>
