@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
+import { TICKET_NOTCH } from "@/components/styles";
 import { forgetTakenLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -21,14 +22,17 @@ import {
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
-const UNDECORATED_CSS =
-  "body { background-image: none !important; } ::before, ::after { content: none !important; }";
-const HAND_CHECKED_CONTRAST = new Set([
-  "nonBmp",
-  "shortTextContent",
-  "bgOverlap",
-  "elmPartiallyObscured",
-]);
+const UNDECORATED_CSS = `
+  body { background-image: none !important; }
+  [data-station]::before, [data-station]::after,
+  [class*="${TICKET_NOTCH}"]::before, [class*="${TICKET_NOTCH}"]::after { content: none !important; }
+`;
+const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
+  nonBmp: ["→", "◇"],
+  shortTextContent: ["柱"],
+  bgOverlap: ["卒業", `${RUNNING_PLAN.conditions.grade} 回生`],
+  elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation, "ダークモード"],
+};
 
 type Screen = {
   name: string;
@@ -203,21 +207,37 @@ for (const screen of SCREENS) {
               targets: violation.nodes.map((node) => node.target.join(" ")),
             })),
           ).toEqual([]);
+          const undecided = results.incomplete.flatMap((item) =>
+            item.nodes.map((node) => {
+              const data = node.any[0]?.data as {
+                messageKey?: string;
+                contrastRatio?: number;
+              } | null;
+              return {
+                rule: item.id,
+                reason: data?.messageKey ?? "",
+                measured: data?.contrastRatio ?? 0,
+                target: node.target.join(" "),
+              };
+            }),
+          );
+          const texts = await page.evaluate(
+            (targets) =>
+              targets.map(
+                (target) =>
+                  document.querySelector(target)?.textContent?.trim() ?? "",
+              ),
+            undecided.map(({ target }) => target),
+          );
           expect(
-            results.incomplete.flatMap((item) =>
-              item.nodes
-                .filter(
-                  (node) =>
-                    item.id !== "color-contrast" ||
-                    !node.any.some((check) =>
-                      HAND_CHECKED_CONTRAST.has(
-                        (check.data as { messageKey?: string } | null)
-                          ?.messageKey ?? "",
-                      ),
-                    ),
-                )
-                .map((node) => `${item.id} ${node.target.join(" ")}`),
-            ),
+            undecided
+              .map((item, index) => ({ ...item, text: texts[index] }))
+              .filter(
+                ({ rule, reason, measured, text }) =>
+                  rule !== "color-contrast" ||
+                  measured > 0 ||
+                  !HAND_CHECKED_CONTRAST[reason]?.includes(text),
+              ),
           ).toEqual([]);
         });
       }
