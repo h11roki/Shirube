@@ -146,7 +146,7 @@ const SCREENS: Screen[] = [
     answers: { [planApi(RUNNING_PLAN)]: RUNNING_PLAN },
     ready: (page) =>
       expect(
-        page.getByRole("heading", { name: /道標を作っています/ }),
+        page.getByRole("heading", { name: /道標を\s*作っています/ }),
       ).toBeVisible(),
   },
   {

@@ -1,6 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 
 import type { Plan } from "@/lib/api/client";
+import { PRIVACY_TITLE, PROGRESS_HEADING } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 import {
@@ -14,11 +15,6 @@ import {
 } from "./fixtures";
 
 const NARROW_WIDTHS = [320, 375];
-
-const HEADING_LINES: Record<number, string[]> = {
-  320: ["道標を", "作っています"],
-  375: ["道標を作っています"],
-};
 
 const SCREENS: {
   name: string;
@@ -94,6 +90,22 @@ async function renderedLines(text: Locator): Promise<string[]> {
   });
 }
 
+function isPhraseGrouping(lines: string[], phrases: readonly string[]) {
+  let next = 0;
+  for (const line of lines) {
+    let rest = line;
+    while (rest.length > 0) {
+      const phrase = phrases.at(next);
+      if (phrase === undefined || !rest.startsWith(phrase)) {
+        return false;
+      }
+      rest = rest.slice(phrase.length);
+      next += 1;
+    }
+  }
+  return next === phrases.length;
+}
+
 async function openPlan(page: Page, api: Api, plan: Plan, width: number) {
   await signIn(page);
   api.answer({ [planApi(plan)]: plan });
@@ -127,13 +139,29 @@ for (const width of NARROW_WIDTHS) {
     }
   }
 
-  test(`幅 ${width}px の作成中の画面で、見出しを句の切れ目で折る`, async ({
+  test(`幅 ${width}px の作成中の画面で、見出しを句の途中で折らない`, async ({
     page,
     api,
   }) => {
     await openPlan(page, api, asRunning(SAMPLE_PLAN), width);
     const heading = page.getByRole("heading", { level: 1 });
     await expect(heading).toBeVisible();
-    expect(await renderedLines(heading)).toEqual(HEADING_LINES[width]);
+    const lines = await renderedLines(heading);
+    expect(isPhraseGrouping(lines, PROGRESS_HEADING), lines.join(" / ")).toBe(
+      true,
+    );
+  });
+
+  test(`幅 ${width}px のプライバシーポリシーで、見出しを句の途中で折らない`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/privacy");
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toBeVisible();
+    const lines = await renderedLines(heading);
+    expect(isPhraseGrouping(lines, PRIVACY_TITLE), lines.join(" / ")).toBe(
+      true,
+    );
   });
 }
