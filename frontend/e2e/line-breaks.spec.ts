@@ -400,7 +400,11 @@ for (const [width, place] of [
     await page.setViewportSize({ width, height: 900 });
     await openPlan(page, api, SAMPLE_PLAN);
     const name = page
-      .getByRole("heading", { level: 3, name: "データエンジニアリング基礎" })
+      .getByRole("heading", {
+        level: 3,
+        name: "データエンジニアリング基礎",
+        exact: true,
+      })
       .first();
     await expect(name).toBeVisible();
     const ticket = page.locator("article").filter({ has: name }).first();
