@@ -72,9 +72,13 @@ export function semesterCourses(semester: SemesterPlan): PlacedCourse[] {
 export function courseNames(
   result: Pick<PlanResult, "semesters" | "unplaced">,
 ): string[] {
-  return [...result.semesters.flatMap(semesterCourses), ...result.unplaced].map(
-    (course) => course.name,
-  );
+  return [
+    ...new Set(
+      [...result.semesters.flatMap(semesterCourses), ...result.unplaced].map(
+        (course) => course.name,
+      ),
+    ),
+  ];
 }
 
 export function pickSemester(
