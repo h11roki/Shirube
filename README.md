@@ -27,7 +27,7 @@ flowchart LR
 
 | 領域 | 技術 |
 |---|---|
-| フロント | Next.js (App Router, TypeScript), Auth.js, pnpm, Vitest |
+| フロント | Next.js (App Router, TypeScript), Auth.js, pnpm, Vitest, Playwright + axe(画面の通しの試験) |
 | バックエンド | Python, FastAPI, SQLAlchemy, Alembic, LangChain |
 | DB | PostgreSQL + pgvector |
 | LLM / 埋め込み | OpenAI API |
