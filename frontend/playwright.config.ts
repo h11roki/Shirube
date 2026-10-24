@@ -8,12 +8,20 @@ export default defineConfig({
   forbidOnly: Boolean(process.env.CI),
   reporter: process.env.CI ? "github" : "list",
   use: {
-    ...devices["Desktop Chrome"],
     baseURL: E2E_ORIGIN,
     contextOptions: { reducedMotion: "reduce" },
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
   },
+  projects: [
+    { name: "chromium", use: devices["Desktop Chrome"] },
+    {
+      name: "webkit",
+      use: devices["iPhone 13"],
+      testMatch: "line-breaks.spec.ts",
+      grepInvert: /@cdp/,
+    },
+  ],
   webServer: {
     command: `pnpm build && pnpm start --port ${E2E_PORT}`,
     url: E2E_ORIGIN,

@@ -57,7 +57,7 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm format:check
-      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright install --with-deps chromium webkit
       - name: pnpm test:e2e
         run: |
           set -o pipefail

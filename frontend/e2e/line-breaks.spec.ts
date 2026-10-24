@@ -41,20 +41,11 @@ const SCREENS: {
   },
 ];
 
-const LONG_PLATES: Record<string, Record<string, string[]>> = {
-  組込みソフトウェアエンジニア: {
-    結果の画面: ["組込みソフトウェア", "エンジニア行"],
-    作成中の画面: ["組込み", "ソフトウェア", "エンジニア行"],
-  },
-  "半導体・LSI 設計エンジニア": {
-    結果の画面: ["半導体・LSI", "設計エンジニア行"],
-    作成中の画面: ["半導体・", "LSI 設計", "エンジニア行"],
-  },
-  電子情報システム保守技術者: {
-    結果の画面: ["電子情報システム", "保守技術者行"],
-    作成中の画面: ["電子情報", "システム", "保守技術者行"],
-  },
-};
+const LONG_PLATES = [
+  ["組込み", "ソフトウェア", "エンジニア行"],
+  ["半導体・", "LSI ", "設計", "エンジニア行"],
+  ["電子", "情報", "システム", "保守", "技術者行"],
+];
 
 const FIXED_HEADINGS: {
   screen: string;
@@ -122,20 +113,26 @@ async function renderedLines(text: Locator): Promise<string[]> {
   });
 }
 
-function isPhraseGrouping(lines: string[], phrases: readonly string[]) {
+function breaksOnlyBetween(lines: string[], parts: readonly string[]) {
   let next = 0;
   for (const line of lines) {
     let rest = line;
     while (rest.length > 0) {
-      const phrase = phrases.at(next);
-      if (phrase === undefined || !rest.startsWith(phrase)) {
+      const part = parts.at(next);
+      if (part === undefined) {
         return false;
       }
-      rest = rest.slice(phrase.length);
+      if (rest.startsWith(part)) {
+        rest = rest.slice(part.length);
+      } else if (rest === part.trimEnd()) {
+        rest = "";
+      } else {
+        return false;
+      }
       next += 1;
     }
   }
-  return next === phrases.length;
+  return next === parts.length;
 }
 
 async function chromeLevelOneHeadingNames(page: Page) {
@@ -177,7 +174,8 @@ for (const width of NARROW_WIDTHS) {
   });
 
   for (const screen of SCREENS) {
-    for (const [destination, expected] of Object.entries(LONG_PLATES)) {
+    for (const words of LONG_PLATES) {
+      const destination = words.join("").replace(/行$/, "");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
         api,
@@ -186,7 +184,31 @@ for (const width of NARROW_WIDTHS) {
         await openPlan(page, api, screen.plan(destination));
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
-        expect(await renderedLines(text)).toEqual(expected[screen.name]);
+        const lines = await renderedLines(text);
+        expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
+        expect(
+          await text.evaluate((element) => {
+            const range = document.createRange();
+            range.selectNodeContents(element);
+            const right = range.getBoundingClientRect().right;
+            for (
+              let box: Element | null = element;
+              box;
+              box = box.parentElement
+            ) {
+              const style = getComputedStyle(box);
+              const inner =
+                box.getBoundingClientRect().right -
+                parseFloat(style.paddingRight) -
+                parseFloat(style.borderRightWidth);
+              if (right > inner + 0.5) {
+                return box.tagName;
+              }
+            }
+            return "";
+          }),
+          "板の字がはみ出した箱",
+        ).toBe("");
       });
     }
   }
@@ -201,7 +223,7 @@ for (const width of NARROW_WIDTHS) {
       const element = page.getByRole("heading", { level: 1 });
       await expect(element).toBeVisible();
       const lines = await renderedLines(element);
-      expect(isPhraseGrouping(lines, heading.phrases), lines.join(" / ")).toBe(
+      expect(breaksOnlyBetween(lines, heading.phrases), lines.join(" / ")).toBe(
         true,
       );
     });
@@ -226,14 +248,17 @@ for (const width of NARROW_WIDTHS) {
 }
 
 for (const heading of FIXED_HEADINGS) {
-  test(`${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`, async ({
-    page,
-    api,
-  }) => {
-    await heading.open(page, api);
-    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    const names = await chromeLevelOneHeadingNames(page);
-    expect(names).toHaveLength(1);
-    expect(names[0]).toContain(heading.phrases.join(""));
-  });
+  test(
+    `${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`,
+    {
+      tag: "@cdp",
+    },
+    async ({ page, api }) => {
+      await heading.open(page, api);
+      await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+      const names = await chromeLevelOneHeadingNames(page);
+      expect(names).toHaveLength(1);
+      expect(names[0]).toContain(heading.phrases.join(""));
+    },
+  );
 }
