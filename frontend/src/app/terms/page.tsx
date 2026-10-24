@@ -3,13 +3,17 @@ import Link from "next/link";
 
 import { ContactSection, LegalDocument } from "@/components/legal-document";
 import { TEXT_LINK } from "@/components/styles";
+import { TERMS_TITLE } from "@/lib/labels";
 import { INDEXED, OPERATOR, SYLLABUS_SITE } from "@/lib/site";
 
-export const metadata: Metadata = { title: "利用規約", robots: INDEXED };
+export const metadata: Metadata = {
+  title: TERMS_TITLE.join(""),
+  robots: INDEXED,
+};
 
 export default function TermsPage() {
   return (
-    <LegalDocument title={["利用規約"]} enactedOn="2026 年 10 月 22 日">
+    <LegalDocument title={TERMS_TITLE} enactedOn="2026 年 10 月 22 日">
       <section>
         <p>
           この利用規約は、個人({OPERATOR}

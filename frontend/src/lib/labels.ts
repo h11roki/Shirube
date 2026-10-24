@@ -196,6 +196,8 @@ export function classLabel(classCode: string): string {
 
 export const PROGRESS_HEADING = ["道標を", "作っています"];
 
+export const TERMS_TITLE = ["利用規約"];
+
 export const PRIVACY_TITLE = ["プライバシー", "ポリシー"];
 
 export const PLAN_CAUTION =
