@@ -50,6 +50,12 @@ export function wordsOf(text: string): string[] {
   return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
+export type Destination = { name: string; words: string[] };
+
+export function destinationOf(name: string): Destination {
+  return { name, words: wordsOf(name) };
+}
+
 export function splitTail(words: readonly string[]): {
   words: string[];
   tail: string;

@@ -129,7 +129,12 @@ export function stationLabel(index: number): string {
 
 export const ROUTE_END_SUFFIX = "へ";
 
-export const ROUTE_CONTINUES = "続きます";
+export function routeEndContinuation(
+  shown: number,
+  total: number,
+): string | null {
+  return shown < total ? "続きます" : null;
+}
 
 export function transferLabel(
   transfer: Pick<Transfer, "pillar" | "station" | "semester">,
