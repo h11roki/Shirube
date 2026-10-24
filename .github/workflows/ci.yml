@@ -31,11 +31,12 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
+      - run: uv run ruff check --line-length 100 ../frontend/brand/make.py
       - run: uv run mypy
       - run: uv run pytest
 
   frontend:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: frontend
@@ -56,3 +57,15 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm format:check
+      - name: pnpm build
+        env:
+          SITE_URL: http://localhost:3100
+        run: |
+          for attempt in 1 2 3; do
+            pnpm build && exit 0
+            echo "next build が失敗した($attempt 回目)"
+            sleep 15
+          done
+          exit 1
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:e2e
