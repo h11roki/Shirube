@@ -4,7 +4,7 @@ type Segment = { segment: string; isWordLike: boolean };
 
 const RealSegmenter = Intl.Segmenter;
 
-async function wordsOfWith(segments: Segment[]) {
+async function wordsModuleWith(segments: Segment[]) {
   vi.stubGlobal("Intl", {
     Segmenter: class {
       readonly locale: string;
@@ -23,7 +23,11 @@ async function wordsOfWith(segments: Segment[]) {
     },
   });
   vi.resetModules();
-  const { wordsOf } = await import("@/lib/words");
+  return import("@/lib/words");
+}
+
+async function wordsOfWith(segments: Segment[]) {
+  const { wordsOf } = await wordsModuleWith(segments);
   return wordsOf(segments.map(({ segment }) => segment).join(""));
 }
 
@@ -146,6 +150,18 @@ describe("wordsOf", () => {
   });
 });
 
+describe("wordsByText", () => {
+  it("文ごとに語の並びを引ける表にする", async () => {
+    const { wordsByText } = await wordsModuleWith([
+      word("データ"),
+      word("サイエンティスト"),
+    ]);
+    expect(wordsByText(["データサイエンティスト"])).toEqual({
+      データサイエンティスト: ["データ", "サイエンティスト"],
+    });
+  });
+});
+
 describe("splitTail", () => {
   it("最後の語から見た目の最後の 1 字を外す", async () => {
     const { splitTail } = await import("@/lib/words");
@@ -175,6 +191,18 @@ describe("splitTail", () => {
     });
   });
 
+  it("最後の語が閉じ括弧で終わるなら閉じ括弧と前の 1 字を外し、語の全てが組なら語の全てを外す", async () => {
+    const { splitTail } = await import("@/lib/words");
+    expect(splitTail(["技術系", "公務員", "(電気・", "情報)"])).toEqual({
+      words: ["技術系", "公務員", "(電気・", "情"],
+      tail: "報)",
+    });
+    expect(splitTail(["データ", "（AI）"])).toEqual({
+      words: ["データ", ""],
+      tail: "（AI）",
+    });
+  });
+
   it("Intl.Segmenter の無いブラウザでも、最後の 1 字だけを外す", async () => {
     vi.stubGlobal("Intl", { Segmenter: undefined });
     vi.resetModules();
@@ -183,5 +211,73 @@ describe("splitTail", () => {
       words: ["データサイエンティス"],
       tail: "ト",
     });
+    expect(splitTail(["技術者\uFE00"])).toEqual({
+      words: ["技術"],
+      tail: "者\uFE00",
+    });
+  });
+});
+
+describe("bracketRuns", () => {
+  it("語の頭の開き括弧は次の 1 字と、語の終わりの閉じ括弧は前の 1 字と組にする", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（深層")).toEqual([
+      { text: "（深", nowrap: true },
+      { text: "層", nowrap: false },
+    ]);
+    expect(bracketRuns("学習の応用）")).toEqual([
+      { text: "学習の応", nowrap: false },
+      { text: "用）", nowrap: true },
+    ]);
+    expect(bracketRuns("【バスケットボール】")).toEqual([
+      { text: "【バ", nowrap: true },
+      { text: "スケットボー", nowrap: false },
+      { text: "ル】", nowrap: true },
+    ]);
+  });
+
+  it("重なった括弧は、全てを隣の 1 字と組にする", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（「AI」入門））")).toEqual([
+      { text: "（「A", nowrap: true },
+      { text: "I」入", nowrap: false },
+      { text: "門））", nowrap: true },
+    ]);
+  });
+
+  it("括弧の隣の字は見た目の 1 字で数え、異体字セレクタを割らない", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（葛\u{E0100}飾")).toEqual([
+      { text: "（葛\u{E0100}", nowrap: true },
+      { text: "飾", nowrap: false },
+    ]);
+  });
+
+  it("Intl.Segmenter の無いブラウザでも、異体字セレクタや濁点の記号を前の字に付けて数える", async () => {
+    vi.stubGlobal("Intl", { Segmenter: undefined });
+    vi.resetModules();
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（葛\u{E0100}飾")).toEqual([
+      { text: "（葛\u{E0100}", nowrap: true },
+      { text: "飾", nowrap: false },
+    ]);
+    expect(bracketRuns("（か\u3099ら")).toEqual([
+      { text: "（か\u3099", nowrap: true },
+      { text: "ら", nowrap: false },
+    ]);
+  });
+
+  it("語の真ん中の括弧は組にしない", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（専門）Ⅲ")).toEqual([
+      { text: "（専", nowrap: true },
+      { text: "門）Ⅲ", nowrap: false },
+    ]);
+  });
+
+  it("両端が括弧の短い語は全てを組にし、括弧の無い語はそのまま", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("(A)")).toEqual([{ text: "(A)", nowrap: true }]);
+    expect(bracketRuns("データ")).toEqual([{ text: "データ", nowrap: false }]);
   });
 });

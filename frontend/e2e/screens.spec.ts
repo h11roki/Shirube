@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
-import { TICKET_NOTCH } from "@/components/styles";
+import { TICKET_NOTCH_SHAPE } from "@/components/styles";
 import { forgetTakenLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -26,7 +26,7 @@ const NARROWEST = 320;
 const UNDECORATED_CSS = `
   body { background-image: none !important; }
   [data-station]::before, [data-station]::after,
-  [class*="${TICKET_NOTCH}"]::before, [class*="${TICKET_NOTCH}"]::after { content: none !important; }
+  [class*="${TICKET_NOTCH_SHAPE}"]::before, [class*="${TICKET_NOTCH_SHAPE}"]::after { content: none !important; }
 `;
 const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
   nonBmp: ["→", "◇"],

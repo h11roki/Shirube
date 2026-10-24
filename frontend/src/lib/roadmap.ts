@@ -1,5 +1,6 @@
 import type {
   PlacedCourse,
+  PlanResult,
   Relevance,
   SemesterPlan,
   Term,
@@ -66,6 +67,18 @@ export function semesterKey(semester: { grade: number; term: Term }): string {
 
 export function semesterCourses(semester: SemesterPlan): PlacedCourse[] {
   return [...semester.courses, ...semester.continuing];
+}
+
+export function courseNames(
+  result: Pick<PlanResult, "semesters" | "unplaced">,
+): string[] {
+  return [
+    ...new Set(
+      [...result.semesters.flatMap(semesterCourses), ...result.unplaced].map(
+        (course) => course.name,
+      ),
+    ),
+  ];
 }
 
 export function pickSemester(

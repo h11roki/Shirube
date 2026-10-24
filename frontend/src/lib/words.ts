@@ -9,6 +9,7 @@ const SEGMENTERS =
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
 const CLOSES = /[\p{Pe}\p{Pf}]$/u;
 const PARTICLES = /^[のとやをにへでがはも]$/u;
+const CHARACTERS_WITHOUT_SEGMENTER = /\P{M}\p{M}*|\p{M}+/gu;
 
 type Previous = "word" | "letter" | "particle" | "open" | "close" | "mark";
 
@@ -50,10 +51,22 @@ export function wordsOf(text: string): string[] {
   return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
+export function wordsByText(
+  texts: readonly string[],
+): Record<string, string[]> {
+  return Object.fromEntries(texts.map((text) => [text, wordsOf(text)]));
+}
+
 export type Destination = { name: string; words: string[] };
 
 export function destinationOf(name: string): Destination {
   return { name, words: wordsOf(name) };
+}
+
+function charactersOf(text: string): string[] {
+  return SEGMENTERS
+    ? Array.from(SEGMENTERS.characters.segment(text), ({ segment }) => segment)
+    : (text.match(CHARACTERS_WITHOUT_SEGMENTER) ?? []);
 }
 
 export function splitTail(words: readonly string[]): {
@@ -61,12 +74,35 @@ export function splitTail(words: readonly string[]): {
   tail: string;
 } {
   const last = words.at(-1) ?? "";
-  const tail = SEGMENTERS
-    ? (SEGMENTERS.characters.segment(last).containing(last.length - 1)
-        ?.segment ?? "")
-    : (Array.from(last).at(-1) ?? "");
+  const end = bracketRuns(last).at(-1);
+  const tail = end?.nowrap ? end.text : (charactersOf(last).at(-1) ?? "");
   return {
     words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
     tail,
   };
+}
+
+export function bracketRuns(word: string): { text: string; nowrap: boolean }[] {
+  const characters = charactersOf(word);
+  const firstLetter = characters.findIndex(
+    (character) => !OPENS.test(character),
+  );
+  const lastLetter = characters.findLastIndex(
+    (character) => !CLOSES.test(character),
+  );
+  const opens = firstLetter === -1 ? characters.length : firstLetter;
+  const closes = characters.length - 1 - lastLetter;
+  const head = opens > 0 ? opens + 1 : 0;
+  const tail = closes > 0 ? closes + 1 : 0;
+  if (head + tail >= characters.length) {
+    return [{ text: word, nowrap: head + tail > 0 }];
+  }
+  return [
+    { text: characters.slice(0, head).join(""), nowrap: true },
+    {
+      text: characters.slice(head, characters.length - tail).join(""),
+      nowrap: false,
+    },
+    { text: characters.slice(characters.length - tail).join(""), nowrap: true },
+  ].filter((run) => run.text !== "");
 }

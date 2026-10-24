@@ -1,4 +1,5 @@
 import { SignInButton } from "@/components/account";
+import { CourseWordsProvider } from "@/components/course-words";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
@@ -6,13 +7,15 @@ import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS, sampleLabel, semesterLabel } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
+import { courseNames } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
-import { destinationOf } from "@/lib/words";
+import { destinationOf, wordsByText } from "@/lib/words";
 
 const SAMPLE_SEMESTERS = 2;
 const SAMPLE_DESTINATION = destinationOf(
   SAMPLE_PLAN.result.profile.interpretation,
 );
+const SAMPLE_COURSE_WORDS = wordsByText(courseNames(SAMPLE_PLAN.result));
 
 const STEPS = [
   {
@@ -79,12 +82,14 @@ export function Introduction() {
           conditions={conditions}
           destination={result.profile.interpretation}
         />
-        <RouteMap
-          semesters={result.semesters}
-          shown={SAMPLE_SEMESTERS}
-          destination={SAMPLE_DESTINATION}
-          endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
-        />
+        <CourseWordsProvider words={SAMPLE_COURSE_WORDS}>
+          <RouteMap
+            semesters={result.semesters}
+            shown={SAMPLE_SEMESTERS}
+            destination={SAMPLE_DESTINATION}
+            endNote="見本はここまでです。ログインすると、自分の職業と回生で作れます。"
+          />
+        </CourseWordsProvider>
         <SourceNote year={conditions.year} />
       </section>
 

@@ -12,13 +12,15 @@ export const OUTLINE_BUTTON =
 export const SMALL_BUTTON =
   "rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
 
-export const PHRASE_WRAP = "[overflow-wrap:anywhere] [word-break:auto-phrase]";
-
 export const DESTINATION_TEXT =
   "text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug";
 
-export const TICKET_NOTCH =
-  "before:absolute before:-top-2 before:-left-[9px] before:size-4 before:rounded-full before:border before:border-line before:bg-paper before:[clip-path:inset(50%_0_0_0)] after:absolute after:-bottom-2 after:-left-[9px] after:size-4 after:rounded-full after:border after:border-line after:bg-paper after:[clip-path:inset(0_0_50%_0)]";
+export const TICKET_NOTCH_SHAPE =
+  "before:absolute before:size-4 before:rounded-full before:border before:border-line before:bg-paper after:absolute after:size-4 after:rounded-full after:border after:border-line after:bg-paper";
+
+export const TICKET_NOTCH = `${TICKET_NOTCH_SHAPE} before:-top-2 before:-left-[9px] before:[clip-path:inset(50%_0_0_0)] after:-bottom-2 after:-left-[9px] after:[clip-path:inset(0_0_50%_0)]`;
+
+export const COURSE_TICKET_NOTCH = `${TICKET_NOTCH} max-sm:before:-top-[9px] max-sm:before:-left-2 max-sm:before:[clip-path:inset(0_0_0_50%)] max-sm:after:-top-[9px] max-sm:after:-right-2 max-sm:after:bottom-auto max-sm:after:left-auto max-sm:after:[clip-path:inset(0_50%_0_0)]`;
 
 export const TICKET_STAMP =
   "absolute top-2.5 grid rotate-[-12deg] place-items-center rounded-full border-[2.5px] border-pillar font-serif font-extrabold text-pillar";

@@ -2,6 +2,8 @@ import type { Locator, Page } from "@playwright/test";
 
 import type { Plan } from "@/lib/api/client";
 import { PRIVACY_TITLE, PROGRESS_HEADING } from "@/lib/labels";
+import { resultViewHref } from "@/lib/result-view";
+import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { CATCHPHRASE } from "@/lib/site";
 
@@ -51,6 +53,46 @@ const LONG_DESTINATIONS = [
   ["半導体・", "LSI ", "設計", "エンジニア"],
   ["電子", "情報", "システム", "保守", "技術者"],
 ];
+
+const TICKET_NAMES = [
+  ["データ", "エンジニアリング", "基礎"],
+  ["データ", "サイエンス・", "AI", "基礎"],
+  ["データ", "構造と", "アルゴリズム"],
+  ["メディア", "情報", "処理"],
+  ["ＡＩ・", "機械", "学習"],
+  ["特殊", "講義", "（専門）Ⅲ", "（深層", "学習の", "応用）"],
+];
+
+const UNPLACED_PLAN: Plan = {
+  ...SAMPLE_PLAN,
+  result: {
+    ...SAMPLE_PLAN.result,
+    semesters: SAMPLE_PLAN.result.semesters.map((semester) => ({
+      ...semester,
+      courses: [],
+      continuing: [],
+    })),
+    unplaced: SAMPLE_PLAN.result.semesters
+      .flatMap(semesterCourses)
+      .map(
+        ({
+          name,
+          relevance,
+          reason,
+          prerequisite_for,
+          syllabus_code,
+          syllabus_url,
+        }) => ({
+          name,
+          relevance,
+          reason,
+          prerequisite_for,
+          syllabus_code,
+          syllabus_url,
+        }),
+      ),
+  },
+};
 
 const FIXED_HEADINGS: {
   screen: string;
@@ -202,6 +244,21 @@ async function openPlan(page: Page, api: Api, plan: Plan) {
   await signIn(page);
   api.answer({ [planApi(plan)]: plan });
   await page.goto(`/plans/${plan.id}`);
+}
+
+async function expectBreaksBetweenWords(
+  scope: Page | Locator,
+  names: readonly (readonly string[])[],
+) {
+  for (const words of names) {
+    const name = scope
+      .getByRole("heading", { level: 3, name: words.join(""), exact: true })
+      .first();
+    await expect(name).toBeVisible();
+    const lines = await renderedLines(name);
+    expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
+    expect(await escapedBox(name), "字がはみ出した箱").toBe("");
+  }
 }
 
 for (const width of NARROW_WIDTHS) {
@@ -359,6 +416,86 @@ for (const width of NARROW_WIDTHS) {
       ).toBeLessThanOrEqual(width);
     });
   }
+}
+
+for (const width of [...NARROW_WIDTHS, 1280]) {
+  test(`幅 ${width}px の結果の画面で、切符の授業名を語の切れ目でだけ折る`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, SAMPLE_PLAN);
+    await expectBreaksBetweenWords(page, TICKET_NAMES);
+  });
+
+  test(`幅 ${width}px の結果の画面で、置けなかった授業の切符の授業名を語の切れ目でだけ折る`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, UNPLACED_PLAN);
+    await expectBreaksBetweenWords(
+      page
+        .getByRole("heading", { level: 2, name: "置けなかった授業" })
+        .locator(".."),
+      TICKET_NAMES,
+    );
+  });
+
+  test(`幅 ${width}px の時間割帳で、切符の授業名を語の切れ目でだけ折る`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await signIn(page);
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    for (const words of TICKET_NAMES) {
+      const semester = SAMPLE_PLAN.result.semesters.find((each) =>
+        semesterCourses(each).some((course) => course.name === words.join("")),
+      );
+      await page.goto(
+        resultViewHref(
+          `/plans/${SAMPLE_PLAN.id}`,
+          "timetable",
+          semester && semesterKey(semester),
+        ),
+      );
+      await expectBreaksBetweenWords(page, [words]);
+    }
+  });
+}
+
+for (const [width, place] of [
+  [320, "下"],
+  [375, "下"],
+  [1280, "右"],
+] as const) {
+  test(`幅 ${width}px では、切符の半券を授業名の${place}に置く`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, SAMPLE_PLAN);
+    const name = page
+      .getByRole("heading", {
+        level: 3,
+        name: "データエンジニアリング基礎",
+        exact: true,
+      })
+      .first();
+    await expect(name).toBeVisible();
+    const ticket = page.locator("article").filter({ has: name }).first();
+    const nameBox = await name.boundingBox();
+    const stubBox = await ticket.locator("dl").boundingBox();
+    if (!nameBox || !stubBox) {
+      throw new Error("切符の授業名か半券が描かれていない");
+    }
+    if (place === "下") {
+      expect(stubBox.y).toBeGreaterThanOrEqual(nameBox.y + nameBox.height);
+    } else {
+      expect(stubBox.x).toBeGreaterThanOrEqual(nameBox.x + nameBox.width);
+    }
+  });
 }
 
 test("Intl.Segmenter の無いブラウザでも、トップの見本の道のりをサーバーで描いた形と食い違わせない", async ({

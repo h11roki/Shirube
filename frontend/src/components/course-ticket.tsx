@@ -2,11 +2,13 @@
 
 import { useContext } from "react";
 
+import { useCourseWords } from "@/components/course-words";
+import { Phrases } from "@/components/phrases";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import {
+  COURSE_TICKET_NOTCH,
   SMALL_BUTTON,
   STANDALONE_LINK,
-  TICKET_NOTCH,
   TICKET_STAMP,
 } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
@@ -48,6 +50,7 @@ export function CourseTicket({
 }) {
   const focusing = useTransferFocus();
   const answering = useContext(TakenAnswersContext);
+  const nameWords = useCourseWords(course.name);
   const core = course.relevance === "core";
   const placed = "slots" in course;
   const emphasis =
@@ -63,7 +66,7 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 ${emphasis}`}
+      className={`relative grid min-w-0 rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
@@ -72,7 +75,7 @@ export function CourseTicket({
           {transfer ? RELEVANCE_LABELS.foundation : roleLabel(course)}
         </p>
         <h3 className={`leading-snug font-bold ${core ? "pr-10" : ""}`}>
-          {course.name}
+          <Phrases parts={nameWords} />
         </h3>
         <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
         {course.syllabus_url && (
@@ -122,7 +125,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid w-[4.75rem] content-center gap-1.5 border-l-2 border-dashed border-line px-2 py-3 text-center tabular-nums ${TICKET_NOTCH}`}
+          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
         >
           <div>
             <dt className="text-[11px] tracking-[0.14em] text-sub">コマ</dt>
@@ -148,7 +151,7 @@ export function CourseTicket({
       {core && (
         <span
           aria-hidden
-          className={`size-9 ${TICKET_STAMP} ${placed ? "right-[5.6rem]" : "right-3"}`}
+          className={`right-3 size-9 ${TICKET_STAMP} ${placed ? "sm:right-[5.6rem]" : ""}`}
         >
           {RELEVANCE_LABELS.core}
         </span>
