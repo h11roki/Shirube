@@ -61,11 +61,13 @@ jobs:
         env:
           SITE_URL: http://localhost:3100
         run: |
+          set -o pipefail
+          log="$RUNNER_TEMP/build.log"
           for attempt in 1 2 3; do
-            if pnpm build 2>&1 | tee build.log; then
+            if pnpm build 2>&1 | tee "$log"; then
               exit 0
             fi
-            if [ "$attempt" = 3 ] || ! grep -q "fonts.gstatic.com\|fonts.googleapis.com" build.log; then
+            if [ "$attempt" = 3 ] || ! grep -qE "fonts\.gstatic\.com|fonts\.googleapis\.com|from Google Fonts|internal/font/google" "$log"; then
               exit 1
             fi
             echo "Google Fonts の取得で落ちたので流し直す($attempt 回目)"
