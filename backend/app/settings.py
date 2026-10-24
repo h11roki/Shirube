@@ -14,7 +14,7 @@ class Settings(CurriculumSettings):
     database_url: str
     openai_api_key: SecretStr | None = None
     auth_jwt_secret: SecretStr | None = None
-    embedding_model: str = "text-embedding-3-small"
+    embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 1536
     search_by_skill: bool = True
     chat_model: str = "gpt-5.4-mini"
