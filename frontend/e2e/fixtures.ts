@@ -67,8 +67,11 @@ export const CLASS_CHOICES: ClassChoices = {
 
 export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
+export type Reply = { status?: number; json?: unknown };
+
 export type Api = {
   answer: (answers: Record<string, unknown>) => Promise<void>;
+  respond: (method: string, path: string, ...replies: Reply[]) => Promise<void>;
 };
 
 export const test = base.extend<{ api: Api }>({
@@ -81,26 +84,45 @@ export const test = base.extend<{ api: Api }>({
           url.pathname.startsWith("/api/") &&
           !url.pathname.startsWith("/api/auth/"),
         (route) => {
-          blocked.push(new URL(route.request().url()).pathname);
+          blocked.push(
+            `${route.request().method()} ${new URL(route.request().url()).pathname}`,
+          );
           return route.abort();
         },
       );
+      async function respond(
+        method: string,
+        path: string,
+        ...replies: Reply[]
+      ) {
+        const call = `${method} ${path}`;
+        unused.add(call);
+        let turn = 0;
+        await page.route(
+          (url) => url.pathname === path,
+          (route) => {
+            if (route.request().method() !== method) {
+              return route.fallback();
+            }
+            const reply = replies[Math.min(turn, replies.length - 1)];
+            turn += 1;
+            if (turn >= replies.length) {
+              unused.delete(call);
+            }
+            return route.fulfill(reply);
+          },
+        );
+      }
       await use({
         answer: async (answers) => {
-          for (const [path, body] of Object.entries(answers)) {
-            unused.add(path);
-            await page.route(
-              (url) => url.pathname === path,
-              (route) => {
-                unused.delete(path);
-                return route.fulfill({ json: body });
-              },
-            );
+          for (const [path, json] of Object.entries(answers)) {
+            await respond("GET", path, { json });
           }
         },
+        respond,
       });
       expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
-      expect([...unused], "差し替えたのに呼ばれなかった /api/").toEqual([]);
+      expect([...unused], "差し替えた答えを使い切らなかった /api/").toEqual([]);
     },
     { auto: true },
   ],
