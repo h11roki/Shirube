@@ -4,7 +4,7 @@ type Segment = { segment: string; isWordLike: boolean };
 
 const RealSegmenter = Intl.Segmenter;
 
-async function wordsOfWith(segments: Segment[]) {
+async function wordsModuleWith(segments: Segment[]) {
   vi.stubGlobal("Intl", {
     Segmenter: class {
       readonly locale: string;
@@ -23,7 +23,11 @@ async function wordsOfWith(segments: Segment[]) {
     },
   });
   vi.resetModules();
-  const { wordsOf } = await import("@/lib/words");
+  return import("@/lib/words");
+}
+
+async function wordsOfWith(segments: Segment[]) {
+  const { wordsOf } = await wordsModuleWith(segments);
   return wordsOf(segments.map(({ segment }) => segment).join(""));
 }
 
@@ -148,12 +152,12 @@ describe("wordsOf", () => {
 
 describe("wordsByText", () => {
   it("文ごとに語の並びを引ける表にする", async () => {
-    vi.stubGlobal("Intl", { Segmenter: undefined });
-    vi.resetModules();
-    const { wordsByText } = await import("@/lib/words");
-    expect(wordsByText(["確率統計", "情報処理", "確率統計"])).toEqual({
-      確率統計: ["確率統計"],
-      情報処理: ["情報処理"],
+    const { wordsByText } = await wordsModuleWith([
+      word("データ"),
+      word("サイエンティスト"),
+    ]);
+    expect(wordsByText(["データサイエンティスト"])).toEqual({
+      データサイエンティスト: ["データ", "サイエンティスト"],
     });
   });
 });
@@ -195,6 +199,10 @@ describe("splitTail", () => {
       words: ["データサイエンティス"],
       tail: "ト",
     });
+    expect(splitTail(["技術者\uFE00"])).toEqual({
+      words: ["技術"],
+      tail: "者\uFE00",
+    });
   });
 });
 
@@ -213,6 +221,37 @@ describe("bracketRuns", () => {
       { text: "【バ", nowrap: true },
       { text: "スケットボー", nowrap: false },
       { text: "ル】", nowrap: true },
+    ]);
+  });
+
+  it("重なった括弧は、全てを隣の 1 字と組にする", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（「AI」入門））")).toEqual([
+      { text: "（「A", nowrap: true },
+      { text: "I」入", nowrap: false },
+      { text: "門））", nowrap: true },
+    ]);
+  });
+
+  it("括弧の隣の字は見た目の 1 字で数え、異体字セレクタを割らない", async () => {
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（葛\u{E0100}飾")).toEqual([
+      { text: "（葛\u{E0100}", nowrap: true },
+      { text: "飾", nowrap: false },
+    ]);
+  });
+
+  it("Intl.Segmenter の無いブラウザでも、異体字セレクタや濁点の記号を前の字に付けて数える", async () => {
+    vi.stubGlobal("Intl", { Segmenter: undefined });
+    vi.resetModules();
+    const { bracketRuns } = await import("@/lib/words");
+    expect(bracketRuns("（葛\u{E0100}飾")).toEqual([
+      { text: "（葛\u{E0100}", nowrap: true },
+      { text: "飾", nowrap: false },
+    ]);
+    expect(bracketRuns("（か\u3099ら")).toEqual([
+      { text: "（か\u3099", nowrap: true },
+      { text: "ら", nowrap: false },
     ]);
   });
 

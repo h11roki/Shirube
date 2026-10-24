@@ -9,7 +9,7 @@ const SEGMENTERS =
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
 const CLOSES = /[\p{Pe}\p{Pf}]$/u;
 const PARTICLES = /^[のとやをにへでがはも]$/u;
-const OPENS_AT_START = /^[\p{Ps}\p{Pi}]/u;
+const CHARACTERS_WITHOUT_SEGMENTER = /\P{M}\p{M}*|\p{M}+/gu;
 
 type Previous = "word" | "letter" | "particle" | "open" | "close" | "mark";
 
@@ -63,15 +63,18 @@ export function destinationOf(name: string): Destination {
   return { name, words: wordsOf(name) };
 }
 
+function charactersOf(text: string): string[] {
+  return SEGMENTERS
+    ? Array.from(SEGMENTERS.characters.segment(text), ({ segment }) => segment)
+    : (text.match(CHARACTERS_WITHOUT_SEGMENTER) ?? []);
+}
+
 export function splitTail(words: readonly string[]): {
   words: string[];
   tail: string;
 } {
   const last = words.at(-1) ?? "";
-  const tail = SEGMENTERS
-    ? (SEGMENTERS.characters.segment(last).containing(last.length - 1)
-        ?.segment ?? "")
-    : (Array.from(last).at(-1) ?? "");
+  const tail = charactersOf(last).at(-1) ?? "";
   return {
     words: [...words.slice(0, -1), last.slice(0, last.length - tail.length)],
     tail,
@@ -79,11 +82,17 @@ export function splitTail(words: readonly string[]): {
 }
 
 export function bracketRuns(word: string): { text: string; nowrap: boolean }[] {
-  const characters = SEGMENTERS
-    ? Array.from(SEGMENTERS.characters.segment(word), ({ segment }) => segment)
-    : Array.from(word);
-  const head = OPENS_AT_START.test(word) ? 2 : 0;
-  const tail = CLOSES.test(word) ? 2 : 0;
+  const characters = charactersOf(word);
+  const firstLetter = characters.findIndex(
+    (character) => !OPENS.test(character),
+  );
+  const lastLetter = characters.findLastIndex(
+    (character) => !CLOSES.test(character),
+  );
+  const opens = firstLetter === -1 ? characters.length : firstLetter;
+  const closes = characters.length - 1 - lastLetter;
+  const head = opens > 0 ? opens + 1 : 0;
+  const tail = closes > 0 ? closes + 1 : 0;
   if (head + tail >= characters.length) {
     return [{ text: word, nowrap: head + tail > 0 }];
   }
