@@ -21,5 +21,6 @@ export function CourseWordsProvider({
 }
 
 export function useCourseWords(name: string): readonly string[] {
-  return useContext(CourseWordsContext)[name] ?? [name];
+  const words = useContext(CourseWordsContext);
+  return Object.hasOwn(words, name) ? words[name] : [name];
 }
