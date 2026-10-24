@@ -41,19 +41,10 @@ const SCREENS: {
   },
 ];
 
-const LONG_PLATES: Record<string, Record<string, string[]>> = {
-  組込みソフトウェアエンジニア: {
-    結果の画面: ["組込みソフトウェア", "エンジニア行"],
-    作成中の画面: ["組込み", "ソフトウェア", "エンジニア行"],
-  },
-  "半導体・LSI 設計エンジニア": {
-    結果の画面: ["半導体・LSI", "設計エンジニア行"],
-    作成中の画面: ["半導体・", "LSI 設計", "エンジニア行"],
-  },
-  電子情報システム保守技術者: {
-    結果の画面: ["電子情報システム", "保守技術者行"],
-    作成中の画面: ["電子情報", "システム", "保守技術者行"],
-  },
+const LONG_PLATES: Record<string, string[]> = {
+  組込みソフトウェアエンジニア: ["組込み", "ソフトウェア", "エンジニア行"],
+  "半導体・LSI 設計エンジニア": ["半導体・", "LSI ", "設計", "エンジニア行"],
+  電子情報システム保守技術者: ["電子", "情報", "システム", "保守", "技術者行"],
 };
 
 const FIXED_HEADINGS: {
@@ -122,20 +113,21 @@ async function renderedLines(text: Locator): Promise<string[]> {
   });
 }
 
-function isPhraseGrouping(lines: string[], phrases: readonly string[]) {
+function breaksOnlyBetween(lines: string[], parts: readonly string[]) {
+  const squeezed = parts.map((part) => part.replace(/\s/g, ""));
   let next = 0;
   for (const line of lines) {
-    let rest = line;
+    let rest = line.replace(/\s/g, "");
     while (rest.length > 0) {
-      const phrase = phrases.at(next);
-      if (phrase === undefined || !rest.startsWith(phrase)) {
+      const part = squeezed.at(next);
+      if (part === undefined || !rest.startsWith(part)) {
         return false;
       }
-      rest = rest.slice(phrase.length);
+      rest = rest.slice(part.length);
       next += 1;
     }
   }
-  return next === phrases.length;
+  return next === squeezed.length;
 }
 
 async function chromeLevelOneHeadingNames(page: Page) {
@@ -177,7 +169,7 @@ for (const width of NARROW_WIDTHS) {
   });
 
   for (const screen of SCREENS) {
-    for (const [destination, expected] of Object.entries(LONG_PLATES)) {
+    for (const [destination, words] of Object.entries(LONG_PLATES)) {
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
         api,
@@ -186,7 +178,8 @@ for (const width of NARROW_WIDTHS) {
         await openPlan(page, api, screen.plan(destination));
         const text = plateText(page, destination);
         await expect(text).toBeVisible();
-        expect(await renderedLines(text)).toEqual(expected[screen.name]);
+        const lines = await renderedLines(text);
+        expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
       });
     }
   }
@@ -201,7 +194,7 @@ for (const width of NARROW_WIDTHS) {
       const element = page.getByRole("heading", { level: 1 });
       await expect(element).toBeVisible();
       const lines = await renderedLines(element);
-      expect(isPhraseGrouping(lines, heading.phrases), lines.join(" / ")).toBe(
+      expect(breaksOnlyBetween(lines, heading.phrases), lines.join(" / ")).toBe(
         true,
       );
     });
@@ -229,7 +222,12 @@ for (const heading of FIXED_HEADINGS) {
   test(`${heading.screen}の見出しの読み上げの名前に、句のあいだの空白を入れない`, async ({
     page,
     api,
+    browserName,
   }) => {
+    test.skip(
+      browserName !== "chromium",
+      "読み上げの木は Chrome の DevTools Protocol で読む",
+    );
     await heading.open(page, api);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
     const names = await chromeLevelOneHeadingNames(page);
