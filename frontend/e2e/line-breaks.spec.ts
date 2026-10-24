@@ -114,20 +114,25 @@ async function renderedLines(text: Locator): Promise<string[]> {
 }
 
 function breaksOnlyBetween(lines: string[], parts: readonly string[]) {
-  const squeezed = parts.map((part) => part.replace(/\s/g, ""));
   let next = 0;
   for (const line of lines) {
-    let rest = line.replace(/\s/g, "");
+    let rest = line;
     while (rest.length > 0) {
-      const part = squeezed.at(next);
-      if (part === undefined || !rest.startsWith(part)) {
+      const part = parts.at(next);
+      if (part === undefined) {
         return false;
       }
-      rest = rest.slice(part.length);
+      if (rest.startsWith(part)) {
+        rest = rest.slice(part.length);
+      } else if (rest === part.trimEnd()) {
+        rest = "";
+      } else {
+        return false;
+      }
       next += 1;
     }
   }
-  return next === squeezed.length;
+  return next === parts.length;
 }
 
 async function chromeLevelOneHeadingNames(page: Page) {
@@ -180,6 +185,12 @@ for (const width of NARROW_WIDTHS) {
         await expect(text).toBeVisible();
         const lines = await renderedLines(text);
         expect(breaksOnlyBetween(lines, words), lines.join(" / ")).toBe(true);
+        expect(
+          await text.evaluate(
+            (element) =>
+              element.parentElement?.getBoundingClientRect().right ?? Infinity,
+          ),
+        ).toBeLessThanOrEqual(width);
       });
     }
   }
