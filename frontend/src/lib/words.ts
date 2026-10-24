@@ -7,8 +7,9 @@ const SEGMENTERS =
     : undefined;
 
 const OPENS = /[\p{Ps}\p{Pi}]$/u;
+const HIRAGANA = /^\p{Script=Hiragana}$/u;
 
-type Previous = "word" | "letter" | "open" | "mark";
+type Previous = "word" | "letter" | "particle" | "open" | "mark";
 
 function splitWords(
   text: string,
@@ -22,20 +23,30 @@ function splitWords(
     const letter =
       isWordLike &&
       segmenters.characters.segment(segment).containing(0)?.segment === segment;
-    const breaksBefore =
-      isWordLike && ((previous === "word" && !letter) || previous === "mark");
+    const particle = letter && HIRAGANA.test(segment);
+    const opening = !isWordLike && OPENS.test(segment);
+    const breaksBefore = isWordLike
+      ? !particle &&
+        ((previous === "word" && !letter) ||
+          previous === "particle" ||
+          previous === "mark")
+      : opening && previous !== "open";
     if (previous === undefined || breaksBefore) {
       words.push(segment);
     } else {
       words[words.length - 1] += segment;
     }
     if (isWordLike) {
-      previous = letter ? "letter" : "word";
+      previous = particle ? "particle" : letter ? "letter" : "word";
     } else {
-      previous = OPENS.test(segment) ? "open" : "mark";
+      previous = opening ? "open" : "mark";
     }
   }
   return words;
+}
+
+export function wordsOf(text: string): string[] {
+  return SEGMENTERS ? splitWords(text, SEGMENTERS) : [text];
 }
 
 export function plateParts(destination: string): {

@@ -4,7 +4,7 @@ type Segment = { segment: string; isWordLike: boolean };
 
 const RealSegmenter = Intl.Segmenter;
 
-async function platePartsWith(segments: Segment[]) {
+async function wordsModuleWith(segments: Segment[]) {
   vi.stubGlobal("Intl", {
     Segmenter: class {
       readonly locale: string;
@@ -23,8 +23,21 @@ async function platePartsWith(segments: Segment[]) {
     },
   });
   vi.resetModules();
-  const { plateParts } = await import("@/lib/words");
-  return plateParts(segments.map(({ segment }) => segment).join(""));
+  return import("@/lib/words");
+}
+
+function joined(segments: Segment[]): string {
+  return segments.map(({ segment }) => segment).join("");
+}
+
+async function platePartsWith(segments: Segment[]) {
+  const { plateParts } = await wordsModuleWith(segments);
+  return plateParts(joined(segments));
+}
+
+async function wordsOfWith(segments: Segment[]) {
+  const { wordsOf } = await wordsModuleWith(segments);
+  return wordsOf(joined(segments));
 }
 
 function word(segment: string): Segment {
@@ -60,7 +73,7 @@ describe("plateParts", () => {
     ).toEqual({ words: ["半導体・", "LSI ", "設計", "エンジニ"], tail: "ア" });
   });
 
-  it("開き括弧のあとと閉じ括弧の前では折らない", async () => {
+  it("開き括弧の前では折り、開き括弧のあとと閉じ括弧の前では折らない", async () => {
     expect(
       await platePartsWith([
         word("エンジニア"),
@@ -68,7 +81,18 @@ describe("plateParts", () => {
         word("組込み"),
         mark("）"),
       ]),
-    ).toEqual({ words: ["エンジニア（組込み"], tail: "）" });
+    ).toEqual({ words: ["エンジニア", "（組込み"], tail: "）" });
+  });
+
+  it("1 字のひらがなは前の語に付け、そのあとで折る", async () => {
+    expect(
+      await platePartsWith([
+        word("社会"),
+        word("の"),
+        word("フィールドワーク"),
+        word("担当"),
+      ]),
+    ).toEqual({ words: ["社会の", "フィールドワーク", "担"], tail: "当" });
   });
 
   it("1 字の語は、後ろに付く語(者)も頭に付く語(光、副)も、前後の語とのあいだで折らない", async () => {
@@ -125,5 +149,41 @@ describe("plateParts", () => {
       words: ["データサイエンティス"],
       tail: "ト",
     });
+  });
+});
+
+describe("wordsOf", () => {
+  it("授業名の括弧の続きは開き括弧の前で折り、1 字のひらがなのあとで折る", async () => {
+    expect(
+      await wordsOfWith([
+        word("特殊"),
+        word("講義"),
+        mark("（"),
+        word("専門"),
+        mark("）"),
+        word("Ⅲ"),
+        mark("（"),
+        word("深層"),
+        word("学習"),
+        word("の"),
+        word("応用"),
+        mark("）"),
+      ]),
+    ).toEqual(["特殊", "講義", "（専門）", "Ⅲ", "（深層", "学習の", "応用）"]);
+  });
+
+  it("1 字のひらがなのあとで折っても、頭に付く漢字の 1 字は次の語とつなぐ", async () => {
+    expect(
+      await wordsOfWith([word("電子"), word("と"), word("光"), word("通信")]),
+    ).toEqual(["電子と", "光通信"]);
+  });
+
+  it("Intl.Segmenter の無いブラウザでは分けない", async () => {
+    vi.stubGlobal("Intl", { Segmenter: undefined });
+    vi.resetModules();
+    const { wordsOf } = await import("@/lib/words");
+    expect(wordsOf("データ構造とアルゴリズム")).toEqual([
+      "データ構造とアルゴリズム",
+    ]);
   });
 });
