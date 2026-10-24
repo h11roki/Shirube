@@ -4,8 +4,8 @@ import { HeroTickets } from "@/components/hero-tickets";
 import { Introduction } from "@/components/introduction";
 import { LoginRequired } from "@/components/login-required";
 import { Kicker } from "@/components/kicker";
+import { Phrases } from "@/components/phrases";
 import { PlanForm } from "@/components/plan-form";
-import { PHRASE_WRAP } from "@/components/styles";
 import { DEPARTMENT_NAME } from "@/lib/labels";
 import { CATCHPHRASE, INDEXED, SUBHEAD } from "@/lib/site";
 
@@ -18,11 +18,7 @@ export default function Home() {
         <div className="grid gap-3">
           <Kicker>立命館大学 理工学部 {DEPARTMENT_NAME}</Kicker>
           <h1 className="font-serif text-3xl leading-snug font-extrabold sm:text-4xl sm:leading-tight lg:text-5xl">
-            {CATCHPHRASE.map((part) => (
-              <span key={part} className={`inline-block ${PHRASE_WRAP}`}>
-                {part}
-              </span>
-            ))}
+            <Phrases parts={CATCHPHRASE} />
           </h1>
           <p className="max-w-2xl leading-relaxed text-balance text-sub">
             {SUBHEAD}

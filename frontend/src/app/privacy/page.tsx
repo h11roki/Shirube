@@ -3,16 +3,17 @@ import Link from "next/link";
 
 import { ContactSection, LegalDocument } from "@/components/legal-document";
 import { TEXT_LINK } from "@/components/styles";
+import { PRIVACY_TITLE } from "@/lib/labels";
 import { INDEXED, OPERATOR } from "@/lib/site";
 
 export const metadata: Metadata = {
-  title: "プライバシーポリシー",
+  title: PRIVACY_TITLE.join(""),
   robots: INDEXED,
 };
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title="プライバシーポリシー" enactedOn="2026 年 10 月 22 日">
+    <LegalDocument title={PRIVACY_TITLE} enactedOn="2026 年 10 月 22 日">
       <section>
         <p>
           shirube(以下「このアプリ」)は、個人({OPERATOR}

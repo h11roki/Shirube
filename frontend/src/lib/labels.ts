@@ -194,6 +194,12 @@ export function classLabel(classCode: string): string {
   return classCode || "記号なし";
 }
 
+export const PROGRESS_HEADING = ["道標を", "作っています"];
+
+export const TERMS_TITLE = ["利用規約"];
+
+export const PRIVACY_TITLE = ["プライバシー", "ポリシー"];
+
 export const PLAN_CAUTION =
   "非公式の参考です。必修、卒業要件、履修の前提は見ていません。授業は AI が選ぶので、誤りや作るたびの違いがあります。履修登録の前に、大学の履修要項とシラバスで確かめてください。";
 
