@@ -13,33 +13,41 @@ import { E2E_AUTH_SECRET, E2E_ORIGIN } from "./env";
 
 const SESSION_COOKIE = "authjs.session-token";
 
-export const RUNNING_PLAN: Plan = {
+export function asRunning(plan: Plan): Plan {
+  return { ...plan, status: "running", stage: "selecting", result: null };
+}
+
+export function asFailed(plan: Plan): Plan {
+  return {
+    ...plan,
+    status: "failed",
+    stage: null,
+    result: null,
+    failure: "授業の候補が見つかりませんでした。",
+  };
+}
+
+export const RUNNING_PLAN = asRunning({
   ...SAMPLE_PLAN,
   id: "7f1c2a10-0000-4000-8000-000000000002",
-  status: "running",
-  stage: "selecting",
   conditions: {
     ...SAMPLE_PLAN.conditions,
     occupation: "組込みエンジニア",
     grade: 2,
     term: "autumn",
   },
-  result: null,
-};
+});
 
-export const FAILED_PLAN: Plan = {
+export const FAILED_PLAN = asFailed({
   ...SAMPLE_PLAN,
   id: "7f1c2a10-0000-4000-8000-000000000003",
-  status: "failed",
   conditions: {
     ...SAMPLE_PLAN.conditions,
     occupation: "音響エンジニア",
     grade: 1,
     term: "spring",
   },
-  result: null,
-  failure: "授業の候補が見つかりませんでした。",
-};
+});
 
 export const PLAN_LIST: PlanList = {
   plans: [
@@ -69,7 +77,7 @@ export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
-export type Reply = { status?: number; json?: unknown };
+export type Reply = { status?: number; json?: unknown; delayMs?: number };
 
 export type Api = {
   answer: (answers: Record<string, unknown>) => Promise<void>;
@@ -85,6 +93,7 @@ export const test = base.extend<{ api: Api }>({
   api: [
     async ({ page }, use) => {
       const blocked: string[] = [];
+      const extra: string[] = [];
       const leftovers: (() => string | undefined)[] = [];
       await page.route(
         (url) =>
@@ -122,17 +131,24 @@ export const test = base.extend<{ api: Api }>({
           );
           await page.route(
             (url) => url.pathname === path,
-            (route) => {
-              const reply =
-                route.request().method() === method
-                  ? replies.shift()
-                  : undefined;
-              return reply ? route.fulfill(reply) : route.fallback();
+            async (route) => {
+              if (route.request().method() !== method) {
+                return route.fallback();
+              }
+              const reply = replies.shift();
+              if (!reply) {
+                extra.push(`${method} ${path}`);
+                return route.abort();
+              }
+              const { delayMs = 0, ...response } = reply;
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+              return route.fulfill(response);
             },
           );
         },
       });
       expect(blocked, "差し替えていない /api/ が呼ばれた").toEqual([]);
+      expect(extra, "差し替えた答えより多く呼ばれた /api/").toEqual([]);
       expect(
         leftovers.map((leftover) => leftover()).filter(Boolean),
         "差し替えた答えを使い切らなかった /api/",
