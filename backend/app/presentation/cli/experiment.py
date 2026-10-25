@@ -70,6 +70,7 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
+from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -371,7 +372,7 @@ def render(document: Mapping[str, Any]) -> str:
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
         f"職業の読み取り {config['profiles']}、{models}、埋め込み {config['embedding_model']}、"
-        f"検索 {'スキルごと' if config['search_by_skill'] else 'クエリ 1 つ'}、"
+        f"検索 {SEARCH_MODES[config['search_by_skill']]}、"
         f"候補 {config['candidate_limit']}、"
         f"選び直し {config['selection_votes']} 回、"
         f"2 票目から {config['selection_vote_delay_seconds']:g} 秒遅らせる)",

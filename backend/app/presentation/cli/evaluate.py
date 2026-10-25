@@ -14,6 +14,7 @@ from app.application.evaluate_search import (
 from app.application.ports import EmbeddingError, OccupationAnalysisError
 from app.application.search_courses import SearchError
 from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
+from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     database_engine,
     load_settings,
@@ -58,6 +59,7 @@ def main() -> None:
     analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
     engine = database_engine(settings)
     search = search_courses(settings, engine)
+    print(f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}")
     try:
         if analyzer is not None:
             dataset = with_analyzed_skills(dataset, analyzer)
