@@ -1,6 +1,7 @@
 import pytest
 
-from app.presentation.composition import load_settings
+from app.application.search_courses import query_and_skills, whole_query
+from app.presentation.composition import load_settings, search_queries
 
 
 def test_settings_given_by_name_override_the_environment(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -23,3 +24,13 @@ def test_a_setting_given_out_of_range_names_it_without_blaming_the_environment(
         SystemExit, match="環境変数か、指定した設定を確かめてください: SELECTION_VOTES"
     ):
         load_settings(selection_votes="9")
+
+
+def test_the_skill_search_setting_chooses_how_the_queries_are_made(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.delenv("SEARCH_BY_SKILL", raising=False)
+
+    assert search_queries(load_settings()) is query_and_skills
+    assert search_queries(load_settings(search_by_skill="false")) is whole_query

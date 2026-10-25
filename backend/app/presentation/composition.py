@@ -12,7 +12,12 @@ from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import CourseSelector, OccupationAnalyzer
 from app.application.recommend_courses import RecommendCourses
 from app.application.request_plan import RequestPlan
-from app.application.search_courses import SearchCourses, query_and_skills, whole_query
+from app.application.search_courses import (
+    SearchCourses,
+    SearchQueries,
+    query_and_skills,
+    whole_query,
+)
 from app.application.voting_course_selector import VotingCourseSelector
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.quota import PlanQuota
@@ -98,12 +103,16 @@ def course_selector(settings: Settings) -> CourseSelector:
     )
 
 
+def search_queries(settings: Settings) -> SearchQueries:
+    return query_and_skills if settings.search_by_skill else whole_query
+
+
 def search_courses(settings: Settings, engine: Engine) -> SearchCourses:
     return SearchCourses(
         SqlCourseRepository(engine),
         SqlChunkRepository(engine),
         openai_embedder(settings),
-        query_and_skills if settings.search_by_skill else whole_query,
+        search_queries(settings),
     )
 
 
