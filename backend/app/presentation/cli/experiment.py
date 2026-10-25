@@ -60,6 +60,7 @@ from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import Relevance
+from app.domain.roadmap import ALL_SEMESTERS
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_course_selector as selection_prompt
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
@@ -588,9 +589,16 @@ def _experiment(
         )
     except OccupationProfileError as error:
         sys.exit(f"評価データの手書きのスキルを使えません: {error}")
+    search = search_courses(settings, engine)
+    try:
+        search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
+    except SearchError as error:
+        sys.exit(f"推薦を流せません: {error}")
+    except OperationalError as error:
+        sys.exit(f"DB に接続できません: {error.orig}")
     try:
         return RunExperiment(
-            search_courses(settings, engine),
+            search,
             SqlCourseRepository(engine),
             analyzer,
             course_selector(settings),
