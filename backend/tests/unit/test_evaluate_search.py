@@ -115,6 +115,7 @@ def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
         ("組込み\nエンジニア", ("スキル",), ("甲",), "職業名に改行があります"),
         ("職業", ("C 言語\nマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("C 言語\rマイコン",), ("甲",), "職業: スキルに改行があります"),
+        ("職業", ("C 言語", " C 言語"), ("甲",), "職業: スキルが重複しています"),
         ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
     ],
     ids=[
@@ -124,6 +125,7 @@ def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
         "multiline-occupation",
         "multiline-skill",
         "carriage-return-in-skill",
+        "duplicated-skill",
         "no-expected-courses",
     ],
 )

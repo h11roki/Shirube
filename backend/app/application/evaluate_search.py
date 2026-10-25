@@ -29,6 +29,8 @@ class EvaluationCase:
             raise EvaluationError(f"{self.occupation}: スキルが空です")
         if not all(is_single_line(skill) for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルに改行があります")
+        if len({skill.strip() for skill in self.skills}) != len(self.skills):
+            raise EvaluationError(f"{self.occupation}: スキルが重複しています")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
 
