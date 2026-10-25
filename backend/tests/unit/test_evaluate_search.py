@@ -162,11 +162,11 @@ def test_report_lists_the_query_recalls_and_ranks() -> None:
     )
 
 
-def test_committed_dataset_is_the_default_and_has_thirty_occupations() -> None:
+def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     dataset = load_dataset(DEFAULT_DATASET)
 
     assert (dataset.year, dataset.department) == (2026, "情")
-    assert len(dataset.cases) == 30
+    assert len(dataset.cases) == 50
     assert all(len(case.skills) >= 3 for case in dataset.cases)
 
 
