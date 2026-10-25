@@ -25,7 +25,7 @@ from app.application.run_experiment import (
     jaccard,
     summarize,
 )
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CandidateCourse,
@@ -184,7 +184,7 @@ def test_a_failed_embedding_fails_only_that_recommendation_as_in_production() ->
 
 def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> None:
     repository, _ = courses_ranked_by(SIMILARITIES)
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder())
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
     selector = FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")])
 
     [only] = experiment(selector, (repository, search)).trials(DATASET, JUDGMENTS, 1)
@@ -193,6 +193,16 @@ def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> Non
     assert (only.recommendation.candidates, only.recommendation.courses) == ((), ())
     assert selector.calls == []
     assert only.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=0.0)
+
+
+def test_unjudged_candidates_are_refused_when_the_trials_are_asked_for() -> None:
+    selector = FakeCourseSelector([])
+    judgments = Judgments(frozenset({"科目A", "科目D"}), JUDGMENTS.by_course)
+
+    with pytest.raises(EvaluationError, match="判定していない候補があります: 科目B、科目C"):
+        experiment(selector).trials(DATASET, judgments, 1)
+
+    assert selector.calls == []
 
 
 def test_candidates_fewer_than_the_deepest_recall_cutoff_are_refused() -> None:

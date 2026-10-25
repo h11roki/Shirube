@@ -20,7 +20,7 @@ from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
 from app.application.ports import Deletion, EmbeddingError, InvalidTokenError
 from app.application.request_plan import RequestPlan
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.domain.chunk import ChunkSection
@@ -352,7 +352,9 @@ def courses_ranked_by(
         ChunkHit(code, ChunkSection.OVERVIEW, similarity)
         for code, similarity in zip(codes, similarities.values(), strict=True)
     ]
-    return repository, SearchCourses(repository, FakeChunkSearch(hits), embedder or FakeEmbedder())
+    return repository, SearchCourses(
+        repository, FakeChunkSearch(hits), embedder or FakeEmbedder(), query_and_skills
+    )
 
 
 def failing_http_client(status: int) -> httpx.Client:

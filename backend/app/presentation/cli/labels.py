@@ -4,6 +4,7 @@ from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CourseChoice, Relevance
 
 RELEVANCE_LABELS = {Relevance.CORE: "中心", Relevance.FOUNDATION: "土台"}
+SEARCH_MODES = {True: "スキルごと", False: "クエリ 1 つ"}
 
 
 def with_prerequisite(name: str, prerequisite_for: str | None) -> str:

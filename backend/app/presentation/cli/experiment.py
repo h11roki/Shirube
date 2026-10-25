@@ -70,6 +70,7 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
+from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -86,18 +87,22 @@ PRICES = {
 }
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
+STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
 RUN_CONTROLS = frozenset({"budget"})
 GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
     "selection_votes": 1,
     "selection_vote_delay_seconds": 0.0,
     "occupation_reading_cache_size": 0,
+    "search_by_skill": False,
 }
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
+    "EMBEDDING_MODEL",
+    "SEARCH_BY_SKILL",
     "SELECTION_MODEL",
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
@@ -185,6 +190,16 @@ class Collection:
         return [outcome for taken, outcome in self.outcomes if taken is side]
 
 
+def stop_reason(error: Exception) -> str:
+    if isinstance(error, EvaluationError):
+        return f"評価データが合わない: {error}"
+    if isinstance(error, OperationalError):
+        return f"DB に接続できません: {error.orig}"
+    if isinstance(error, SQLAlchemyError):
+        return f"DB の操作に失敗しました: {error}"
+    return str(error)
+
+
 def collect(
     outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
     total: int,
@@ -221,14 +236,8 @@ def collect(
                 )
             if yen(usage) >= budget and len(collected) < total and len(collected) % unit == 0:
                 return Collection(collected, f"費用の上限 {budget:g} 円に達した", True)
-    except EvaluationError as error:
-        return Collection(collected, f"評価データが合わない: {error}", False)
-    except SearchError as error:
-        return Collection(collected, str(error), False)
-    except OperationalError as error:
-        return Collection(collected, f"DB に接続できません: {error.orig}", False)
-    except SQLAlchemyError as error:
-        return Collection(collected, f"DB の操作に失敗しました: {error}", False)
+    except STOPPING_ERRORS as error:
+        return Collection(collected, stop_reason(error), False)
     except OSError as error:
         return Collection(collected, f"入出力に失敗しました: {error}", False)
     except KeyboardInterrupt:
@@ -367,7 +376,9 @@ def render(document: Mapping[str, Any]) -> str:
     lines = [
         f"実験 {document['label']}({document['created']}、commit {document['commit']}、"
         f"{config['occupations']} 職業 × {config['repeats']} 回、"
-        f"職業の読み取り {config['profiles']}、{models}、候補 {config['candidate_limit']}、"
+        f"職業の読み取り {config['profiles']}、{models}、埋め込み {config['embedding_model']}、"
+        f"検索 {SEARCH_MODES[config['search_by_skill']]}、"
+        f"候補 {config['candidate_limit']}、"
         f"選び直し {config['selection_votes']} 回、"
         f"2 票目から {config['selection_vote_delay_seconds']:g} 秒遅らせる)",
     ]
@@ -537,6 +548,7 @@ def config_document(
         "selection_votes": settings.selection_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
         "embedding_model": settings.embedding_model,
+        "search_by_skill": settings.search_by_skill,
         "candidate_limit": settings.selection_candidate_limit,
         "prompts": {
             "occupation": (
@@ -592,6 +604,15 @@ def _experiment(
         )
     except EvaluationError as error:
         sys.exit(str(error))
+
+
+def _trials(
+    experiment: RunExperiment, dataset: EvaluationDataset, judgments: Judgments, repeats: int
+) -> Iterator[Trial | FailedTrial]:
+    try:
+        return experiment.trials(dataset, judgments, repeats)
+    except STOPPING_ERRORS as error:
+        sys.exit(f"推薦を流せません: {stop_reason(error)}")
 
 
 def _reserve(out: Path, paths: Sequence[Path]) -> None:
@@ -691,13 +712,14 @@ def _run(args: argparse.Namespace) -> None:
     engine = database_engine(settings)
     meter = LangChainUsageMeter()
     experiment = _experiment(args, settings, dataset, engine, meter)
+    trials = _trials(experiment, dataset, judgments, args.repeat)
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
     config = config_document(args, settings, dataset)
     path = args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
     _reserve(args.out, [path])
     collection, spent_yen = _collected(
-        ((None, outcome) for outcome in experiment.trials(dataset, judgments, args.repeat)),
+        ((None, outcome) for outcome in trials),
         len(dataset.cases) * args.repeat,
         args.budget,
         1,
@@ -739,6 +761,7 @@ def _pair(args: argparse.Namespace) -> None:
     engine = database_engine(settings[Side.BEFORE])
     meter = LangChainUsageMeter()
     experiments = {side: _experiment(args, settings[side], dataset, engine, meter) for side in Side}
+    trials = {side: _trials(experiments[side], dataset, judgments, args.repeat) for side in Side}
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
     paths = {
@@ -746,11 +769,7 @@ def _pair(args: argparse.Namespace) -> None:
     }
     _reserve(args.out, list(paths.values()))
     collection, spent_yen = _collected(
-        interleave(
-            experiments[Side.BEFORE].trials(dataset, judgments, args.repeat),
-            experiments[Side.AFTER].trials(dataset, judgments, args.repeat),
-            len(dataset.cases),
-        ),
+        interleave(trials[Side.BEFORE], trials[Side.AFTER], len(dataset.cases)),
         len(Side) * len(dataset.cases) * args.repeat,
         args.budget,
         len(Side),

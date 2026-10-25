@@ -129,9 +129,11 @@ class RunExperiment:
     ) -> Iterator[Trial | FailedTrial]:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         require_judged(dataset, judgments, candidates.names)
-        for repeat in range(1, repeats + 1):
-            for case in dataset.cases:
-                yield self._trial(dataset, judgments, case, repeat)
+        return (
+            self._trial(dataset, judgments, case, repeat)
+            for repeat in range(1, repeats + 1)
+            for case in dataset.cases
+        )
 
     def _trial(
         self, dataset: EvaluationDataset, judgments: Judgments, case: EvaluationCase, repeat: int

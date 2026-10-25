@@ -31,5 +31,5 @@ def test_render_lists_the_profile_the_courses_by_relevance_and_the_unlinked() ->
         "土台 1 科目\n"
         "  科目A(→ 科目B): 理由A\n"
         "中心につながらず外した土台: 科目C(→ 科目D)\n"
-        "検索の上位 30 件から選んだ"
+        "検索の候補 30 件から選んだ"
     )
