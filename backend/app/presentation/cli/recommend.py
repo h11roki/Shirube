@@ -40,7 +40,7 @@ def render(recommendation: Recommendation) -> str:
             for course in courses
         ]
     lines += unlinked_lines(recommendation.unlinked)
-    lines.append(f"検索の上位 {len(recommendation.candidates)} 件から選んだ")
+    lines.append(f"検索の候補 {len(recommendation.candidates)} 件から選んだ")
     return "\n".join(lines)
 
 

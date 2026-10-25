@@ -67,7 +67,7 @@ def _summary(results: Sequence[SelectionResult]) -> list[str]:
         f"土台 {sum(result.expected_as(Relevance.FOUNDATION) for result in results)} / "
         f"外した {sum(len(result.expected_unlinked) for result in results)} / "
         f"選ばず {sum(len(result.skipped) for result in results)} / "
-        f"検索の上位に無い {sum(len(result.unsearched) for result in results)}"
+        f"検索の候補に無い {sum(len(result.unsearched) for result in results)}"
     )
     return lines
 
@@ -90,7 +90,7 @@ def render(report: SelectionReport) -> str:
         if result.skipped:
             lines.append(f"  選ばなかった期待する科目: {'、'.join(result.skipped)}")
         if result.unsearched:
-            lines.append(f"  検索の上位に無かった期待する科目: {'、'.join(result.unsearched)}")
+            lines.append(f"  検索の候補に無かった期待する科目: {'、'.join(result.unsearched)}")
     lines.append("合計")
     lines += _summary(report.results)
     picks = [pick for result in report.results for pick in result.picks]
