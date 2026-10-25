@@ -25,7 +25,7 @@ from app.application.run_experiment import (
     jaccard,
     summarize,
 )
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CandidateCourse,
@@ -184,7 +184,7 @@ def test_a_failed_embedding_fails_only_that_recommendation_as_in_production() ->
 
 def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> None:
     repository, _ = courses_ranked_by(SIMILARITIES)
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
     selector = FakeCourseSelector([CourseChoice("科目A", CORE, "理由A")])
 
     [only] = experiment(selector, (repository, search)).trials(DATASET, JUDGMENTS, 1)

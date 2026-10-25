@@ -12,15 +12,13 @@ from app.application.evaluate_search import (
     with_analyzed_skills,
 )
 from app.application.ports import EmbeddingError, OccupationAnalysisError
-from app.application.search_courses import SearchCourses, SearchError
-from app.infrastructure.db.chunks import SqlChunkRepository
-from app.infrastructure.db.courses import SqlCourseRepository
+from app.application.search_courses import SearchError
 from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
 from app.presentation.composition import (
     database_engine,
     load_settings,
-    openai_embedder,
     openai_occupation_analyzer,
+    search_courses,
 )
 
 HANDWRITTEN, LLM = "handwritten", "llm"
@@ -57,12 +55,9 @@ def main() -> None:
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     settings = load_settings()
-    embedder = openai_embedder(settings)
     analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
     engine = database_engine(settings)
-    search = SearchCourses(
-        SqlCourseRepository(engine), SqlChunkRepository(engine), embedder, settings.search_by_skill
-    )
+    search = search_courses(settings, engine)
     try:
         if analyzer is not None:
             dataset = with_analyzed_skills(dataset, analyzer)

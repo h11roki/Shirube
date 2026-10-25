@@ -4,7 +4,7 @@ from dataclasses import replace
 import pytest
 
 from app.application.recommend_courses import RecommendCourses, RecommendStep
-from app.application.search_courses import SearchCourses, SearchError
+from app.application.search_courses import SearchCourses, SearchError, query_and_skills
 from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
@@ -103,7 +103,7 @@ def test_a_course_first_for_one_skill_reaches_the_selector_beside_the_whole_quer
         hits_by_length={1.0: [ChunkHit("10002", ChunkSection.OVERVIEW, 0.9)]},
     )
     recommend = RecommendCourses(
-        SearchCourses(repository, chunks, FakeEmbedder(), by_skill=True),
+        SearchCourses(repository, chunks, FakeEmbedder(), query_and_skills),
         repository,
         FakeOccupationAnalyzer({"職業": PROFILE}),
         FakeCourseSelector([]),
@@ -135,7 +135,7 @@ def test_selector_is_skipped_when_no_chunk_is_found() -> None:
     repository = FakeCourseRepository(
         sections=(course_section("10000"),), syllabi=(syllabus("10000"),)
     )
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
     selector = FakeCourseSelector([])
     analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
 
@@ -158,7 +158,7 @@ def test_a_ranked_course_whose_syllabus_is_missing_is_a_search_error() -> None:
         missing,
         FakeChunkSearch([ChunkHit("10000", ChunkSection.OVERVIEW, 0.9)]),
         FakeEmbedder(),
-        by_skill=True,
+        query_and_skills,
     )
     recommend = RecommendCourses(
         search, missing, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
@@ -188,7 +188,7 @@ def test_selecting_is_not_reported_when_nothing_is_found() -> None:
     repository = FakeCourseRepository(
         sections=(course_section("10000"),), syllabi=(syllabus("10000"),)
     )
-    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
+    search = SearchCourses(repository, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
     analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
     steps: list[RecommendStep] = []
 

@@ -12,7 +12,7 @@ from app.application.build_plans import (
     BuildPlans,
 )
 from app.application.recommend_courses import RecommendCourses
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
@@ -153,7 +153,7 @@ def test_a_failed_external_call_fails_the_plan_with_a_fixed_message_and_logs_the
 ) -> None:
     repository, _ = courses_ranked_by({"科目A": 0.9})
     hits = FakeChunkSearch([])
-    search = SearchCourses(repository, hits, FakeEmbedder(failing_call=1), by_skill=True)
+    search = SearchCourses(repository, hits, FakeEmbedder(failing_call=1), query_and_skills)
     plans = FakePlanRepository()
     plan = waiting(plans)
 

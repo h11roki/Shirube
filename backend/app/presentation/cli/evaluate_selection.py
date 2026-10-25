@@ -14,10 +14,9 @@ from app.application.evaluate_selection import (
     SelectionResult,
 )
 from app.application.ports import CourseSelectionError, EmbeddingError
-from app.application.search_courses import SearchCourses, SearchError
+from app.application.search_courses import SearchError
 from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import RecommendationError, Relevance
-from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -30,7 +29,7 @@ from app.presentation.composition import (
     course_selector,
     database_engine,
     load_settings,
-    openai_embedder,
+    search_courses,
 )
 
 JUDGMENT_LABELS = {
@@ -123,12 +122,14 @@ def main() -> None:
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:
         sys.exit(f"判定を読めません: {args.judgments}: {error!r}")
     settings = load_settings()
-    embedder = openai_embedder(settings)
     selector = course_selector(settings)
     engine = database_engine(settings)
-    courses = SqlCourseRepository(engine)
-    search = SearchCourses(courses, SqlChunkRepository(engine), embedder, settings.search_by_skill)
-    evaluate = EvaluateSelection(search, courses, selector, settings.selection_candidate_limit)
+    evaluate = EvaluateSelection(
+        search_courses(settings, engine),
+        SqlCourseRepository(engine),
+        selector,
+        settings.selection_candidate_limit,
+    )
     try:
         print(render(evaluate.run(dataset, judgments)))
     except (

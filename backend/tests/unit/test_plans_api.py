@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.application.build_plans import SERVER_FAILURE
 from app.application.ports import PlanFormatError
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
@@ -263,10 +263,10 @@ def test_a_department_without_candidates_is_unprocessable() -> None:
 def test_problems_on_the_server_are_server_errors_without_their_details() -> None:
     courses, _ = courses_ranked_by({"科目A": 0.9})
     not_embedded = SearchCourses(
-        courses, FakeChunkSearch([], embedded=False), FakeEmbedder(), by_skill=True
+        courses, FakeChunkSearch([], embedded=False), FakeEmbedder(), query_and_skills
     )
     empty = FakeCourseRepository()
-    no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder(), by_skill=True)
+    no_data = SearchCourses(empty, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
 
     for api in (
         client((courses, not_embedded)),

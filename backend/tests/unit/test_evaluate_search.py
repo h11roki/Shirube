@@ -12,7 +12,7 @@ from app.application.evaluate_search import (
     with_analyzed_skills,
 )
 from app.application.judging import expected_courses
-from app.application.search_courses import SearchCourses
+from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
@@ -62,11 +62,25 @@ def test_a_course_first_for_a_skill_counts_at_the_turn_the_skill_gives_it() -> N
     )
     case = EvaluationCase("職業", ("甲",), ("科目25",))
 
-    report = EvaluateSearch(SearchCourses(repository, chunks, FakeEmbedder(), by_skill=True)).run(
-        EvaluationDataset(2026, "情", (case,))
-    )
+    report = EvaluateSearch(
+        SearchCourses(repository, chunks, FakeEmbedder(), query_and_skills)
+    ).run(EvaluationDataset(2026, "情", (case,)))
 
     assert report.results[0].ranks == (("科目25", 2),)
+
+
+def test_the_queries_of_every_case_are_embedded_in_one_call() -> None:
+    embedder = FakeEmbedder()
+    cases = (
+        EvaluationCase("職業A", ("甲",), ("科目01",)),
+        EvaluationCase("職業B", ("乙", "丙"), ("科目01",)),
+    )
+
+    EvaluateSearch(courses_ranked_by({"科目01": 0.9}, embedder)[1]).run(
+        EvaluationDataset(2026, "情", cases)
+    )
+
+    assert embedder.calls == [["職業A\n甲", "甲", "職業B\n乙\n丙", "乙", "丙"]]
 
 
 def test_expected_course_names_outside_the_candidates_are_an_error() -> None:

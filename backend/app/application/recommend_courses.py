@@ -43,7 +43,7 @@ class RecommendCourses:
         candidates = self._search.candidates(year, department, semesters, excluded)
         profile = self._analyzer.analyze(occupation)
         enter(RecommendStep.SEARCHING)
-        matches = candidates.pick(profile.query, profile.skills, self._candidate_limit)
+        [matches] = candidates.pick([profile], self._candidate_limit)
         if not matches:
             return Recommendation(profile, (), ())
         codes = {match.syllabus_code for match in matches}

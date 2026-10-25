@@ -1,5 +1,7 @@
 from collections import defaultdict
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Callable, Mapping, Sequence, Set
+from itertools import islice
+from typing import Protocol
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
 from app.domain.course import left_out_codes
@@ -17,6 +19,25 @@ class NoCandidatesError(SearchError):
     pass
 
 
+class SearchTarget(Protocol):
+    @property
+    def query(self) -> str: ...
+
+    @property
+    def skills(self) -> tuple[str, ...]: ...
+
+
+SearchQueries = Callable[[SearchTarget], list[str]]
+
+
+def whole_query(target: SearchTarget) -> list[str]:
+    return [target.query]
+
+
+def query_and_skills(target: SearchTarget) -> list[str]:
+    return [target.query, *target.skills]
+
+
 class Candidates:
     def __init__(
         self,
@@ -24,45 +45,50 @@ class Candidates:
         names_of_page: Mapping[str, Set[str]],
         chunks: ChunkSearch,
         embedder: Embedder,
-        by_skill: bool,
+        queries: SearchQueries,
     ) -> None:
         self._year = year
         self._names_of_page = names_of_page
         self._chunks = chunks
         self._embedder = embedder
-        self._by_skill = by_skill
+        self._queries = queries
 
     @property
     def names(self) -> set[str]:
         return {name for names in self._names_of_page.values() for name in names}
 
-    def pick(self, query: str, skills: Sequence[str], limit: int) -> list[CourseMatch]:
-        queries = [query, *skills] if self._by_skill else [query]
-        vectors = self._embedder.embed(queries)
-        if len(vectors) != len(queries):
-            raise EmbeddingError(
-                f"埋め込み {len(vectors)} 件がクエリ {len(queries)} 件と合いません"
-            )
+    def pick(self, targets: Sequence[SearchTarget], limit: int) -> list[list[CourseMatch]]:
+        per_target = [self._queries(target) for target in targets]
+        texts = [text for queries in per_target for text in queries]
+        vectors = self._embedder.embed(texts)
+        if len(vectors) != len(texts):
+            raise EmbeddingError(f"埋め込み {len(vectors)} 件がクエリ {len(texts)} 件と合いません")
         pages = set(self._names_of_page)
-        rankings = [
-            rank_courses(
-                self._chunks.best_chunks(self._year, self._embedder.model, vector, pages),
-                self._names_of_page,
-                limit,
-            )
-            for vector in vectors
-        ]
-        return take_turns(rankings, limit)
+        rankings = iter(
+            [
+                rank_courses(
+                    self._chunks.best_chunks(self._year, self._embedder.model, vector, pages),
+                    self._names_of_page,
+                    limit,
+                )
+                for vector in vectors
+            ]
+        )
+        return [take_turns(list(islice(rankings, len(queries))), limit) for queries in per_target]
 
 
 class SearchCourses:
     def __init__(
-        self, courses: CourseRepository, chunks: ChunkSearch, embedder: Embedder, by_skill: bool
+        self,
+        courses: CourseRepository,
+        chunks: ChunkSearch,
+        embedder: Embedder,
+        queries: SearchQueries,
     ) -> None:
         self._courses = courses
         self._chunks = chunks
         self._embedder = embedder
-        self._by_skill = by_skill
+        self._queries = queries
 
     def candidates(
         self,
@@ -94,4 +120,4 @@ class SearchCourses:
         model = self._embedder.model
         if not self._chunks.is_embedded(year, model):
             raise SearchError(f"{year} 年度のシラバスがモデル {model} で埋め込まれていません")
-        return Candidates(year, names_of_page, self._chunks, self._embedder, self._by_skill)
+        return Candidates(year, names_of_page, self._chunks, self._embedder, self._queries)
