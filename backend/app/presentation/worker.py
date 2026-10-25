@@ -7,7 +7,6 @@ from types import FrameType
 from app.application.build_plans import BuildPlans
 from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import PlanFormatError
-from app.infrastructure.db.chunks import SqlChunkRepository
 from app.presentation.composition import (
     build_plans,
     database_engine,
@@ -58,15 +57,6 @@ def main() -> None:
     signal.signal(signal.SIGTERM, stop_after_this_plan)
     signal.signal(signal.SIGINT, stop_after_this_plan)
     logger.info("道標の worker を始めます")
-    if not SqlChunkRepository(engine).is_embedded(
-        settings.curriculum_year, settings.embedding_model
-    ):
-        logger.error(
-            "%d 年度のシラバスがモデル %s で埋め込まれていないので、道標を作れません。"
-            "embed を流してください",
-            settings.curriculum_year,
-            settings.embedding_model,
-        )
     try:
         work(
             build_plans(settings, engine),
