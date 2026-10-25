@@ -94,7 +94,7 @@ class Target:
     skills: tuple[str, ...]
 
 
-def test_the_query_and_each_skill_take_turns_giving_their_best_course_not_yet_taken() -> None:
+def test_each_target_takes_turns_over_its_queries_and_a_shared_text_is_searched_once() -> None:
     chunks = ranked_apart()
     embedder = FakeEmbedder()
     candidates = SearchCourses(three_courses(), chunks, embedder, query_and_skills).candidates(
@@ -103,10 +103,9 @@ def test_the_query_and_each_skill_take_turns_giving_their_best_course_not_yet_ta
 
     picked = candidates.pick([Target("職業のクエリ", ("スキル",)), Target("スキル", ())], 2)
 
-    assert embedder.calls == [["職業のクエリ", "スキル", "スキル"]]
+    assert embedder.calls == [["職業のクエリ", "スキル"]]
     assert [call[1:] for call in chunks.calls] == [
         (FAKE_MODEL, [6.0], {"10001", "10002", "10003"}),
-        (FAKE_MODEL, [3.0], {"10001", "10002", "10003"}),
         (FAKE_MODEL, [3.0], {"10001", "10002", "10003"}),
     ]
     assert [[match.name for match in matches] for matches in picked] == [

@@ -1,6 +1,5 @@
 from collections import defaultdict
 from collections.abc import Callable, Mapping, Sequence, Set
-from itertools import islice
 from typing import Protocol
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
@@ -59,22 +58,20 @@ class Candidates:
 
     def pick(self, targets: Sequence[SearchTarget], limit: int) -> list[list[CourseMatch]]:
         per_target = [self._queries(target) for target in targets]
-        texts = [text for queries in per_target for text in queries]
+        texts = list(dict.fromkeys(text for queries in per_target for text in queries))
         vectors = self._embedder.embed(texts)
         if len(vectors) != len(texts):
             raise EmbeddingError(f"埋め込み {len(vectors)} 件がクエリ {len(texts)} 件と合いません")
         pages = set(self._names_of_page)
-        rankings = iter(
-            [
-                rank_courses(
-                    self._chunks.best_chunks(self._year, self._embedder.model, vector, pages),
-                    self._names_of_page,
-                    limit,
-                )
-                for vector in vectors
-            ]
-        )
-        return [take_turns(list(islice(rankings, len(queries))), limit) for queries in per_target]
+        ranking_of = {
+            text: rank_courses(
+                self._chunks.best_chunks(self._year, self._embedder.model, vector, pages),
+                self._names_of_page,
+                limit,
+            )
+            for text, vector in zip(texts, vectors, strict=True)
+        }
+        return [take_turns([ranking_of[text] for text in queries], limit) for queries in per_target]
 
 
 class SearchCourses:
