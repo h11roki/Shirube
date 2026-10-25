@@ -1,3 +1,4 @@
+from collections import deque
 from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 
@@ -33,15 +34,12 @@ def rank_courses(
 
 
 def take_turns(rankings: Sequence[Sequence[CourseMatch]], limit: int) -> list[CourseMatch]:
-    queues = [iter(ranked) for ranked in rankings]
+    queues = deque(iter(ranked) for ranked in rankings)
     taken: dict[str, CourseMatch] = {}
     while queues and len(taken) < limit:
-        for queue in list(queues):
-            if len(taken) == limit:
-                break
-            match = next((match for match in queue if match.name not in taken), None)
-            if match is None:
-                queues.remove(queue)
-            else:
-                taken[match.name] = match
+        queue = queues.popleft()
+        match = next((match for match in queue if match.name not in taken), None)
+        if match is not None:
+            taken[match.name] = match
+            queues.append(queue)
     return list(taken.values())
