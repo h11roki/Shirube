@@ -195,6 +195,16 @@ def test_a_search_without_hits_ends_the_recommendation_before_selecting() -> Non
     assert only.seconds == StageSeconds(reading=1.0, searching=3.0, selecting=0.0)
 
 
+def test_unjudged_candidates_are_refused_when_the_trials_are_asked_for() -> None:
+    selector = FakeCourseSelector([])
+    judgments = Judgments(frozenset({"科目A", "科目D"}), JUDGMENTS.by_course)
+
+    with pytest.raises(EvaluationError, match="判定していない候補があります: 科目B、科目C"):
+        experiment(selector).trials(DATASET, judgments, 1)
+
+    assert selector.calls == []
+
+
 def test_candidates_fewer_than_the_deepest_recall_cutoff_are_refused() -> None:
     with pytest.raises(EvaluationError, match="候補の数を 20 以上にしてください"):
         experiment(FakeCourseSelector([]), candidate_limit=19)
