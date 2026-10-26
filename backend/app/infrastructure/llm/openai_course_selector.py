@@ -30,7 +30,8 @@ foundation には、その授業を前提にする core の授業を 1 つ prere
 core に選んだどの授業の前提にもならない授業は foundation にしません。\
 core か foundation か迷った授業は、\
 前提にする core の授業があれば foundation、無ければ core にします。\
-どちらでもない授業は答えに含めません。数の目安や上限はありません。
+どちらでもない授業と、選ぶか迷った授業は答えに含めません。\
+数の目安や上限はなく、職業に関係する授業が少なければ、少なく選んで構いません。
 
 理由には、その職業を目指す学生がなぜ取るべきかを、抜粋の中身に基づいて自分の言葉で \
 {REASON_LIMIT} 字以内で書きます。\
@@ -124,12 +125,16 @@ class _Selection(BaseModel):
 
 
 class OpenAICourseSelector:
-    def __init__(self, chat: ChatOpenAI) -> None:
+    def __init__(self, chat: ChatOpenAI, instructions: str) -> None:
         self._chat = chat
+        self._instructions = instructions
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
+    def connect(
+        cls, model: str, api_key: SecretStr, timeout: float, retries: int, instructions: str
+    ) -> Self:
+        chat = ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries)
+        return cls(chat, instructions)
 
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
@@ -137,7 +142,7 @@ class OpenAICourseSelector:
         client = self._chat.with_structured_output(
             _schema([candidate.name for candidate in candidates]), method="json_schema", strict=True
         )
-        messages = [SystemMessage(INSTRUCTIONS), HumanMessage(_request(profile, candidates))]
+        messages = [SystemMessage(self._instructions), HumanMessage(_request(profile, candidates))]
         try:
             selection = _Selection.model_validate(client.invoke(messages))
             return [

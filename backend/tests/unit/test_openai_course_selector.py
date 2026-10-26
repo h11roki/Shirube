@@ -8,7 +8,7 @@ from app.application.ports import CourseSelectionError
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
 from app.domain.syllabus import Session
-from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
+from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS, OpenAICourseSelector
 from tests.builders import syllabus
 from tests.fakes import chat_answering, chat_failing
 
@@ -30,7 +30,7 @@ CANDIDATES = [
 def selector_answering(
     message: dict[str, Any], requests: list[dict[str, Any]] | None = None
 ) -> OpenAICourseSelector:
-    return OpenAICourseSelector(chat_answering(message, requests))
+    return OpenAICourseSelector(chat_answering(message, requests), INSTRUCTIONS)
 
 
 def answer(
@@ -80,6 +80,16 @@ def test_foundations_for_courses_not_chosen_as_core_are_left_to_arrange() -> Non
     ]
 
 
+def test_the_given_instructions_are_sent_as_the_system_message() -> None:
+    requests: list[dict[str, Any]] = []
+
+    OpenAICourseSelector(chat_answering(answer(), requests), "試す指示文").select(
+        PROFILE, CANDIDATES
+    )
+
+    assert requests[0]["messages"][0] == {"role": "system", "content": "試す指示文"}
+
+
 def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
     requests: list[dict[str, Any]] = []
     selector_answering(answer(), requests).select(PROFILE, CANDIDATES)
@@ -117,14 +127,14 @@ def test_refused_or_unusable_answers_are_selection_errors(message: dict[str, Any
 
 
 def test_an_answer_cut_off_by_the_length_limit_is_an_unusable_answer() -> None:
-    selector = OpenAICourseSelector(chat_answering(answer(), finish_reason="length"))
+    selector = OpenAICourseSelector(chat_answering(answer(), finish_reason="length"), INSTRUCTIONS)
 
     with pytest.raises(CourseSelectionError, match="職業: LLM の答えを使えません"):
         selector.select(PROFILE, CANDIDATES)
 
 
 def test_a_failed_api_call_is_a_selection_error() -> None:
-    selector = OpenAICourseSelector(chat_failing(400))
+    selector = OpenAICourseSelector(chat_failing(400), INSTRUCTIONS)
 
     with pytest.raises(CourseSelectionError, match="職業: OpenAI の API 呼び出しに失敗しました"):
         selector.select(PROFILE, CANDIDATES)

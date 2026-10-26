@@ -60,8 +60,8 @@ from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm import openai_course_selector as selection_prompt
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
+from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -101,6 +101,7 @@ UNRECORDED_SETTINGS = {
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
+PROMPT_SETTING = "SELECTION_PROMPT"
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
     "EMBEDDING_MODEL",
@@ -109,7 +110,9 @@ PAIRABLE_SETTINGS = (
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
+    PROMPT_SETTING,
 )
+UNEXPANDED = re.compile(r"\{[^{}]*\}|\{\{|\}\}|\\\n")
 SIDE_NAMES = {Side.BEFORE: "前", Side.AFTER: "後"}
 METRICS = (
     *((f"recall@{cutoff}", f"検索の再現率 @{cutoff}", "ratio") for cutoff in RECALL_CUTOFFS),
@@ -160,6 +163,23 @@ def setting(text: str) -> tuple[str, str]:
             f"設定=値 の形で書いてください。替えられるのは {'、'.join(PAIRABLE_SETTINGS)}"
         )
     return name, value
+
+
+def trial_instructions(path: str | None) -> str:
+    if path is None:
+        return SELECTION_INSTRUCTIONS
+    try:
+        text = Path(path).expanduser().read_text(encoding="utf-8").strip()
+    except (OSError, UnicodeDecodeError) as error:
+        sys.exit(f"{PROMPT_SETTING} を読めません: {error}")
+    if not text:
+        sys.exit(f"{PROMPT_SETTING} の文面が空です: {path}")
+    if UNEXPANDED.search(text):
+        sys.exit(
+            f"{PROMPT_SETTING} に組み込みの文面の書き方(波括弧や行末の \\)が"
+            "残っています。展開した文面から作ってください"
+        )
+    return text
 
 
 def _digest(data: bytes) -> str:
@@ -539,7 +559,10 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
 
 
 def config_document(
-    args: argparse.Namespace, settings: Settings, dataset: EvaluationDataset
+    args: argparse.Namespace,
+    settings: Settings,
+    dataset: EvaluationDataset,
+    instructions: str,
 ) -> dict[str, Any]:
     analyzed = args.profiles == "analyzed"
     return {
@@ -559,7 +582,7 @@ def config_document(
             "occupation": (
                 _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
             ),
-            "selection": _digest(selection_prompt.INSTRUCTIONS.encode("utf-8")),
+            "selection": _digest(instructions.encode("utf-8")),
         },
         "dataset": _digest(args.dataset.read_bytes()),
         "judgments": _digest(args.judgments.read_bytes()),
@@ -584,6 +607,7 @@ def _experiment(
     dataset: EvaluationDataset,
     engine: Engine,
     meter: LangChainUsageMeter,
+    instructions: str,
 ) -> RunExperiment:
     models = [settings.selection_model]
     if args.profiles == "analyzed":
@@ -600,7 +624,7 @@ def _experiment(
             search_courses(settings, engine),
             SqlCourseRepository(engine),
             analyzer,
-            course_selector(settings),
+            course_selector(settings, instructions),
             settings.selection_candidate_limit,
             meter,
         )
@@ -724,11 +748,11 @@ def _run(args: argparse.Namespace) -> None:
     settings = load_settings()
     engine = database_engine(settings)
     meter = LangChainUsageMeter()
-    experiment = _experiment(args, settings, dataset, engine, meter)
+    experiment = _experiment(args, settings, dataset, engine, meter, SELECTION_INSTRUCTIONS)
     trials = _trials(experiment, dataset, judgments, args.repeat)
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
-    config = config_document(args, settings, dataset)
+    config = config_document(args, settings, dataset, SELECTION_INSTRUCTIONS)
     path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
     _reserve(out, [path])
     collection, spent_yen = _collected(
@@ -770,13 +794,21 @@ def _pair(args: argparse.Namespace) -> None:
     out = results_directory(args.out, dataset)
     silence_heldout_logs(dataset)
     overrides = {Side.BEFORE: args.before, Side.AFTER: args.after}
+    instructions = {
+        side: trial_instructions(dict(overrides[side]).get(PROMPT_SETTING)) for side in Side
+    }
     settings = {
-        side: load_settings(**{name.lower(): value for name, value in overrides[side]})
+        side: load_settings(
+            **{name.lower(): value for name, value in overrides[side] if name != PROMPT_SETTING}
+        )
         for side in Side
     }
     engine = database_engine(settings[Side.BEFORE])
     meter = LangChainUsageMeter()
-    experiments = {side: _experiment(args, settings[side], dataset, engine, meter) for side in Side}
+    experiments = {
+        side: _experiment(args, settings[side], dataset, engine, meter, instructions[side])
+        for side in Side
+    }
     trials = {side: _trials(experiments[side], dataset, judgments, args.repeat) for side in Side}
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
@@ -802,7 +834,10 @@ def _pair(args: argparse.Namespace) -> None:
             commit,
             collection,
             spent_yen,
-            {side: config_document(args, settings[side], dataset) for side in Side},
+            {
+                side: config_document(args, settings[side], dataset, instructions[side])
+                for side in Side
+            },
             {side: path.name for side, path in paths.items()},
             dataset.cases,
         )
