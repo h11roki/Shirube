@@ -46,7 +46,7 @@ export function PlanProgress({
   const current = steps.find((step) => step.state === "now");
   return (
     <section className="mx-auto grid max-w-xl gap-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
+      <div className="flex flex-wrap items-start gap-4">
         <div className="grid min-w-0 flex-[1_1_10rem] gap-1.5">
           <DestinationPlate destination={destination} />
           <h1 className="font-serif text-2xl font-extrabold text-balance">
