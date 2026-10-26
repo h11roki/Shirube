@@ -4,7 +4,6 @@ from app.domain.occupation import (
     READABLE,
     OccupationProfile,
     OccupationProfileError,
-    search_query,
 )
 
 
@@ -57,10 +56,6 @@ def test_profile_that_would_break_the_query_is_rejected(
 ) -> None:
     with pytest.raises(OccupationProfileError, match=message):
         OccupationProfile(occupation, interpretation, assumption, skills)
-
-
-def test_search_query_puts_the_occupation_and_each_skill_on_its_own_line() -> None:
-    assert search_query("職業", ["甲", "乙"]) == "職業\n甲\n乙"
 
 
 def test_profile_accepts_three_to_six_skills_and_no_assumption() -> None:

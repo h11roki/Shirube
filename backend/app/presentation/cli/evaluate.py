@@ -9,9 +9,9 @@ from app.application.evaluate_search import (
     EvaluateSearch,
     EvaluationError,
     EvaluationReport,
-    with_analyzed_skills,
+    HandwrittenProfiles,
 )
-from app.application.ports import EmbeddingError, OccupationAnalysisError
+from app.application.ports import EmbeddingError, OccupationAnalysisError, OccupationAnalyzer
 from app.application.search_courses import SearchError
 from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
 from app.presentation.cli.labels import SEARCH_MODES
@@ -23,6 +23,7 @@ from app.presentation.composition import (
 )
 
 HANDWRITTEN, LLM = "handwritten", "llm"
+SEARCHED_WITH = {HANDWRITTEN: "評価データの職業名と手書きのスキル", LLM: "LLM の解釈とスキル"}
 
 
 def render(report: EvaluationReport) -> str:
@@ -45,9 +46,9 @@ def main() -> None:
     parser.add_argument("dataset", type=Path, nargs="?", default=DEFAULT_DATASET)
     parser.add_argument(
         "--skills",
-        choices=(HANDWRITTEN, LLM),
+        choices=tuple(SEARCHED_WITH),
         default=HANDWRITTEN,
-        help="検索文のスキルを評価データの手書きにするか、職業名から LLM に出させるか",
+        help="検索文を評価データの職業名と手書きのスキルで作るか、LLM の解釈とスキルで作るか",
     )
     args = parser.parse_args()
 
@@ -56,14 +57,17 @@ def main() -> None:
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     settings = load_settings()
-    analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
+    profiles: OccupationAnalyzer = (
+        openai_occupation_analyzer(settings) if args.skills == LLM else HandwrittenProfiles(dataset)
+    )
     engine = database_engine(settings)
     search = search_courses(settings, engine)
-    print(f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}")
+    print(
+        f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}、"
+        f"検索文 {SEARCHED_WITH[args.skills]}"
+    )
     try:
-        if analyzer is not None:
-            dataset = with_analyzed_skills(dataset, analyzer)
-        print(render(EvaluateSearch(search).run(dataset)))
+        print(render(EvaluateSearch(search, profiles).run(dataset)))
     except (
         EvaluationError,
         SearchError,

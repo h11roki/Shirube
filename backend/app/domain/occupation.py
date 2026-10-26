@@ -1,5 +1,4 @@
 import re
-from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Self
 
@@ -17,10 +16,6 @@ class OccupationProfileError(ValueError):
 
 def is_single_line(text: str) -> bool:
     return bool(text.strip()) and text.splitlines() == [text]
-
-
-def search_query(occupation: str, skills: Sequence[str]) -> str:
-    return "\n".join((occupation, *skills))
 
 
 @dataclass(frozen=True)
@@ -75,4 +70,4 @@ class OccupationProfile:
 
     @property
     def query(self) -> str:
-        return search_query(self.interpretation, self.skills)
+        return "\n".join((self.interpretation, *self.skills))

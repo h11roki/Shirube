@@ -15,7 +15,7 @@ from app.application.evaluate_selection import (
     UnlinkedPick,
     judgment_of,
 )
-from app.domain.occupation import OccupationProfile, OccupationProfileError
+from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CourseChoice, Relevance
 from app.presentation.cli.evaluate_selection import render
 from app.presentation.cli.evaluation_data import load_judgments
@@ -142,16 +142,6 @@ def test_expected_course_names_outside_the_candidates_stop_before_calling_the_ll
     )
 
     with pytest.raises(EvaluationError, match="候補に無い科目名があります: 打ち間違い"):
-        EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGMENTS)
-    assert selector.calls == []
-
-
-def test_handwritten_skills_that_a_profile_cannot_hold_stop_before_calling_the_llm() -> None:
-    repository, search = courses_ranked_by(SIMILARITIES)
-    selector = FakeCourseSelector([])
-    dataset = EvaluationDataset(2026, "情", (EvaluationCase("職業", ("甲",), ("科目A",)),))
-
-    with pytest.raises(OccupationProfileError, match="スキルは 3〜6 個"):
         EvaluateSelection(search, repository, selector, 3).run(dataset, JUDGMENTS)
     assert selector.calls == []
 

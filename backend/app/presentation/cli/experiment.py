@@ -34,10 +34,10 @@ from app.application.evaluate_search import (
     EvaluationCase,
     EvaluationDataset,
     EvaluationError,
+    HandwrittenProfiles,
 )
 from app.application.evaluate_selection import (
     ExpectedCourse,
-    HandwrittenProfiles,
     Judgment,
     Judgments,
     Pick,
@@ -58,7 +58,6 @@ from app.application.run_experiment import (
 )
 from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
-from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_course_selector as selection_prompt
@@ -585,14 +584,11 @@ def _experiment(
         models.append(settings.chat_model)
     if missing := unpriced(models):
         sys.exit(f"料金表に無いモデルでは費用の上限を守れないので流しません: {'、'.join(missing)}")
-    try:
-        analyzer = (
-            HandwrittenProfiles(dataset)
-            if args.profiles == "handwritten"
-            else occupation_analyzer(settings)
-        )
-    except OccupationProfileError as error:
-        sys.exit(f"評価データの手書きのスキルを使えません: {error}")
+    analyzer = (
+        HandwrittenProfiles(dataset)
+        if args.profiles == "handwritten"
+        else occupation_analyzer(settings)
+    )
     try:
         return RunExperiment(
             search_courses(settings, engine),

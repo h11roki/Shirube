@@ -15,7 +15,6 @@ from app.application.evaluate_selection import (
 )
 from app.application.ports import CourseSelectionError, EmbeddingError
 from app.application.search_courses import SearchError
-from app.domain.occupation import OccupationProfileError
 from app.domain.recommendation import RecommendationError, Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.presentation.cli.evaluation_data import (
@@ -135,7 +134,6 @@ def main() -> None:
     except (
         EvaluationError,
         SearchError,
-        OccupationProfileError,
         CourseSelectionError,
         RecommendationError,
         EmbeddingError,

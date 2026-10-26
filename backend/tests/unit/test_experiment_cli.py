@@ -358,7 +358,7 @@ def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
         151.0,
         {Side.BEFORE: {"selection_votes": 1}, Side.AFTER: {"selection_votes": 3}},
         {Side.BEFORE: "votes-before.json", Side.AFTER: "votes-after.json"},
-        (EvaluationCase("職業", ("甲",), ("科目A",)),),
+        (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A",)),),
     )
 
     before, after = documents[Side.BEFORE], documents[Side.AFTER]
@@ -781,7 +781,9 @@ def picking(occupation: str, unrelated: int) -> Trial:
 def saved_run(
     directory: Path, name: str, unrelated: Sequence[int], repeat: int = 1, **extra: Any
 ) -> Path:
-    cases = tuple(EvaluationCase(f"職業{index}", ("甲",), ("科目A",)) for index in range(10))
+    cases = tuple(
+        EvaluationCase(f"職業{index}", ("甲", "乙", "丙"), ("科目A",)) for index in range(10)
+    )
     outcomes: list[Trial | FailedTrial] = [
         replace(picking(case.occupation, count), repeat=repeat)
         for case, count in zip(cases, unrelated, strict=True)

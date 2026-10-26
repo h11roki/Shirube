@@ -9,7 +9,7 @@ from app.application.evaluate_search import (
     EvaluationDataset,
     EvaluationError,
     EvaluationReport,
-    with_analyzed_skills,
+    HandwrittenProfiles,
 )
 from app.application.judging import expected_courses
 from app.application.search_courses import SearchCourses, query_and_skills
@@ -36,14 +36,19 @@ def search_over(similarities: dict[str, float]) -> SearchCourses:
     return courses_ranked_by(similarities)[1]
 
 
+def evaluate(search: SearchCourses, *cases: EvaluationCase) -> EvaluationReport:
+    dataset = EvaluationDataset(2026, "情", cases)
+    return EvaluateSearch(search, HandwrittenProfiles(dataset)).run(dataset)
+
+
 def test_recall_counts_expected_courses_within_each_cutoff() -> None:
     similarities = {f"科目{rank:02d}": 1.0 - rank / 100 for rank in range(1, 26)}
-    case = EvaluationCase("職業", ("スキル",), ("科目01", "科目10", "科目15", "科目25"))
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01", "科目10", "科目15", "科目25"))
 
-    report = EvaluateSearch(search_over(similarities)).run(EvaluationDataset(2026, "情", (case,)))
+    report = evaluate(search_over(similarities), case)
 
     [result] = report.results
-    assert result.query == case.query
+    assert result.query == "職業\n甲\n乙\n丙"
     assert result.ranks == (("科目01", 1), ("科目10", 10), ("科目15", 15), ("科目25", None))
     assert result.recall(10) == 0.5
     assert result.recall(20) == 0.75
@@ -60,11 +65,9 @@ def test_a_course_first_for_a_skill_counts_at_the_turn_the_skill_gives_it() -> N
     chunks = FakeChunkSearch(
         hits, hits_by_length={1.0: [ChunkHit("10024", ChunkSection.OVERVIEW, 0.9)]}
     )
-    case = EvaluationCase("職業", ("甲",), ("科目25",))
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目25",))
 
-    report = EvaluateSearch(
-        SearchCourses(repository, chunks, FakeEmbedder(), query_and_skills)
-    ).run(EvaluationDataset(2026, "情", (case,)))
+    report = evaluate(SearchCourses(repository, chunks, FakeEmbedder(), query_and_skills), case)
 
     assert report.results[0].ranks == (("科目25", 2),)
 
@@ -72,38 +75,47 @@ def test_a_course_first_for_a_skill_counts_at_the_turn_the_skill_gives_it() -> N
 def test_the_queries_of_every_case_are_embedded_in_one_call() -> None:
     embedder = FakeEmbedder()
     cases = (
-        EvaluationCase("職業A", ("甲",), ("科目01",)),
-        EvaluationCase("職業B", ("乙", "丙"), ("科目01",)),
+        EvaluationCase("職業A", ("甲", "乙", "丙"), ("科目01",)),
+        EvaluationCase("職業B", ("丁", "戊", "己"), ("科目01",)),
     )
 
-    EvaluateSearch(courses_ranked_by({"科目01": 0.9}, embedder)[1]).run(
-        EvaluationDataset(2026, "情", cases)
-    )
+    evaluate(courses_ranked_by({"科目01": 0.9}, embedder)[1], *cases)
 
-    assert embedder.calls == [["職業A\n甲", "甲", "職業B\n乙\n丙", "乙", "丙"]]
+    assert embedder.calls == [
+        ["職業A\n甲\n乙\n丙", "甲", "乙", "丙", "職業B\n丁\n戊\n己", "丁", "戊", "己"]
+    ]
 
 
 def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
-    case = EvaluationCase("職業", ("スキル",), ("科目01", "存在しない科目"))
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01", "存在しない科目"))
 
     with pytest.raises(EvaluationError, match="存在しない科目"):
-        EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
+        evaluate(search_over({"科目01": 0.9}), case)
 
 
-def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
-    profile = OccupationProfile("職業", "別の名前の職業", None, ("甲", "乙", "丙"))
+def test_llm_profiles_search_with_the_interpretation_like_recommending() -> None:
+    profile = OccupationProfile("職業", "広い職業", "広く読んだ", ("甲", "乙", "丙"))
     analyzer = FakeOccupationAnalyzer({"職業": profile})
     dataset = EvaluationDataset(
-        2026, "情", (EvaluationCase("職業", ("手書きのスキル",), ("科目01",)),)
-    )
-
-    analyzed = with_analyzed_skills(dataset, analyzer)
-
-    assert analyzer.calls == ["職業"]
-    assert analyzed == EvaluationDataset(
         2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",)),)
     )
-    assert analyzed.cases[0].query == "職業\n甲\n乙\n丙"
+
+    report = EvaluateSearch(search_over({"科目01": 0.9}), analyzer).run(dataset)
+
+    assert analyzer.calls == ["職業"]
+    assert report.results[0].query == profile.query == "広い職業\n甲\n乙\n丙"
+
+
+def test_occupations_are_read_only_after_the_course_names_are_checked() -> None:
+    analyzer = FakeOccupationAnalyzer({})
+    dataset = EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("存在しない科目",)),)
+    )
+
+    with pytest.raises(EvaluationError, match="存在しない科目"):
+        EvaluateSearch(search_over({"科目01": 0.9}), analyzer).run(dataset)
+
+    assert analyzer.calls == []
 
 
 @pytest.mark.parametrize(
@@ -116,7 +128,9 @@ def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
         ("職業", ("C 言語\nマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("C 言語\rマイコン",), ("甲",), "職業: スキルに改行があります"),
         ("職業", ("C 言語", " C 言語"), ("甲",), "職業: スキルが重複しています"),
-        ("職業", ("スキル",), (), "職業: 期待する科目がありません"),
+        ("職業", ("甲", "乙"), ("甲",), "職業: スキルは 3〜6 個にしてください"),
+        ("職業", tuple("甲乙丙丁戊己庚"), ("甲",), "職業: スキルは 3〜6 個にしてください"),
+        ("職業", ("甲", "乙", "丙"), (), "職業: 期待する科目がありません"),
     ],
     ids=[
         "blank-occupation",
@@ -126,10 +140,12 @@ def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
         "multiline-skill",
         "carriage-return-in-skill",
         "duplicated-skill",
+        "too-few-skills",
+        "too-many-skills",
         "no-expected-courses",
     ],
 )
-def test_case_without_a_name_skills_or_expected_courses_is_rejected(
+def test_case_without_a_name_usable_skills_or_expected_courses_is_rejected(
     occupation: str, skills: tuple[str, ...], expected: tuple[str, ...], message: str
 ) -> None:
     with pytest.raises(EvaluationError, match=message):
@@ -137,7 +153,7 @@ def test_case_without_a_name_skills_or_expected_courses_is_rejected(
 
 
 def test_dataset_without_cases_or_with_repeated_occupations_is_rejected() -> None:
-    case = EvaluationCase("職業", ("スキル",), ("甲",))
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("甲",))
 
     with pytest.raises(EvaluationError, match="評価する職業がありません"):
         EvaluationDataset(2026, "情", ())
@@ -145,10 +161,17 @@ def test_dataset_without_cases_or_with_repeated_occupations_is_rejected() -> Non
         EvaluationDataset(2026, "情", (case, case))
 
 
-def test_query_joins_the_occupation_and_its_skills() -> None:
-    case = EvaluationCase("組込みエンジニア", ("C 言語", "マイコン"), ("甲",))
+def test_handwritten_profiles_read_the_occupation_as_written() -> None:
+    case = EvaluationCase("組込みエンジニア", ("C 言語", "マイコン", "電子回路"), ("甲",))
 
-    assert case.query == "組込みエンジニア\nC 言語\nマイコン"
+    profile = HandwrittenProfiles(EvaluationDataset(2026, "情", (case,))).analyze(
+        "組込みエンジニア"
+    )
+
+    assert profile == OccupationProfile(
+        "組込みエンジニア", "組込みエンジニア", None, ("C 言語", "マイコン", "電子回路")
+    )
+    assert profile.query == "組込みエンジニア\nC 言語\nマイコン\n電子回路"
 
 
 def test_report_lists_the_query_recalls_and_ranks() -> None:
@@ -167,7 +190,6 @@ def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
 
     assert (dataset.year, dataset.department) == (2026, "情")
     assert len(dataset.cases) == 50
-    assert all(len(case.skills) >= 3 for case in dataset.cases)
 
 
 def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
@@ -215,7 +237,7 @@ def test_expected_courses_follow_the_judges_majority_and_the_decisions() -> None
     }
 
 
-VALID = '{"name": "職業", "skills": ["C"], "expected": {"甲": "理由"}}'
+VALID = '{"name": "職業", "skills": ["C", "D", "E"], "expected": {"甲": "理由"}}'
 
 
 @pytest.mark.parametrize(
