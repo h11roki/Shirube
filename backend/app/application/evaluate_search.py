@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
-from app.domain.occupation import OccupationProfile, is_single_line
+from app.domain.occupation import SKILL_COUNT, OccupationProfile, is_single_line
 from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_CUTOFFS = (10, 20)
@@ -31,6 +31,9 @@ class EvaluationCase:
             raise EvaluationError(f"{self.occupation}: スキルに改行があります")
         if len({skill.strip() for skill in self.skills}) != len(self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが重複しています")
+        if len(self.skills) not in SKILL_COUNT:
+            counts = f"{SKILL_COUNT.start}〜{SKILL_COUNT.stop - 1}"
+            raise EvaluationError(f"{self.occupation}: スキルは {counts} 個にしてください")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
 
