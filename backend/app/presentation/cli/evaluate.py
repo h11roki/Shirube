@@ -47,7 +47,7 @@ def main() -> None:
         "--skills",
         choices=(HANDWRITTEN, LLM),
         default=HANDWRITTEN,
-        help="検索文のスキルを評価データの手書きにするか、職業名から LLM に出させるか",
+        help="検索文を評価データの職業名と手書きのスキルで作るか、LLM の解釈とスキルで作るか",
     )
     args = parser.parse_args()
 
@@ -59,7 +59,13 @@ def main() -> None:
     analyzer = openai_occupation_analyzer(settings) if args.skills == LLM else None
     engine = database_engine(settings)
     search = search_courses(settings, engine)
-    print(f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}")
+    searched_with = (
+        "評価データの職業名と手書きのスキル" if analyzer is None else "LLM の解釈とスキル"
+    )
+    print(
+        f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}、"
+        f"検索文 {searched_with}"
+    )
     try:
         if analyzer is not None:
             dataset = with_analyzed_profiles(dataset, analyzer)

@@ -101,15 +101,22 @@ def test_analyzed_profiles_search_with_the_interpretation_like_recommending() ->
 
     assert analyzer.calls == ["職業"]
     assert analyzed == EvaluationDataset(
-        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",), "広い職業"),)
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",), profile),)
     )
     assert analyzed.cases[0].query == profile.query == "広い職業\n甲\n乙\n丙"
 
 
-@pytest.mark.parametrize("interpretation", ["", "広い\n職業"], ids=["blank", "multiline"])
-def test_an_interpretation_must_be_one_line(interpretation: str) -> None:
-    with pytest.raises(EvaluationError, match="職業: 解釈した職業名は空でない 1 行"):
-        EvaluationCase("職業", ("甲",), ("科目01",), interpretation)
+@pytest.mark.parametrize(
+    "reading",
+    [
+        OccupationProfile("別の職業", "広い職業", "広く読んだ", ("甲", "乙", "丙")),
+        OccupationProfile("職業", "広い職業", "広く読んだ", ("甲", "乙", "丁")),
+    ],
+    ids=["other-occupation", "other-skills"],
+)
+def test_a_reading_must_be_of_the_case_and_its_skills(reading: OccupationProfile) -> None:
+    with pytest.raises(EvaluationError, match="職業: 読み取りの職業名かスキルが合いません"):
+        EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",), reading)
 
 
 @pytest.mark.parametrize(

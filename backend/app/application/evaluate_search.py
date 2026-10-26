@@ -4,7 +4,7 @@ from dataclasses import dataclass, replace
 
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
-from app.domain.occupation import is_single_line, search_query
+from app.domain.occupation import OccupationProfile, is_single_line, search_query
 from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_CUTOFFS = (10, 20)
@@ -19,15 +19,18 @@ class EvaluationCase:
     occupation: str
     skills: tuple[str, ...]
     expected: tuple[str, ...]
-    interpretation: str | None = None
+    reading: OccupationProfile | None = None
 
     def __post_init__(self) -> None:
         if not self.occupation.strip():
             raise EvaluationError("職業名が空です")
         if not is_single_line(self.occupation):
             raise EvaluationError(f"{self.occupation!r}: 職業名に改行があります")
-        if self.interpretation is not None and not is_single_line(self.interpretation):
-            raise EvaluationError(f"{self.occupation}: 解釈した職業名は空でない 1 行にしてください")
+        if self.reading is not None and (self.reading.occupation, self.reading.skills) != (
+            self.occupation,
+            self.skills,
+        ):
+            raise EvaluationError(f"{self.occupation}: 読み取りの職業名かスキルが合いません")
         if not self.skills or not all(skill.strip() for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが空です")
         if not all(is_single_line(skill) for skill in self.skills):
@@ -39,8 +42,9 @@ class EvaluationCase:
 
     @property
     def query(self) -> str:
-        named = self.occupation if self.interpretation is None else self.interpretation
-        return search_query(named, self.skills)
+        if self.reading is None:
+            return search_query(self.occupation, self.skills)
+        return self.reading.query
 
 
 @dataclass(frozen=True)
@@ -68,7 +72,7 @@ def with_analyzed_profiles(
 ) -> EvaluationDataset:
     profiles = [analyzer.analyze(case.occupation) for case in dataset.cases]
     cases = tuple(
-        replace(case, interpretation=profile.interpretation, skills=profile.skills)
+        replace(case, skills=profile.skills, reading=profile)
         for case, profile in zip(dataset.cases, profiles, strict=True)
     )
     return replace(dataset, cases=cases)
