@@ -249,5 +249,35 @@ for (const screen of SCREENS) {
       );
       expect(overflow).toBeLessThanOrEqual(0);
     });
+
+    for (const width of [NARROWEST, ...WIDTHS]) {
+      test(`幅 ${width}px で文字を 200% にしても横にはみ出さない`, async ({
+        page,
+        api,
+      }) => {
+        await open(page, api, screen, width, false);
+        await page.addStyleTag({
+          content: "html { font-size: 200% !important; }",
+        });
+        await fontsReady(page);
+        const report = await page.evaluate(() => {
+          const wide = [...document.querySelectorAll("body *")]
+            .filter(
+              (element) =>
+                element.getBoundingClientRect().right > window.innerWidth + 0.5,
+            )
+            .slice(0, 8)
+            .map(
+              (element) =>
+                `${element.tagName} ${String(element.className).slice(0, 80)} ${Math.round(element.getBoundingClientRect().right)}`,
+            );
+          return {
+            overflow: document.documentElement.scrollWidth - window.innerWidth,
+            wide,
+          };
+        });
+        expect(report.overflow, report.wide.join("\n")).toBeLessThanOrEqual(0);
+      });
+    }
   });
 }
