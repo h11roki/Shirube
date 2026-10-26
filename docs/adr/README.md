@@ -107,3 +107,4 @@
 | [0066](0066-evaluate-with-profiles.md) | 検索の評価は、手書きか LLM の読み取りから推薦と同じ検索文を作って測る | 承認 |
 | [0067](0067-heldout-occupations.md) | 確かめ用の 20 職業を別に取っておき、直しを決めたあとにだけ平均で測る | 承認 |
 | [0068](0068-selection-prompt-setting.md) | 選び直しの指示文を設定 SELECTION_PROMPT で替えられるようにし、pair で前と後を交互に比べる | 承認 |
+| [0069](0069-selection-restraint.md) | 選び直しは、選ぶか迷った授業を選ばず、関係する授業が少なければ少なく選ぶ | 承認 |
