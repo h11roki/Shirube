@@ -267,10 +267,15 @@ for (const screen of SCREENS) {
         },
       });
       await devtools.detach();
-      await fontsReady(page);
+      expect(
+        await page.evaluate(
+          () => getComputedStyle(document.documentElement).fontSize,
+        ),
+      ).toBe(`${CHROMIUM_DEFAULT_FONT_PX.standard * TEXT_ZOOM}px`);
       const problems: string[] = [];
       for (const width of ENLARGED_WIDTHS) {
         await page.setViewportSize({ width, height: 900 });
+        await fontsReady(page);
         const report = await page.evaluate((checksClipping) => {
           const described = (element: Element) =>
             `${element.tagName} ${(element.getAttribute("class") ?? "").slice(0, 80)}`;
