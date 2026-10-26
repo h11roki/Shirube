@@ -23,6 +23,10 @@ import {
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
+const ENLARGED_WIDTHS = [NARROWEST, ...WIDTHS];
+const CHROMIUM_DEFAULT_FONT_PX = { standard: 16, fixed: 13 };
+const TEXT_ZOOM = 2;
+const TEXT_RESIZE_WIDTH = 1280;
 const UNDECORATED_CSS = `
   body { background-image: none !important; }
   [data-station]::before, [data-station]::after,
@@ -248,6 +252,94 @@ for (const screen of SCREENS) {
         () => document.documentElement.scrollWidth - window.innerWidth,
       );
       expect(overflow).toBeLessThanOrEqual(0);
+    });
+
+    test(`ブラウザの文字を ${TEXT_ZOOM * 100}% にしても、幅 ${ENLARGED_WIDTHS.join("px、")}px で横にはみ出さず、幅 ${TEXT_RESIZE_WIDTH}px で文字も切れない`, async ({
+      page,
+      api,
+    }) => {
+      await open(page, api, screen, NARROWEST, false);
+      const devtools = await page.context().newCDPSession(page);
+      await devtools.send("Page.setFontSizes", {
+        fontSizes: {
+          standard: CHROMIUM_DEFAULT_FONT_PX.standard * TEXT_ZOOM,
+          fixed: CHROMIUM_DEFAULT_FONT_PX.fixed * TEXT_ZOOM,
+        },
+      });
+      await devtools.detach();
+      expect(
+        await page.evaluate(
+          () => getComputedStyle(document.documentElement).fontSize,
+        ),
+      ).toBe(`${CHROMIUM_DEFAULT_FONT_PX.standard * TEXT_ZOOM}px`);
+      const problems: string[] = [];
+      for (const width of ENLARGED_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 });
+        await fontsReady(page);
+        const report = await page.evaluate((checksClipping) => {
+          const described = (element: Element) =>
+            `${element.tagName} ${(element.getAttribute("class") ?? "").slice(0, 80)}`;
+          const scrolled = (element: Element) => {
+            for (
+              let parent = element.parentElement;
+              parent;
+              parent = parent.parentElement
+            ) {
+              const overflow = getComputedStyle(parent).overflowX;
+              if (overflow === "auto" || overflow === "scroll") {
+                return true;
+              }
+            }
+            return false;
+          };
+          const hides = (overflow: string) =>
+            overflow === "hidden" || overflow === "clip";
+          const elements = [...document.querySelectorAll("body *")];
+          const overflow =
+            document.documentElement.scrollWidth - window.innerWidth;
+          return {
+            overflow,
+            wide:
+              overflow > 0
+                ? elements
+                    .filter(
+                      (element) =>
+                        element.getBoundingClientRect().right >
+                          window.innerWidth + 0.5 && !scrolled(element),
+                    )
+                    .slice(0, 8)
+                    .map(
+                      (element) =>
+                        `${described(element)} ${Math.round(element.getBoundingClientRect().right)}`,
+                    )
+                : [],
+            clipped: checksClipping
+              ? elements
+                  .filter((element) => {
+                    const style = getComputedStyle(element);
+                    return (
+                      !element.classList.contains("sr-only") &&
+                      ((hides(style.overflowX) &&
+                        element.scrollWidth > element.clientWidth + 1) ||
+                        (hides(style.overflowY) &&
+                          element.scrollHeight > element.clientHeight + 1))
+                    );
+                  })
+                  .slice(0, 8)
+                  .map(described)
+              : [],
+          };
+        }, width === TEXT_RESIZE_WIDTH);
+        if (report.overflow > 0) {
+          problems.push(`幅 ${width}px ではみ出す: ${report.wide.join(" / ")}`);
+        }
+        if (report.clipped.length > 0) {
+          problems.push(
+            `幅 ${width}px で切れる: ${report.clipped.join(" / ")}`,
+          );
+        }
+      }
+      expect(problems).toEqual([]);
     });
   });
 }
