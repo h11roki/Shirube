@@ -11,6 +11,9 @@ from app.domain.recommendation import Relevance
 
 DEFAULT_DATASET = Path(__file__).resolve().parents[3] / "eval" / "occupations.json"
 DEFAULT_JUDGMENTS = DEFAULT_DATASET.with_name("judgments.json")
+HELDOUT_DATASET = DEFAULT_DATASET.parent / "heldout" / "occupations.json"
+HELDOUT_JUDGMENTS = HELDOUT_DATASET.with_name("judgments.json")
+HIDDEN_REASON = "確かめ用なので理由は出さない"
 DATASET_LINES = frozenset({"skills"})
 
 
@@ -56,6 +59,9 @@ def load_dataset(path: Path) -> EvaluationDataset:
     year, department = document["year"], document["department"]
     if isinstance(year, bool) or not isinstance(year, int) or not isinstance(department, str):
         raise ValueError("year は整数、department は文字列にしてください")
+    heldout = document.get("heldout", False)
+    if not isinstance(heldout, bool):
+        raise ValueError("heldout は true か false にしてください")
     cases = []
     for occupation in document["occupations"]:
         name, skills, expected = occupation["name"], occupation["skills"], occupation["expected"]
@@ -70,7 +76,7 @@ def load_dataset(path: Path) -> EvaluationDataset:
                 f"{name}: expected は科目名から理由(空でない文字列)への対応にしてください"
             )
         cases.append(EvaluationCase(name, tuple(skills), tuple(expected)))
-    return EvaluationDataset(year, department, tuple(cases))
+    return EvaluationDataset(year, department, tuple(cases), heldout)
 
 
 def judged_courses(occupation: Mapping[str, Any]) -> list[JudgedCourse]:

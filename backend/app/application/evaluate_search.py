@@ -43,6 +43,7 @@ class EvaluationDataset:
     year: int
     department: str
     cases: tuple[EvaluationCase, ...]
+    heldout: bool = False
 
     def __post_init__(self) -> None:
         if not self.cases:

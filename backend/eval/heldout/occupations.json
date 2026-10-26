@@ -1,6 +1,7 @@
 {
   "year": 2026,
   "department": "情",
+  "heldout": true,
   "occupations": [
     {
       "name": "HPC・並列計算エンジニア",

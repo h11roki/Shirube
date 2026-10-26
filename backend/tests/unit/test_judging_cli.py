@@ -8,6 +8,8 @@ from app.presentation.cli.evaluation_data import (
     DATASET_LINES,
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    HELDOUT_DATASET,
+    HELDOUT_JUDGMENTS,
     read_document,
     write_document,
 )
@@ -22,8 +24,13 @@ ROLES = {
 
 @pytest.mark.parametrize(
     ("path", "one_line"),
-    [(DEFAULT_DATASET, DATASET_LINES), (DEFAULT_JUDGMENTS, frozenset(ROLES))],
-    ids=["dataset", "judgments"],
+    [
+        (DEFAULT_DATASET, DATASET_LINES),
+        (DEFAULT_JUDGMENTS, frozenset(ROLES)),
+        (HELDOUT_DATASET, DATASET_LINES),
+        (HELDOUT_JUDGMENTS, frozenset(ROLES)),
+    ],
+    ids=["dataset", "judgments", "heldout-dataset", "heldout-judgments"],
 )
 def test_the_committed_files_are_written_back_unchanged(
     tmp_path: Path, path: Path, one_line: frozenset[str]

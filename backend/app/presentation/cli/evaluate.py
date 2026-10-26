@@ -13,7 +13,7 @@ from app.application.evaluate_search import (
 )
 from app.application.ports import EmbeddingError, OccupationAnalysisError, OccupationAnalyzer
 from app.application.search_courses import SearchError
-from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
+from app.presentation.cli.evaluation_data import DEFAULT_DATASET, HIDDEN_REASON, load_dataset
 from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     database_engine,
@@ -57,7 +57,7 @@ def main() -> None:
     parser.add_argument(
         "--summary",
         action="store_true",
-        help="職業ごとの結果を出さず、平均の再現率だけを出す(確かめ用を測るとき。ADR 0067)",
+        help="職業ごとの結果を出さず、平均の再現率だけを出す(確かめ用はいつも平均だけ。ADR 0067)",
     )
     args = parser.parse_args()
 
@@ -77,14 +77,15 @@ def main() -> None:
     )
     try:
         report = EvaluateSearch(search, profiles).run(dataset)
-        print(render_means(report) if args.summary else render(report))
+        print(render_means(report) if args.summary or dataset.heldout else render(report))
     except (
         EvaluationError,
         SearchError,
         OccupationAnalysisError,
         EmbeddingError,
     ) as error:
-        sys.exit(f"評価を止めました: {error}")
+        reason = f"{type(error).__name__}({HIDDEN_REASON})" if dataset.heldout else error
+        sys.exit(f"評価を止めました: {reason}")
     except OperationalError as error:
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:

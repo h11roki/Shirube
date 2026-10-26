@@ -116,6 +116,11 @@ def main() -> None:
         dataset = load_dataset(args.dataset)
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
+    if dataset.heldout:
+        sys.exit(
+            "確かめ用は職業ごとの結果を出すこの評価では測らない。"
+            "experiment に --dataset と --judgments を付けて流し、compare で比べる(ADR 0067)"
+        )
     try:
         judgments = load_judgments(args.judgments, dataset)
     except (OSError, ValueError, KeyError, TypeError, AttributeError) as error:

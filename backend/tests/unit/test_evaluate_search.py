@@ -20,6 +20,8 @@ from app.presentation.cli.evaluate import render, render_means
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    HELDOUT_DATASET,
+    HELDOUT_JUDGMENTS,
     judged_courses,
     load_dataset,
     read_document,
@@ -191,12 +193,10 @@ def test_means_leave_out_every_occupation() -> None:
     assert render_means(report) == "平均  @10 0.50  @20 0.50"
 
 
-HELDOUT_DATASET = DEFAULT_DATASET.parent / "heldout" / "occupations.json"
-HELDOUT_JUDGMENTS = HELDOUT_DATASET.with_name("judgments.json")
+COMMITTED_FILES = [(DEFAULT_DATASET, DEFAULT_JUDGMENTS), (HELDOUT_DATASET, HELDOUT_JUDGMENTS)]
+COMMITTED_NAMES = ["development", "heldout"]
 COMMITTED = pytest.mark.parametrize(
-    ("dataset_path", "judgments_path"),
-    [(DEFAULT_DATASET, DEFAULT_JUDGMENTS), (HELDOUT_DATASET, HELDOUT_JUDGMENTS)],
-    ids=["development", "heldout"],
+    ("dataset_path", "judgments_path"), COMMITTED_FILES, ids=COMMITTED_NAMES
 )
 
 
@@ -211,6 +211,7 @@ def test_heldout_has_twenty_other_occupations_judged_like_the_development_set() 
     dataset, heldout = load_dataset(DEFAULT_DATASET), load_dataset(HELDOUT_DATASET)
 
     assert (heldout.year, heldout.department) == (dataset.year, dataset.department)
+    assert (heldout.heldout, dataset.heldout) == (True, False)
     assert len(heldout.cases) == 20
     assert not {case.occupation for case in heldout.cases} & {
         case.occupation for case in dataset.cases
@@ -224,7 +225,7 @@ def test_heldout_has_twenty_other_occupations_judged_like_the_development_set() 
 
 
 @pytest.mark.parametrize(
-    "judgments_path", [DEFAULT_JUDGMENTS, HELDOUT_JUDGMENTS], ids=["development", "heldout"]
+    "judgments_path", [judgments for _, judgments in COMMITTED_FILES], ids=COMMITTED_NAMES
 )
 def test_judgments_cover_188_courses_with_every_judge_on_both_halves(judgments_path: Path) -> None:
     judgments = read_document(judgments_path)
@@ -311,6 +312,17 @@ def test_malformed_dataset_is_rejected(tmp_path: Path, occupations: str, message
     )
 
     with pytest.raises(ValueError, match=message):
+        load_dataset(path)
+
+
+def test_heldout_must_be_true_or_false(tmp_path: Path) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        '{"year": 2026, "department": "情", "heldout": "yes", "occupations": []}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="heldout は true か false"):
         load_dataset(path)
 
 

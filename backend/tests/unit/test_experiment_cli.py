@@ -12,7 +12,7 @@ from langchain_core.messages import HumanMessage
 
 from app.application.compare_experiments import MIN_OCCUPATIONS, Change, Comparison, Interval
 from app.application.compare_experiments import OVERLAPS as MEASURED_OVERLAPS
-from app.application.evaluate_search import EvaluationCase
+from app.application.evaluate_search import EvaluationCase, EvaluationDataset
 from app.application.evaluate_selection import (
     ExpectedCourse,
     Judgment,
@@ -42,17 +42,21 @@ from app.domain.recommendation import (
 )
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
+    HELDOUT_RUNS,
     METRICS,
     OVERLAPS,
+    RUNS,
     Collection,
     arguments,
     collect,
     compare,
+    failure_hidden,
     label,
     main,
     pair_documents,
     ran_interleaved,
     render,
+    results_directory,
     scorecard,
     setting,
     summary_document,
@@ -300,6 +304,43 @@ def test_collect_shows_and_keeps_the_side_each_recommendation_ran_for(
     assert collection.of(Side.BEFORE) == [succeeded(1)]
     assert collection.of(Side.AFTER) == [failed(1), succeeded(2)]
     assert collection.of(None) == []
+
+
+def test_collect_leaves_out_the_failure_reasons_of_the_heldout_set(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    hidden = FailedTrial("職業", 1, "候補に無い科目が選ばれています: 科目A", THIRTY_YEN)
+
+    collect(iter([(None, hidden)]), 1, 1000, dict, failed=failure_hidden)
+
+    shown = capsys.readouterr().err
+    assert "失敗(確かめ用なので理由は出さない)" in shown
+    assert "科目A" not in shown
+
+
+@pytest.mark.parametrize(
+    ("heldout", "out", "chosen"),
+    [
+        (False, None, RUNS),
+        (False, Path("elsewhere"), Path("elsewhere")),
+        (True, None, HELDOUT_RUNS),
+        (True, Path("elsewhere"), Path("elsewhere")),
+    ],
+    ids=["development", "development-out", "heldout", "heldout-out"],
+)
+def test_heldout_results_go_outside_the_committed_runs_unless_told_where(
+    heldout: bool, out: Path | None, chosen: Path
+) -> None:
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A",))
+
+    assert results_directory(out, EvaluationDataset(2026, "情", (case,), heldout)) == chosen
+
+
+def test_heldout_results_are_refused_under_the_committed_eval_directory() -> None:
+    case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A",))
+
+    with pytest.raises(SystemExit, match="確かめ用の結果は"):
+        results_directory(RUNS / "sub", EvaluationDataset(2026, "情", (case,), heldout=True))
 
 
 @pytest.mark.parametrize(
