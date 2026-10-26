@@ -317,13 +317,25 @@ for (const screen of SCREENS) {
               ? elements
                   .filter((element) => {
                     const style = getComputedStyle(element);
-                    return (
-                      !element.classList.contains("sr-only") &&
-                      ((hides(style.overflowX) &&
-                        element.scrollWidth > element.clientWidth + 1) ||
-                        (hides(style.overflowY) &&
-                          element.scrollHeight > element.clientHeight + 1))
-                    );
+                    if (element.classList.contains("sr-only")) {
+                      return false;
+                    }
+                    if (
+                      hides(style.overflowX) &&
+                      element.scrollWidth > element.clientWidth + 1
+                    ) {
+                      return true;
+                    }
+                    if (!hides(style.overflowY)) {
+                      return false;
+                    }
+                    const box = element.getBoundingClientRect();
+                    const range = document.createRange();
+                    range.selectNodeContents(element);
+                    return [...range.getClientRects()].some((line) => {
+                      const middle = (line.top + line.bottom) / 2;
+                      return middle < box.top || middle > box.bottom;
+                    });
                   })
                   .slice(0, 8)
                   .map(described)
