@@ -60,7 +60,6 @@ from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm import openai_course_selector as selection_prompt
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
@@ -78,6 +77,7 @@ from app.presentation.composition import (
     load_settings,
     occupation_analyzer,
     search_courses,
+    selection_instructions,
 )
 from app.settings import Settings
 
@@ -109,6 +109,7 @@ PAIRABLE_SETTINGS = (
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
+    "SELECTION_PROMPT",
 )
 SIDE_NAMES = {Side.BEFORE: "前", Side.AFTER: "後"}
 METRICS = (
@@ -559,7 +560,7 @@ def config_document(
             "occupation": (
                 _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
             ),
-            "selection": _digest(selection_prompt.INSTRUCTIONS.encode("utf-8")),
+            "selection": _digest(selection_instructions(settings).encode("utf-8")),
         },
         "dataset": _digest(args.dataset.read_bytes()),
         "judgments": _digest(args.judgments.read_bytes()),

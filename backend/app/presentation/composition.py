@@ -26,6 +26,7 @@ from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
+from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
@@ -89,12 +90,19 @@ def occupation_analyzer(settings: Settings) -> OccupationAnalyzer:
     return CachedOccupationAnalyzer(analyzer, settings.occupation_reading_cache_size)
 
 
+def selection_instructions(settings: Settings) -> str:
+    if settings.selection_prompt is None:
+        return SELECTION_INSTRUCTIONS
+    return settings.selection_prompt.read_text(encoding="utf-8")
+
+
 def course_selector(settings: Settings) -> CourseSelector:
     selector = OpenAICourseSelector.connect(
         settings.selection_model,
         openai_api_key(settings),
         settings.openai_timeout_seconds,
         settings.openai_max_retries,
+        selection_instructions(settings),
     )
     if settings.selection_votes == 1:
         return selector

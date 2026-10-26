@@ -80,6 +80,16 @@ def test_foundations_for_courses_not_chosen_as_core_are_left_to_arrange() -> Non
     ]
 
 
+def test_the_given_instructions_are_sent_as_the_system_message() -> None:
+    requests: list[dict[str, Any]] = []
+
+    OpenAICourseSelector(chat_answering(answer(), requests), "試す指示文").select(
+        PROFILE, CANDIDATES
+    )
+
+    assert requests[0]["messages"][0] == {"role": "system", "content": "試す指示文"}
+
+
 def test_request_shows_the_profile_and_trimmed_excerpts() -> None:
     requests: list[dict[str, Any]] = []
     selector_answering(answer(), requests).select(PROFILE, CANDIDATES)

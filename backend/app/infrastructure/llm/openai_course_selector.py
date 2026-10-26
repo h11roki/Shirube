@@ -124,12 +124,16 @@ class _Selection(BaseModel):
 
 
 class OpenAICourseSelector:
-    def __init__(self, chat: ChatOpenAI) -> None:
+    def __init__(self, chat: ChatOpenAI, instructions: str = INSTRUCTIONS) -> None:
         self._chat = chat
+        self._instructions = instructions
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
+    def connect(
+        cls, model: str, api_key: SecretStr, timeout: float, retries: int, instructions: str
+    ) -> Self:
+        chat = ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries)
+        return cls(chat, instructions)
 
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
@@ -137,7 +141,7 @@ class OpenAICourseSelector:
         client = self._chat.with_structured_output(
             _schema([candidate.name for candidate in candidates]), method="json_schema", strict=True
         )
-        messages = [SystemMessage(INSTRUCTIONS), HumanMessage(_request(profile, candidates))]
+        messages = [SystemMessage(self._instructions), HumanMessage(_request(profile, candidates))]
         try:
             selection = _Selection.model_validate(client.invoke(messages))
             return [

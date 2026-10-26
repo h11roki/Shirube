@@ -362,6 +362,7 @@ def test_heldout_results_refuse_any_other_directory(out: Path) -> None:
             ("EMBEDDING_MODEL", "text-embedding-3-small"),
         ),
         ("SEARCH_BY_SKILL=false", ("SEARCH_BY_SKILL", "false")),
+        ("SELECTION_PROMPT=prompt.txt", ("SELECTION_PROMPT", "prompt.txt")),
     ],
 )
 def test_a_pair_setting_names_a_setting_on_the_recommendation_path(

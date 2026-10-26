@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from pydantic import Field, SecretStr
+from pydantic import Field, FilePath, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +23,7 @@ class Settings(CurriculumSettings):
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 20
     selection_votes: Annotated[int, Field(ge=1, le=5)] = 3
     selection_vote_delay_seconds: Annotated[float, Field(ge=0, le=10)] = 0.5
+    selection_prompt: FilePath | None = None
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
     openai_timeout_seconds: Annotated[float, Field(gt=0)] = 45
     openai_max_retries: Annotated[int, Field(ge=0)] = 1
@@ -30,3 +31,10 @@ class Settings(CurriculumSettings):
     plan_stall_minutes: Annotated[int, Field(gt=0)] = 20
     daily_plan_limit_per_user: Annotated[int, Field(gt=0)] = 3
     daily_plan_limit_total: Annotated[int, Field(gt=0)] = 30
+
+    @field_validator("selection_prompt")
+    @classmethod
+    def _prompt_has_text(cls, path: FilePath | None) -> FilePath | None:
+        if path is not None and not path.read_text(encoding="utf-8").strip():
+            raise ValueError("選び直しの指示文のファイルが空です")
+        return path
