@@ -60,7 +60,7 @@ export function PlanProgress({
         </div>
         <Signpost
           from={`${conditions.grade} 回生`}
-          className="w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
+          className="ml-auto w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
         />
       </div>
       {plan.status === "pending" && (

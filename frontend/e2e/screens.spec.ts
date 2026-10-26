@@ -14,6 +14,7 @@ import {
   RUNNING_PLAN,
   TAKEN_COURSES,
   expect,
+  enlargeBrowserText,
   fontsReady,
   planApi,
   signIn,
@@ -23,6 +24,9 @@ import {
 const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
+const ENLARGED_WIDTHS = [NARROWEST, ...WIDTHS];
+const ENLARGED_FONT_PX = 32;
+const TEXT_RESIZE_WIDTH = 1280;
 const UNDECORATED_CSS = `
   body { background-image: none !important; }
   [data-station]::before, [data-station]::after,
@@ -250,34 +254,68 @@ for (const screen of SCREENS) {
       expect(overflow).toBeLessThanOrEqual(0);
     });
 
-    for (const width of [NARROWEST, ...WIDTHS]) {
-      test(`幅 ${width}px で文字を 200% にしても横にはみ出さない`, async ({
-        page,
-        api,
-      }) => {
-        await open(page, api, screen, width, false);
-        await page.addStyleTag({
-          content: "html { font-size: 200% !important; }",
-        });
-        await fontsReady(page);
+    test(`ブラウザの文字を 200% にしても、幅 ${ENLARGED_WIDTHS.join("px、")}px で横にはみ出さず、幅 ${TEXT_RESIZE_WIDTH}px で文字も切れない`, async ({
+      page,
+      api,
+    }) => {
+      await open(page, api, screen, NARROWEST, false);
+      await enlargeBrowserText(page, ENLARGED_FONT_PX);
+      const problems: string[] = [];
+      for (const width of ENLARGED_WIDTHS) {
+        await page.setViewportSize({ width, height: 900 });
         const report = await page.evaluate(() => {
-          const wide = [...document.querySelectorAll("body *")]
-            .filter(
-              (element) =>
-                element.getBoundingClientRect().right > window.innerWidth + 0.5,
-            )
-            .slice(0, 8)
-            .map(
-              (element) =>
-                `${element.tagName} ${String(element.className).slice(0, 80)} ${Math.round(element.getBoundingClientRect().right)}`,
-            );
+          const described = (element: Element) =>
+            `${element.tagName} ${(element.getAttribute("class") ?? "").slice(0, 80)}`;
+          const scrolled = (element: Element) => {
+            for (
+              let parent = element.parentElement;
+              parent;
+              parent = parent.parentElement
+            ) {
+              const overflow = getComputedStyle(parent).overflowX;
+              if (overflow === "auto" || overflow === "scroll") {
+                return true;
+              }
+            }
+            return false;
+          };
+          const elements = [...document.querySelectorAll("body *")];
           return {
             overflow: document.documentElement.scrollWidth - window.innerWidth,
-            wide,
+            wide: elements
+              .filter(
+                (element) =>
+                  element.getBoundingClientRect().right >
+                    window.innerWidth + 0.5 && !scrolled(element),
+              )
+              .slice(0, 8)
+              .map(
+                (element) =>
+                  `${described(element)} ${Math.round(element.getBoundingClientRect().right)}`,
+              ),
+            clipped: elements
+              .filter((element) => {
+                const overflow = getComputedStyle(element).overflowX;
+                return (
+                  (overflow === "hidden" || overflow === "clip") &&
+                  !element.classList.contains("sr-only") &&
+                  element.scrollWidth > element.clientWidth + 1
+                );
+              })
+              .slice(0, 8)
+              .map(described),
           };
         });
-        expect(report.overflow, report.wide.join("\n")).toBeLessThanOrEqual(0);
-      });
-    }
+        if (report.overflow > 0) {
+          problems.push(`幅 ${width}px ではみ出す: ${report.wide.join(" / ")}`);
+        }
+        if (width === TEXT_RESIZE_WIDTH && report.clipped.length > 0) {
+          problems.push(
+            `幅 ${width}px で切れる: ${report.clipped.join(" / ")}`,
+          );
+        }
+      }
+      expect(problems).toEqual([]);
+    });
   });
 }
