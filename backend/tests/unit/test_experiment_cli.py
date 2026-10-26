@@ -40,6 +40,7 @@ from app.domain.recommendation import (
     RecommendedCourse,
     Relevance,
 )
+from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.experiment import (
     HELDOUT_RUNS,
@@ -60,6 +61,7 @@ from app.presentation.cli.experiment import (
     setting,
     summary_document,
     trial_document,
+    trial_instructions,
     unpriced,
     yen,
 )
@@ -426,6 +428,42 @@ def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
     assert after["pair"]["partner"] == "votes-before.json"
     assert before["stopped"] == after["stopped"] == "中断した"
     assert ran_interleaved(before, after)
+
+
+def test_a_trial_prompt_is_read_once_without_the_surrounding_blanks(tmp_path: Path) -> None:
+    prompt = tmp_path / "selection.txt"
+    prompt.write_text("試す指示文\n", encoding="utf-8")
+
+    assert trial_instructions(str(prompt)) == "試す指示文"
+    assert trial_instructions(None) == INSTRUCTIONS
+
+
+@pytest.mark.parametrize(
+    ("kind", "message"),
+    [
+        ("missing", "SELECTION_PROMPT を読めません"),
+        ("directory", "SELECTION_PROMPT を読めません"),
+        ("blank", "SELECTION_PROMPT の文面が空です"),
+        ("placeholder", "組み込みの文面の書き方"),
+        ("line-join", "組み込みの文面の書き方"),
+    ],
+)
+def test_a_trial_prompt_that_cannot_be_used_is_refused(
+    tmp_path: Path, kind: str, message: str
+) -> None:
+    prompt = tmp_path / "selection.txt"
+    texts = {
+        "blank": " \n",
+        "placeholder": "理由は {REASON_LIMIT} 字以内",
+        "line-join": "前の行\\\n次の行",
+    }
+    if kind == "directory":
+        prompt.mkdir()
+    if kind in texts:
+        prompt.write_text(texts[kind], encoding="utf-8")
+
+    with pytest.raises(SystemExit, match=message):
+        trial_instructions(str(prompt))
 
 
 def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
