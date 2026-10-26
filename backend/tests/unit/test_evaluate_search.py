@@ -207,7 +207,7 @@ def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     assert len(dataset.cases) == 50
 
 
-def test_heldout_has_twenty_other_occupations_judged_on_the_same_courses() -> None:
+def test_heldout_has_twenty_other_occupations_judged_like_the_development_set() -> None:
     dataset, heldout = load_dataset(DEFAULT_DATASET), load_dataset(HELDOUT_DATASET)
 
     assert (heldout.year, heldout.department) == (dataset.year, dataset.department)
@@ -215,7 +215,12 @@ def test_heldout_has_twenty_other_occupations_judged_on_the_same_courses() -> No
     assert not {case.occupation for case in heldout.cases} & {
         case.occupation for case in dataset.cases
     }
-    assert read_document(HELDOUT_JUDGMENTS)["parts"] == read_document(DEFAULT_JUDGMENTS)["parts"]
+    development, heldout_judgments = (
+        read_document(DEFAULT_JUDGMENTS),
+        read_document(HELDOUT_JUDGMENTS),
+    )
+    for key in ("year", "department", "model", "judges", "parts"):
+        assert heldout_judgments[key] == development[key], key
 
 
 @pytest.mark.parametrize(
