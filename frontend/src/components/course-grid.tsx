@@ -10,7 +10,7 @@ export function CourseGrid({
   transfers?: Map<string, Transfer>;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+    <div className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(min(18rem,100%),1fr))]">
       {courses.map((course) => (
         <CourseTicket
           key={"section_code" in course ? course.section_code : course.name}
