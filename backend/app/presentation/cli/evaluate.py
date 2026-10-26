@@ -9,7 +9,7 @@ from app.application.evaluate_search import (
     EvaluateSearch,
     EvaluationError,
     EvaluationReport,
-    with_analyzed_skills,
+    with_analyzed_profiles,
 )
 from app.application.ports import EmbeddingError, OccupationAnalysisError
 from app.application.search_courses import SearchError
@@ -62,7 +62,7 @@ def main() -> None:
     print(f"埋め込み {settings.embedding_model}、検索 {SEARCH_MODES[settings.search_by_skill]}")
     try:
         if analyzer is not None:
-            dataset = with_analyzed_skills(dataset, analyzer)
+            dataset = with_analyzed_profiles(dataset, analyzer)
         print(render(EvaluateSearch(search).run(dataset)))
     except (
         EvaluationError,

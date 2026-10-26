@@ -9,7 +9,7 @@ from app.application.evaluate_search import (
     EvaluationDataset,
     EvaluationError,
     EvaluationReport,
-    with_analyzed_skills,
+    with_analyzed_profiles,
 )
 from app.application.judging import expected_courses
 from app.application.search_courses import SearchCourses, query_and_skills
@@ -90,20 +90,26 @@ def test_expected_course_names_outside_the_candidates_are_an_error() -> None:
         EvaluateSearch(search_over({"科目01": 0.9})).run(EvaluationDataset(2026, "情", (case,)))
 
 
-def test_analyzed_skills_replace_only_the_handwritten_skills() -> None:
-    profile = OccupationProfile("職業", "別の名前の職業", None, ("甲", "乙", "丙"))
+def test_analyzed_profiles_search_with_the_interpretation_like_recommending() -> None:
+    profile = OccupationProfile("職業", "広い職業", "広く読んだ", ("甲", "乙", "丙"))
     analyzer = FakeOccupationAnalyzer({"職業": profile})
     dataset = EvaluationDataset(
         2026, "情", (EvaluationCase("職業", ("手書きのスキル",), ("科目01",)),)
     )
 
-    analyzed = with_analyzed_skills(dataset, analyzer)
+    analyzed = with_analyzed_profiles(dataset, analyzer)
 
     assert analyzer.calls == ["職業"]
     assert analyzed == EvaluationDataset(
-        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",)),)
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目01",), "広い職業"),)
     )
-    assert analyzed.cases[0].query == "職業\n甲\n乙\n丙"
+    assert analyzed.cases[0].query == profile.query == "広い職業\n甲\n乙\n丙"
+
+
+@pytest.mark.parametrize("interpretation", ["", "広い\n職業"], ids=["blank", "multiline"])
+def test_an_interpretation_must_be_one_line(interpretation: str) -> None:
+    with pytest.raises(EvaluationError, match="職業: 解釈した職業名は空でない 1 行"):
+        EvaluationCase("職業", ("甲",), ("科目01",), interpretation)
 
 
 @pytest.mark.parametrize(
