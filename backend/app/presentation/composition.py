@@ -1,3 +1,4 @@
+import os
 import sys
 from datetime import UTC, date, datetime
 from typing import Any
@@ -34,6 +35,11 @@ from app.settings import Settings
 
 
 def load_settings(**overrides: Any) -> Settings:
+    if os.environ.get("SELECTION_PROMPT"):
+        sys.exit(
+            "SELECTION_PROMPT は環境変数に書かず、"
+            "experiment pair の --before か --after でだけ替えてください(ADR 0068)"
+        )
     try:
         return Settings(**overrides)
     except ValidationError as error:
@@ -93,7 +99,7 @@ def occupation_analyzer(settings: Settings) -> OccupationAnalyzer:
 def selection_instructions(settings: Settings) -> str:
     if settings.selection_prompt is None:
         return SELECTION_INSTRUCTIONS
-    return settings.selection_prompt.read_text(encoding="utf-8")
+    return settings.selection_prompt
 
 
 def course_selector(settings: Settings) -> CourseSelector:

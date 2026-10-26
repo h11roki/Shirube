@@ -125,7 +125,7 @@ class _Selection(BaseModel):
 
 
 class OpenAICourseSelector:
-    def __init__(self, chat: ChatOpenAI, instructions: str = INSTRUCTIONS) -> None:
+    def __init__(self, chat: ChatOpenAI, instructions: str) -> None:
         self._chat = chat
         self._instructions = instructions
 

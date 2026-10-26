@@ -20,9 +20,10 @@
 
 高橋さんが 1 を選んだ。
 
-- 設定 `SELECTION_PROMPT` は UTF-8 の文書のファイルの置き場。書かなければ組み込みの文面(`openai_course_selector.py` の `INSTRUCTIONS`)を使う。ファイルが無いときと中身が空のときは、始めるときに断る
-- 組み立て(`presentation/composition.py`)がファイルを読み、選び手に指示文として渡す。本番(API と worker)では書かない
-- `experiment pair` の `--before` と `--after` で替えられる設定に足す。結果の設定には、実際に使った文面の指紋を残す(今までどおり `prompts.selection`)
+- 設定 `SELECTION_PROMPT` は UTF-8 の文書のファイルの置き場。設定を読むときにファイルを 1 度だけ読み、前後の空白を除いた文面を持つ(流している間にファイルを書き換えても、使う文面と結果に残す指紋は変わらない。エディタが足す末尾の改行で指紋が変わらない)。ファイルが無いとき、読めないとき、中身が空のときは、始めるときに断る
+- 書かなければ組み込みの文面(`openai_course_selector.py` の `INSTRUCTIONS`)を使う。組み込みの文面に戻すのは組み立て(`presentation/composition.py`)の 1 か所で、選び手は渡された指示文を使うだけ
+- `SELECTION_PROMPT` は環境変数では受け付けず(書いてあれば断る)、`experiment pair` の `--before` と `--after` でだけ替える。環境変数に残すと、ほかの CLI や worker まで試した文面で選び直してしまい、pair で片側を組み込みの文面に戻せないため(レビューの指摘で決めた)
+- 結果の設定には、実際に使った文面の指紋を残す(今までどおり `prompts.selection`)
 - 試した文面はリポジトリに置かない。組み込みの文面からの違いを ADR に書き、採った文面は組み込みの文面に入れる
 
 ## 理由

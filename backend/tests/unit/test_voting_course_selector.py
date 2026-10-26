@@ -9,7 +9,7 @@ from app.application.ports import CourseSelectionError, TokenUsage
 from app.application.voting_course_selector import VotingCourseSelector
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
-from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
+from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS, OpenAICourseSelector
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.composition import course_selector
 from app.settings import Settings
@@ -105,7 +105,8 @@ def test_the_later_votes_are_sent_after_the_wait_so_the_first_prompt_can_be_cach
 def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() -> None:
     answer = {"core": [{"name": "科目A", "reason": "理由A"}], "foundation": []}
     selector = OpenAICourseSelector(
-        chat_answering({"content": json.dumps(answer, ensure_ascii=False), "refusal": None})
+        chat_answering({"content": json.dumps(answer, ensure_ascii=False), "refusal": None}),
+        INSTRUCTIONS,
     )
 
     with LangChainUsageMeter().meter() as usage:
