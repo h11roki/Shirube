@@ -16,7 +16,7 @@ from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import render
+from app.presentation.cli.evaluate import render, render_means
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
@@ -183,6 +183,12 @@ def test_report_lists_the_query_recalls_and_ranks() -> None:
         "  甲 3 位 / 乙 圏外\n"
         "平均  @10 0.50  @20 0.50"
     )
+
+
+def test_means_leave_out_every_occupation() -> None:
+    report = EvaluationReport((CaseResult("職業", "職業\nスキル", (("甲", 3), ("乙", None))),))
+
+    assert render_means(report) == "平均  @10 0.50  @20 0.50"
 
 
 def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:

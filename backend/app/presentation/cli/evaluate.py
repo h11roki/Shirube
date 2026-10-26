@@ -26,6 +26,11 @@ HANDWRITTEN, LLM = "handwritten", "llm"
 SEARCHED_WITH = {HANDWRITTEN: "評価データの職業名と手書きのスキル", LLM: "LLM の解釈とスキル"}
 
 
+def render_means(report: EvaluationReport) -> str:
+    means = "  ".join(f"@{cutoff} {report.mean_recall(cutoff):.2f}" for cutoff in RECALL_CUTOFFS)
+    return f"平均  {means}"
+
+
 def render(report: EvaluationReport) -> str:
     lines = []
     for result in report.results:
@@ -36,8 +41,7 @@ def render(report: EvaluationReport) -> str:
             f"{name} {f'{rank} 位' if rank is not None else '圏外'}" for name, rank in result.ranks
         )
         lines.append(f"  {ranks}")
-    means = "  ".join(f"@{cutoff} {report.mean_recall(cutoff):.2f}" for cutoff in RECALL_CUTOFFS)
-    lines.append(f"平均  {means}")
+    lines.append(render_means(report))
     return "\n".join(lines)
 
 
@@ -49,6 +53,11 @@ def main() -> None:
         choices=tuple(SEARCHED_WITH),
         default=HANDWRITTEN,
         help="検索文を評価データの職業名と手書きのスキルで作るか、LLM の解釈とスキルで作るか",
+    )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="職業ごとの結果を出さず、平均の再現率だけを出す(確かめ用を測るとき。ADR 0067)",
     )
     args = parser.parse_args()
 
@@ -67,7 +76,8 @@ def main() -> None:
         f"検索文 {SEARCHED_WITH[args.skills]}"
     )
     try:
-        print(render(EvaluateSearch(search, profiles).run(dataset)))
+        report = EvaluateSearch(search, profiles).run(dataset)
+        print(render_means(report) if args.summary else render(report))
     except (
         EvaluationError,
         SearchError,
