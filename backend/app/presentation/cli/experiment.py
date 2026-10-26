@@ -68,6 +68,8 @@ from app.presentation.cli.evaluation_data import (
     DEFAULT_JUDGMENTS,
     load_dataset,
     load_judgments,
+    shown_reason,
+    silence_heldout_logs,
 )
 from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
@@ -80,6 +82,7 @@ from app.presentation.composition import (
 from app.settings import Settings
 
 RUNS = DEFAULT_DATASET.with_name("runs")
+HELDOUT_RUNS = DEFAULT_DATASET.parents[1] / "data" / "heldout-runs"
 PRICES = {
     "gpt-5.4-mini": (0.75, 0.075, 4.50),
     "gpt-5.4-nano": (0.20, 0.02, 1.25),
@@ -205,6 +208,7 @@ def collect(
     budget: float,
     spent: Callable[[], dict[str, TokenUsage]],
     unit: int = 1,
+    heldout: bool = False,
 ) -> Collection:
     collected: list[tuple[Side | None, Trial | FailedTrial]] = []
     streaks: Counter[Side | None] = Counter()
@@ -216,7 +220,7 @@ def collect(
             detail = (
                 f"{outcome.seconds.total:.1f} 秒"
                 if isinstance(outcome, Trial)
-                else f"失敗: {outcome.failure}"
+                else f"失敗: {shown_reason(outcome.failure, heldout)}"
             )
             where = "" if side is None else f"{SIDE_NAMES[side]} "
             print(
@@ -236,14 +240,16 @@ def collect(
             if yen(usage) >= budget and len(collected) < total and len(collected) % unit == 0:
                 return Collection(collected, f"費用の上限 {budget:g} 円に達した", True)
     except STOPPING_ERRORS as error:
-        return Collection(collected, stop_reason(error), False)
+        return Collection(collected, shown_reason(stop_reason(error), heldout), False)
     except OSError as error:
-        return Collection(collected, f"入出力に失敗しました: {error}", False)
+        return Collection(collected, f"入出力に失敗しました: {shown_reason(error, heldout)}", False)
     except KeyboardInterrupt:
         return Collection(collected, "中断した", False)
     except Exception as error:
-        traceback.print_exc()
-        return Collection(collected, f"思わぬ失敗で止まった: {error!r}", False)
+        if not heldout:
+            traceback.print_exc()
+        unexpected = shown_reason(repr(error), heldout)
+        return Collection(collected, f"思わぬ失敗で止まった: {unexpected}", False)
     return Collection(collected, None, False)
 
 
@@ -608,7 +614,15 @@ def _trials(
     try:
         return experiment.trials(dataset, judgments, repeats)
     except STOPPING_ERRORS as error:
-        sys.exit(f"推薦を流せません: {stop_reason(error)}")
+        sys.exit(f"推薦を流せません: {shown_reason(stop_reason(error), dataset.heldout)}")
+
+
+def results_directory(out: Path | None, dataset: EvaluationDataset) -> Path:
+    if not dataset.heldout:
+        return RUNS if out is None else out
+    if out is not None:
+        sys.exit(f"確かめ用の結果は {HELDOUT_RUNS} にだけ書く(--out は受け付けない。ADR 0067)")
+    return HELDOUT_RUNS
 
 
 def _reserve(out: Path, paths: Sequence[Path]) -> None:
@@ -631,12 +645,13 @@ def _collected(
     unit: int,
     meter: LangChainUsageMeter,
     engine: Engine,
+    heldout: bool,
 ) -> tuple[Collection, float]:
     for stop in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(stop, signal.default_int_handler)
     with meter.meter() as spent:
         try:
-            collection = collect(outcomes, total, budget, spent, unit)
+            collection = collect(outcomes, total, budget, spent, unit, heldout)
         finally:
             engine.dispose()
     return collection, yen(spent())
@@ -704,6 +719,8 @@ def _write(path: Path, document: Mapping[str, Any]) -> None:
 
 def _run(args: argparse.Namespace) -> None:
     dataset, judgments = _inputs(args)
+    out = results_directory(args.out, dataset)
+    silence_heldout_logs(dataset)
     settings = load_settings()
     engine = database_engine(settings)
     meter = LangChainUsageMeter()
@@ -712,8 +729,8 @@ def _run(args: argparse.Namespace) -> None:
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
     config = config_document(args, settings, dataset)
-    path = args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
-    _reserve(args.out, [path])
+    path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
+    _reserve(out, [path])
     collection, spent_yen = _collected(
         ((None, outcome) for outcome in trials),
         len(dataset.cases) * args.repeat,
@@ -721,6 +738,7 @@ def _run(args: argparse.Namespace) -> None:
         1,
         meter,
         engine,
+        dataset.heldout,
     )
     outcomes = collection.of(None)
     if not outcomes:
@@ -749,6 +767,8 @@ def _run(args: argparse.Namespace) -> None:
 
 def _pair(args: argparse.Namespace) -> None:
     dataset, judgments = _inputs(args)
+    out = results_directory(args.out, dataset)
+    silence_heldout_logs(dataset)
     overrides = {Side.BEFORE: args.before, Side.AFTER: args.after}
     settings = {
         side: load_settings(**{name.lower(): value for name, value in overrides[side]})
@@ -760,10 +780,8 @@ def _pair(args: argparse.Namespace) -> None:
     trials = {side: _trials(experiments[side], dataset, judgments, args.repeat) for side in Side}
     created = datetime.now(UNIVERSITY_TIME)
     commit = _commit()
-    paths = {
-        side: args.out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side
-    }
-    _reserve(args.out, list(paths.values()))
+    paths = {side: out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side}
+    _reserve(out, list(paths.values()))
     collection, spent_yen = _collected(
         interleave(trials[Side.BEFORE], trials[Side.AFTER], len(dataset.cases)),
         len(Side) * len(dataset.cases) * args.repeat,
@@ -771,6 +789,7 @@ def _pair(args: argparse.Namespace) -> None:
         len(Side),
         meter,
         engine,
+        dataset.heldout,
     )
     if not collection.outcomes:
         for path in paths.values():
@@ -835,7 +854,7 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     run.add_argument("--budget", type=float, default=100)
     run.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     run.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
-    run.add_argument("--out", type=Path, default=RUNS)
+    run.add_argument("--out", type=Path)
     run.set_defaults(handle=_run)
     pair = commands.add_parser(
         "pair", help="2 つの設定を職業と回の組ごとに交互に流して結果を JSON に 1 つずつ残す"
@@ -850,7 +869,7 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     pair.add_argument("--budget", type=float, default=200)
     pair.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     pair.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
-    pair.add_argument("--out", type=Path, default=RUNS)
+    pair.add_argument("--out", type=Path)
     pair.set_defaults(handle=_pair)
     versus = commands.add_parser("compare", help="2 つの実験の結果を比べる")
     versus.add_argument("runs", type=Path, nargs=2)

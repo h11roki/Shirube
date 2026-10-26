@@ -13,7 +13,12 @@ from app.application.evaluate_search import (
 )
 from app.application.ports import EmbeddingError, OccupationAnalysisError, OccupationAnalyzer
 from app.application.search_courses import SearchError
-from app.presentation.cli.evaluation_data import DEFAULT_DATASET, load_dataset
+from app.presentation.cli.evaluation_data import (
+    DEFAULT_DATASET,
+    load_dataset,
+    shown_reason,
+    silence_heldout_logs,
+)
 from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     database_engine,
@@ -26,6 +31,11 @@ HANDWRITTEN, LLM = "handwritten", "llm"
 SEARCHED_WITH = {HANDWRITTEN: "評価データの職業名と手書きのスキル", LLM: "LLM の解釈とスキル"}
 
 
+def render_means(report: EvaluationReport) -> str:
+    means = "  ".join(f"@{cutoff} {report.mean_recall(cutoff):.2f}" for cutoff in RECALL_CUTOFFS)
+    return f"平均  {means}"
+
+
 def render(report: EvaluationReport) -> str:
     lines = []
     for result in report.results:
@@ -36,8 +46,7 @@ def render(report: EvaluationReport) -> str:
             f"{name} {f'{rank} 位' if rank is not None else '圏外'}" for name, rank in result.ranks
         )
         lines.append(f"  {ranks}")
-    means = "  ".join(f"@{cutoff} {report.mean_recall(cutoff):.2f}" for cutoff in RECALL_CUTOFFS)
-    lines.append(f"平均  {means}")
+    lines.append(render_means(report))
     return "\n".join(lines)
 
 
@@ -50,12 +59,18 @@ def main() -> None:
         default=HANDWRITTEN,
         help="検索文を評価データの職業名と手書きのスキルで作るか、LLM の解釈とスキルで作るか",
     )
+    parser.add_argument(
+        "--summary",
+        action="store_true",
+        help="職業ごとの結果を出さず、平均の再現率だけを出す(確かめ用はいつも平均だけ。ADR 0067)",
+    )
     args = parser.parse_args()
 
     try:
         dataset = load_dataset(args.dataset)
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
+    silence_heldout_logs(dataset)
     settings = load_settings()
     profiles: OccupationAnalyzer = (
         openai_occupation_analyzer(settings) if args.skills == LLM else HandwrittenProfiles(dataset)
@@ -67,20 +82,22 @@ def main() -> None:
         f"検索文 {SEARCHED_WITH[args.skills]}"
     )
     try:
-        print(render(EvaluateSearch(search, profiles).run(dataset)))
+        report = EvaluateSearch(search, profiles).run(dataset)
+        print(render_means(report) if args.summary or dataset.heldout else render(report))
     except (
         EvaluationError,
         SearchError,
         OccupationAnalysisError,
         EmbeddingError,
     ) as error:
-        sys.exit(f"評価を止めました: {error}")
+        sys.exit(f"評価を止めました: {shown_reason(error, dataset.heldout)}")
     except OperationalError as error:
-        sys.exit(f"DB に接続できません: {error.orig}")
+        sys.exit(f"DB に接続できません: {shown_reason(error.orig, dataset.heldout)}")
     except SQLAlchemyError as error:
-        sys.exit(f"DB の操作に失敗しました: {error}")
+        sys.exit(f"DB の操作に失敗しました: {shown_reason(error, dataset.heldout)}")
     except OSError as error:
-        sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
+        reason = shown_reason(error, dataset.heldout)
+        sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {reason}")
     finally:
         engine.dispose()
 

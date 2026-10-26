@@ -1,4 +1,7 @@
+import logging
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,10 +19,13 @@ from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
-from app.presentation.cli.evaluate import render
+from app.presentation.cli import evaluate as evaluate_cli
+from app.presentation.cli.evaluate import render, render_means
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    HELDOUT_DATASET,
+    HELDOUT_JUDGMENTS,
     judged_courses,
     load_dataset,
     read_document,
@@ -185,6 +191,52 @@ def test_report_lists_the_query_recalls_and_ranks() -> None:
     )
 
 
+def test_means_leave_out_every_occupation() -> None:
+    report = EvaluationReport((CaseResult("職業", "職業\nスキル", (("甲", 3), ("乙", None))),))
+
+    assert render_means(report) == "平均  @10 0.50  @20 0.50"
+
+
+COMMITTED_FILES = [(DEFAULT_DATASET, DEFAULT_JUDGMENTS), (HELDOUT_DATASET, HELDOUT_JUDGMENTS)]
+COMMITTED_NAMES = ["development", "heldout"]
+COMMITTED = pytest.mark.parametrize(
+    ("dataset_path", "judgments_path"), COMMITTED_FILES, ids=COMMITTED_NAMES
+)
+
+
+def test_evaluate_shows_only_the_means_of_the_heldout_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        '{"year": 2026, "department": "情", "heldout": true, "occupations": ['
+        '{"name": "確かめ用の職業", "skills": ["甲", "乙", "丙"],'
+        ' "expected": {"科目01": "理由"}}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["evaluate", str(path)])
+    monkeypatch.setattr(
+        evaluate_cli,
+        "load_settings",
+        lambda: SimpleNamespace(embedding_model="model", search_by_skill=True),
+    )
+    monkeypatch.setattr(
+        evaluate_cli, "database_engine", lambda settings: SimpleNamespace(dispose=lambda: None)
+    )
+    monkeypatch.setattr(
+        evaluate_cli, "search_courses", lambda settings, engine: search_over({"科目01": 0.9})
+    )
+
+    try:
+        evaluate_cli.main()
+    finally:
+        logging.disable(logging.NOTSET)
+
+    shown = capsys.readouterr().out
+    assert shown.splitlines()[-1] == "平均  @10 1.00  @20 1.00"
+    assert "確かめ用の職業" not in shown
+
+
 def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     dataset = load_dataset(DEFAULT_DATASET)
 
@@ -192,8 +244,28 @@ def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     assert len(dataset.cases) == 50
 
 
-def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
-    judgments = read_document(DEFAULT_JUDGMENTS)
+def test_heldout_has_twenty_other_occupations_judged_like_the_development_set() -> None:
+    dataset, heldout = load_dataset(DEFAULT_DATASET), load_dataset(HELDOUT_DATASET)
+
+    assert (heldout.year, heldout.department) == (dataset.year, dataset.department)
+    assert (heldout.heldout, dataset.heldout) == (True, False)
+    assert len(heldout.cases) == 20
+    assert not {case.occupation for case in heldout.cases} & {
+        case.occupation for case in dataset.cases
+    }
+    development, heldout_judgments = (
+        read_document(DEFAULT_JUDGMENTS),
+        read_document(HELDOUT_JUDGMENTS),
+    )
+    for key in ("year", "department", "model", "judges", "parts"):
+        assert heldout_judgments[key] == development[key], key
+
+
+@pytest.mark.parametrize(
+    "judgments_path", [judgments for _, judgments in COMMITTED_FILES], ids=COMMITTED_NAMES
+)
+def test_judgments_cover_188_courses_with_every_judge_on_both_halves(judgments_path: Path) -> None:
+    judgments = read_document(judgments_path)
     first, second = judgments["parts"]
     halves = set(first) | set(second)
     voted: dict[str, set[str]] = {judge: set() for judge in judgments["judges"]}
@@ -215,8 +287,11 @@ def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
         assert courses & set(first) and courses & set(second), judge
 
 
-def test_expected_courses_follow_the_judges_majority_and_the_decisions() -> None:
-    judgments, dataset = read_document(DEFAULT_JUDGMENTS), read_document(DEFAULT_DATASET)
+@COMMITTED
+def test_expected_courses_follow_the_judges_majority_and_the_decisions(
+    dataset_path: Path, judgments_path: Path
+) -> None:
+    judgments, dataset = read_document(judgments_path), read_document(dataset_path)
     judged = {
         occupation["name"]: judged_courses(occupation) for occupation in judgments["occupations"]
     }
@@ -274,6 +349,17 @@ def test_malformed_dataset_is_rejected(tmp_path: Path, occupations: str, message
     )
 
     with pytest.raises(ValueError, match=message):
+        load_dataset(path)
+
+
+def test_heldout_must_be_true_or_false(tmp_path: Path) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        '{"year": 2026, "department": "情", "heldout": "yes", "occupations": []}',
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ValueError, match="heldout は true か false"):
         load_dataset(path)
 
 
