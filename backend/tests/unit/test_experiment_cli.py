@@ -42,6 +42,7 @@ from app.domain.recommendation import (
 )
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
+from app.presentation.cli import experiment as experiment_cli
 from app.presentation.cli.experiment import (
     HELDOUT_RUNS,
     METRICS,
@@ -430,7 +431,7 @@ def test_each_side_of_a_pair_keeps_its_own_trials_cost_and_partner() -> None:
     assert ran_interleaved(before, after)
 
 
-def test_a_trial_prompt_is_read_once_without_the_surrounding_blanks(tmp_path: Path) -> None:
+def test_a_trial_prompt_is_read_without_the_surrounding_blanks(tmp_path: Path) -> None:
     prompt = tmp_path / "selection.txt"
     prompt.write_text("試す指示文\n", encoding="utf-8")
 
@@ -446,6 +447,8 @@ def test_a_trial_prompt_is_read_once_without_the_surrounding_blanks(tmp_path: Pa
         ("blank", "SELECTION_PROMPT の文面が空です"),
         ("placeholder", "組み込みの文面の書き方"),
         ("line-join", "組み込みの文面の書き方"),
+        ("escaped-brace", "組み込みの文面の書き方"),
+        ("lowercase-placeholder", "組み込みの文面の書き方"),
     ],
 )
 def test_a_trial_prompt_that_cannot_be_used_is_refused(
@@ -456,6 +459,8 @@ def test_a_trial_prompt_that_cannot_be_used_is_refused(
         "blank": " \n",
         "placeholder": "理由は {REASON_LIMIT} 字以内",
         "line-join": "前の行\\\n次の行",
+        "escaped-brace": '例 {{"name": 1}}',
+        "lowercase-placeholder": "{limit} 字以内",
     }
     if kind == "directory":
         prompt.mkdir()
@@ -464,6 +469,34 @@ def test_a_trial_prompt_that_cannot_be_used_is_refused(
 
     with pytest.raises(SystemExit, match=message):
         trial_instructions(str(prompt))
+
+
+def test_pair_builds_each_side_with_the_selection_prompt_it_was_given(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    prompt = tmp_path / "selection.txt"
+    prompt.write_text("試す指示文", encoding="utf-8")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    given: list[str] = []
+
+    class Stopped(Exception):
+        pass
+
+    class Unrun:
+        def trials(self, *args: object) -> None:
+            raise Stopped
+
+    def built(*args: object) -> Unrun:
+        given.append(str(args[-1]))
+        return Unrun()
+
+    monkeypatch.setattr(experiment_cli, "_experiment", built)
+    monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: None)
+
+    with pytest.raises(Stopped):
+        main(["pair", "--label", "prompt", "--after", f"SELECTION_PROMPT={prompt}"])
+
+    assert given == [INSTRUCTIONS, "試す指示文"]
 
 
 def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:

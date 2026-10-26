@@ -101,6 +101,7 @@ UNRECORDED_SETTINGS = {
 PROFILES = ("analyzed", "handwritten")
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
+PROMPT_SETTING = "SELECTION_PROMPT"
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
     "EMBEDDING_MODEL",
@@ -109,10 +110,9 @@ PAIRABLE_SETTINGS = (
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
-    "SELECTION_PROMPT",
+    PROMPT_SETTING,
 )
-PROMPT_SETTING = "SELECTION_PROMPT"
-UNEXPANDED = re.compile(r"\{[A-Z_]+\}|\\\n")
+UNEXPANDED = re.compile(r"\{[^{}]*\}|\{\{|\}\}|\\\n")
 SIDE_NAMES = {Side.BEFORE: "前", Side.AFTER: "後"}
 METRICS = (
     *((f"recall@{cutoff}", f"検索の再現率 @{cutoff}", "ratio") for cutoff in RECALL_CUTOFFS),
@@ -169,14 +169,14 @@ def trial_instructions(path: str | None) -> str:
     if path is None:
         return SELECTION_INSTRUCTIONS
     try:
-        text = Path(path).read_text(encoding="utf-8").strip()
+        text = Path(path).expanduser().read_text(encoding="utf-8").strip()
     except (OSError, UnicodeDecodeError) as error:
         sys.exit(f"{PROMPT_SETTING} を読めません: {error}")
     if not text:
         sys.exit(f"{PROMPT_SETTING} の文面が空です: {path}")
     if UNEXPANDED.search(text):
         sys.exit(
-            f"{PROMPT_SETTING} に組み込みの文面の書き方({{REASON_LIMIT}} や行末の \\)が"
+            f"{PROMPT_SETTING} に組み込みの文面の書き方(波括弧や行末の \\)が"
             "残っています。展開した文面から作ってください"
         )
     return text
