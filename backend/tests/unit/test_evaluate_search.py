@@ -191,6 +191,15 @@ def test_means_leave_out_every_occupation() -> None:
     assert render_means(report) == "平均  @10 0.50  @20 0.50"
 
 
+HELDOUT_DATASET = DEFAULT_DATASET.parent / "heldout" / "occupations.json"
+HELDOUT_JUDGMENTS = HELDOUT_DATASET.with_name("judgments.json")
+COMMITTED = pytest.mark.parametrize(
+    ("dataset_path", "judgments_path"),
+    [(DEFAULT_DATASET, DEFAULT_JUDGMENTS), (HELDOUT_DATASET, HELDOUT_JUDGMENTS)],
+    ids=["development", "heldout"],
+)
+
+
 def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     dataset = load_dataset(DEFAULT_DATASET)
 
@@ -198,8 +207,22 @@ def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:
     assert len(dataset.cases) == 50
 
 
-def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
-    judgments = read_document(DEFAULT_JUDGMENTS)
+def test_heldout_has_twenty_other_occupations_judged_on_the_same_courses() -> None:
+    dataset, heldout = load_dataset(DEFAULT_DATASET), load_dataset(HELDOUT_DATASET)
+
+    assert (heldout.year, heldout.department) == (dataset.year, dataset.department)
+    assert len(heldout.cases) == 20
+    assert not {case.occupation for case in heldout.cases} & {
+        case.occupation for case in dataset.cases
+    }
+    assert read_document(HELDOUT_JUDGMENTS)["parts"] == read_document(DEFAULT_JUDGMENTS)["parts"]
+
+
+@pytest.mark.parametrize(
+    "judgments_path", [DEFAULT_JUDGMENTS, HELDOUT_JUDGMENTS], ids=["development", "heldout"]
+)
+def test_judgments_cover_188_courses_with_every_judge_on_both_halves(judgments_path: Path) -> None:
+    judgments = read_document(judgments_path)
     first, second = judgments["parts"]
     halves = set(first) | set(second)
     voted: dict[str, set[str]] = {judge: set() for judge in judgments["judges"]}
@@ -221,8 +244,11 @@ def test_judgments_cover_188_courses_with_every_judge_on_both_halves() -> None:
         assert courses & set(first) and courses & set(second), judge
 
 
-def test_expected_courses_follow_the_judges_majority_and_the_decisions() -> None:
-    judgments, dataset = read_document(DEFAULT_JUDGMENTS), read_document(DEFAULT_DATASET)
+@COMMITTED
+def test_expected_courses_follow_the_judges_majority_and_the_decisions(
+    dataset_path: Path, judgments_path: Path
+) -> None:
+    judgments, dataset = read_document(judgments_path), read_document(dataset_path)
     judged = {
         occupation["name"]: judged_courses(occupation) for occupation in judgments["occupations"]
     }

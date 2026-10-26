@@ -1,0 +1,4647 @@
+{
+  "year": 2026,
+  "department": "情",
+  "model": "Claude Opus 5.5(Claude Code のサブエージェント)",
+  "prompt": "../judge-prompt.md",
+  "judges": {
+    "engineer": "採用・育成担当のエンジニア",
+    "professor": "カリキュラムを設計する教員",
+    "student": "進路を考える 3 回生"
+  },
+  "parts": [
+    [
+      "Academic Skills 1",
+      "Academic Skills 2",
+      "Computers in Education",
+      "Cross Border Policy Issues",
+      "Cross-cultural Encounters 1",
+      "Cross-cultural Encounters 2",
+      "Cross-cultural Seminar",
+      "Cross-cultural Studies",
+      "Digital Archives: Applications of ICT to the Humanities",
+      "History of Computing",
+      "Introduction to Computational Linguistics",
+      "Introduction to Economics",
+      "Introduction to Food Culture",
+      "Introduction to Gender Studies",
+      "Introduction to Humanities",
+      "Introduction to Peace Studies",
+      "Introduction to the United Nations",
+      "Introductory Course to Climate Change and Global Warming",
+      "Introductory Course to International Project Development",
+      "Language in Politics",
+      "Liberal Arts Seminar",
+      "Non-verbal Communication",
+      "Understanding Language",
+      "Understanding Visual Culture",
+      "アメリカの社会と文化",
+      "イスラーム世界の多様性",
+      "オペレーティングシステム",
+      "コンパイラ",
+      "コンピュータアーキテクチャⅠ",
+      "コンピュータアーキテクチャⅡ",
+      "コンピュータネットワーク",
+      "コーオプ演習（実践）",
+      "コーオプ演習（理論）【通年】",
+      "シチズンシップ・スタディーズ",
+      "ジェンダーとダイバーシティ",
+      "スポーツと現代社会",
+      "スポーツのサイエンス",
+      "スポーツの歴史と発展",
+      "スポーツ方法実習Ⅰ(A)【ソフトボール】",
+      "スポーツ方法実習Ⅰ(A)【テニス】",
+      "スポーツ方法実習Ⅰ(A)【バスケットボール】",
+      "スポーツ方法実習Ⅰ(A)【ヨガ】",
+      "スポーツ方法実習Ⅰ(B)【サッカー】",
+      "スポーツ方法実習Ⅰ(B)【バレーボール】",
+      "スポーツ方法実習Ⅰ(B)【水中運動】",
+      "スポーツ方法実習Ⅰ(C)【エクササイズ】",
+      "スポーツ方法実習Ⅰ(C)【卓球】",
+      "スポーツ方法実習Ⅰ(D)【バドミントン】",
+      "スポーツ方法実習Ⅱ(A)【ソフトボール】",
+      "スポーツ方法実習Ⅱ(A)【テニス】",
+      "スポーツ方法実習Ⅱ(A)【バスケットボール】",
+      "スポーツ方法実習Ⅱ(A)【ヨガ】",
+      "スポーツ方法実習Ⅱ(B)【サッカー】",
+      "スポーツ方法実習Ⅱ(B)【バレーボール】",
+      "スポーツ方法実習Ⅱ(B)【水中運動】",
+      "スポーツ方法実習Ⅱ(C)【ウォーキング】",
+      "スポーツ方法実習Ⅱ(C)【エクササイズ】",
+      "スポーツ方法実習Ⅱ(C)【卓球】",
+      "スポーツ方法実習Ⅱ(D)【アダプテッドスポーツ】",
+      "スポーツ方法実習Ⅱ(D)【バドミントン】",
+      "ソフトウェア工学",
+      "データエンジニアリング基礎",
+      "データサイエンス・AI基礎",
+      "データ構造とアルゴリズム",
+      "ハードウェア記述言語",
+      "ピア・サポート論",
+      "フーリエ解析",
+      "ベクトル解析",
+      "メディア情報処理",
+      "ヨーロッパの歴史",
+      "世界と日本の食文化",
+      "並列処理",
+      "中国の国家と社会",
+      "仕事とキャリア",
+      "企業と社会",
+      "信号処理",
+      "制御工学",
+      "力学入門",
+      "力学入門演習",
+      "化学１",
+      "化学２",
+      "半導体工学",
+      "哲学と人間",
+      "国の行政組織",
+      "地域参加学習入門",
+      "学びとキャリア",
+      "宇宙地球科学１",
+      "宇宙地球科学２",
+      "宗教と社会",
+      "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+      "専門ゼミナール【主体的な海外活動実践の技法】",
+      "専門ゼミナール【二次元コードのデザイン演習】",
+      "専門ゼミナール【建設人としての日本語活用】",
+      "専門ゼミナール【木造用語の基礎知識】"
+    ],
+    [
+      "専門ゼミナール【目に見えない画像を可視化する技術】",
+      "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+      "工業技術概論",
+      "平和人権フィールドスタディ【通年】",
+      "微分方程式／ラプラス変換",
+      "心理学入門",
+      "応用Cプログラミング",
+      "情報と職業",
+      "情報の数理",
+      "情報処理",
+      "情報処理演習",
+      "情報技術と社会",
+      "情報理論",
+      "情報社会と倫理",
+      "情報科学Ⅰ",
+      "情報科学Ⅱ",
+      "情報科学Ⅲ",
+      "技術者倫理",
+      "振動波動入門",
+      "教養ゼミナール",
+      "数学Ⅰ（微分積分）",
+      "数学Ⅱ（微分積分）",
+      "数学Ⅲ（線形代数）",
+      "数学Ⅳ（線形代数）",
+      "数学基礎",
+      "数学演習Ⅰ（微分積分・線形代数）",
+      "数学演習Ⅱ（微分積分・線形代数）",
+      "数理の世界",
+      "数理計画法",
+      "文化人類学入門",
+      "文学と社会",
+      "新しい日本史像",
+      "日本の近現代と立命館",
+      "日本国憲法",
+      "映像メディア実践入門",
+      "材料と化学",
+      "東アジアと朝鮮半島",
+      "熱力学入門",
+      "物理基礎",
+      "物質科学",
+      "特殊講義（基礎専門）Ⅰ（技術者のキャリア）",
+      "特殊講義（専門）Ⅰ（情報社会と倫理）",
+      "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+      "特殊講義（専門）Ⅲ（深層学習の応用）",
+      "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+      "特殊講義（教養Ｅ）Ⅰ「京都の文化遺産とその保護〜清水地域の防災への取り組み」",
+      "特殊講義（教養Ｅ）Ⅰ（清水寺の△△の○○（良い点）を磨け！、もしくは□□（困っている点）を救え!）【通年】",
+      "特殊講義（自由）Ⅰ（数学基礎）",
+      "現代の世界経済",
+      "現代の教育",
+      "現代の経営",
+      "現代人とヘルスケア",
+      "現代平和論",
+      "現代日本の政治",
+      "現代社会と法",
+      "現代社会のフィールドワーク",
+      "理工系日本語の技法",
+      "環境科学",
+      "生物科学１",
+      "生物科学２",
+      "異文化間テーマ演習",
+      "確率統計",
+      "社会と学ぶ課題解決",
+      "社会と福祉",
+      "科学・技術と社会",
+      "科学技術と倫理",
+      "組み込みシステム",
+      "経済と社会",
+      "職業指導",
+      "複素関数論",
+      "論理と思考",
+      "論理回路",
+      "超領域リベラルアーツ",
+      "近現代の科学技術",
+      "通信理論",
+      "集積デバイス工学",
+      "電子回路Ⅰ",
+      "電子回路Ⅱ",
+      "電子情報基礎数学",
+      "電子情報工学入門",
+      "電子情報工学実験Ⅰ",
+      "電子情報工学実験Ⅱ",
+      "電子情報工学実験Ⅲ",
+      "電子情報工学応用演習",
+      "電子情報工学演習",
+      "電子情報工学通論",
+      "電気回路Ⅰ",
+      "電気回路Ⅱ",
+      "電磁気学Ⅰ",
+      "電磁気学Ⅱ",
+      "電磁気学入門",
+      "音楽原論",
+      "高周波工学",
+      "ＡＩ・機械学習"
+    ]
+  ],
+  "occupations": [
+    {
+      "name": "HPC・並列計算エンジニア",
+      "courses": [
+        {
+          "name": "オペレーティングシステム",
+          "page": "32497",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "プロセスの同期と通信、スケジューリング、仮想記憶の基礎"},
+            "professor": {"label": "foundation", "evidence": "プロセス管理、同期、記憶管理などOSの基本機能を学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロセスの同期や仮想記憶などOSの仕組みを学ぶ"}
+          }
+        },
+        {
+          "name": "コンパイラ",
+          "page": "32491",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "コード生成と最適化の回で性能を左右する翻訳の仕組みに触れる"},
+            "professor": {"label": "foundation", "evidence": "コード生成と最適化の回があり性能を引き出す基礎になる"},
+            "student": {"label": "foundation", "evidence": "コード生成と最適化の回でプログラム高速化の基礎に触れる"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "命令セット、浮動小数点演算、性能評価など計算機の基本原理"},
+            "professor": {"label": "foundation", "evidence": "命令セット、データ表現、浮動小数点演算、性能評価を学ぶ"},
+            "student": {"label": "foundation", "evidence": "命令セット、浮動小数点演算、計算機の性能評価を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "パイプライン、キャッシュ等の記憶階層、並列アーキテクチャを扱う"},
+            "professor": {"label": "core", "evidence": "パイプライン、キャッシュ等の記憶階層、並列構成を学ぶ"},
+            "student": {"label": "core", "evidence": "パイプライン、キャッシュ、記憶階層、並列アーキテクチャを扱う"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計算時間の短いプログラムのためのデータ構造と探索・整列"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "計算時間の短いプログラムのためのデータ構造と算法を学ぶ"}
+          }
+        },
+        {
+          "name": "並列処理",
+          "page": "32514",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "Pthread・OpenMP・マルチプロセスで並列プログラミングを実践する"},
+            "professor": {"label": "core", "evidence": "PthreadやOpenMPによる並列プログラミングと並列HWを学ぶ"},
+            "student": {"label": "core", "evidence": "並列ハードの構成とPthread・OpenMPでの並列プログラミングを学ぶ"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "現象のモデル化に使う微分方程式の解き方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "工学現象を表す微分方程式とその解法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "物理現象をモデル化する微分方程式の解法を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "数値計算などに使うC言語の高度な使い方を演習で身につける"},
+            "professor": {"label": "core", "evidence": "数値計算にも使うC言語の高度な使い方とデータ構造を習得"},
+            "student": {"label": "core", "evidence": "C言語の高度な使い方とデータ構造の実装を演習で習得する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "コンピュータのハードとソフトの構成と動作の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "コンピュータのハードとソフトの構成と動作を学ぶ"},
+            "student": {"label": "foundation", "evidence": "計算機のハードとソフトの構成やアルゴリズムを概観する"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "数値計算の基礎となる行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "数値計算の土台となる行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "2進数や論理関数、組合せ・順序回路などディジタル回路の基本"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学入門",
+          "page": "32463",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "student": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "professor": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "student": {"label": "foundation", "evidence": "アセンブリやパイプライン処理とハザード対策を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学演習",
+          "page": "32466",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "C言語によるシミュレーション演習を含む"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "FPGAやLSIの仕組み、高性能AIを扱う回がある"},
+            "student": {"label": "foundation", "evidence": "FPGAの原理や深層学習アーキテクチャ、高性能AIに触れる"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "コンパイラ・言語処理系のエンジニア",
+      "courses": [
+        {
+          "name": "コンパイラ",
+          "page": "32491",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "字句解析・構文解析・意味解析・コード生成・最適化を一通り扱う"},
+            "professor": {"label": "core", "evidence": "字句解析・構文解析・意味解析・コード生成・最適化を学ぶ"},
+            "student": {"label": "core", "evidence": "字句解析・構文解析・意味解析・コード生成・最適化を順に学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "命令セット、アドレッシング、アセンブリなどコード生成先の知識"},
+            "professor": {"label": "core", "evidence": "生成先となる命令形式、アドレッシング、アセンブリを学ぶ"},
+            "student": {"label": "foundation", "evidence": "翻訳先となる命令セット、アドレッシング、アセンブリを学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "パイプラインのハザードと対処など命令の実行の仕組みを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "パイプラインのハザードやキャッシュなど実行の仕組みを扱う"},
+            "student": {"label": "foundation", "evidence": "パイプラインとハザードなど命令実行の仕組みを学ぶ"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "要求分析から設計・テスト・保守までの開発工程を学ぶ"},
+            "student": {"label": "foundation", "evidence": "設計、テスト、保守などソフト開発の手法を学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ構造・探索・グラフなど処理系の実装に要る基礎"},
+            "professor": {"label": "foundation", "evidence": "基本データ構造やグラフなど実装の基礎となる手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "探索、整列、グラフなど処理系の実装に要る基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "並列処理",
+          "page": "32514",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "OpenMPなど並列性を生かすプログラミングを学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "再帰や構造体、スタック、二分木をC言語で実装する"},
+            "professor": {"label": "core", "evidence": "再帰や二分木・スタックなどのデータ構造をCで実装する"},
+            "student": {"label": "core", "evidence": "再帰、構造体、スタック、二分木などをC言語で実装する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅰ",
+          "page": "31809",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "集合・関係・グラフとオートマトンによる状態遷移を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "集合・論理・グラフとオートマトンの状態遷移を学ぶ"},
+            "student": {"label": "foundation", "evidence": "論理・代数系・グラフ・オートマトンなど離散数学を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "コンピュータの構成と動作やアルゴリズムの基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "コンピュータの構成と動作、アルゴリズムを学ぶ"},
+            "student": {"label": "foundation", "evidence": "計算機のハードとソフトの構成やアルゴリズムを概観する"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "2進数の表現と演算や論理回路の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学入門",
+          "page": "32463",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "student": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "professor": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "student": {"label": "foundation", "evidence": "アセンブリ言語のプログラミングとパイプライン処理を実験"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "OS・ミドルウェア開発エンジニア",
+      "courses": [
+        {
+          "name": "オペレーティングシステム",
+          "page": "32497",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "プロセス管理、スケジューリング、記憶管理、ファイル、仮想化を扱う"},
+            "professor": {"label": "core", "evidence": "プロセス、スケジューリング、記憶管理、ファイル、仮想化を学ぶ"},
+            "student": {"label": "core", "evidence": "プロセス管理、スケジューリング、記憶管理、仮想化を扱う"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "命令セットやOSと計算機構成の関係、メモリ・入出力の基礎"},
+            "professor": {"label": "foundation", "evidence": "命令セットやOSとアーキテクチャの関係を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "OSと計算機構成の関係、メモリと入出力の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "仮想記憶・キャッシュ・入出力と割込みをハード側から学ぶ"},
+            "professor": {"label": "foundation", "evidence": "仮想記憶、メモリ階層、入出力と割込みの仕組みを学ぶ"},
+            "student": {"label": "foundation", "evidence": "キャッシュ、仮想記憶、割込みなどOSが扱うハードを学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "トランスポート層など通信を担うソフトの前提となる仕組み"},
+            "professor": {"label": "foundation", "evidence": "TCP/IPの階層と主要プロトコルの仕組みを学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロトコルの階層やトランスポート層など通信の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "要求分析から設計・テスト・保守までの開発工程を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "設計・テスト・保守などソフトウェア開発工程を学ぶ"},
+            "student": {"label": "foundation", "evidence": "開発工程、設計、テストなどソフト開発の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "効率のよいプログラムのためのデータ構造とアルゴリズム"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と算法を学ぶ"}
+          }
+        },
+        {
+          "name": "並列処理",
+          "page": "32514",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "スレッドやマルチプロセスによる並列実行を演習で学ぶ"},
+            "professor": {"label": "foundation", "evidence": "スレッドやマルチプロセスを使う並列プログラミングを学ぶ"},
+            "student": {"label": "foundation", "evidence": "スレッドやマルチプロセスによる並列実行を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "ポインタや構造体、ファイル入出力をC言語で使いこなす"},
+            "professor": {"label": "core", "evidence": "UNIXの記述言語Cでファイル入出力やデータ構造を実装"},
+            "student": {"label": "core", "evidence": "UNIXの記述言語Cでポインタやファイル入出力を扱う"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "コンピュータのハードとソフトの構成と動作の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "コンピュータのハードとソフトの構成と動作を学ぶ"},
+            "student": {"label": "foundation", "evidence": "計算機のハードとソフトの構成と動作を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅲ",
+          "page": "31815",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "暗号方式やセキュリティプロトコル、ネットワーク安全性を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マルチタスク、スケジューリング、メモリや入出力を扱う"},
+            "professor": {"label": "foundation", "evidence": "マルチタスクやスケジューリング、メモリを扱う回がある"},
+            "student": {"label": "core", "evidence": "プロセッサ、メモリ、入出力、マルチタスク、スケジューリング"}
+          },
+          "decision": "foundation"
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "2進数や論理関数、組合せ・順序回路などディジタル回路の基本"}
+          }
+        },
+        {
+          "name": "電子情報工学入門",
+          "page": "32463",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "student": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "professor": {"label": "foundation", "evidence": "アセンブリやパイプライン処理、ハザード対策を実験する"},
+            "student": {"label": "foundation", "evidence": "アセンブリやパイプライン処理とハザード対策を実験する"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "ネットワーク機器の開発エンジニア",
+      "courses": [
+        {
+          "name": "オペレーティングシステム",
+          "page": "32497",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "割り込みや入出力制御など機器を動かすOSの仕組み"},
+            "professor": {"label": "foundation", "evidence": "割り込みや入出力制御など機器内ソフトの基盤を扱う"},
+            "student": {"label": "foundation", "evidence": "割り込みや入出力制御など機器を動かすOSの仕組みを学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "命令実行、メモリ、入出力など機器内の計算機の基本原理"},
+            "professor": {"label": "foundation", "evidence": "命令実行やメモリ、入出力などCPUの動作原理を学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロセッサの命令実行やメモリ・入出力の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "メモリ階層や入出力の制御、割込みの方式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "入出力システムの制御や割込み、メモリ構成を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "TCP/IPの各層、経路制御、LAN・無線LAN、セキュリティを学ぶ"},
+            "professor": {"label": "core", "evidence": "TCP/IP各層、経路制御、LAN、無線、セキュリティを学ぶ"},
+            "student": {"label": "core", "evidence": "TCP/IPの階層、経路制御、LAN、無線、セキュリティを扱う"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "組込み製品のソフトを正しく作る設計とテストの基本"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "探索やグラフなど経路や表の処理に通じるアルゴリズム"},
+            "professor": {"label": "foundation", "evidence": "グラフや探索など経路計算にも通じる手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "探索やグラフなど効率的な処理の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "ハードウェア記述言語",
+          "page": "32477",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilogで組合せ・順序回路を設計しシミュレーションする"},
+            "professor": {"label": "foundation", "evidence": "Verilogで組合せ・順序回路を設計しシミュレーションする"},
+            "student": {"label": "foundation", "evidence": "Verilogで組合せ回路と順序回路を設計し動作を確かめる"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語でデータ構造を実装する応用的な演習を行う"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の応用とデータ構造の実装を演習する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "情報理論",
+          "page": "32503",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "通信路符号化や誤り訂正符号の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ブロック符号や畳込み符号など通信の符号化を学ぶ"},
+            "student": {"label": "foundation", "evidence": "情報量と符号化、誤り訂正符号の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報社会と倫理",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "インターネット技術とサイバーセキュリティの回がある"},
+            "professor": {"label": "foundation", "evidence": "インターネットの技術とサイバーセキュリティを扱う回がある"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "通信と符号化の基礎を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "通信と符号化の基礎を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "通信と符号化、計算機の構成の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅲ",
+          "page": "31815",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "セキュリティプロトコルやネットワークセキュリティを扱う"},
+            "professor": {"label": "foundation", "evidence": "セキュリティプロトコルとネットワークセキュリティを学ぶ"},
+            "student": {"label": "foundation", "evidence": "セキュリティプロトコルやネットワークセキュリティを学ぶ"}
+          }
+        },
+        {
+          "name": "数理計画法",
+          "page": "32501",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ネットワーク計画問題の性質と解法を扱う"},
+            "professor": {"label": "foundation", "evidence": "ネットワーク計画問題の定式化と解法を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "インターネット技術とサイバーセキュリティの回がある"},
+            "professor": {"label": "foundation", "evidence": "インターネットの技術とサイバーセキュリティを扱う回がある"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電子基板設計とマイコンのプログラミングを実践する"},
+            "professor": {"label": "foundation", "evidence": "電子基板設計とマイコンのプログラム開発を実践する"},
+            "student": {"label": "foundation", "evidence": "電子基板の設計とマイコンのプログラム開発を実践する"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "機器に内蔵するコンピュータのハードとソフトの基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "機器に内蔵するコンピュータのハードとソフトの基本を学ぶ"},
+            "student": {"label": "core", "evidence": "機器に内蔵するコンピュータのハードとソフトの基本を学ぶ"}
+          },
+          "decision": "foundation"
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル回路の構造と設計方法の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "2進数、論理関数、組合せ・順序回路の設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "論理関数、組合せ回路と順序回路などディジタル回路の設計"}
+          }
+        },
+        {
+          "name": "通信理論",
+          "page": "32489",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "多元接続、フレーム同期、誤り制御などディジタル通信の原理を学ぶ"},
+            "professor": {"label": "core", "evidence": "多元接続と交換、フレーム同期、誤り制御、変復調を学ぶ"},
+            "student": {"label": "core", "evidence": "多元接続と交換、フレーム同期、誤り制御などディジタル通信"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "MOSFETの特性と増幅回路など電子回路の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "複素数やオイラーの公式、行列など工学の数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilog-HDLで設計しFPGAへ実装する実験を行う"},
+            "professor": {"label": "foundation", "evidence": "Verilog-HDLでFPGAに回路を実装する実験がある"},
+            "student": {"label": "foundation", "evidence": "Verilog-HDLでFPGAに回路を実装する実験を含む"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "誤り訂正や変復調などディジタル通信の実験を行う"},
+            "professor": {"label": "foundation", "evidence": "誤り訂正や変復調などディジタル通信の実験を行う"},
+            "student": {"label": "foundation", "evidence": "ディジタル通信の誤り訂正や変復調を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "FPGAの原理や移動通信システムの進化を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "移動通信システムやFPGAの原理を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "FPGAの原理や移動通信システムの進化に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "直流・交流回路とインピーダンスの基本を学ぶ"}
+          }
+        },
+        {
+          "name": "高周波工学",
+          "page": "32496",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "高速信号に関わる分布定数回路やインピーダンス整合を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "GHz級回路に要る分布定数回路やインピーダンス整合を学ぶ"},
+            "student": {"label": "foundation", "evidence": "高速なディジタル回路や無線LANに要る高周波回路の設計"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "バックエンドエンジニア",
+      "courses": [
+        {
+          "name": "オペレーティングシステム",
+          "page": "32497",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "プロセス、記憶管理、ファイル、仮想化などサーバの基盤"},
+            "professor": {"label": "foundation", "evidence": "プロセス、記憶管理、ファイルシステムの仕組みを学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロセス、記憶管理、ファイルシステム、仮想化を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "TCP/IP、DNS、アプリケーション層、通信のセキュリティを学ぶ"},
+            "professor": {"label": "core", "evidence": "TCP/IP、DNS、アプリケーション層、セキュリティを学ぶ"},
+            "student": {"label": "core", "evidence": "TCP/IP、DNS、アプリケーション層、通信のセキュリティを学ぶ"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "要求分析、設計、UML、テスト、保守まで開発工程を一通り学ぶ"},
+            "professor": {"label": "core", "evidence": "要求分析、設計、テスト、保守の開発手法とUMLを学ぶ"},
+            "student": {"label": "core", "evidence": "要求分析、設計、UML、テスト、保守など開発手法を学ぶ"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データベースやデータ加工、ITセキュリティの基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "データベースからの抽出やITセキュリティの回がある"},
+            "student": {"label": "foundation", "evidence": "データベースからの抽出やITセキュリティの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "問題に合うデータ構造とアルゴリズムを選ぶ力を養う"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "問題に応じたデータ構造と算法の選び方を学ぶ"}
+          }
+        },
+        {
+          "name": "並列処理",
+          "page": "32514",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "スレッドやマルチプロセスによる並列実行を演習で学ぶ"},
+            "professor": {"label": "foundation", "evidence": "スレッドやマルチプロセスによる並列実行を演習する"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "スタック、キュー、木などのデータ構造を実装する"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ファイル入出力やスタック・木などのデータ構造を実装する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報社会と倫理",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "サイバーセキュリティや個人情報保護を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "サイバーセキュリティや個人情報保護を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "個人情報保護やサイバーセキュリティ、インターネット技術"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アルゴリズムやコンピュータの構成の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "コンピュータの構成と動作、アルゴリズムを学ぶ"},
+            "student": {"label": "foundation", "evidence": "計算機のハードとソフトの構成やアルゴリズムを概観する"}
+          }
+        },
+        {
+          "name": "情報科学Ⅲ",
+          "page": "31815",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "PKIやクライアント認証、ネットワークセキュリティを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "認証やセキュリティプロトコル、ネットワーク安全性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "認証、セキュリティプロトコル、ネットワーク防御を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "サイバーセキュリティや個人情報保護を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "サイバーセキュリティや個人情報保護を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "個人情報保護やサイバーセキュリティ、インターネット技術"}
+          }
+        },
+        {
+          "name": "電子情報工学入門",
+          "page": "32463",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を学ぶ"},
+            "student": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の使い方を習得する"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "生成 AI のアプリケーションエンジニア",
+      "courses": [
+        {
+          "name": "Introduction to Computational Linguistics",
+          "page": "54616",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "形態素解析や機械翻訳など自然言語処理の手法に触れる"},
+            "professor": {"label": "foundation", "evidence": "形態素・構文・意味の解析や機械翻訳など言語処理を概観"},
+            "student": {"label": "foundation", "evidence": "形態素解析、構文、機械翻訳など自然言語処理の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アプリケーション層やセキュリティなどWebの通信の基盤"},
+            "professor": {"label": "foundation", "evidence": "インターネットの仕組みとアプリケーション層を学ぶ"},
+            "student": {"label": "foundation", "evidence": "インターネットの仕組みやアプリケーション層の通信を学ぶ"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "要求分析から設計・テスト・保守までの開発工程を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "要求分析から設計、テストまでの開発工程を学ぶ"},
+            "student": {"label": "foundation", "evidence": "要求分析、設計、テストなどアプリ開発の手法を学ぶ"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ収集・加工やデータベース、プログラミングの基礎"},
+            "professor": {"label": "foundation", "evidence": "データの収集・加工、データベース、プログラミング基礎"},
+            "student": {"label": "foundation", "evidence": "データの収集・整形・加工とデータベースの扱いを学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機械学習・深層学習の基礎と演習、AIと社会の論点を扱う"},
+            "professor": {"label": "core", "evidence": "機械学習、深層学習、ニューラルネットとAIと社会を学ぶ"},
+            "student": {"label": "core", "evidence": "機械学習、深層学習、ニューラルネット、AIと社会を学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "効率のよいプログラムのためのデータ構造とアルゴリズム"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と算法を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報社会と倫理",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "生成AIの課題やAI倫理、学習データのプライバシーを扱う"},
+            "professor": {"label": "foundation", "evidence": "生成AIの課題やAI倫理、学習データのプライバシーを扱う"},
+            "student": {"label": "foundation", "evidence": "生成AIの課題、AI倫理、学習データのプライバシーを扱う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "人工知能や確率的情報処理の基礎に触れる"},
+            "professor": {"label": "foundation", "evidence": "人工知能や確率的情報処理を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "人工知能や確率的情報処理の基礎に触れる"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "機械学習の基礎となる行列と行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "機械学習の基礎となる行列と行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "生成AIの課題やAI倫理、学習データのプライバシーを扱う"},
+            "professor": {"label": "foundation", "evidence": "生成AIの課題やAI倫理、学習データのプライバシーを扱う"},
+            "student": {"label": "foundation", "evidence": "生成AIの課題、AI倫理、学習データのプライバシーを扱う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "深層学習の応用として生成モデルを4回扱う"},
+            "professor": {"label": "core", "evidence": "深層学習の分類・検出から生成モデルまで実装して学ぶ"},
+            "student": {"label": "core", "evidence": "生成モデルを含む深層学習の応用を実装して学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布や推定、検定など確率統計の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率分布、推定、検定など統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "機械学習の理解に要る行列や微積分を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "深層学習の構成や高性能AIの応用を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "深層学習アーキテクチャや高性能AIを扱う回がある"},
+            "student": {"label": "foundation", "evidence": "深層学習アーキテクチャや高性能AIの応用に触れる"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "機械学習から深層学習までの基礎を実装しながら学ぶ"},
+            "professor": {"label": "foundation", "evidence": "回帰・分類から深層学習まで機械学習の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "機械学習の流れからニューラルネットと深層学習まで学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "エッジ AI エンジニア",
+      "courses": [
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ表現や演算のハードウェア実現など計算機の基本"},
+            "professor": {"label": "foundation", "evidence": "演算方式やデータ表現などハードウェアでの計算を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データ表現や演算の仕組みなど計算機の動作原理を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "プロセッサ・メモリ・入出力の構成と性能の考え方"},
+            "professor": {"label": "foundation", "evidence": "パイプラインやメモリ階層など処理性能の要因を学ぶ"},
+            "student": {"label": "foundation", "evidence": "記憶階層やパイプラインなど処理性能を決める構成を学ぶ"}
+          }
+        },
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "プロセッサ内蔵製品のソフトを正しく作る設計手法の基礎"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "エッジデバイスからのデータ収集と加工の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "エッジデバイスからのデータ収集と加工を扱う"},
+            "student": {"label": "foundation", "evidence": "エッジデバイスなどからのデータ収集と加工を学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機械学習・深層学習とニューラルネットの基礎を演習で学ぶ"},
+            "professor": {"label": "core", "evidence": "機械学習・深層学習の基礎を演習を交えて学ぶ"},
+            "student": {"label": "core", "evidence": "機械学習、深層学習、ニューラルネットを演習とともに学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "限られた資源で速く動くプログラムのための基礎"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "限られた資源で速く動くプログラムの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "ハードウェア記述言語",
+          "page": "32477",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilogで論理回路を設計し動作を検証する基礎"},
+            "professor": {"label": "foundation", "evidence": "Verilogによる回路設計とシミュレーションを学ぶ"},
+            "student": {"label": "foundation", "evidence": "Verilogで論理回路を設計しLSI設計の基礎を身に付ける"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "画像のフィルタリングや特徴抽出など画像処理の基礎"},
+            "professor": {"label": "foundation", "evidence": "音声・画像のフィルタリングや特徴抽出を学ぶ"},
+            "student": {"label": "foundation", "evidence": "音声・画像のフィルタリングや特徴抽出を学ぶ"}
+          }
+        },
+        {
+          "name": "並列処理",
+          "page": "32514",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "並列性を生かして高速に実行するハードとソフトの原理"},
+            "professor": {"label": "foundation", "evidence": "並列ハードウェアと並列プログラミングを学ぶ"},
+            "student": {"label": "foundation", "evidence": "並列ハードの構成と並列プログラミングで処理を速くする"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計測信号などのディジタル処理と周波数解析の基礎"},
+            "professor": {"label": "foundation", "evidence": "サンプリング、周波数解析、ディジタルフィルタを学ぶ"},
+            "student": {"label": "foundation", "evidence": "時系列信号の周波数解析とディジタルフィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の高度な使い方とデータ構造の実装を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の応用とデータ構造の実装を演習する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "人工知能やIoTの話題とコンピュータの構成を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "IoTや人工知能、新しいコンピュータの話題を扱う"},
+            "student": {"label": "foundation", "evidence": "計算機の構成、IoT、人工知能の基礎を概観する"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "機械学習の基礎となる行列と行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "機械学習の基礎となる行列と行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マイコンの入出力や割込みのプログラミングを実践する"},
+            "professor": {"label": "foundation", "evidence": "マイコンのプログラム開発と入出力、割込みを実践する"},
+            "student": {"label": "foundation", "evidence": "マイコンの入出力プログラムと電子基板の設計を実践する"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "分類や物体検出など画像の深層学習モデルを実装する"},
+            "professor": {"label": "core", "evidence": "分類・分割・物体検出など深層学習モデルを実装する"},
+            "student": {"label": "core", "evidence": "分類、物体検出、分割など深層学習の応用を実装する"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布や推定、検定など確率統計の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率分布、推定、検定など統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機器に内蔵するコンピュータのハードとソフト、センサを学ぶ"},
+            "professor": {"label": "core", "evidence": "機器内蔵コンピュータのセンサー、プロセッサ、入出力を学ぶ"},
+            "student": {"label": "core", "evidence": "機器内蔵コンピュータのセンサー、プロセッサ、メモリを学ぶ"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル回路の構造と設計方法の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "2進数、論理関数、組合せ・順序回路の設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "論理関数、組合せ回路と順序回路などディジタル回路の設計"}
+          }
+        },
+        {
+          "name": "集積デバイス工学",
+          "page": "32474",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "LSIの動作速度や消費電力が決まる仕組みを学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "機械学習の理解に要る行列や微積分を道具として学ぶ"},
+            "professor": {"label": "foundation", "evidence": "機械学習の理解に要る行列や微積分を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "FPGA実装とC言語の画像処理の実験を行う"},
+            "professor": {"label": "foundation", "evidence": "FPGA実装とC言語の画像処理の実験を行う"},
+            "student": {"label": "foundation", "evidence": "FPGAへの回路実装とC言語の画像処理を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "ボードコンピュータでアセンブリやパイプラインを扱う"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ステレオマッチングの軽量化や深層学習の構成を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "ステレオマッチングの軽量化や深層学習構成を扱う回"},
+            "student": {"label": "foundation", "evidence": "FPGA、深層学習アーキテクチャ、ステレオ処理の軽量化"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機械学習の流れ、回帰・分類、CNNを実装しながら学ぶ"},
+            "professor": {"label": "core", "evidence": "機械学習のワークフローからCNNまで実装して学ぶ"},
+            "student": {"label": "core", "evidence": "画像を中心に機械学習から深層学習までMATLABで実装する"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "パワーエレクトロニクス(電源回路)エンジニア",
+      "courses": [
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "周期関数を三角関数の級数で表す考え方と変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "周期波形を正弦波の和に分解する手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "周期波形を正弦波の和で表すフーリエ級数と変換を学ぶ"}
+          }
+        },
+        {
+          "name": "ベクトル解析",
+          "page": "32484",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電界・磁界をベクトルで解析する数学の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "電界・磁界を扱うためのベクトルの微分・積分を学ぶ"}
+          }
+        },
+        {
+          "name": "制御工学",
+          "page": "32495",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "伝達関数や周波数応答、フィードバック制御の安定性を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "伝達関数による解析とフィードバック制御の設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "フィードバック制御系の安定性と設計法を学ぶ"}
+          }
+        },
+        {
+          "name": "半導体工学",
+          "page": "32473",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "PN接合やMOSトランジスタの動作原理と電流電圧特性を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "PN接合やMOSトランジスタの動作原理を学ぶ"},
+            "student": {"label": "foundation", "evidence": "PN接合とMOSFETの動作原理、電流電圧特性を学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+          "page": "32153",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "EVや蓄電池の動向と電池のシミュレーションを扱う"},
+            "professor": {"label": "foundation", "evidence": "EVと蓄電池の動向や電池シミュレーションを扱う"},
+            "student": {"label": "foundation", "evidence": "EVと蓄電池の技術動向や電池のシミュレーションを扱う"}
+          }
+        },
+        {
+          "name": "工業技術概論",
+          "page": "32169",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "工業技術の概観の中に電力技術や電機の回がある"},
+            "professor": {"label": "foundation", "evidence": "電力技術や電機の回を含め工業技術を概観する"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の解析に使う微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換を学び回路解析の基礎となる"},
+            "student": {"label": "foundation", "evidence": "回路の過渡解析に使う微分方程式とラプラス変換を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路解析に使う行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "材料と化学",
+          "page": "34908",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "材料の化学の中で電池を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "電池など無機機能材料の構造と働きを扱う回がある"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路設計から基板製造までの電子基板設計を実践する"},
+            "professor": {"label": "foundation", "evidence": "回路設計から基板製造まで電子基板設計を実践する"}
+          }
+        },
+        {
+          "name": "集積デバイス工学",
+          "page": "32474",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOSトランジスタの動作原理と特性、消費電力を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタの特性やスイッチング、消費電力を学ぶ"},
+            "student": {"label": "foundation", "evidence": "MOSトランジスタの動作原理と消費電力を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOS回路の基礎を学び電源回路を扱う回がある"},
+            "professor": {"label": "core", "evidence": "PN接合やMOSFETの特性と電源回路を学ぶ"},
+            "student": {"label": "core", "evidence": "PN接合やMOSFETの特性と電源回路を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ダイオードや増幅回路など電子回路の解析と設計を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ダイオードや増幅回路の周波数応答、オペアンプを学ぶ"},
+            "student": {"label": "foundation", "evidence": "ダイオード、増幅回路、オペアンプの解析と設計を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の理解に要る複素数、行列、微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "回路解析に要る複素数や微積分、行列を学ぶ"},
+            "student": {"label": "foundation", "evidence": "交流解析に使う複素数やオイラーの公式を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定装置の扱い方や電気電子回路の実験を行う"},
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方と電気電子回路の実験を行う"},
+            "student": {"label": "foundation", "evidence": "測定器の扱いと電気電子回路の実験を行う"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOSトランジスタの特性をシミュレーションと測定で確かめる"},
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定し解析する"},
+            "student": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "環境発電技術や環境電磁工学を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "環境発電技術や環境電磁工学を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "環境発電技術や環境電磁工学の基礎に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、電力の計算を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、電力を学ぶ"},
+            "student": {"label": "foundation", "evidence": "交流回路のフェーザ、インピーダンス、電力を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "過渡現象、交流電力、3相交流などを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象、交流電力、三相交流、二端子対回路を学ぶ"},
+            "student": {"label": "core", "evidence": "過渡現象、交流電力、相互誘導、3相交流を解析する"}
+          },
+          "decision": "foundation"
+        },
+        {
+          "name": "電磁気学Ⅰ",
+          "page": "32471",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電磁誘導やインダクタンス、静電容量を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "電磁誘導やインダクタンス、静磁エネルギーを学ぶ"},
+            "student": {"label": "foundation", "evidence": "電磁誘導やインダクタンス、静磁エネルギーを学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学Ⅱ",
+          "page": "32492",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "磁性体や電磁誘導など電磁現象を数式で学ぶ"},
+            "professor": {"label": "foundation", "evidence": "電流と磁界、電磁誘導、磁性体を学ぶ"},
+            "student": {"label": "foundation", "evidence": "電流と磁界、電磁誘導、磁性体を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学入門",
+          "page": "32108",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"},
+            "student": {"label": "foundation", "evidence": "電流と磁場、電磁誘導の基本を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "計測機器の開発エンジニア",
+      "courses": [
+        {
+          "name": "ハードウェア記述言語",
+          "page": "32477",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilogによる論理回路の設計と検証を演習で学ぶ"},
+            "professor": {"label": "foundation", "evidence": "Verilogで組合せ・順序回路を設計しシミュレーションする"},
+            "student": {"label": "foundation", "evidence": "Verilogで論理回路を設計しシミュレーションする"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "波形信号を周波数成分に分ける数学とDFTを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "信号を周波数領域で表すフーリエ変換やDFTを学ぶ"},
+            "student": {"label": "foundation", "evidence": "信号を周波数成分に分けるフーリエ変換やDFTを学ぶ"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "信号のフィルタリングや特徴抽出を実装しながら学ぶ"},
+            "student": {"label": "foundation", "evidence": "信号のフィルタリングや周波数領域での処理を実装する"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "標本化、離散時間システム、周波数解析、ディジタルフィルタを扱う"},
+            "professor": {"label": "core", "evidence": "計測信号を含むディジタル信号の解析とフィルタ設計を学ぶ"},
+            "student": {"label": "core", "evidence": "計測信号も対象にサンプリング、周波数解析、フィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "力学入門",
+          "page": "32070",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定の回を含み、物理量の扱いと力学の基本原理を学ぶ"}
+          }
+        },
+        {
+          "name": "半導体工学",
+          "page": "32473",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "半導体の電気特性や光半導体素子を学ぶ"},
+            "student": {"label": "foundation", "evidence": "PN接合、MOSFET、光半導体素子の動作を学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【目に見えない画像を可視化する技術】",
+          "page": "32150",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "光の検出原理やイメージセンサ、性能の定量表現を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "光の検出原理やイメージセンサ、性能の定量表現を学ぶ"},
+            "student": {"label": "foundation", "evidence": "光の検出やイメージセンサ、性能の定量表現を学ぶ"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の解析に使う微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換の解法を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の高度な使い方とデータ構造の実装を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路解析に使う行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"},
+            "professor": {"label": "core", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"},
+            "student": {"label": "foundation", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定データの整理や推定、検定など統計処理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "データ整理や推定など測定データの統計処理を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データの整理、推定と統計処理を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機器に内蔵するコンピュータとセンサ、入出力を学ぶ"},
+            "professor": {"label": "core", "evidence": "機器内蔵コンピュータのセンサー、プロセッサ、入出力を学ぶ"},
+            "student": {"label": "foundation", "evidence": "センサーと入出力を含む組込みシステムの基本を学ぶ"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル回路の構造と設計方法の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "2進数、論理関数、組合せ・順序回路の設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "2進数や論理関数などディジタル回路の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "増幅の原理や小信号等価回路、オペアンプの構成を学ぶ"},
+            "professor": {"label": "core", "evidence": "MOSFETの増幅回路から差動増幅・オペアンプまで学ぶ"},
+            "student": {"label": "foundation", "evidence": "MOSFETの特性、小信号等価回路、増幅の原理を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "増幅回路の周波数応答、差動増幅、オペアンプ回路を学ぶ"},
+            "professor": {"label": "core", "evidence": "差動増幅回路やオペアンプを用いた演算回路を学ぶ"},
+            "student": {"label": "core", "evidence": "差動増幅回路やオペアンプと演算回路の解析と設計を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の理解に要る複素数、行列、微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取得と整理を身につける"},
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取り方・整理を習得する"},
+            "student": {"label": "foundation", "evidence": "各種測定装置の扱い方とデータの取り方を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "オペアンプの特性を測定しFPGA実装も行う"},
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定し解析する"},
+            "student": {"label": "foundation", "evidence": "オペアンプの特性をシミュレーションと測定で確かめる"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "音声信号の解析や通信品質の評価を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マイクロ波・ミリ波レーダ計測技術を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "マイクロ波・ミリ波レーダー計測技術を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "マイクロ波・ミリ波レーダー計測技術に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "直流・交流回路とフェーザ、インピーダンスを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "交流回路のインピーダンスと周波数特性を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "過渡現象、2端子対回路、分布定数回路を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象、交流電力、二端子対回路、分布定数回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "過渡現象や2端子対回路など回路の解析を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学Ⅰ",
+          "page": "32471",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電界、静電容量、磁界、電磁誘導の基本法則を学ぶ"},
+            "student": {"label": "foundation", "evidence": "電界・磁界と電磁誘導の基本法則を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学Ⅱ",
+          "page": "32492",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル解析で電磁現象を表し磁性体や電磁波を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学入門",
+          "page": "32108",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "高周波工学",
+          "page": "32496",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "高周波での電子部品の特性やインピーダンス整合を学ぶ"},
+            "student": {"label": "foundation", "evidence": "高周波での部品特性やインピーダンス整合を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "自動運転・運転支援(ADAS)のエンジニア",
+      "courses": [
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "自動車などのソフトを不良なく作る設計とテストの基本"},
+            "professor": {"label": "foundation", "evidence": "自動車等の制御ソフトを正しく作る設計手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "自動車などに組み込むソフトを正しく作る設計手法を学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "認識に使える機械学習・深層学習の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "機械学習と深層学習の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "機械学習や深層学習の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "探索やグラフなど経路を求める処理にも通じる基礎"},
+            "professor": {"label": "foundation", "evidence": "探索やグラフなどのアルゴリズムを学ぶ"},
+            "student": {"label": "foundation", "evidence": "探索やグラフなどアルゴリズムの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "信号を周波数領域で扱うフーリエ変換の基礎"},
+            "professor": {"label": "foundation", "evidence": "信号を周波数領域で表すフーリエ変換やDFTを学ぶ"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "画像のフィルタリング、幾何変換、特徴抽出をMATLABで実装する"},
+            "professor": {"label": "core", "evidence": "画像のフィルタリング、幾何変換、特徴抽出を実装する"},
+            "student": {"label": "foundation", "evidence": "画像のフィルタリング、幾何学変換、特徴抽出を学ぶ"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計測信号の周波数解析とディジタルフィルタの基礎"},
+            "professor": {"label": "foundation", "evidence": "ディジタル信号の周波数解析とフィルタ設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "時系列信号の周波数解析とディジタルフィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "制御工学",
+          "page": "32495",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "動的システムのモデル化とフィードバック制御系の設計を学ぶ"},
+            "professor": {"label": "core", "evidence": "動的システムのモデル化、安定性、フィードバック制御を学ぶ"},
+            "student": {"label": "core", "evidence": "伝達関数で動的システムを解析しフィードバック制御を設計する"}
+          }
+        },
+        {
+          "name": "力学入門",
+          "page": "32070",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "運動方程式や剛体の力学など移動体の運動の基礎"},
+            "professor": {"label": "foundation", "evidence": "運動の法則、運動量、剛体の回転などを学ぶ"},
+            "student": {"label": "foundation", "evidence": "運動の法則、運動量、剛体の回転など物体の運動を学ぶ"}
+          }
+        },
+        {
+          "name": "力学入門演習",
+          "page": "32131",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "運動方程式の立式と解法を演習で身につける"},
+            "professor": {"label": "foundation", "evidence": "運動方程式の立式と解法を演習で身につける"},
+            "student": {"label": "foundation", "evidence": "運動方程式や回転運動の問題を解いて力学を身に付ける"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【目に見えない画像を可視化する技術】",
+          "page": "32150",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "光の検出原理やイメージセンサの仕組みを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "光の検出原理とイメージセンサの仕組みを学ぶ回がある"}
+          }
+        },
+        {
+          "name": "工業技術概論",
+          "page": "32169",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "各分野の工業技術を概観し自動車工学の回がある"},
+            "professor": {"label": "foundation", "evidence": "自動車工学の回を含め工業技術を概観する"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "制御の基礎となる微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換を学び制御の基礎となる"},
+            "student": {"label": "foundation", "evidence": "制御の基礎となる微分方程式とラプラス変換を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の高度な使い方とデータ構造の実装を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の応用とデータ構造の実装を演習する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "技術者倫理",
+          "page": "32145",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "安全とリスク評価を技術者倫理として扱う回がある"},
+            "student": {"label": "foundation", "evidence": "安全とリスク評価など技術者の責任を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "座標変換の基礎となる行列と行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "行列と連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "物理基礎",
+          "page": "32196",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "運動方程式や剛体の回転・角運動量を演習で学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マイコンの入出力や割込みのプログラミングを実践する"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "物体検出や領域分割など画像認識の深層学習を実装する"},
+            "professor": {"label": "core", "evidence": "物体検出や分割モデルなど画像の深層学習を実装する"},
+            "student": {"label": "core", "evidence": "物体検出や分割モデルなど画像の深層学習を実装する"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布や推定、検定など確率統計の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率分布、推定、検定など統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "センサとアクチュエータ、実時間処理など組込みの基本を学ぶ"},
+            "professor": {"label": "core", "evidence": "CPSやセンサー・アクチュエータ、スケジューリングを学ぶ"},
+            "student": {"label": "core", "evidence": "CPS、センサーとアクチュエータ、スケジューリングを学ぶ"}
+          }
+        },
+        {
+          "name": "近現代の科学技術",
+          "page": "34913",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ロボット・AIの社会実装として自動運転車を扱う"},
+            "professor": {"label": "foundation", "evidence": "社会実装される自動運転車やAIの基礎を扱う回がある"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列、ベクトル、微積分などを道具として学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で画像のフィルタや動画の差分処理を実装する"},
+            "professor": {"label": "foundation", "evidence": "C言語で画像フィルタや映像処理を実装する実験がある"},
+            "student": {"label": "foundation", "evidence": "C言語で画像のフィルタリングや動画処理を行う"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "レーダ計測やステレオマッチングを扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "ミリ波レーダー計測やステレオマッチングを扱う回がある"},
+            "student": {"label": "foundation", "evidence": "ミリ波レーダー計測やステレオマッチングに触れる"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "画像を中心に機械学習と深層学習の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "回帰・分類から深層学習まで機械学習の基礎を学ぶ"},
+            "student": {"label": "core", "evidence": "画像を中心に機械学習から深層学習まで実装する"}
+          },
+          "decision": "foundation"
+        }
+      ]
+    },
+    {
+      "name": "宇宙・衛星の通信機器エンジニア",
+      "courses": [
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "物理層や無線ネットワークと通信の基礎を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "物理層や無線通信の基礎、プロトコル階層を学ぶ"},
+            "student": {"label": "foundation", "evidence": "物理層や無線ネットワークと通信の基礎に触れる"}
+          }
+        },
+        {
+          "name": "ハードウェア記述言語",
+          "page": "32477",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilogで論理回路を設計・検証する基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "Verilogで組合せ・順序回路を設計しシミュレーションする"},
+            "student": {"label": "foundation", "evidence": "Verilogで論理回路を設計しシミュレーションする"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電波などの波形を周波数で表すフーリエ変換とDFTを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "信号を周波数領域で表すフーリエ変換やDFTを学ぶ"},
+            "student": {"label": "foundation", "evidence": "波形を周波数で表すフーリエ変換やDFTを学ぶ"}
+          }
+        },
+        {
+          "name": "ベクトル解析",
+          "page": "32484",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電界・磁界をベクトルで扱う計算力を養う"},
+            "professor": {"label": "foundation", "evidence": "電磁界の解析に使うベクトルの微分・積分を学ぶ"},
+            "student": {"label": "foundation", "evidence": "電磁界をベクトルで扱う勾配・発散・回転と積分定理を学ぶ"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電波など通信の信号を離散化し周波数解析・フィルタする基礎"},
+            "professor": {"label": "core", "evidence": "電波などの信号を離散化して解析・フィルタ処理する"},
+            "student": {"label": "core", "evidence": "通信の電波も対象に周波数解析やディジタルフィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【二次元コードのデザイン演習】",
+          "page": "32154",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "QRコードに組み込まれたリードソロモン誤り訂正符号を扱う"},
+            "professor": {"label": "foundation", "evidence": "リードソロモン符号による誤り訂正を演習で体感する"},
+            "student": {"label": "foundation", "evidence": "リードソロモン符号による誤り訂正にQRコード作りで触れる"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の解析に使う微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換の解法を学ぶ"}
+          }
+        },
+        {
+          "name": "情報の数理",
+          "page": "34918",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "エントロピーや通信路符号化を入門的に学ぶ"},
+            "professor": {"label": "foundation", "evidence": "情報源符号化と通信路符号化の考え方を平易に学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "情報理論",
+          "page": "32503",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "誤り訂正符号やビタビ復号、最適受信を学ぶ"},
+            "professor": {"label": "core", "evidence": "畳込み符号やビタビ復号など誤り訂正と最適受信を学ぶ"},
+            "student": {"label": "core", "evidence": "通信路符号化、畳込み符号、ビタビ復号、最適受信を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅰ",
+          "page": "31809",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "符号理論の基礎となる有限体の計算を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "通信と符号化の基礎を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "通信と符号化の基礎を扱う回がある"}
+          }
+        },
+        {
+          "name": "振動波動入門",
+          "page": "32096",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "波の性質や波動方程式、正弦波の重ね合わせを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "波動方程式や正弦波など波の基本的性質を学ぶ"},
+            "student": {"label": "foundation", "evidence": "波の性質と波動方程式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布や推定など雑音や誤りの解析の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率変数と分布、推定など統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル回路の構造と設計方法の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "通信理論",
+          "page": "32489",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "変復調、誤り制御、無線伝送などディジタル通信の原理を学ぶ"},
+            "professor": {"label": "core", "evidence": "ディジタル変復調や無線伝送、誤り制御など通信方式を学ぶ"},
+            "student": {"label": "core", "evidence": "ディジタル変復調、誤り制御、無線伝送技術を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "寄生容量と高周波効果を含む増幅回路の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "寄生容量の影響と高周波効果を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "増幅回路と寄生容量の影響や高周波効果を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "増幅回路の周波数応答や差動増幅回路を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "増幅回路の周波数応答や差動増幅回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "増幅回路の周波数応答とオペアンプを学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "複素数やオイラーの公式、行列、微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "複素平面やオイラーの公式など工学の数学を学ぶ"},
+            "student": {"label": "foundation", "evidence": "複素平面とオイラーの公式、三角関数を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取り方・整理を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "誤り訂正や変復調、伝搬特性の通信実験を行う"},
+            "professor": {"label": "foundation", "evidence": "誤り訂正・変復調・伝搬特性のディジタル通信実験を行う"},
+            "student": {"label": "foundation", "evidence": "ディジタル通信の誤り訂正、変復調、伝搬特性を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マイクロ波・ミリ波技術や移動通信の進化を扱う"},
+            "professor": {"label": "foundation", "evidence": "マイクロ波レーダーや移動通信システムを扱う回がある"},
+            "student": {"label": "foundation", "evidence": "マイクロ波・ミリ波や移動通信、環境電磁工学に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "交流回路とフェーザ、インピーダンス、周波数特性を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "交流回路のフェーザとインピーダンス、周波数特性を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "分布定数回路や2端子対回路を含む回路解析を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象や二端子対回路、分布定数回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "分布定数回路を含む回路の解析を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学Ⅰ",
+          "page": "32471",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電界、静電容量、磁界、電磁誘導の基本法則を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "電界・磁界、電磁誘導やインダクタンスを学ぶ"},
+            "student": {"label": "foundation", "evidence": "電界・磁界と電磁誘導の基本法則を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学Ⅱ",
+          "page": "32492",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電磁波とその利用を含む電磁気の基本法則を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル解析で電磁気を表し電磁波の性質と利用を学ぶ"},
+            "student": {"label": "foundation", "evidence": "電磁波の性質と利用を学ぶ"}
+          }
+        },
+        {
+          "name": "電磁気学入門",
+          "page": "32108",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"},
+            "student": {"label": "foundation", "evidence": "静電場、電流と磁場、電磁誘導の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "高周波工学",
+          "page": "32496",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "マイクロ波回路の設計点、整合、スミスチャートを学ぶ"},
+            "professor": {"label": "core", "evidence": "マイクロ波回路のインピーダンス整合やスミスチャートを学ぶ"},
+            "student": {"label": "core", "evidence": "マイクロ波の特徴、分布定数回路、インピーダンス整合を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "ドローンの制御エンジニア",
+      "courses": [
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "製品の制御ソフトを正しく設計する手法を学ぶ"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "信号を周波数領域で扱うフーリエ変換の基礎"},
+            "professor": {"label": "foundation", "evidence": "周波数応答の理解に要るフーリエ変換を学ぶ"}
+          }
+        },
+        {
+          "name": "ベクトル解析",
+          "page": "32484",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "3次元空間でのベクトルの微分・積分を学ぶ"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計測信号の周波数解析とディジタルフィルタの基礎"},
+            "professor": {"label": "foundation", "evidence": "ディジタルフィルタの設計と周波数解析を学ぶ"},
+            "student": {"label": "foundation", "evidence": "時系列信号の周波数解析とディジタルフィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "制御工学",
+          "page": "32495",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "伝達関数によるモデル化、安定性、フィードバック制御の設計"},
+            "professor": {"label": "core", "evidence": "伝達関数に基づく解析とフィードバック制御の設計を学ぶ"},
+            "student": {"label": "core", "evidence": "動的システムのモデル化、安定性、フィードバック制御の設計"}
+          }
+        },
+        {
+          "name": "力学入門",
+          "page": "32070",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "角運動量・回転運動・剛体の力学など機体の運動の基礎"},
+            "professor": {"label": "foundation", "evidence": "運動方程式、角運動量、剛体の力学を学ぶ"},
+            "student": {"label": "foundation", "evidence": "運動の法則、剛体の回転、角運動量など物体の運動を学ぶ"}
+          }
+        },
+        {
+          "name": "力学入門演習",
+          "page": "32131",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "力のモーメントや回転運動方程式を演習で解く"},
+            "professor": {"label": "foundation", "evidence": "運動方程式の立式と解法を演習で身につける"},
+            "student": {"label": "foundation", "evidence": "運動方程式や回転運動の問題を解いて力学を身に付ける"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "制御の基礎となる微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ラプラス変換と微分方程式の解法を学び制御の基礎となる"},
+            "student": {"label": "foundation", "evidence": "制御の基礎となる微分方程式とラプラス変換を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の高度な使い方とデータ構造の実装を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の応用とデータ構造の実装を演習する"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "C言語の文法と基本的なプログラムの書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "振動波動入門",
+          "page": "32096",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "減衰や外力を受ける振動系を運動方程式で解析する"},
+            "professor": {"label": "foundation", "evidence": "外力を受ける振動系の運動を微分方程式で表し解く"},
+            "student": {"label": "foundation", "evidence": "減衰や外力のある振動系を微分方程式で解く"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "座標変換の基礎となる行列と行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "行列と連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "物理基礎",
+          "page": "32196",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "運動方程式や剛体の回転・角運動量を演習で学ぶ"},
+            "student": {"label": "foundation", "evidence": "運動方程式、回転と角運動量、剛体の運動を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "マイコンの入出力や割込みのプログラミングを実践する"},
+            "professor": {"label": "foundation", "evidence": "マイコンの入出力や割込みのプログラミングを実践する"},
+            "student": {"label": "foundation", "evidence": "マイコンの入出力や割込みのプログラムと基板設計を実践"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布や推定など状態推定の基礎となる統計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率分布、推定など統計の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "センサとアクチュエータ、実時間処理など組込みの基本を学ぶ"},
+            "professor": {"label": "core", "evidence": "センサーとアクチュエータ、CPS、スケジューリングを学ぶ"},
+            "student": {"label": "core", "evidence": "CPS、センサーとアクチュエータ、マルチタスクを学ぶ"}
+          }
+        },
+        {
+          "name": "複素関数論",
+          "page": "32507",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "正則関数や極・留数など複素関数の微積分を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列、ベクトル、微積分などを道具として学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学演習",
+          "page": "32466",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ロボットを使ったプログラミング演習を行う"},
+            "professor": {"label": "foundation", "evidence": "ロボットを動かすプログラミング演習を行う"},
+            "student": {"label": "foundation", "evidence": "ロボットのプログラミングとシミュレーションの演習"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "半導体商社の FAE(技術サポート)",
+      "courses": [
+        {
+          "name": "コンピュータアーキテクチャⅠ",
+          "page": "32476",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "命令セット、アセンブリ、メモリ・入出力などプロセッサの基本"},
+            "professor": {"label": "foundation", "evidence": "命令セットや入出力などプロセッサの動作原理を学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロセッサの命令やデータ表現など計算機の動作原理を学ぶ"}
+          }
+        },
+        {
+          "name": "コンピュータアーキテクチャⅡ",
+          "page": "32498",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "プロセッサ、メモリ、入出力の方式と制御の仕組みを学ぶ"},
+            "student": {"label": "foundation", "evidence": "プロセッサ、メモリ、入出力の実現方式を学ぶ"}
+          }
+        },
+        {
+          "name": "ハードウェア記述言語",
+          "page": "32477",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Verilog HDLでの回路設計とシミュレーションを演習する"},
+            "professor": {"label": "foundation", "evidence": "Verilogで組合せ・順序回路を設計しシミュレーションする"},
+            "student": {"label": "foundation", "evidence": "Verilogで論理回路を設計しLSI設計の基礎を身に付ける"}
+          }
+        },
+        {
+          "name": "半導体工学",
+          "page": "32473",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "半導体の応用、PN接合、MOSトランジスタの動作と特性を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "半導体の特性、PN接合、MOSFETの動作を学ぶ"},
+            "student": {"label": "core", "evidence": "PN接合やMOSトランジスタの動作と電流電圧特性を学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+          "page": "32151",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "専門外の聞き手に要点を短く伝える発表を訓練する"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換を学び回路解析の基礎となる"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "物質科学",
+          "page": "32058",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "量子力学から固体の物性までの要点を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "量子力学の入門と固体の物性物理を概観する"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "電子基板設計とマイコンのプログラム開発を実践する"},
+            "professor": {"label": "foundation", "evidence": "電子基板設計とマイコンのプログラム開発を実践する"},
+            "student": {"label": "foundation", "evidence": "マイコンのプログラム開発と電子基板の設計を実践する"}
+          },
+          "decision": "foundation"
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "組込み機器のプロセッサ、メモリ、入出力の基本を学ぶ"},
+            "professor": {"label": "core", "evidence": "組込み機器のプロセッサ、メモリ、入出力の基本を学ぶ"},
+            "student": {"label": "core", "evidence": "組込み機器のプロセッサ、メモリ、入出力の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "論理回路",
+          "page": "32461",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル回路の構造と設計方法の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "2進数、論理関数、組合せ・順序回路の設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "論理関数、組合せ回路と順序回路などディジタル回路の設計"}
+          }
+        },
+        {
+          "name": "集積デバイス工学",
+          "page": "32474",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOSトランジスタやCMOS回路、消費電力の決まり方を学ぶ"},
+            "professor": {"label": "core", "evidence": "MOSトランジスタからCMOS回路、メモリ、消費電力まで学ぶ"},
+            "student": {"label": "core", "evidence": "LSI製品の用途や分類、CMOS回路と消費電力を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "MOSFETの特性、増幅回路、オペアンプの構成を学ぶ"},
+            "professor": {"label": "core", "evidence": "PN接合やMOSFETの特性、増幅回路、電源回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "PN接合やMOSFETの特性、増幅回路、電源回路を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "差動増幅やオペアンプ回路など電子回路の設計を学ぶ"},
+            "professor": {"label": "core", "evidence": "ダイオードや増幅回路、オペアンプの解析と設計を学ぶ"},
+            "student": {"label": "core", "evidence": "増幅回路、差動増幅、オペアンプと演算回路を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の理解に要る複素数、行列、微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "回路解析に要る複素数や微積分、行列を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定装置の扱い方や回路の実験を行う"},
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方と電気電子回路の実験を行う"},
+            "student": {"label": "foundation", "evidence": "各種測定装置の扱い方と電気電子回路の実験を行う"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOSやオペアンプの特性測定とFPGA実装を行う"},
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定し解析する"},
+            "student": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの測定、FPGA実装を行う"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "教育用ボードコンピュータでアセンブリ等を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "FPGAの原理やLSIの仕組みを扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "FPGAの原理やLSIの最近の状況を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "FPGAやLSIの最近の状況、環境発電技術に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "直流・交流回路とフェーザ、インピーダンスを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "直流・交流回路とインピーダンスの基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "過渡現象、2端子対回路、分布定数回路を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象、交流電力、二端子対回路、分布定数回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "過渡現象や2端子対回路など回路の解析を学ぶ"}
+          }
+        },
+        {
+          "name": "高周波工学",
+          "page": "32496",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "高周波での電子部品の特性やインピーダンス整合を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "電機メーカーの商品企画",
+      "courses": [
+        {
+          "name": "コーオプ演習（実践）",
+          "page": "16993",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "企業のテーマでチームが課題を分析し解決策を提案する"},
+            "professor": {"label": "foundation", "evidence": "企業の実テーマにチームで取り組み解決策を提案する"},
+            "student": {"label": "foundation", "evidence": "企業が出す実際の課題にチームで取り組み解決策を提案する"}
+          }
+        },
+        {
+          "name": "コーオプ演習（理論）【通年】",
+          "page": "16984",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "企業の課題に対する調査分析、企画立案、企画書作成を学ぶ"},
+            "professor": {"label": "core", "evidence": "企業の課題発見、調査分析、企画立案、提案書作成を学ぶ"},
+            "student": {"label": "core", "evidence": "企業課題の調査分析、企画立案、提案書のまとめ方を学ぶ"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "データの収集・整形と可視化、分析演習を行う"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ分析の進め方と設計、収集データの分析を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "データ分析の進め方と手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データ分析の進め方と設計、分析手法を学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+          "page": "32153",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "EV・蓄電池の動向を学びプロジェクト提案の過程を身につける"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+          "page": "32151",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "専門外の聞き手に要点を短く伝える発表を訓練する"}
+          }
+        },
+        {
+          "name": "工業技術概論",
+          "page": "32169",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電機やデザイン、製造技術など工業各分野を概観する"},
+            "professor": {"label": "foundation", "evidence": "デザイン技術や製造技術など工業の各分野を概観する"}
+          }
+        },
+        {
+          "name": "心理学入門",
+          "page": "34818",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "知覚や行動分析など人の行動を理解する基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報技術と社会",
+          "page": "34921",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "情報技術を使った製品やサービスが社会に与える影響を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "情報技術を使った製品やサービスの社会への影響を考える"},
+            "student": {"label": "foundation", "evidence": "情報技術を使った製品やサービスが社会に与える影響を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+          "page": "31083",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "事業機会の発見からビジネスモデルの構想までを学ぶ"},
+            "professor": {"label": "core", "evidence": "事業アイディアの発見からビジネスモデル構想まで学ぶ"},
+            "student": {"label": "core", "evidence": "事業機会の発見からビジネスモデル構想、ピッチまで学ぶ"}
+          }
+        },
+        {
+          "name": "現代の経営",
+          "page": "34875",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "製品市場との関わりや経営戦略など経営学の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "経営戦略や製品・サービス市場と企業の関係を学ぶ"},
+            "student": {"label": "foundation", "evidence": "経営戦略や製品市場との関わりなど経営学の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データの整理や推定、検定など統計の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "データ整理や推定・検定など統計処理の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データの整理や推定・検定の方法を学ぶ"}
+          }
+        },
+        {
+          "name": "社会と学ぶ課題解決",
+          "page": "34950",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "企業の実課題にチームで解決策を提案する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電子情報分野の先端技術の動向を幅広く概説する"},
+            "professor": {"label": "foundation", "evidence": "電子情報分野の先端技術を幅広く概観する"},
+            "student": {"label": "foundation", "evidence": "電子情報分野の先端技術を幅広く概観する"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "デジタルマーケター(データ活用)",
+      "courses": [
+        {
+          "name": "コーオプ演習（実践）",
+          "page": "16993",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "企業の実課題で問題発見から解決策の提案まで行う"}
+          }
+        },
+        {
+          "name": "コーオプ演習（理論）【通年】",
+          "page": "16984",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "企画立案のための調査・分析を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "企画立案のための調査・分析を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "企画立案のための調査・分析を学ぶ回がある"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "データの収集・整形・DBからの抽出・可視化と分析演習を扱う"},
+            "professor": {"label": "core", "evidence": "Web等からのデータ収集、加工、DB抽出、可視化を学ぶ"},
+            "student": {"label": "core", "evidence": "Webなどからのデータ収集、加工、DB抽出、可視化を学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "データ分析の進め方と手法、機械学習を演習で学ぶ"},
+            "professor": {"label": "core", "evidence": "データ分析の設計・手法と機械学習を演習で学ぶ"},
+            "student": {"label": "core", "evidence": "データ分析の進め方と手法、機械学習の活用を演習で学ぶ"}
+          }
+        },
+        {
+          "name": "心理学入門",
+          "page": "34818",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "環境との相互作用から日常行動を分析する方法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "人の日常行動を環境との関係から分析する"},
+            "student": {"label": "foundation", "evidence": "行動と環境の相互作用から日常の行動を分析する"}
+          }
+        },
+        {
+          "name": "情報と職業",
+          "page": "32177",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ駆動社会や情報産業の収益モデルを扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "データドリブン社会や情報産業の収益モデルを扱う回"},
+            "student": {"label": "foundation", "evidence": "位置情報ビジネスや収益モデル、データ駆動社会に触れる"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "情報技術と社会",
+          "page": "34921",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データの読み方や扱い方、説明の仕方を学ぶ回がある"},
+            "professor": {"label": "foundation", "evidence": "情報社会のデータの読み方・扱い方・説明の仕方を学ぶ"},
+            "student": {"label": "foundation", "evidence": "社会で得られるデータの読み方・扱い方・説明の仕方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報社会と倫理",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "個人情報とプライバシーやデータ管理の倫理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "個人情報とプライバシー、データ管理の問題を扱う"},
+            "student": {"label": "foundation", "evidence": "個人情報とプライバシー、データ利用の課題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "個人情報とプライバシーやデータ管理の倫理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "個人情報とプライバシー、データ管理の問題を扱う"},
+            "student": {"label": "foundation", "evidence": "個人情報とプライバシー、データ利用の課題を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "分類・回帰や時系列データの予測モデルを扱う"}
+          }
+        },
+        {
+          "name": "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+          "page": "31083",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "ビジネスモデルや事業機会の見つけ方を学ぶ"}
+          }
+        },
+        {
+          "name": "現代の経営",
+          "page": "34875",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "製品市場との関わりや経営戦略など経営学の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "企業と製品・サービス市場の関わりや経営戦略を学ぶ"},
+            "student": {"label": "foundation", "evidence": "製品市場との関わりや経営戦略の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "データの整理、推定、仮説検定と計算機での統計処理を学ぶ"},
+            "professor": {"label": "core", "evidence": "推定や仮説検定などデータの統計処理を実践的に学ぶ"},
+            "student": {"label": "core", "evidence": "統計量、推定、仮説検定とコンピュータでの統計処理を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学演習",
+          "page": "32466",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Excelを使ったデータ解析の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "Excelなどを使うデータ解析の演習がある"},
+            "student": {"label": "foundation", "evidence": "Excelを使うデータ解析の演習を含む"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "データ利活用とプライバシー保護を扱う回がある"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回帰や分類のモデルなど機械学習の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "回帰・分類など機械学習の手順をMATLABで学ぶ"},
+            "student": {"label": "foundation", "evidence": "回帰や分類モデルなど機械学習の流れを学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "信号処理の研究者(大学院進学)",
+      "courses": [
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データ分析の手法と機械学習・深層学習の基礎"},
+            "professor": {"label": "foundation", "evidence": "機械学習とニューラルネットワークの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データ分析に要る数学と機械学習の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "フーリエ級数・変換、DFT、DCTで信号を周波数領域に移す"},
+            "professor": {"label": "core", "evidence": "フーリエ級数・変換、DFT、DCTを工学応用中心に学ぶ"},
+            "student": {"label": "foundation", "evidence": "フーリエ級数・変換、DFT、DCTなど周波数解析の数学を学ぶ"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "音声・画像の信号処理、空間・周波数フィルタ、特徴抽出を実装"},
+            "professor": {"label": "core", "evidence": "音声・画像の空間/周波数フィルタリングと特徴抽出を学ぶ"},
+            "student": {"label": "core", "evidence": "音声・画像の信号処理、フィルタリング、特徴抽出を実装する"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "標本化、離散時間システム、周波数解析、ディジタルフィルタを扱う"},
+            "professor": {"label": "core", "evidence": "ディジタル信号の解析、周波数解析、フィルタ設計を学ぶ"},
+            "student": {"label": "core", "evidence": "サンプリング、伝達関数、周波数解析、ディジタルフィルタを学ぶ"}
+          }
+        },
+        {
+          "name": "制御工学",
+          "page": "32495",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "伝達関数と周波数応答など信号処理と共通の理論を扱う"},
+            "professor": {"label": "foundation", "evidence": "伝達関数や周波数応答などシステム解析を学ぶ"},
+            "student": {"label": "foundation", "evidence": "伝達関数や周波数応答でシステムを解析する"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+          "page": "32151",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "研究内容を3分で伝える英語の発表を訓練する"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換の解法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ラプラス変換と逆変換、その微分方程式への応用を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ラプラス変換と逆変換による微分方程式の解法を学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "C言語の高度な使い方とスタックや木などのデータ構造を学ぶ"}
+          }
+        },
+        {
+          "name": "情報の数理",
+          "page": "34918",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "エントロピーや情報源符号化を入門的に学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "情報理論",
+          "page": "32503",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "自己相関・相互相関や最適受信を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "自己相関・相互相関や最適受信を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "自己相関と相互相関、最適受信に触れる"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "画像符号化や確率的情報処理を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "画像符号化や確率的情報処理を扱う回がある"}
+          }
+        },
+        {
+          "name": "振動波動入門",
+          "page": "32096",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "正弦波の重ね合わせや波動方程式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "正弦波の重ね合わせや定在波など波の性質を学ぶ"},
+            "student": {"label": "foundation", "evidence": "正弦波の重ね合わせや波動方程式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "行列と連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "固有値問題や内積空間などベクトル空間論を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "数理計画法",
+          "page": "32501",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "線形計画など最適化問題の定式化と解法を学ぶ"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "時系列データの分類と予測を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "時系列データの分類・予測を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "時系列データの分類や予測を含む深層学習を実装する"}
+          }
+        },
+        {
+          "name": "理工系日本語の技法",
+          "page": "32156",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "論文や報告書の構成と論理的な書き方を演習で学ぶ"},
+            "student": {"label": "foundation", "evidence": "論文の構成と論理的な文章の書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率変数や確率分布、推定など確率統計の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率変数と分布、推定と検定を学ぶ"}
+          }
+        },
+        {
+          "name": "複素関数論",
+          "page": "32507",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "正則関数や留数など複素関数の微分積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "正則関数や極・留数など複素関数の微積分を学ぶ"},
+            "student": {"label": "foundation", "evidence": "複素関数の積分と留数を使った計算を学ぶ"}
+          }
+        },
+        {
+          "name": "通信理論",
+          "page": "32489",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル信号の扱いや変復調を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ディジタル信号の取り扱いと変復調方式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ディジタル信号の取り扱いと変復調を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "複素平面とオイラーの公式、行列や微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "複素平面やオイラーの公式など工学の数学を学ぶ"},
+            "student": {"label": "foundation", "evidence": "複素平面とオイラーの公式、行列計算を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "画像のフィルタリングや圧縮を実装する実験を行う"},
+            "professor": {"label": "foundation", "evidence": "画像フィルタや圧縮など画像・映像処理を実装する"},
+            "student": {"label": "foundation", "evidence": "画像のフィルタリングや圧縮をC言語で実装する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "音声信号の解析を実験で行う"},
+            "professor": {"label": "foundation", "evidence": "音声信号解析を行う実験がある"},
+            "student": {"label": "foundation", "evidence": "音声信号の解析を実験で行う"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "レーダー計測やステレオマッチングを扱う回がある"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "正弦波の複素表示やインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "正弦波のフェーザ表示と周波数特性を学ぶ"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "回帰・分類から深層学習まで機械学習の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "回帰や分類、ニューラルネットなど機械学習を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "情報理論・暗号の研究者(大学院進学)",
+      "courses": [
+        {
+          "name": "コンピュータネットワーク",
+          "page": "32504",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "公開鍵暗号や電子署名などの暗号技術を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "公開鍵暗号や電子署名など暗号技術の回がある"},
+            "student": {"label": "foundation", "evidence": "公開鍵暗号や電子署名などの暗号技術を扱う回がある"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "アルゴリズムの基礎と計算の効率の考え方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "アルゴリズムの基礎と効率的な処理手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "アルゴリズムの基礎と計算の効率の考え方を学ぶ"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【二次元コードのデザイン演習】",
+          "page": "32154",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "誤り訂正符号を使ったQRコードの作成を演習で体感する"},
+            "professor": {"label": "foundation", "evidence": "リードソロモン符号による誤り訂正の仕組みを扱う"},
+            "student": {"label": "foundation", "evidence": "リードソロモン符号による誤り訂正を演習で体感する"}
+          }
+        },
+        {
+          "name": "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+          "page": "32151",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "研究内容を3分で伝える英語の発表を訓練する"}
+          }
+        },
+        {
+          "name": "情報の数理",
+          "page": "34918",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "エントロピーとシャノンの定理を入門的に学ぶ"},
+            "professor": {"label": "foundation", "evidence": "エントロピーやシャノンの定理など情報理論を平易に学ぶ"},
+            "student": {"label": "core", "evidence": "エントロピーとシャノンの定理、量子情報理論の入門"}
+          },
+          "decision": "foundation"
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "情報理論",
+          "page": "32503",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "情報量、符号化定理、ブロック・畳込み符号を学ぶ"},
+            "professor": {"label": "core", "evidence": "情報量、情報源符号化、通信路符号化、誤り訂正符号を学ぶ"},
+            "student": {"label": "core", "evidence": "情報量、通信容量、符号化定理、誤り訂正符号を学ぶ"}
+          }
+        },
+        {
+          "name": "情報社会と倫理",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "暗号技術の基礎と応用を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "暗号技術の基礎と応用を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "暗号技術の基礎と応用に触れる"}
+          }
+        },
+        {
+          "name": "情報科学Ⅰ",
+          "page": "31809",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "群・環・体や有限体の計算など代数系を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "群・環・体や有限体の計算など離散数学を学ぶ"},
+            "student": {"label": "foundation", "evidence": "群・環・体や有限体の計算など代数系と符号の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "通信と符号化の基礎を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "通信と符号化、データ圧縮の基礎を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "通信と符号化、データ圧縮の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅲ",
+          "page": "31815",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "共通鍵・公開鍵暗号、電子署名とその安全性を学ぶ"},
+            "professor": {"label": "core", "evidence": "共通鍵・公開鍵暗号、署名、セキュリティプロトコルを学ぶ"},
+            "student": {"label": "core", "evidence": "整数論、公開鍵暗号、電子署名と暗号の安全性を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "符号理論の基礎となる行列と連立1次方程式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "行列と連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間と線形写像を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+          "page": "32175",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "暗号技術の基礎と応用を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "暗号技術の基礎と応用を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "暗号技術の基礎と応用に触れる"}
+          }
+        },
+        {
+          "name": "理工系日本語の技法",
+          "page": "32156",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "論文や報告書の構成と論理的な書き方を演習で学ぶ"},
+            "student": {"label": "foundation", "evidence": "論文の構成と論理的な文章の書き方を学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率変数や確率分布など確率の基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率の公理、確率変数と分布を学ぶ"}
+          }
+        },
+        {
+          "name": "通信理論",
+          "page": "32489",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "誤り制御やブロック符号、畳込み符号を扱う"},
+            "professor": {"label": "foundation", "evidence": "誤り制御やブロック符号・畳込み符号を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "ブロック符号や畳込み符号など誤り制御を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル通信の誤り訂正を実験で確かめる"},
+            "professor": {"label": "foundation", "evidence": "ディジタル通信の誤り訂正を実験する回がある"},
+            "student": {"label": "foundation", "evidence": "ディジタル通信の誤り訂正を実験する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "暗号回路のハードウェアセキュリティを扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "暗号回路のハードウェアセキュリティを扱う回がある"},
+            "student": {"label": "foundation", "evidence": "暗号回路のハードウェアセキュリティに触れる"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "生体信号(脳波・心電)の計測エンジニア",
+      "courses": [
+        {
+          "name": "スポーツのサイエンス",
+          "page": "34973",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "骨格・筋・神経など人の身体の構造と生理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "人体の骨格・筋・神経の構造と運動時の生理変化を学ぶ"},
+            "student": {"label": "foundation", "evidence": "骨格・筋・神経の構造と運動中の体の変化を学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "収集したデータの分析手法と機械学習を学ぶ"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "信号を周波数領域に変換するフーリエ変換とDFTを学ぶ"},
+            "professor": {"label": "foundation", "evidence": "信号を周波数領域で表すフーリエ変換やDFTを学ぶ"},
+            "student": {"label": "foundation", "evidence": "信号を周波数成分に分けるフーリエ変換やDFTを学ぶ"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "信号のフィルタリングや特徴抽出を実装しながら学ぶ"},
+            "professor": {"label": "foundation", "evidence": "信号のフィルタリングや特徴抽出をMATLABで実装する"},
+            "student": {"label": "foundation", "evidence": "信号のフィルタリング、特徴抽出、類似性の評価を学ぶ"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "脳波などの信号を例に標本化・周波数解析・フィルタ設計を学ぶ"},
+            "professor": {"label": "core", "evidence": "脳波など生体信号を含む信号の解析とフィルタ設計を学ぶ"},
+            "student": {"label": "core", "evidence": "脳波なども対象にディジタル信号の解析とフィルタ設計を学ぶ"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の解析に使う微分方程式とラプラス変換を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "線形微分方程式とラプラス変換の解法を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法とプログラミングの基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "professor": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作りデバッグ・テストする"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の演習問題を解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+          "page": "32517",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"},
+            "professor": {"label": "foundation", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"},
+            "student": {"label": "foundation", "evidence": "電子基板設計とマイコンのアナログ入出力を実践する"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "時系列データの分類と予測を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "時系列データの分類・予測を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "時系列データの分類と予測の回がある"}
+          }
+        },
+        {
+          "name": "生物科学１",
+          "page": "32039",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "細胞の構造と機能、生体の防御機構など生体の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "細胞の構造と機能など生体の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計測データの整理や推定、検定など統計処理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布や推定・検定など確率統計の基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データの整理、推定と統計処理を学ぶ"}
+          }
+        },
+        {
+          "name": "組み込みシステム",
+          "page": "32513",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "センサや入出力など組込み機器の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "センサーや入出力など機器内蔵コンピュータの基本を学ぶ"},
+            "student": {"label": "foundation", "evidence": "センサーと入出力を持つ組込み機器の基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "増幅の原理や小信号等価回路、オペアンプの構成を学ぶ"},
+            "professor": {"label": "core", "evidence": "MOSFETの増幅回路から差動増幅・オペアンプまで学ぶ"},
+            "student": {"label": "foundation", "evidence": "MOSFETの特性、小信号等価回路、増幅の原理を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "差動増幅回路やオペアンプを用いた演算回路を学ぶ"},
+            "professor": {"label": "core", "evidence": "差動増幅回路やオペアンプを用いた演算回路を学ぶ"},
+            "student": {"label": "core", "evidence": "差動増幅回路とオペアンプによる演算回路を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "回路の理解に要る複素数、行列、微積分を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取得と整理を身につける"},
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取り方・整理を習得する"},
+            "student": {"label": "foundation", "evidence": "測定装置の扱い方とデータの取り方を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "オペアンプの特性をシミュレーションと測定で確かめる"},
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定し解析する"},
+            "student": {"label": "foundation", "evidence": "オペアンプの特性をシミュレーションと測定で確かめる"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "音声信号の解析を実験で行う"},
+            "professor": {"label": "foundation", "evidence": "音声信号解析を行う実験がある"},
+            "student": {"label": "foundation", "evidence": "音声信号の解析を実験で行う"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "直流・交流回路とフェーザ、周波数特性を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "インピーダンスと周波数特性を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "過渡現象や2端子対回路など回路の解析を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象、交流電力、二端子対回路、分布定数回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "過渡現象や2端子対回路など回路の解析を学ぶ"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "回帰・分類から深層学習まで機械学習の基礎を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "電子機器の品質保証・信頼性エンジニア",
+      "courses": [
+        {
+          "name": "ソフトウェア工学",
+          "page": "32500",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "不良のないソフトを作る設計とテストの考え方を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "不良のないソフトのための設計とテストを学ぶ"},
+            "student": {"label": "foundation", "evidence": "製品のソフトの不良を防ぐ設計手法とテストを学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データの記述と分析手法など統計的な分析の基礎"},
+            "professor": {"label": "foundation", "evidence": "データ分析の基礎と手法を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データの記述と分析手法の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "化学１",
+          "page": "31797",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "反応速度とエネルギー、酸化・還元など物質の変化の基礎"},
+            "professor": {"label": "foundation", "evidence": "反応速度とエネルギー、酸化還元など物質の変化を学ぶ"},
+            "student": {"label": "foundation", "evidence": "反応速度や酸化・還元など物質の変化の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "半導体工学",
+          "page": "32473",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "半導体の特性とMOSトランジスタの動作原理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "半導体結晶、PN接合、MOSFETの特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "半導体素子の構造と電気特性の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "工業技術概論",
+          "page": "32169",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "工業各分野の概観の中で工業生産と製造技術を扱う"},
+            "professor": {"label": "foundation", "evidence": "工業生産と製造技術の回を含め工業技術を概観する"}
+          }
+        },
+        {
+          "name": "技術者倫理",
+          "page": "32145",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "安全やリスク評価と技術者の責任を事例で学ぶ"},
+            "professor": {"label": "foundation", "evidence": "安全とリスク評価を技術者倫理として扱う回がある"},
+            "student": {"label": "foundation", "evidence": "安全・リスク評価や企業倫理を事例で学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布の扱いに要る微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布の扱いに要る積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "行列、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の演習を行う"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の演習を行う"}
+          }
+        },
+        {
+          "name": "材料と化学",
+          "page": "34908",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "金属・無機・有機材料や電池の構造と機能を学ぶ"}
+          }
+        },
+        {
+          "name": "現代社会と法",
+          "page": "34861",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "不法行為として欠陥製品の責任に触れる"},
+            "student": {"label": "foundation", "evidence": "欠陥製品による事故など不法行為の法を扱う"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "確率分布、推定、仮説検定など統計処理の方法を学ぶ"},
+            "professor": {"label": "core", "evidence": "確率分布、標本分布、推定、検定など統計処理を学ぶ"},
+            "student": {"label": "core", "evidence": "確率分布、推定、検定とデータの統計処理を学ぶ"}
+          }
+        },
+        {
+          "name": "集積デバイス工学",
+          "page": "32474",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "LSIの消費電力や配線ノイズによる誤動作の問題を扱う"}
+          }
+        },
+        {
+          "name": "電子回路Ⅰ",
+          "page": "32469",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "MOSFETの特性や増幅回路など電子回路の基本を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "半導体素子と増幅回路など電子回路の動作を学ぶ"},
+            "student": {"label": "foundation", "evidence": "MOSFETの特性と増幅回路、電源回路を学ぶ"}
+          }
+        },
+        {
+          "name": "電子回路Ⅱ",
+          "page": "32494",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ダイオードや増幅回路の特性解析を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ダイオードや増幅回路、オペアンプの解析と設計を学ぶ"},
+            "student": {"label": "foundation", "evidence": "増幅回路の周波数応答とオペアンプを学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "行列や微積分、複素数など工学の道具となる数学を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅰ",
+          "page": "32486",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取得と整理を身につける"},
+            "professor": {"label": "foundation", "evidence": "測定装置の扱い方やデータの取り方・整理を習得する"},
+            "student": {"label": "foundation", "evidence": "測定器の使い方とデータ整理の手順を習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "MOSトランジスタとオペアンプの特性を測定し解析する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "環境電磁工学の基礎を扱う回がある"},
+            "professor": {"label": "foundation", "evidence": "環境電磁工学の基礎を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "環境電磁工学の基礎に触れる"}
+          }
+        },
+        {
+          "name": "電気回路Ⅰ",
+          "page": "32460",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、電力を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "直流・交流回路とインピーダンス、周波数特性を学ぶ"},
+            "student": {"label": "foundation", "evidence": "直流・交流回路とインピーダンスの基本を学ぶ"}
+          }
+        },
+        {
+          "name": "電気回路Ⅱ",
+          "page": "32470",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "過渡現象や2端子対回路など回路の解析を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "過渡現象、交流電力、二端子対回路、分布定数回路を学ぶ"},
+            "student": {"label": "foundation", "evidence": "過渡現象や交流電力など回路の解析を学ぶ"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "音声認識エンジニア",
+      "courses": [
+        {
+          "name": "Introduction to Computational Linguistics",
+          "page": "54616",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "形態素解析・構文・意味など言語処理の基礎と機械翻訳を概観"},
+            "professor": {"label": "foundation", "evidence": "形態素解析・構文・意味など言語処理の基礎と機械翻訳を概観"},
+            "student": {"label": "foundation", "evidence": "形態素解析や構文、機械翻訳など言語処理の概観に触れる"}
+          }
+        },
+        {
+          "name": "Understanding Language",
+          "page": "54619",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "一部の回で音声の産出や音韻、コーパス分析を扱う"},
+            "professor": {"label": "foundation", "evidence": "一部の回で音声の産出や音韻論、コーパス分析を扱う"},
+            "student": {"label": "foundation", "evidence": "音声の生成と音韻、コーパス分析を扱う回がある"}
+          }
+        },
+        {
+          "name": "コンパイラ",
+          "page": "32491",
+          "votes": {
+            "professor": {"label": "foundation", "evidence": "言語処理の基礎となるオートマトン・文法・構文解析の理論を学ぶ"}
+          }
+        },
+        {
+          "name": "データエンジニアリング基礎",
+          "page": "34925",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "データの収集・整形・DB抽出とプログラミングの基礎を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "データの収集・加工とプログラミング、アルゴリズムの基礎を学ぶ"},
+            "student": {"label": "foundation", "evidence": "データ表現とプログラミング、データの収集・加工の基礎を学ぶ"}
+          }
+        },
+        {
+          "name": "データサイエンス・AI基礎",
+          "page": "34923",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機械学習と深層学習の基礎を学び演習で手法を使えるようにする"},
+            "professor": {"label": "core", "evidence": "機械学習と深層学習・ニューラルネットの基礎を演習込みで学ぶ"},
+            "student": {"label": "foundation", "evidence": "機械学習と深層学習の基礎を演習つきで学ぶ"}
+          }
+        },
+        {
+          "name": "データ構造とアルゴリズム",
+          "page": "32481",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "探索・整列・グラフなど効率的な実装の基礎となる手法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "効率的なプログラムのためのデータ構造と探索・整列・グラフを学ぶ"},
+            "student": {"label": "foundation", "evidence": "探索・整列・グラフなど効率的なプログラムの基本を学ぶ"}
+          }
+        },
+        {
+          "name": "フーリエ解析",
+          "page": "32485",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "フーリエ変換やDFT・DCTで音声信号を周波数領域へ移す数学"},
+            "professor": {"label": "foundation", "evidence": "音声信号を周波数領域へ変換するフーリエ変換やDFT・DCTを学ぶ"},
+            "student": {"label": "foundation", "evidence": "音声信号を周波数領域に移すフーリエ変換やDFT・DCTの数学"}
+          }
+        },
+        {
+          "name": "メディア情報処理",
+          "page": "32510",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "音声と画像の処理、特徴抽出、類似性評価をMATLABで実装する"},
+            "professor": {"label": "core", "evidence": "音声・画像から必要な情報を取り出す処理と特徴抽出をMATLABで実装"},
+            "student": {"label": "core", "evidence": "音声と画像の信号処理や特徴抽出、類似度をMATLABで実装して学ぶ"}
+          }
+        },
+        {
+          "name": "信号処理",
+          "page": "32488",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "音声等の離散信号を標本化・周波数解析・フィルタ設計で扱う"},
+            "professor": {"label": "core", "evidence": "音声など時系列のディジタル信号の周波数解析とフィルタ設計を学ぶ"},
+            "student": {"label": "core", "evidence": "音声など時系列のディジタル信号の周波数解析とフィルタ設計を学ぶ"}
+          }
+        },
+        {
+          "name": "微分方程式／ラプラス変換",
+          "page": "32490",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "線形微分方程式の解き方とラプラス変換・逆変換を計算中心に学ぶ"}
+          }
+        },
+        {
+          "name": "応用Cプログラミング",
+          "page": "32482",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で再帰・構造体・スタック・木・ソートなどを演習で実装する"},
+            "professor": {"label": "foundation", "evidence": "C言語で再帰や構造体、スタック・木・ソートを実装する"},
+            "student": {"label": "foundation", "evidence": "C言語でスタック・キュー・木などのデータ構造と再帰を実装する"}
+          }
+        },
+        {
+          "name": "情報の数理",
+          "page": "34918",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "情報量・エントロピーと情報源・通信路の符号化の考え方を学ぶ"}
+          }
+        },
+        {
+          "name": "情報処理",
+          "page": "31825",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語の文法を基礎から学び短いプログラムを書けるようにする"},
+            "professor": {"label": "foundation", "evidence": "C言語の文法を学び基礎的なプログラムを書けるようにする"},
+            "student": {"label": "foundation", "evidence": "C言語の文法を学び初歩のプログラムを書けるようにする"}
+          }
+        },
+        {
+          "name": "情報処理演習",
+          "page": "31839",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で制御構造・配列・関数を使うプログラムを作りデバッグする"},
+            "professor": {"label": "foundation", "evidence": "C言語で基礎的なプログラムを作りデバッグとテストを行う"},
+            "student": {"label": "foundation", "evidence": "C言語で基本的なプログラムを作り、デバッグとテストを行う"}
+          }
+        },
+        {
+          "name": "情報理論",
+          "page": "32503",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "情報量・符号化に加え、ビタビ復号や自己相関の回がある"},
+            "professor": {"label": "foundation", "evidence": "情報量と符号化、ビタビ復号、相関、最適受信の原理を扱う"},
+            "student": {"label": "foundation", "evidence": "情報量と符号化に加え、ビタビ復号や自己相関・相互相関を扱う"}
+          }
+        },
+        {
+          "name": "情報科学Ⅰ",
+          "page": "31809",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "集合・論理・グラフなどの離散数学とオートマトンの状態遷移を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "集合・論理・グラフ・オートマトンなど離散数学を学ぶ"},
+            "student": {"label": "foundation", "evidence": "集合・論理・グラフなどの離散数学とオートマトンの状態遷移を学ぶ"}
+          }
+        },
+        {
+          "name": "情報科学Ⅱ",
+          "page": "31813",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "計算機の構成や符号化に加え、確率的情報処理と人工知能の回がある"},
+            "professor": {"label": "foundation", "evidence": "符号化、確率的情報処理、人工知能の基礎を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "アルゴリズムや符号化に加え、確率的情報処理と人工知能の回がある"}
+          }
+        },
+        {
+          "name": "振動波動入門",
+          "page": "32096",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "振動を微分方程式で表し、波動方程式と音波の性質まで扱う"},
+            "professor": {"label": "foundation", "evidence": "正弦波の重ね合わせや音波の波動方程式を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "振動と波動を微分方程式で表し、音波と波動方程式の回がある"}
+          }
+        },
+        {
+          "name": "数学Ⅰ（微分積分）",
+          "page": "31860",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数の関数の微分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の微分法の計算と理論を学ぶ"},
+            "student": {"label": "foundation", "evidence": "1変数と多変数の関数の微分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅱ（微分積分）",
+          "page": "31883",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "1変数と多変数の関数の積分法を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "1変数・多変数関数の積分法の計算と理論を学ぶ"},
+            "student": {"label": "foundation", "evidence": "1変数と多変数の関数の積分法を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅲ（線形代数）",
+          "page": "31906",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列の演算、連立1次方程式、行列式を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列の演算、連立1次方程式、行列式を学ぶ"},
+            "student": {"label": "foundation", "evidence": "行列の演算、連立1次方程式、行列式を学ぶ"}
+          }
+        },
+        {
+          "name": "数学Ⅳ（線形代数）",
+          "page": "31929",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"},
+            "student": {"label": "foundation", "evidence": "ベクトル空間、線形写像、固有値問題、内積空間を学ぶ"}
+          }
+        },
+        {
+          "name": "数学演習Ⅰ（微分積分・線形代数）",
+          "page": "31959",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "微分法と行列・行列式の問題を演習で解く"},
+            "professor": {"label": "foundation", "evidence": "微分法と行列・行列式の問題を演習で解く"},
+            "student": {"label": "foundation", "evidence": "微分法と行列・行列式の問題を演習で解けるようにする"}
+          }
+        },
+        {
+          "name": "数学演習Ⅱ（微分積分・線形代数）",
+          "page": "32007",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題の問題を演習で解く"},
+            "professor": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題を演習で解く"},
+            "student": {"label": "foundation", "evidence": "積分法とベクトル空間・固有値問題を演習で身につける"}
+          }
+        },
+        {
+          "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+          "page": "32519",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "深層学習の分類・回帰・時系列予測・生成モデルを実装しながら学ぶ"},
+            "professor": {"label": "core", "evidence": "深層学習の分類・回帰・時系列予測・生成モデルを演習で実装する"},
+            "student": {"label": "core", "evidence": "深層学習の分類・回帰・時系列予測・生成モデルを実装しながら学ぶ"}
+          }
+        },
+        {
+          "name": "確率統計",
+          "page": "32505",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "確率分布・推定・検定の基礎とMatlab等での統計処理を学ぶ"},
+            "professor": {"label": "foundation", "evidence": "確率分布、推定、仮説検定など統計処理の基礎をMatlabも使い学ぶ"},
+            "student": {"label": "foundation", "evidence": "確率分布、推定、検定と計算機による統計処理を学ぶ"}
+          }
+        },
+        {
+          "name": "超領域リベラルアーツ",
+          "page": "17117",
+          "votes": {
+            "student": {"label": "foundation", "evidence": "人工知能や言語学などから人間とロボットの認識や言語を考える"}
+          }
+        },
+        {
+          "name": "通信理論",
+          "page": "32489",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "ディジタル通信の符号化や変復調に加えディジタル信号の扱いを学ぶ"},
+            "student": {"label": "foundation", "evidence": "ディジタル通信の基礎で、ディジタル信号の取り扱いの回がある"}
+          }
+        },
+        {
+          "name": "電子情報基礎数学",
+          "page": "32459",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "行列・微積分・三角関数・複素数とオイラーの公式を道具として学ぶ"},
+            "professor": {"label": "foundation", "evidence": "行列、指数・三角関数、微積分、複素数をAI・機械学習に向け習得"},
+            "student": {"label": "foundation", "evidence": "AI・機械学習の理解に要る行列・微積分・複素数を道具として習得する"}
+          }
+        },
+        {
+          "name": "電子情報工学入門",
+          "page": "32463",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "UNIXコマンドやエディタなど計算機の基本的な使い方を習得する"},
+            "student": {"label": "foundation", "evidence": "UNIXコマンドやエディタなどプログラミングに要る計算機の使い方を学ぶ"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅱ",
+          "page": "32487",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "C言語で画像のフィルタリングや圧縮などの処理を実装する"}
+          }
+        },
+        {
+          "name": "電子情報工学実験Ⅲ",
+          "page": "32508",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "テーマの一つで音声信号解析を実験として行う"},
+            "professor": {"label": "foundation", "evidence": "実験テーマの一つで音声信号の解析を2回にわたり行う"},
+            "student": {"label": "foundation", "evidence": "3つの実験の1つで音声信号解析を行う回がある"}
+          }
+        },
+        {
+          "name": "電子情報工学演習",
+          "page": "32466",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "Excelによるデータ解析やC言語のシミュレーションを演習する"}
+          }
+        },
+        {
+          "name": "電子情報工学通論",
+          "page": "32518",
+          "votes": {
+            "engineer": {"label": "foundation", "evidence": "オムニバスの中に深層学習アーキテクチャや高性能AIの回がある"},
+            "professor": {"label": "foundation", "evidence": "深層学習アーキテクチャや最適化の基礎を扱う回がある"},
+            "student": {"label": "foundation", "evidence": "オムニバスの中に深層学習アーキテクチャや高性能AIの回がある"}
+          }
+        },
+        {
+          "name": "ＡＩ・機械学習",
+          "page": "32516",
+          "votes": {
+            "engineer": {"label": "core", "evidence": "機械学習の流れから回帰・分類、ニューラルネット、CNNまでを実装で学ぶ"},
+            "professor": {"label": "core", "evidence": "機械学習の手順から回帰・分類、ニューラルネット、CNNまで実装で学ぶ"},
+            "student": {"label": "core", "evidence": "機械学習の流れから回帰・分類、ニューラルネットと深層学習までを実装して学ぶ"}
+          }
+        }
+      ]
+    }
+  ]
+}
