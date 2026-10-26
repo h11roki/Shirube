@@ -18,7 +18,8 @@ def analyzer_answering(
 
 
 def answer(**fields: Any) -> dict[str, Any]:
-    return {"content": json.dumps(fields, ensure_ascii=False), "refusal": None}
+    content = {"department_field": None, **fields}
+    return {"content": json.dumps(content, ensure_ascii=False), "refusal": None}
 
 
 def test_structured_answer_becomes_a_profile_and_the_schema_limits_the_skills() -> None:
@@ -44,6 +45,10 @@ def test_structured_answer_becomes_a_profile_and_the_schema_limits_the_skills() 
     assert request["messages"][-1] == {"role": "user", "content": "コンサルタント"}
     response_format = request["response_format"]["json_schema"]
     assert response_format["strict"] is True
+    assert list(response_format["schema"]["properties"])[:2] == [
+        "department_field",
+        "interpretation",
+    ]
     skills = response_format["schema"]["properties"]["skills"]
     assert (skills["minItems"], skills["maxItems"]) == (3, 6)
 
