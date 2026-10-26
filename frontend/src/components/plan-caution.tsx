@@ -6,7 +6,7 @@ export function PlanCaution() {
   return (
     <p
       role="note"
-      className="max-w-2xl rounded-md border border-line bg-sheet px-3.5 py-2.5 text-[13px] leading-relaxed text-sub"
+      className="max-w-2xl rounded-md border border-line bg-sheet px-3.5 py-2.5 text-fine leading-relaxed text-sub"
     >
       {PLAN_CAUTION}
     </p>

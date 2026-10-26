@@ -234,7 +234,7 @@ function RouteStrip({
                 type="button"
                 onClick={() => onPick(index)}
                 aria-current={index === active ? "location" : undefined}
-                className="grid justify-items-center gap-0.5 px-1.5 text-[11px] leading-tight"
+                className="grid justify-items-center gap-0.5 px-1.5 text-label leading-tight"
               >
                 <span
                   aria-hidden
@@ -312,7 +312,7 @@ function Station({
         <CourseGrid courses={semester.courses} transfers={found} />
       )}
       {semester.continuing.length > 0 && (
-        <p className="text-[13px] text-sub">
+        <p className="text-fine text-sub">
           {CONTINUING_LABEL}:{" "}
           {semester.continuing
             .map((course) => `${course.name}(${slotsLabel(course)})`)

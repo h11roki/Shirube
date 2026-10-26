@@ -30,17 +30,17 @@ export function StationBoard({
             {label(semester)}
           </h2>
           {index === 0 && (
-            <span className="rounded-xs bg-pillar px-1.5 text-[11px] font-bold tracking-[0.12em] text-paper">
+            <span className="rounded-xs bg-pillar px-1.5 text-label font-bold tracking-[0.12em] text-paper">
               始発
             </span>
           )}
         </div>
-        <p className="text-[11px] tracking-[0.3em] text-sub">
+        <p className="text-label tracking-[0.3em] text-sub">
           {semesterReading(semester.grade, semester.term)}
         </p>
       </div>
       <span aria-hidden className="col-start-2 h-2 bg-route" />
-      <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-[11.5px] text-sub">
+      <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-direction text-sub">
         <span>{previous && `← ${label(previous)}`}</span>
         <span>{next ? label(next) : destination} →</span>
       </p>

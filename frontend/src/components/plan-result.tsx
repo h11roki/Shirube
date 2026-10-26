@@ -154,7 +154,7 @@ export function PlanResultView({
               </p>
             )}
             <PlanCaution />
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-sub">
+            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-fine text-sub">
               {profile.skills.map((skill) => (
                 <li key={skill}>
                   <span aria-hidden className="text-pillar">
@@ -241,7 +241,7 @@ export function PlanResultView({
                     className="flex flex-wrap items-center gap-x-3 gap-y-1"
                   >
                     <span
-                      className={`text-[11px] font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
+                      className={`text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
                     >
                       {RELEVANCE_LABELS[course.relevance]}
                     </span>

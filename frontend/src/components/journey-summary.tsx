@@ -21,12 +21,12 @@ export function JourneySummary({
   return (
     <div className="max-w-xl overflow-hidden rounded-lg border border-line bg-sheet shadow-paper">
       <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-route px-4 py-2 text-sm font-bold text-paper">
-        <span className="rounded-xs border border-paper/60 px-1 text-[11px]">
+        <span className="rounded-xs border border-paper/60 px-1 text-label">
           出発
         </span>
         {semesterLabel(conditions.grade, conditions.term)}
         <span aria-hidden>→</span>
-        <span className="rounded-xs border border-paper/60 px-1 text-[11px]">
+        <span className="rounded-xs border border-paper/60 px-1 text-label">
           到着
         </span>
         {destination}
