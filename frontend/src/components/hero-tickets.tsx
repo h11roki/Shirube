@@ -40,7 +40,7 @@ export function HeroTickets() {
                 >
                   <div className="grid gap-0.5 px-3.5 py-3 md:px-4 md:pt-3.5 md:pb-4">
                     <p
-                      className={`text-[0.6875rem] font-bold tracking-[0.14em] md:text-xs ${RELEVANCE_TONES[course.relevance].text}`}
+                      className={`text-label font-bold tracking-[0.14em] md:text-xs ${RELEVANCE_TONES[course.relevance].text}`}
                     >
                       {RELEVANCE_LABELS[course.relevance]}
                     </p>
@@ -49,7 +49,7 @@ export function HeroTickets() {
                     >
                       <Phrases parts={wordsOf(course.name)} />
                     </p>
-                    <p className="text-xs leading-relaxed text-sub md:text-[0.8125rem]">
+                    <p className="text-xs leading-relaxed text-sub md:text-fine">
                       {course.reason}
                     </p>
                   </div>
@@ -63,7 +63,7 @@ export function HeroTickets() {
                       ] as const
                     ).map(([label, value]) => (
                       <div key={label}>
-                        <dt className="text-[0.6875rem] tracking-[0.14em] text-sub">
+                        <dt className="text-label tracking-[0.14em] text-sub">
                           {label}
                         </dt>
                         <dd className="text-sm font-bold md:text-base">
