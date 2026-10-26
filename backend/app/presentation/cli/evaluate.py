@@ -13,7 +13,12 @@ from app.application.evaluate_search import (
 )
 from app.application.ports import EmbeddingError, OccupationAnalysisError, OccupationAnalyzer
 from app.application.search_courses import SearchError
-from app.presentation.cli.evaluation_data import DEFAULT_DATASET, HIDDEN_REASON, load_dataset
+from app.presentation.cli.evaluation_data import (
+    DEFAULT_DATASET,
+    load_dataset,
+    shown_reason,
+    silence_heldout_logs,
+)
 from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
     database_engine,
@@ -65,6 +70,7 @@ def main() -> None:
         dataset = load_dataset(args.dataset)
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
+    silence_heldout_logs(dataset)
     settings = load_settings()
     profiles: OccupationAnalyzer = (
         openai_occupation_analyzer(settings) if args.skills == LLM else HandwrittenProfiles(dataset)
@@ -84,14 +90,14 @@ def main() -> None:
         OccupationAnalysisError,
         EmbeddingError,
     ) as error:
-        reason = f"{type(error).__name__}({HIDDEN_REASON})" if dataset.heldout else error
-        sys.exit(f"評価を止めました: {reason}")
+        sys.exit(f"評価を止めました: {shown_reason(error, dataset.heldout)}")
     except OperationalError as error:
-        sys.exit(f"DB に接続できません: {error.orig}")
+        sys.exit(f"DB に接続できません: {shown_reason(error.orig, dataset.heldout)}")
     except SQLAlchemyError as error:
-        sys.exit(f"DB の操作に失敗しました: {error}")
+        sys.exit(f"DB の操作に失敗しました: {shown_reason(error, dataset.heldout)}")
     except OSError as error:
-        sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
+        reason = shown_reason(error, dataset.heldout)
+        sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {reason}")
     finally:
         engine.dispose()
 

@@ -1,4 +1,5 @@
 import json
+import logging
 from collections import Counter
 from collections.abc import Mapping, Set
 from pathlib import Path
@@ -15,6 +16,15 @@ HELDOUT_DATASET = DEFAULT_DATASET.parent / "heldout" / "occupations.json"
 HELDOUT_JUDGMENTS = HELDOUT_DATASET.with_name("judgments.json")
 HIDDEN_REASON = "確かめ用なので理由は出さない"
 DATASET_LINES = frozenset({"skills"})
+
+
+def shown_reason(reason: object, heldout: bool) -> str:
+    return HIDDEN_REASON if heldout else str(reason)
+
+
+def silence_heldout_logs(dataset: EvaluationDataset) -> None:
+    if dataset.heldout:
+        logging.disable(logging.WARNING)
 
 
 def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:

@@ -1,4 +1,5 @@
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -17,6 +18,7 @@ from app.application.evaluate_selection import (
 )
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CourseChoice, Relevance
+from app.presentation.cli import evaluate_selection as evaluate_selection_cli
 from app.presentation.cli.evaluate_selection import render
 from app.presentation.cli.evaluation_data import load_judgments
 from tests.fakes import FakeCourseSelector, courses_ranked_by
@@ -267,3 +269,19 @@ def test_render_counts_picks_by_judgment_and_names_the_misses() -> None:
         + summary
         + "  中心の適合率 100%、期待する科目を中心に選んだ割合 25%、選んだ科目のうち関係なし 33%"
     )
+
+
+def test_the_selection_evaluation_refuses_the_heldout_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        '{"year": 2026, "department": "情", "heldout": true, "occupations": ['
+        '{"name": "確かめ用の職業", "skills": ["甲", "乙", "丙"],'
+        ' "expected": {"科目01": "理由"}}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["evaluate_selection", str(path)])
+
+    with pytest.raises(SystemExit, match="確かめ用は"):
+        evaluate_selection_cli.main()

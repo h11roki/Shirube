@@ -1,4 +1,7 @@
+import logging
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -16,6 +19,7 @@ from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.chunk import ChunkSection
 from app.domain.occupation import OccupationProfile
 from app.domain.ranking import ChunkHit
+from app.presentation.cli import evaluate as evaluate_cli
 from app.presentation.cli.evaluate import render, render_means
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -198,6 +202,39 @@ COMMITTED_NAMES = ["development", "heldout"]
 COMMITTED = pytest.mark.parametrize(
     ("dataset_path", "judgments_path"), COMMITTED_FILES, ids=COMMITTED_NAMES
 )
+
+
+def test_evaluate_shows_only_the_means_of_the_heldout_set(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        '{"year": 2026, "department": "情", "heldout": true, "occupations": ['
+        '{"name": "確かめ用の職業", "skills": ["甲", "乙", "丙"],'
+        ' "expected": {"科目01": "理由"}}]}',
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(sys, "argv", ["evaluate", str(path)])
+    monkeypatch.setattr(
+        evaluate_cli,
+        "load_settings",
+        lambda: SimpleNamespace(embedding_model="model", search_by_skill=True),
+    )
+    monkeypatch.setattr(
+        evaluate_cli, "database_engine", lambda settings: SimpleNamespace(dispose=lambda: None)
+    )
+    monkeypatch.setattr(
+        evaluate_cli, "search_courses", lambda settings, engine: search_over({"科目01": 0.9})
+    )
+
+    try:
+        evaluate_cli.main()
+    finally:
+        logging.disable(logging.NOTSET)
+
+    shown = capsys.readouterr().out
+    assert shown.splitlines()[-1] == "平均  @10 1.00  @20 1.00"
+    assert "確かめ用の職業" not in shown
 
 
 def test_committed_dataset_is_the_default_and_has_fifty_occupations() -> None:

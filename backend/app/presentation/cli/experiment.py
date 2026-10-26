@@ -1,7 +1,6 @@
 import argparse
 import hashlib
 import json
-import logging
 import math
 import re
 import signal
@@ -67,9 +66,10 @@ from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
-    HIDDEN_REASON,
     load_dataset,
     load_judgments,
+    shown_reason,
+    silence_heldout_logs,
 )
 from app.presentation.cli.labels import SEARCH_MODES
 from app.presentation.composition import (
@@ -202,21 +202,13 @@ def stop_reason(error: Exception) -> str:
     return str(error)
 
 
-def failure_shown(outcome: FailedTrial) -> str:
-    return f"失敗: {outcome.failure}"
-
-
-def failure_hidden(outcome: FailedTrial) -> str:
-    return f"失敗({HIDDEN_REASON})"
-
-
 def collect(
     outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
     total: int,
     budget: float,
     spent: Callable[[], dict[str, TokenUsage]],
     unit: int = 1,
-    failed: Callable[[FailedTrial], str] = failure_shown,
+    heldout: bool = False,
 ) -> Collection:
     collected: list[tuple[Side | None, Trial | FailedTrial]] = []
     streaks: Counter[Side | None] = Counter()
@@ -226,7 +218,9 @@ def collect(
             streaks[side] = streaks[side] + 1 if isinstance(outcome, FailedTrial) else 0
             usage = spent()
             detail = (
-                f"{outcome.seconds.total:.1f} 秒" if isinstance(outcome, Trial) else failed(outcome)
+                f"{outcome.seconds.total:.1f} 秒"
+                if isinstance(outcome, Trial)
+                else f"失敗: {shown_reason(outcome.failure, heldout)}"
             )
             where = "" if side is None else f"{SIDE_NAMES[side]} "
             print(
@@ -246,14 +240,16 @@ def collect(
             if yen(usage) >= budget and len(collected) < total and len(collected) % unit == 0:
                 return Collection(collected, f"費用の上限 {budget:g} 円に達した", True)
     except STOPPING_ERRORS as error:
-        return Collection(collected, stop_reason(error), False)
+        return Collection(collected, shown_reason(stop_reason(error), heldout), False)
     except OSError as error:
-        return Collection(collected, f"入出力に失敗しました: {error}", False)
+        return Collection(collected, f"入出力に失敗しました: {shown_reason(error, heldout)}", False)
     except KeyboardInterrupt:
         return Collection(collected, "中断した", False)
     except Exception as error:
-        traceback.print_exc()
-        return Collection(collected, f"思わぬ失敗で止まった: {error!r}", False)
+        if not heldout:
+            traceback.print_exc()
+        unexpected = shown_reason(repr(error), heldout)
+        return Collection(collected, f"思わぬ失敗で止まった: {unexpected}", False)
     return Collection(collected, None, False)
 
 
@@ -618,16 +614,15 @@ def _trials(
     try:
         return experiment.trials(dataset, judgments, repeats)
     except STOPPING_ERRORS as error:
-        sys.exit(f"推薦を流せません: {stop_reason(error)}")
+        sys.exit(f"推薦を流せません: {shown_reason(stop_reason(error), dataset.heldout)}")
 
 
 def results_directory(out: Path | None, dataset: EvaluationDataset) -> Path:
     if not dataset.heldout:
         return RUNS if out is None else out
-    chosen = HELDOUT_RUNS if out is None else out
-    if chosen.resolve().is_relative_to(RUNS.parent.resolve()):
-        sys.exit(f"確かめ用の結果は {RUNS.parent} の下に書かない(コミットされる。ADR 0067)")
-    return chosen
+    if out is not None:
+        sys.exit(f"確かめ用の結果は {HELDOUT_RUNS} にだけ書く(--out は受け付けない。ADR 0067)")
+    return HELDOUT_RUNS
 
 
 def _reserve(out: Path, paths: Sequence[Path]) -> None:
@@ -650,13 +645,13 @@ def _collected(
     unit: int,
     meter: LangChainUsageMeter,
     engine: Engine,
-    failed: Callable[[FailedTrial], str],
+    heldout: bool,
 ) -> tuple[Collection, float]:
     for stop in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(stop, signal.default_int_handler)
     with meter.meter() as spent:
         try:
-            collection = collect(outcomes, total, budget, spent, unit, failed)
+            collection = collect(outcomes, total, budget, spent, unit, heldout)
         finally:
             engine.dispose()
     return collection, yen(spent())
@@ -722,17 +717,10 @@ def _write(path: Path, document: Mapping[str, Any]) -> None:
     path.write_text(json.dumps(document, ensure_ascii=False, indent=1) + "\n", "utf-8")
 
 
-def _quiet_if_heldout(dataset: EvaluationDataset) -> Callable[[FailedTrial], str]:
-    if not dataset.heldout:
-        return failure_shown
-    logging.disable(logging.WARNING)
-    return failure_hidden
-
-
 def _run(args: argparse.Namespace) -> None:
     dataset, judgments = _inputs(args)
     out = results_directory(args.out, dataset)
-    failed = _quiet_if_heldout(dataset)
+    silence_heldout_logs(dataset)
     settings = load_settings()
     engine = database_engine(settings)
     meter = LangChainUsageMeter()
@@ -750,7 +738,7 @@ def _run(args: argparse.Namespace) -> None:
         1,
         meter,
         engine,
-        failed,
+        dataset.heldout,
     )
     outcomes = collection.of(None)
     if not outcomes:
@@ -780,7 +768,7 @@ def _run(args: argparse.Namespace) -> None:
 def _pair(args: argparse.Namespace) -> None:
     dataset, judgments = _inputs(args)
     out = results_directory(args.out, dataset)
-    failed = _quiet_if_heldout(dataset)
+    silence_heldout_logs(dataset)
     overrides = {Side.BEFORE: args.before, Side.AFTER: args.after}
     settings = {
         side: load_settings(**{name.lower(): value for name, value in overrides[side]})
@@ -801,7 +789,7 @@ def _pair(args: argparse.Namespace) -> None:
         len(Side),
         meter,
         engine,
-        failed,
+        dataset.heldout,
     )
     if not collection.outcomes:
         for path in paths.values():

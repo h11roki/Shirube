@@ -50,7 +50,6 @@ from app.presentation.cli.experiment import (
     arguments,
     collect,
     compare,
-    failure_hidden,
     label,
     main,
     pair_documents,
@@ -311,11 +310,20 @@ def test_collect_leaves_out_the_failure_reasons_of_the_heldout_set(
 ) -> None:
     hidden = FailedTrial("職業", 1, "候補に無い科目が選ばれています: 科目A", THIRTY_YEN)
 
-    collect(iter([(None, hidden)]), 1, 1000, dict, failed=failure_hidden)
+    collect(iter([(None, hidden)]), 1, 1000, dict, heldout=True)
 
     shown = capsys.readouterr().err
-    assert "失敗(確かめ用なので理由は出さない)" in shown
+    assert "失敗: 確かめ用なので理由は出さない" in shown
     assert "科目A" not in shown
+
+
+def test_collect_leaves_out_why_a_heldout_run_stopped(capsys: pytest.CaptureFixture[str]) -> None:
+    paid = Paid([succeeded(1), RuntimeError("科目A を選んだ答えが壊れている")])
+
+    collection = collect(iter(paid), 2, 1000, paid.spent, heldout=True)
+
+    assert collection.stopped == "思わぬ失敗で止まった: 確かめ用なので理由は出さない"
+    assert "科目A" not in capsys.readouterr().err
 
 
 @pytest.mark.parametrize(
@@ -324,11 +332,10 @@ def test_collect_leaves_out_the_failure_reasons_of_the_heldout_set(
         (False, None, RUNS),
         (False, Path("elsewhere"), Path("elsewhere")),
         (True, None, HELDOUT_RUNS),
-        (True, Path("elsewhere"), Path("elsewhere")),
     ],
-    ids=["development", "development-out", "heldout", "heldout-out"],
+    ids=["development", "development-out", "heldout"],
 )
-def test_heldout_results_go_outside_the_committed_runs_unless_told_where(
+def test_heldout_results_go_outside_the_committed_runs(
     heldout: bool, out: Path | None, chosen: Path
 ) -> None:
     case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A",))
@@ -336,11 +343,12 @@ def test_heldout_results_go_outside_the_committed_runs_unless_told_where(
     assert results_directory(out, EvaluationDataset(2026, "情", (case,), heldout)) == chosen
 
 
-def test_heldout_results_are_refused_under_the_committed_eval_directory() -> None:
+@pytest.mark.parametrize("out", [Path("elsewhere"), RUNS], ids=["anywhere", "committed-runs"])
+def test_heldout_results_refuse_any_other_directory(out: Path) -> None:
     case = EvaluationCase("職業", ("甲", "乙", "丙"), ("科目A",))
 
     with pytest.raises(SystemExit, match="確かめ用の結果は"):
-        results_directory(RUNS / "sub", EvaluationDataset(2026, "情", (case,), heldout=True))
+        results_directory(out, EvaluationDataset(2026, "情", (case,), heldout=True))
 
 
 @pytest.mark.parametrize(
