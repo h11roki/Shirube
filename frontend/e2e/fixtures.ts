@@ -170,14 +170,6 @@ export async function fontsReady(page: Page) {
   });
 }
 
-export async function enlargeBrowserText(page: Page, pixels: number) {
-  const devtools = await page.context().newCDPSession(page);
-  await devtools.send("Page.setFontSizes", {
-    fontSizes: { standard: pixels, fixed: pixels },
-  });
-  await fontsReady(page);
-}
-
 export async function signIn(page: Page) {
   const value = await encode({
     token: { name: "試験の利用者", sub: "e2e", googleSubject: "e2e" },
