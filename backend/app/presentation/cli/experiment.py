@@ -34,10 +34,10 @@ from app.application.evaluate_search import (
     EvaluationCase,
     EvaluationDataset,
     EvaluationError,
+    HandwrittenProfiles,
 )
 from app.application.evaluate_selection import (
     ExpectedCourse,
-    HandwrittenProfiles,
     Judgment,
     Judgments,
     Pick,

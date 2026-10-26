@@ -3,11 +3,15 @@ from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 from enum import Enum
 
-from app.application.evaluate_search import EvaluationCase, EvaluationDataset, EvaluationError
+from app.application.evaluate_search import (
+    EvaluationCase,
+    EvaluationDataset,
+    EvaluationError,
+    HandwrittenProfiles,
+)
 from app.application.ports import CourseRepository, CourseSelector
 from app.application.recommend_courses import RecommendCourses
 from app.application.search_courses import SearchCourses
-from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation, Relevance
 from app.domain.roadmap import ALL_SEMESTERS
 
@@ -38,17 +42,6 @@ class Judgments:
 
     def of(self, occupation: str, course: str) -> Judgment:
         return self.by_course.get((occupation, course), Judgment.UNRELATED)
-
-
-class HandwrittenProfiles:
-    def __init__(self, dataset: EvaluationDataset) -> None:
-        self._profiles = {
-            case.occupation: OccupationProfile(case.occupation, case.occupation, None, case.skills)
-            for case in dataset.cases
-        }
-
-    def analyze(self, occupation: str) -> OccupationProfile:
-        return self._profiles[occupation]
 
 
 @dataclass(frozen=True)

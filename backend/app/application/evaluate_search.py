@@ -1,10 +1,10 @@
 from collections import Counter
 from collections.abc import Set
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
-from app.domain.occupation import OccupationProfile, is_single_line, search_query
+from app.domain.occupation import OccupationProfile, is_single_line
 from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_CUTOFFS = (10, 20)
@@ -19,18 +19,12 @@ class EvaluationCase:
     occupation: str
     skills: tuple[str, ...]
     expected: tuple[str, ...]
-    reading: OccupationProfile | None = None
 
     def __post_init__(self) -> None:
         if not self.occupation.strip():
             raise EvaluationError("職業名が空です")
         if not is_single_line(self.occupation):
             raise EvaluationError(f"{self.occupation!r}: 職業名に改行があります")
-        if self.reading is not None and (self.reading.occupation, self.reading.skills) != (
-            self.occupation,
-            self.skills,
-        ):
-            raise EvaluationError(f"{self.occupation}: 読み取りの職業名かスキルが合いません")
         if not self.skills or not all(skill.strip() for skill in self.skills):
             raise EvaluationError(f"{self.occupation}: スキルが空です")
         if not all(is_single_line(skill) for skill in self.skills):
@@ -39,12 +33,6 @@ class EvaluationCase:
             raise EvaluationError(f"{self.occupation}: スキルが重複しています")
         if not self.expected:
             raise EvaluationError(f"{self.occupation}: 期待する科目がありません")
-
-    @property
-    def query(self) -> str:
-        if self.reading is None:
-            return search_query(self.occupation, self.skills)
-        return self.reading.query
 
 
 @dataclass(frozen=True)
@@ -67,15 +55,15 @@ class EvaluationDataset:
             raise EvaluationError(f"候補に無い科目名があります: {'、'.join(unknown)}")
 
 
-def with_analyzed_profiles(
-    dataset: EvaluationDataset, analyzer: OccupationAnalyzer
-) -> EvaluationDataset:
-    profiles = [analyzer.analyze(case.occupation) for case in dataset.cases]
-    cases = tuple(
-        replace(case, skills=profile.skills, reading=profile)
-        for case, profile in zip(dataset.cases, profiles, strict=True)
-    )
-    return replace(dataset, cases=cases)
+class HandwrittenProfiles:
+    def __init__(self, dataset: EvaluationDataset) -> None:
+        self._profiles = {
+            case.occupation: OccupationProfile(case.occupation, case.occupation, None, case.skills)
+            for case in dataset.cases
+        }
+
+    def analyze(self, occupation: str) -> OccupationProfile:
+        return self._profiles[occupation]
 
 
 @dataclass(frozen=True)
@@ -98,16 +86,18 @@ class EvaluationReport:
 
 
 class EvaluateSearch:
-    def __init__(self, search: SearchCourses) -> None:
+    def __init__(self, search: SearchCourses, profiles: OccupationAnalyzer) -> None:
         self._search = search
+        self._profiles = profiles
 
     def run(self, dataset: EvaluationDataset) -> EvaluationReport:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         dataset.require_courses_in(candidates.names)
-        rankings = candidates.pick(dataset.cases, max(RECALL_CUTOFFS))
+        profiles = [self._profiles.analyze(case.occupation) for case in dataset.cases]
+        rankings = candidates.pick(profiles, max(RECALL_CUTOFFS))
         results = []
-        for case, matches in zip(dataset.cases, rankings, strict=True):
+        for case, profile, matches in zip(dataset.cases, profiles, rankings, strict=True):
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
             ranks = tuple((name, rank_of.get(name)) for name in case.expected)
-            results.append(CaseResult(case.occupation, case.query, ranks))
+            results.append(CaseResult(case.occupation, profile.query, ranks))
         return EvaluationReport(tuple(results))
