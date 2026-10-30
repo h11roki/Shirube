@@ -7,7 +7,7 @@ import signal
 import subprocess
 import sys
 import traceback
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -24,7 +24,6 @@ from app.application.analyze_experiment import (
     CourseTally,
     ExperimentAnalysis,
     Fate,
-    ReadingLoss,
 )
 from app.application.compare_experiments import (
     CONFIDENCE,
@@ -591,34 +590,17 @@ def _tally_line(tally: CourseTally, labels: Mapping[Fate, str]) -> str:
     return f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {breakdown}"
 
 
-def _readings(document: Mapping[str, Any], loss: ReadingLoss) -> list[str]:
-    repeats_of: dict[str, list[int]] = {}
-    for trial in document["trials"]:
-        if (
-            "failure" in trial
-            or trial["occupation"] != loss.occupation
-            or trial["repeat"] not in loss.repeats
-        ):
-            continue
-        assumption = "" if trial["assumption"] is None else f"(前提: {trial['assumption']})"
-        reading = f"{trial['interpretation']}{assumption} / スキル: {' / '.join(trial['skills'])}"
-        repeats_of.setdefault(reading, []).append(trial["repeat"])
-    return [
-        f"{'、'.join(str(repeat) for repeat in repeats)} 回目の読み取り: {reading}"
-        for reading, repeats in repeats_of.items()
-    ]
-
-
 def render_analysis(
-    document: Mapping[str, Any],
+    title: str,
+    config: Mapping[str, Any],
+    readings: Mapping[tuple[str, int], str],
     run: ScoredRun,
     analysis: ExperimentAnalysis,
     dataset: EvaluationDataset,
 ) -> str:
-    config = UNRECORDED_SETTINGS | document["config"]
     total = sum(analysis.fates.values())
     lines = [
-        f"実験 {document['label']} の分析({document['created']}、commit {document['commit']})",
+        title,
         f"  採点した推薦 {len(run.cards)} 回(全職業がそろった回 {run.complete_repeats}、"
         f"採点した回 {len(run.repeats)})。手書きのスキルの検索は今の DB で行う"
         f"(埋め込み {config['embedding_model']}、検索 {SEARCH_MODES[config['search_by_skill']]}、"
@@ -644,10 +626,16 @@ def render_analysis(
     ]
     skills_of = {case.occupation: case.skills for case in dataset.cases}
     for loss in analysis.reading_losses:
+        repeats_of: dict[str, list[int]] = defaultdict(list)
+        for repeat in loss.repeats:
+            repeats_of[readings[loss.occupation, repeat]].append(repeat)
         courses = "、".join(f"{name} {count}" for name, count in loss.courses.items())
         lines += [
             f"  {loss.occupation} {loss.total} 件: {courses}",
-            *(f"    {reading}" for reading in _readings(document, loss)),
+            *(
+                f"    {'、'.join(map(str, repeats))} 回目の読み取り: {reading}"
+                for reading, repeats in repeats_of.items()
+            ),
             f"    手書きのスキル: {' / '.join(skills_of[loss.occupation])}",
         ]
     return "\n".join(lines)
@@ -1014,6 +1002,16 @@ def _analyze(args: argparse.Namespace) -> None:
         if differing:
             sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
         run = scored(document)
+        readings = {
+            (trial["occupation"], trial["repeat"]): trial["interpretation"]
+            + ("" if trial["assumption"] is None else f"(前提: {trial['assumption']})")
+            + f" / スキル: {' / '.join(trial['skills'])}"
+            for trial in document["trials"]
+            if "failure" not in trial
+        }
+        title = (
+            f"実験 {document['label']} の分析({document['created']}、commit {document['commit']})"
+        )
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"実験の結果を読めません: {error!r}")
     engine = database_engine(settings)
@@ -1025,7 +1023,7 @@ def _analyze(args: argparse.Namespace) -> None:
         sys.exit(f"分析できません: {error}")
     finally:
         engine.dispose()
-    print(render_analysis(document, run, analysis, dataset))
+    print(render_analysis(title, config, readings, run, analysis, dataset))
 
 
 def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:

@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from app.application.ports import OccupationAnalyzer
 from app.application.search_courses import SearchCourses
 from app.domain.occupation import SKILL_COUNT, OccupationProfile, is_single_line
+from app.domain.ranking import CourseMatch
 from app.domain.roadmap import ALL_SEMESTERS
 
 RECALL_CUTOFFS = (10, 20)
@@ -94,13 +95,18 @@ class EvaluateSearch:
         self._search = search
         self._profiles = profiles
 
-    def run(self, dataset: EvaluationDataset) -> EvaluationReport:
+    def rankings(
+        self, dataset: EvaluationDataset, limit: int
+    ) -> list[tuple[OccupationProfile, list[CourseMatch]]]:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
         dataset.require_courses_in(candidates.names)
         profiles = [self._profiles.analyze(case.occupation) for case in dataset.cases]
-        rankings = candidates.pick(profiles, max(RECALL_CUTOFFS))
+        return list(zip(profiles, candidates.pick(profiles, limit), strict=True))
+
+    def run(self, dataset: EvaluationDataset) -> EvaluationReport:
+        rankings = self.rankings(dataset, max(RECALL_CUTOFFS))
         results = []
-        for case, profile, matches in zip(dataset.cases, profiles, rankings, strict=True):
+        for case, (profile, matches) in zip(dataset.cases, rankings, strict=True):
             rank_of = {match.name: rank for rank, match in enumerate(matches, start=1)}
             ranks = tuple((name, rank_of.get(name)) for name in case.expected)
             results.append(CaseResult(case.occupation, profile.query, ranks))

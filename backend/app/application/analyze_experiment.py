@@ -3,12 +3,15 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
-from app.application.evaluate_search import EvaluationDataset, HandwrittenProfiles
-from app.application.evaluate_selection import ExpectedCourse, Judgment, SelectionResult
+from app.application.evaluate_search import (
+    EvaluateSearch,
+    EvaluationDataset,
+    HandwrittenProfiles,
+)
+from app.application.evaluate_selection import ExpectedCourse, Judgment
 from app.application.run_experiment import Scorecard
 from app.application.search_courses import SearchCourses
 from app.domain.recommendation import Relevance
-from app.domain.roadmap import ALL_SEMESTERS
 
 TOP_COURSES = 10
 TOP_OCCUPATIONS = 5
@@ -70,17 +73,6 @@ def fate_of(course: ExpectedCourse, reference: frozenset[str]) -> Fate:
     return Fate.READING if course.name in reference else Fate.SEARCH
 
 
-def placed(result: SelectionResult) -> list[tuple[Fate, str, Judgment]]:
-    return [
-        (
-            Fate.CORE if pick.relevance is Relevance.CORE else Fate.FOUNDATION,
-            pick.name,
-            pick.judgment,
-        )
-        for pick in result.picks
-    ] + [(Fate.UNLINKED, pick.name, pick.judgment) for pick in result.unlinked]
-
-
 class _Tallies:
     def __init__(self) -> None:
         self.counts: dict[str, Counter[Fate]] = defaultdict(Counter)
@@ -116,12 +108,19 @@ def analyze(
             if fate is Fate.READING:
                 reading[card.occupation][course.name] += 1
                 reading_repeats[card.occupation].add(card.repeat)
-        for placement, name, judgment in placed(card.result):
-            judgments[placement][judgment] += 1
-            if judgment is Judgment.UNRELATED and placement is not Fate.UNLINKED:
-                unrelated.add(name, placement, card.occupation)
+        for pick in card.result.picks:
+            placement = Fate.CORE if pick.relevance is Relevance.CORE else Fate.FOUNDATION
+            judgments[placement][pick.judgment] += 1
+            if pick.judgment is Judgment.UNRELATED:
+                unrelated.add(pick.name, placement, card.occupation)
+        for dropped in card.result.unlinked:
+            judgments[Fate.UNLINKED][dropped.judgment] += 1
     losses = [
-        ReadingLoss(occupation, tuple(sorted(reading_repeats[occupation])), dict(courses))
+        ReadingLoss(
+            occupation,
+            tuple(sorted(reading_repeats[occupation])),
+            dict(sorted(courses.items(), key=lambda item: (-item[1], item[0]))),
+        )
         for occupation, courses in reading.items()
     ]
     return ExperimentAnalysis(
@@ -142,14 +141,11 @@ class AnalyzeExperiment:
         self._candidate_limit = candidate_limit
 
     def run(self, dataset: EvaluationDataset, cards: Sequence[Scorecard]) -> ExperimentAnalysis:
-        candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
-        dataset.require_courses_in(candidates.names)
-        profiles = HandwrittenProfiles(dataset)
-        rankings = candidates.pick(
-            [profiles.analyze(case.occupation) for case in dataset.cases], self._candidate_limit
+        rankings = EvaluateSearch(self._search, HandwrittenProfiles(dataset)).rankings(
+            dataset, self._candidate_limit
         )
         references = {
             case.occupation: frozenset(match.name for match in matches)
-            for case, matches in zip(dataset.cases, rankings, strict=True)
+            for case, (_, matches) in zip(dataset.cases, rankings, strict=True)
         }
         return analyze(cards, references)

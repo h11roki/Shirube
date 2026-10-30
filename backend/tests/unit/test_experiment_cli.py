@@ -991,40 +991,35 @@ def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_scored(
 
 
 def test_the_analysis_shows_each_fate_with_its_share_and_the_readings_behind_the_losses() -> None:
-    reading = {"interpretation": "読んだ職業", "assumption": "前提", "skills": ["甲", "乙"]}
-    shown = document({"trials": 3}) | {
-        "trials": [
-            {"occupation": "職業", "repeat": 1, **reading},
-            {"occupation": "職業", "repeat": 2, **reading},
-            {
-                "occupation": "職業",
-                "repeat": 3,
-                "interpretation": "職業",
-                "assumption": None,
-                "skills": ["丙"],
-            },
-            {"occupation": "職業", "repeat": 4, "failure": "失敗"},
-        ]
+    reading = "読んだ職業(前提: 前提) / スキル: 甲 / 乙"
+    readings = {
+        ("職業", 1): reading,
+        ("職業", 2): reading,
+        ("職業", 3): "職業 / スキル: 丙",
+        ("職業", 4): "使わない読み取り",
     }
     analysis = ExperimentAnalysis(
         {fate: 0 for fate in Fate} | {Fate.CORE: 3, Fate.READING: 1},
         {placement: {judgment: 0 for judgment in Judgment} for placement in PLACEMENTS},
         (CourseTally("科目B", {Fate.READING: 2, Fate.SKIPPED: 1}, 1),),
         (CourseTally("科目C", {Fate.FOUNDATION: 1, Fate.CORE: 2}, 2),),
-        (ReadingLoss("職業", (1, 2, 3), {"科目B": 3}),),
+        (ReadingLoss("職業", (1, 2, 3), {"科目B": 2, "科目D": 1}),),
     )
     dataset = EvaluationDataset(
         2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目B",)),)
     )
 
-    lines = render_analysis(shown, ScoredRun((), 0), analysis, dataset).splitlines()
+    lines = render_analysis(
+        "見出し", document(None)["config"], readings, ScoredRun((), 0), analysis, dataset
+    ).splitlines()
 
     assert "  中心に選んだ 3(75.0%)" in lines
     assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(25.0%)" in lines
     assert "  科目B 3 回(1 職業): 選び直し 1、読み取り 2" in lines
     assert "  科目C 3 回(2 職業): 中心 2、土台 1" in lines
+    assert lines[0] == "見出し"
     assert lines[-4:] == [
-        "  職業 3 件: 科目B 3",
+        "  職業 3 件: 科目B 2、科目D 1",
         "    1、2 回目の読み取り: 読んだ職業(前提: 前提) / スキル: 甲 / 乙",
         "    3 回目の読み取り: 職業 / スキル: 丙",
         "    手書きのスキル: 甲 / 乙 / 丙",
@@ -1055,7 +1050,7 @@ def written_run(tmp_path: Path, dataset: Path, **changed: Any) -> Path:
         "occupation": "職業",
         "repeat": 1,
         "interpretation": "読んだ職業",
-        "assumption": None,
+        "assumption": "前提",
         "skills": ["丁"],
         "candidates": ["科目A"],
         "courses": [
@@ -1113,7 +1108,7 @@ def test_analyze_traces_a_course_the_handwritten_skills_would_find_to_the_readin
     assert "  科目A 1 回(1 職業): 中心 1" in lines
     assert lines[-3:] == [
         "  職業 1 件: 科目B 1",
-        "    1 回目の読み取り: 読んだ職業 / スキル: 丁",
+        "    1 回目の読み取り: 読んだ職業(前提: 前提) / スキル: 丁",
         "    手書きのスキル: 甲 / 乙 / 丙",
     ]
 
@@ -1180,3 +1175,21 @@ def test_analyze_says_it_cannot_read_a_file_that_is_not_a_run(tmp_path: Path) ->
 
     with pytest.raises(SystemExit, match="実験の結果を読めません: KeyError"):
         main(["analyze", str(dataset), "--dataset", str(dataset)])
+
+
+@pytest.mark.usefixtures("search_settings")
+def test_analyze_refuses_a_run_missing_a_reading_before_it_searches(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    def unreached(settings: object) -> None:
+        raise AssertionError("検索の前に断るはず")
+
+    monkeypatch.setattr(experiment_cli, "database_engine", unreached)
+    dataset = written_dataset(tmp_path)
+    path = written_run(tmp_path, dataset)
+    content = json.loads(path.read_text(encoding="utf-8"))
+    del content["trials"][0]["skills"]
+    path.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="実験の結果を読めません: KeyError"):
+        main(["analyze", str(path), "--dataset", str(dataset)])

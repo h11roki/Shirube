@@ -146,13 +146,13 @@ def test_reading_losses_are_ranked_by_occupation_with_the_repeats_they_happened_
         card(occupation, (unsearched("A"),), repeat=repeat)
         for occupation in occupations
         for repeat in (1, 2)
-    ] + [card(occupations[-1], (unsearched("B"),), repeat=3)]
+    ] + [card(occupations[-1], (unsearched("B"), unsearched("A")), repeat=3)]
 
     losses = analyze(cards, {occupation: frozenset({"A", "B"}) for occupation in occupations})
 
     first = losses.reading_losses[0]
-    assert (first.occupation, first.total, first.repeats) == (occupations[-1], 3, (1, 2, 3))
-    assert first.courses == {"A": 2, "B": 1}
+    assert (first.occupation, first.total, first.repeats) == (occupations[-1], 4, (1, 2, 3))
+    assert list(first.courses.items()) == [("A", 3), ("B", 1)]
     assert len(losses.reading_losses) == TOP_OCCUPATIONS
 
 
