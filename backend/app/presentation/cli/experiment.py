@@ -99,7 +99,6 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
-ANALYSIS_ERRORS: tuple[type[Exception], ...] = (*STOPPING_ERRORS, EmbeddingError)
 RUN_CONTROLS = frozenset({"budget"})
 GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
@@ -151,7 +150,8 @@ STAGE_LABELS = {
     Fate.READING: "読み取り",
     Fate.SEARCH: "検索",
 }
-PLACEMENT_LABELS = {Fate.CORE: "中心", Fate.FOUNDATION: "土台", Fate.UNLINKED: "外した土台"}
+PICK_LABELS = {Fate.CORE: "中心", Fate.FOUNDATION: "土台"}
+PLACEMENT_LABELS = PICK_LABELS | {Fate.UNLINKED: "外した土台"}
 
 
 def price_of(model: str) -> tuple[float, float, float] | None:
@@ -591,20 +591,14 @@ def _tally_line(tally: CourseTally, labels: Mapping[Fate, str]) -> str:
 
 
 def render_analysis(
-    title: str,
-    config: Mapping[str, Any],
+    heading: Sequence[str],
     readings: Mapping[tuple[str, int], str],
-    run: ScoredRun,
     analysis: ExperimentAnalysis,
     dataset: EvaluationDataset,
 ) -> str:
     total = sum(analysis.fates.values())
     lines = [
-        title,
-        f"  採点した推薦 {len(run.cards)} 回(全職業がそろった回 {run.complete_repeats}、"
-        f"採点した回 {len(run.repeats)})。手書きのスキルの検索は今の DB で行う"
-        f"(埋め込み {config['embedding_model']}、検索 {SEARCH_MODES[config['search_by_skill']]}、"
-        f"候補 {config['candidate_limit']})",
+        *heading,
         f"期待する科目の行方({total} 件。期待する科目 × 採点した推薦)",
         *(
             f"  {FATE_LABELS[fate]} {count}({count / total:.1%})"
@@ -621,7 +615,7 @@ def render_analysis(
         f"落とした回数の多い期待する科目(上から {TOP_COURSES} 件)",
         *(_tally_line(tally, STAGE_LABELS) for tally in analysis.missed),
         f"関係なしで選んだ回数の多い科目(上から {TOP_COURSES} 件)",
-        *(_tally_line(tally, PLACEMENT_LABELS) for tally in analysis.unrelated),
+        *(_tally_line(tally, PICK_LABELS) for tally in analysis.unrelated),
         f"読み取りで落とした数の多い職業(上から {TOP_OCCUPATIONS} 件)",
     ]
     skills_of = {case.occupation: case.skills for case in dataset.cases}
@@ -981,8 +975,6 @@ def _analyze(args: argparse.Namespace) -> None:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     if dataset.heldout:
         sys.exit("確かめ用の評価データは、職業と科目ごとの結果を出すことになるので分析しません")
-    settings = load_settings()
-    current = search_config(settings)
     try:
         config = UNRECORDED_SETTINGS | document["config"]
         if document["summary"] is None:
@@ -994,13 +986,6 @@ def _analyze(args: argparse.Namespace) -> None:
                 f"結果は別の評価データで流しています(結果の指紋 {config['dataset']}、"
                 f"{args.dataset} の指紋 {fingerprint})"
             )
-        differing = [
-            f"{key} が結果は {config[key]}、今は {value}"
-            for key, value in current.items()
-            if config[key] != value
-        ]
-        if differing:
-            sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
         run = scored(document)
         readings = {
             (trial["occupation"], trial["repeat"]): trial["interpretation"]
@@ -1014,16 +999,38 @@ def _analyze(args: argparse.Namespace) -> None:
         )
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"実験の結果を読めません: {error!r}")
+    settings = load_settings()
+    current = search_config(settings)
+    differing = [
+        f"{key} が結果は {config.get(key)}、今は {value}"
+        for key, value in current.items()
+        if config.get(key) != value
+    ]
+    if differing:
+        sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
+    heading = [
+        title,
+        f"  採点した推薦 {len(run.cards)} 回(全職業がそろった回 {run.complete_repeats}、"
+        f"採点した回 {len(run.repeats)})。手書きのスキルの検索は今の DB で行う"
+        f"(埋め込み {current['embedding_model']}、検索 {SEARCH_MODES[current['search_by_skill']]}、"
+        f"候補 {current['candidate_limit']})",
+    ]
     engine = database_engine(settings)
     try:
         analysis = AnalyzeExperiment(
             search_courses(settings, engine), settings.selection_candidate_limit
         ).run(dataset, run.cards)
-    except ANALYSIS_ERRORS as error:
+    except (EvaluationError, SearchError, EmbeddingError) as error:
         sys.exit(f"分析できません: {error}")
+    except OperationalError as error:
+        sys.exit(f"DB に接続できません: {error.orig}")
+    except SQLAlchemyError as error:
+        sys.exit(f"DB の操作に失敗しました: {error}")
+    except OSError as error:
+        sys.exit(f"ネットワークかファイルの読み書きに失敗しました: {error}")
     finally:
         engine.dispose()
-    print(render_analysis(title, config, readings, run, analysis, dataset))
+    print(render_analysis(heading, readings, analysis, dataset))
 
 
 def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:

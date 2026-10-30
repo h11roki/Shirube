@@ -33,7 +33,6 @@ from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
-    ScoredRun,
     Side,
     Spread,
     StageSeconds,
@@ -1009,9 +1008,7 @@ def test_the_analysis_shows_each_fate_with_its_share_and_the_readings_behind_the
         2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目B",)),)
     )
 
-    lines = render_analysis(
-        "見出し", document(None)["config"], readings, ScoredRun((), 0), analysis, dataset
-    ).splitlines()
+    lines = render_analysis(["見出し"], readings, analysis, dataset).splitlines()
 
     assert "  中心に選んだ 3(75.0%)" in lines
     assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(25.0%)" in lines
@@ -1120,7 +1117,6 @@ def test_analyze_refuses_the_heldout_set_whose_courses_must_not_be_seen(tmp_path
         main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
 
 
-@pytest.mark.usefixtures("search_settings")
 def test_analyze_refuses_a_run_graded_with_another_dataset(tmp_path: Path) -> None:
     dataset = written_dataset(tmp_path)
     path = written_run(tmp_path, dataset, config={"dataset": "00000000"})
@@ -1143,7 +1139,6 @@ def test_analyze_refuses_to_search_differently_from_the_run(
         main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
 
 
-@pytest.mark.usefixtures("search_settings")
 def test_analyze_refuses_a_run_without_scores(tmp_path: Path) -> None:
     dataset = written_dataset(tmp_path)
 
@@ -1158,7 +1153,6 @@ def test_analyze_refuses_a_run_without_scores(tmp_path: Path) -> None:
         )
 
 
-@pytest.mark.usefixtures("search_settings")
 def test_analyze_refuses_a_run_that_used_the_handwritten_skills_instead_of_a_reading(
     tmp_path: Path,
 ) -> None:
@@ -1169,7 +1163,6 @@ def test_analyze_refuses_a_run_that_used_the_handwritten_skills_instead_of_a_rea
         main(["analyze", str(path), "--dataset", str(dataset)])
 
 
-@pytest.mark.usefixtures("search_settings")
 def test_analyze_says_it_cannot_read_a_file_that_is_not_a_run(tmp_path: Path) -> None:
     dataset = written_dataset(tmp_path)
 
