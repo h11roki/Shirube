@@ -296,6 +296,12 @@ for (const screen of SCREENS) {
             };
             const hides = (overflow: string) =>
               overflow === "hidden" || overflow === "clip";
+            const smallestFontSize = (element: Element) =>
+              Math.min(
+                ...[element, ...element.querySelectorAll("*")].map((each) =>
+                  parseFloat(getComputedStyle(each).fontSize),
+                ),
+              );
             const elements = [...document.querySelectorAll("body *")];
             const overflow =
               document.documentElement.scrollWidth - window.innerWidth;
@@ -325,7 +331,7 @@ for (const screen of SCREENS) {
                           element.scrollWidth > element.clientWidth + 1) ||
                           (hides(style.overflowY) &&
                             element.scrollHeight - element.clientHeight >
-                              parseFloat(style.fontSize) * glyphOverhang))
+                              smallestFontSize(element) * glyphOverhang))
                       );
                     })
                     .slice(0, 8)
