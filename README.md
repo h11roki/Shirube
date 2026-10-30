@@ -63,7 +63,7 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 
 ### 初めに用意するもの
 
-1. AWS: 新しい登録の無料プランでアカウントを作る(6 か月のクレジット。クレジットを超えて請求されない)。地域は住所の国から決まり、日本はシドニー(`ap-southeast-2`)で、変えられない(ADR 0076)。MFA は AWS Settings(https://settings.aws.com)で付ける
+1. AWS: 新しい登録の無料プランでアカウントを作る(クレジットを超えて請求されない)。地域は住所の国から決まり、日本はシドニー(`ap-southeast-2`)で、変えられない(ADR 0076)。MFA は AWS Settings(https://settings.aws.com)で付ける。無料プランは 6 か月かクレジットを使い切ると閉じ、この構成は月 21 ドルほどなので、登録の 100 ドルは 5 か月ほどで尽きる。Budgets でクレジットを差し引く前の使用額に予算の通知を付け、コンソールのホームでクレジットの残りを月に 1 度見て、尽きる前に有料プランに上げるかを決める
 2. EC2: シドニーに、Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 を全体に、22 を自分の IP だけに開ける。Elastic IP を割り当てる
 3. DuckDNS: https://www.duckdns.org でサブドメインを作り、Elastic IP を向ける
 4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面のテストの利用者に自分を足す(誰でも使えるように公開できるかは、そのときの Google の条件で確かめる)
