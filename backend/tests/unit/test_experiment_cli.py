@@ -1066,7 +1066,7 @@ def written_run(tmp_path: Path, dataset: Path, **changed: Any) -> Path:
         "analyzed",
         occupations=1,
         profiles="analyzed",
-        dataset=experiment_cli._digest(dataset.read_bytes()),
+        dataset=experiment_cli.digest(dataset.read_bytes()),
         embedding_model="text-embedding-3-large",
         search_by_skill=True,
         candidate_limit=2,

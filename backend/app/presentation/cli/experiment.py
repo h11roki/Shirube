@@ -207,11 +207,11 @@ def trial_instructions(path: str | None) -> str:
     return text
 
 
-def _digest(data: bytes) -> str:
+def digest(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()[:8]
 
 
-def _commit() -> str | None:
+def current_commit() -> str | None:
     here = Path(__file__).resolve().parent
     try:
         head = subprocess.run(
@@ -224,7 +224,7 @@ def _commit() -> str | None:
         print(f"commit を記録できません(結果の commit は null): {error}", file=sys.stderr)
         return None
     commit = head.decode().strip()
-    return f"{commit}-dirty-{_digest(changes)}" if changes else commit
+    return f"{commit}-dirty-{digest(changes)}" if changes else commit
 
 
 @dataclass(frozen=True)
@@ -670,12 +670,12 @@ def config_document(
         **search_config(settings),
         "prompts": {
             "occupation": (
-                _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
+                digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
             ),
-            "selection": _digest(instructions.encode("utf-8")),
+            "selection": digest(instructions.encode("utf-8")),
         },
-        "dataset": _digest(args.dataset.read_bytes()),
-        "judgments": _digest(args.judgments.read_bytes()),
+        "dataset": digest(args.dataset.read_bytes()),
+        "judgments": digest(args.judgments.read_bytes()),
     }
 
 
@@ -841,7 +841,7 @@ def _run(args: argparse.Namespace) -> None:
     experiment = _experiment(args, settings, dataset, engine, meter, SELECTION_INSTRUCTIONS)
     trials = _trials(experiment, dataset, judgments, args.repeat)
     created = datetime.now(UNIVERSITY_TIME)
-    commit = _commit()
+    commit = current_commit()
     config = config_document(args, settings, dataset, SELECTION_INSTRUCTIONS)
     path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
     _reserve(out, [path])
@@ -901,7 +901,7 @@ def _pair(args: argparse.Namespace) -> None:
     }
     trials = {side: _trials(experiments[side], dataset, judgments, args.repeat) for side in Side}
     created = datetime.now(UNIVERSITY_TIME)
-    commit = _commit()
+    commit = current_commit()
     paths = {side: out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side}
     _reserve(out, list(paths.values()))
     collection, spent_yen = _collected(
@@ -970,7 +970,7 @@ def _analyze(args: argparse.Namespace) -> None:
         sys.exit(f"実験の結果を読めません: {error}")
     try:
         dataset = load_dataset(args.dataset)
-        fingerprint = _digest(args.dataset.read_bytes())
+        fingerprint = digest(args.dataset.read_bytes())
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     if dataset.heldout:
