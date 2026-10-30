@@ -16,7 +16,15 @@ from app.application.measure_calibration import (
 from app.application.ports import Classification, ClassificationError, CourseOdds
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, Relevance
-from app.presentation.cli.calibrate import collect, main, render, selector_trials, yen
+from app.presentation.cli import calibrate as calibrate_cli
+from app.presentation.cli.calibrate import (
+    Collected,
+    collect,
+    main,
+    render,
+    selector_trials,
+    yen,
+)
 from app.presentation.cli.records import digest, reserve
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeCourseRepository
@@ -130,15 +138,37 @@ def test_collect_counts_the_calls_made_before_a_one_by_one_occupation_failed() -
     assert collected.spent_yen == pytest.approx(yen(1_000_000))
 
 
-def test_collect_keeps_what_was_measured_when_jev_fails() -> None:
-    trials = selector_trials([run_trial(), run_trial("別の職業")])
+def test_collect_records_a_failed_occupation_and_goes_on() -> None:
+    trials = selector_trials([run_trial(), run_trial("別の職業"), run_trial("三つ目の職業")])
 
     collected = collect(
         measure(Classifier(failing_call=2)), DATASET, trials, (Layout.GROUPED,), 100
     )
 
-    assert [occupation.occupation for occupation in collected.measured[Layout.GROUPED]] == ["職業"]
-    assert collected.stopped == "Jev が 500 を返しました"
+    assert [each.occupation for each in collected.measured[Layout.GROUPED]] == [
+        "職業",
+        "三つ目の職業",
+    ]
+    assert [(layout, failure.occupation) for layout, failure in collected.failures] == [
+        (Layout.GROUPED, "別の職業")
+    ]
+    assert collected.stopped is None
+
+
+class Failing(Classifier):
+    def classify(
+        self, profile: OccupationProfile, candidates: Sequence[CandidateCourse]
+    ) -> Classification:
+        raise ClassificationError("Jev が 503 を返しました")
+
+
+def test_collect_stops_after_three_failures_in_a_row() -> None:
+    trials = selector_trials([run_trial(f"職業{number}") for number in range(5)])
+
+    collected = collect(measure(Failing()), DATASET, trials, (Layout.GROUPED,), 100)
+
+    assert len(collected.failures) == 3
+    assert collected.stopped == "Jev の呼び出しが 3 回続けて失敗した"
 
 
 def calibration_document(**changed: Any) -> dict[str, Any]:
@@ -151,6 +181,7 @@ def calibration_document(**changed: Any) -> dict[str, Any]:
         "repeat": 1,
         "spent_yen": 0.12,
         "stopped": None,
+        "failures": [],
         **changed,
     }
 
@@ -181,7 +212,7 @@ def test_the_report_shows_each_layout_with_its_calibration_and_the_matched_choic
         "元の結果 selection の 1 回目、1 職業)"
     )
     assert "  途中で止めた: 費用の上限 1 円に達した" in lines
-    assert lines[3].startswith("1 職業 1 回(候補 20 科目をまとめる): 1 職業、2 科目")
+    assert lines[3].startswith("1 職業 1 回(候補 20 科目をまとめる): 1 職業(失敗 0)、2 科目")
     assert "  中心: ECE 0.100、Brier 0.013(2 科目)" in lines
     assert "    確率 0.8〜0.9: 1 科目、平均 0.85、当たり 100%" in lines
     assert lines[-3:] == [
@@ -368,7 +399,7 @@ def test_show_reads_a_saved_result_with_its_own_judgments_without_calling_jev(
     main(["show", str(saved)])
 
     output = capsys.readouterr().out
-    assert "1 職業 1 回(候補 20 科目をまとめる): 1 職業、2 科目" in output
+    assert "1 職業 1 回(候補 20 科目をまとめる): 1 職業(失敗 0)、2 科目" in output
     assert "選んだ 1 科目のうち関係なし: 選び手 100.0%、Jev 0.0%" in output
 
 
@@ -379,3 +410,45 @@ def test_a_result_already_written_under_the_same_name_is_not_overwritten(tmp_pat
     with pytest.raises(SystemExit, match="結果を書く場所を作れません"):
         reserve(tmp_path, [taken])
     assert taken.read_text(encoding="utf-8") == "{}"
+
+
+def measured_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, outcome: Collected | BaseException
+) -> tuple[Path, Path, Path]:
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.setenv("JEV_API_KEY", "test-key")
+
+    def measured(*args: object) -> Collected:
+        if isinstance(outcome, BaseException):
+            raise outcome
+        return outcome
+
+    monkeypatch.setattr(calibrate_cli, "_measure", measured)
+    dataset, judgments = grading_files(tmp_path)
+    return source_run(tmp_path, (dataset, judgments)), dataset, judgments
+
+
+def test_run_removes_the_reserved_file_when_stopped_before_anything_was_measured(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    results = tmp_path / "calibration"
+    monkeypatch.setattr(calibrate_cli, "RESULTS", results)
+    run, dataset, judgments = measured_run(monkeypatch, tmp_path, KeyboardInterrupt())
+
+    with pytest.raises(KeyboardInterrupt):
+        run_main(run, dataset, judgments)
+    assert list(results.iterdir()) == []
+
+
+def test_run_prints_the_result_when_it_cannot_write_it(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    results = tmp_path / "calibration"
+    monkeypatch.setattr(calibrate_cli, "RESULTS", results)
+    monkeypatch.setattr(calibrate_cli, "reserve", lambda out, paths: None)
+    collected = Collected({Layout.GROUPED: []}, [], 0.0, None, False)
+    run, dataset, judgments = measured_run(monkeypatch, tmp_path, collected)
+
+    with pytest.raises(SystemExit, match="結果を書けませんでした"):
+        run_main(run, dataset, judgments)
+    assert json.loads(capsys.readouterr().out)["label"] == "jev"

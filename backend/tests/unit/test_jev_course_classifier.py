@@ -6,8 +6,8 @@ import httpx
 import pytest
 from pydantic import SecretStr
 
-from app.application.judging import OVERVIEW_LENGTH
 from app.application.ports import ClassificationError, CourseOdds
+from app.domain.excerpts import OVERVIEW_LENGTH
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse
 from app.infrastructure.llm.jev_course_classifier import (

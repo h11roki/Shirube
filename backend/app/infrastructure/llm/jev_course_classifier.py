@@ -5,8 +5,8 @@ from typing import Self
 import httpx
 from pydantic import SecretStr
 
-from app.application.judging import excerpts
 from app.application.ports import Classification, ClassificationError, CourseOdds
+from app.domain.excerpts import excerpts
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse
 

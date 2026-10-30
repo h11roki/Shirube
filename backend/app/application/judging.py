@@ -5,36 +5,17 @@ from dataclasses import astuple, dataclass
 from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.ports import CourseRepository
 from app.domain.course import ALL_GRADES, CourseSection
+from app.domain.excerpts import excerpts
 from app.domain.recommendation import Relevance
 from app.domain.roadmap import ALL_SEMESTERS, opens_in_any
-from app.domain.syllabus import Syllabus
 
 JUDGES = ("engineer", "professor", "student")
 REASON_ORDER = ("professor", "student", "engineer")
 EVIDENCE_LENGTH = 40
-OVERVIEW_LENGTH = 450
-OBJECTIVES_LENGTH = 250
-SCHEDULE_LENGTH = 350
 
 
 class JudgingError(ValueError):
     pass
-
-
-@dataclass(frozen=True)
-class Excerpts:
-    overview: str
-    objectives: str
-    schedule: str
-
-
-def excerpts(page: Syllabus) -> Excerpts:
-    themes = "、".join(session.theme for session in page.sessions if session.theme.strip())
-    return Excerpts(
-        _excerpt(page.overview, OVERVIEW_LENGTH),
-        _excerpt(page.objectives, OBJECTIVES_LENGTH),
-        _excerpt(themes, SCHEDULE_LENGTH),
-    )
 
 
 @dataclass(frozen=True)
@@ -221,7 +202,3 @@ class JudgingMaterials:
             )
             for name, group in sorted(by_name.items())
         ]
-
-
-def _excerpt(text: str, length: int) -> str:
-    return " ".join(text.split())[:length]

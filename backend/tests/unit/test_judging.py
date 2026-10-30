@@ -6,7 +6,6 @@ import pytest
 from app.application.judging import (
     EVIDENCE_LENGTH,
     JUDGES,
-    OVERVIEW_LENGTH,
     CourseMaterial,
     JudgedCourse,
     JudgeOutput,
@@ -17,6 +16,7 @@ from app.application.judging import (
     decide,
     expected_courses,
 )
+from app.domain.excerpts import OVERVIEW_LENGTH
 from app.domain.recommendation import Relevance
 from app.domain.syllabus import Session, Syllabus
 from tests.builders import course_section, syllabus

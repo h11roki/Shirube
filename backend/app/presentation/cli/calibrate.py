@@ -11,19 +11,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import SecretStr
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.evaluate_search import EvaluationDataset, EvaluationError
 from app.application.evaluate_selection import Judgment, Judgments
-from app.application.judging import (
-    OBJECTIVES_LENGTH,
-    OVERVIEW_LENGTH,
-    SCHEDULE_LENGTH,
-    JudgingError,
-    excerpts,
-)
+from app.application.judging import JudgingError
 from app.application.measure_calibration import (
-    Choices,
+    FailedOccupation,
     Layout,
     MeasureCalibration,
     OccupationOdds,
@@ -32,17 +27,14 @@ from app.application.measure_calibration import (
     calibration,
     matched,
 )
-from app.application.ports import ClassificationError, CourseOdds
+from app.application.ports import CourseOdds
+from app.domain import excerpts as excerpt_rules
 from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm.jev_course_classifier import (
-    CRITERIA,
-    QUESTION,
-    JevCourseClassifier,
-    state,
-)
+from app.infrastructure.llm import jev_course_classifier
+from app.infrastructure.llm.jev_course_classifier import JevCourseClassifier
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
@@ -51,9 +43,11 @@ from app.presentation.cli.evaluation_data import (
 )
 from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label, reserve
 from app.presentation.composition import database_engine, load_settings
+from app.settings import Settings
 
 RESULTS = DEFAULT_DATASET.with_name("calibration")
 JEV_DOLLARS_PER_MILLION = 0.042
+FAILURE_STREAK_LIMIT = 3
 LAYOUTS = {
     "both": (Layout.GROUPED, Layout.SEPARATE),
     "grouped": (Layout.GROUPED,),
@@ -69,6 +63,7 @@ TARGET_NAMES = {Target.CORE: "中心", Target.RELEVANT: "関係あり(中心と�
 @dataclass(frozen=True)
 class Collected:
     measured: dict[Layout, list[OccupationOdds]]
+    failures: list[tuple[Layout, FailedOccupation]]
     spent_yen: float
     stopped: str | None
     over_budget: bool
@@ -106,12 +101,6 @@ def _grading(dataset_path: Path, judgments_path: Path) -> tuple[EvaluationDatase
     return dataset, judgments
 
 
-def _require_same_grading(recorded: Mapping[str, Any], dataset: Path, judgments: Path) -> None:
-    for key, path in (("dataset", dataset), ("judgments", judgments)):
-        if recorded[key] != digest(path.read_bytes()):
-            sys.exit(f"結果と違う {path} です(結果の指紋 {recorded[key]})")
-
-
 def collect(
     measure: MeasureCalibration,
     dataset: EvaluationDataset,
@@ -120,27 +109,35 @@ def collect(
     budget: float,
 ) -> Collected:
     measured: dict[Layout, list[OccupationOdds]] = {layout: [] for layout in layouts}
+    failures: list[tuple[Layout, FailedOccupation]] = []
     total = len(trials) * len(layouts)
-    done = 0
+    done = streak = 0
 
     def stopped(reason: str | None, over_budget: bool = False) -> Collected:
-        return Collected(measured, yen(measure.spent_tokens), reason, over_budget)
+        return Collected(measured, failures, yen(measure.spent_tokens), reason, over_budget)
 
     outcomes = measure.odds(dataset.year, dataset.department, trials, layouts)
     try:
-        for layout, occupation in outcomes:
-            measured[layout].append(occupation)
+        for layout, outcome in outcomes:
             done += 1
+            if isinstance(outcome, FailedOccupation):
+                failures.append((layout, outcome))
+                streak += 1
+                detail = f"失敗: {outcome.reason}"
+            else:
+                measured[layout].append(outcome)
+                streak = 0
+                detail = f"入力 {outcome.input_tokens:,} トークン"
             spent = yen(measure.spent_tokens)
             print(
-                f"{done}/{total} {LAYOUT_NAMES[layout]} {occupation.occupation}: "
-                f"入力 {occupation.input_tokens:,} トークン、計 {spent:.2f} 円",
+                f"{done}/{total} {LAYOUT_NAMES[layout]} {outcome.occupation}: {detail}、"
+                f"計 {spent:.2f} 円",
                 file=sys.stderr,
             )
+            if streak >= FAILURE_STREAK_LIMIT:
+                return stopped(f"Jev の呼び出しが {streak} 回続けて失敗した")
             if spent >= budget and done < total:
                 return stopped(f"費用の上限 {budget:g} 円に達した", over_budget=True)
-    except ClassificationError as error:
-        return stopped(str(error))
     except OSError as error:
         return stopped(f"入出力に失敗しました: {error}")
     except KeyboardInterrupt:
@@ -153,20 +150,6 @@ def collect(
 
 def _ratio(part: int, whole: int) -> str:
     return f"{part / whole:.1%}" if whole else "-"
-
-
-def _choices_lines(selector: Choices, classifier: Choices) -> list[str]:
-    return [
-        f"    選んだ {selector.picked} 科目のうち関係なし: 選び手 "
-        f"{_ratio(selector.unrelated, selector.picked)}、Jev "
-        f"{_ratio(classifier.unrelated, classifier.picked)}",
-        f"    候補にある期待する科目 {selector.expected} のうち選んだ割合: 選び手 "
-        f"{_ratio(selector.expected_picked, selector.expected)}、Jev "
-        f"{_ratio(classifier.expected_picked, classifier.expected)}",
-        f"    中心 {selector.cores} 科目の適合率: 選び手 "
-        f"{_ratio(selector.expected_cores, selector.cores)}、Jev "
-        f"{_ratio(classifier.expected_cores, classifier.cores)}",
-    ]
 
 
 def render(
@@ -186,12 +169,13 @@ def render(
     if document["stopped"] is not None:
         lines.append(f"  途中で止めた: {document['stopped']}")
     for layout, occupations in measured.items():
-        if not occupations:
+        failed = sum(1 for failure in document["failures"] if failure["layout"] == layout.value)
+        courses = sum(len(occupation.odds) for occupation in occupations)
+        if not courses:
             continue
         tokens = sum(occupation.input_tokens for occupation in occupations)
-        courses = sum(len(occupation.odds) for occupation in occupations)
         lines.append(
-            f"{LAYOUT_NAMES[layout]}: {len(occupations)} 職業、{courses} 科目、"
+            f"{LAYOUT_NAMES[layout]}: {len(occupations)} 職業(失敗 {failed})、{courses} 科目、"
             f"入力 {tokens:,} トークン、{yen(tokens):.2f} 円"
             f"(1 職業 {yen(tokens) / len(occupations):.3f} 円)"
         )
@@ -207,9 +191,51 @@ def render(
                 for part in measured_target.bins
             ]
         compared = matched(trials, occupations, judgments)
-        lines.append(f"  今の選び手と同じ数を選ぶ({compared.occupations} 職業)")
-        lines += _choices_lines(compared.selector, compared.classifier)
+        selector, classifier = compared.selector, compared.classifier
+        lines += [
+            f"  今の選び手と同じ数を選ぶ({compared.occupations} 職業)",
+            f"    選んだ {selector.picked} 科目のうち関係なし: 選び手 "
+            f"{_ratio(selector.unrelated, selector.picked)}、Jev "
+            f"{_ratio(classifier.unrelated, classifier.picked)}",
+            f"    候補にある期待する科目 {selector.expected} のうち選んだ割合: 選び手 "
+            f"{_ratio(selector.expected_picked, selector.expected)}、Jev "
+            f"{_ratio(classifier.expected_picked, classifier.expected)}",
+            f"    中心 {selector.cores} 科目の適合率: 選び手 "
+            f"{_ratio(selector.expected_cores, selector.cores)}、Jev "
+            f"{_ratio(classifier.expected_cores, classifier.cores)}",
+        ]
     return "\n".join(lines)
+
+
+def _measure(
+    settings: Settings,
+    api_key: SecretStr,
+    dataset: EvaluationDataset,
+    trials: Sequence[SelectorTrial],
+    layouts: Sequence[Layout],
+    budget: float,
+) -> Collected:
+    engine = database_engine(settings)
+    classifier = JevCourseClassifier.connect(api_key, settings.jev_model)
+    for stop in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(stop, signal.default_int_handler)
+    try:
+        return collect(
+            MeasureCalibration(SqlCourseRepository(engine), classifier),
+            dataset,
+            trials,
+            layouts,
+            budget,
+        )
+    except (EvaluationError, JudgingError) as error:
+        sys.exit(f"測れません: {error}")
+    except OperationalError as error:
+        sys.exit(f"DB に接続できません: {error.orig}")
+    except SQLAlchemyError as error:
+        sys.exit(f"DB の操作に失敗しました: {error}")
+    finally:
+        classifier.close()
+        engine.dispose()
 
 
 def _run(args: argparse.Namespace) -> None:
@@ -222,7 +248,9 @@ def _run(args: argparse.Namespace) -> None:
         config = source["config"]
         if config["profiles"] != "analyzed" or source["summary"] is None:
             sys.exit("読み取りを通って採点した実験の結果だけを使います")
-        _require_same_grading(config, args.dataset, args.judgments)
+        for key, path in (("dataset", args.dataset), ("judgments", args.judgments)):
+            if config[key] != digest(path.read_bytes()):
+                sys.exit(f"結果と違う {path} です(結果の指紋 {config[key]})")
         origin = {
             "file": args.run.name,
             "label": source["label"],
@@ -231,12 +259,12 @@ def _run(args: argparse.Namespace) -> None:
         trials = selector_trials(
             trial
             for trial in source["trials"]
-            if "failure" not in trial and trial["repeat"] == args.repeat
+            if "failure" not in trial and trial["repeat"] == args.repeat and trial["candidates"]
         )
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"実験の結果を読めません: {error!r}")
     if not trials:
-        sys.exit(f"{args.repeat} 回目の推薦がありません")
+        sys.exit(f"{args.repeat} 回目の候補のある推薦がありません")
     unjudged = sorted({name for trial in trials for name in trial.candidates} - judgments.courses)
     if unjudged:
         sys.exit(f"判定していない候補があります: {'、'.join(unjudged)}")
@@ -244,42 +272,25 @@ def _run(args: argparse.Namespace) -> None:
     if settings.jev_api_key is None:
         sys.exit("JEV_API_KEY を .envrc に書いてください")
     created = datetime.now(UNIVERSITY_TIME)
-    path = RESULTS / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
-    reserve(RESULTS, [path])
-    engine = database_engine(settings)
-    classifier = JevCourseClassifier.connect(settings.jev_api_key, settings.jev_model)
-    measure = MeasureCalibration(SqlCourseRepository(engine), classifier)
-    for stop in (signal.SIGTERM, signal.SIGHUP):
-        signal.signal(stop, signal.default_int_handler)
-    try:
-        collected = collect(measure, dataset, trials, LAYOUTS[args.layout], args.budget)
-    except (EvaluationError, JudgingError) as error:
-        path.unlink(missing_ok=True)
-        sys.exit(f"測れません: {error}")
-    except OperationalError as error:
-        path.unlink(missing_ok=True)
-        sys.exit(f"DB に接続できません: {error.orig}")
-    except SQLAlchemyError as error:
-        path.unlink(missing_ok=True)
-        sys.exit(f"DB の操作に失敗しました: {error}")
-    finally:
-        classifier.close()
-        engine.dispose()
+    commit = current_commit()
     prompt = digest(
-        "\n".join(
-            [
-                QUESTION,
-                json.dumps(CRITERIA, ensure_ascii=False),
-                inspect.getsource(state),
-                inspect.getsource(excerpts),
-                f"{OVERVIEW_LENGTH} {OBJECTIVES_LENGTH} {SCHEDULE_LENGTH}",
-            ]
+        "".join(
+            inspect.getsource(module) for module in (jev_course_classifier, excerpt_rules)
         ).encode()
     )
+    path = RESULTS / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
+    reserve(RESULTS, [path])
+    try:
+        collected = _measure(
+            settings, settings.jev_api_key, dataset, trials, LAYOUTS[args.layout], args.budget
+        )
+    except BaseException:
+        path.unlink(missing_ok=True)
+        raise
     document = {
         "label": args.label,
         "created": created.isoformat(timespec="seconds"),
-        "commit": current_commit(),
+        "commit": commit,
         "model": settings.jev_model,
         "prompt": prompt,
         "source": origin,
@@ -302,6 +313,10 @@ def _run(args: argparse.Namespace) -> None:
             }
             for trial in trials
         ],
+        "failures": [
+            {"layout": layout.value, "occupation": failure.occupation, "reason": failure.reason}
+            for layout, failure in collected.failures
+        ],
         "layouts": {
             layout.value: [
                 {
@@ -318,9 +333,14 @@ def _run(args: argparse.Namespace) -> None:
             for layout, occupations in collected.measured.items()
         },
     }
-    path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    if any(collected.measured.values()):
-        print(render(document, trials, collected.measured, judgments))
+    written = json.dumps(document, ensure_ascii=False, indent=2) + "\n"
+    try:
+        path.write_text(written, encoding="utf-8")
+    except OSError as error:
+        path.unlink(missing_ok=True)
+        print(written)
+        sys.exit(f"結果を書けませんでした: {error}(結果の JSON は上に出した)")
+    print(render(document, trials, collected.measured, judgments))
     print(f"保存した: {path}")
     if collected.stopped is not None and not collected.over_budget:
         sys.exit(1)

@@ -44,6 +44,12 @@ class OccupationOdds:
 
 
 @dataclass(frozen=True)
+class FailedOccupation:
+    occupation: str
+    reason: str
+
+
+@dataclass(frozen=True)
 class Bin:
     low: float
     high: float
@@ -89,7 +95,7 @@ class MeasureCalibration:
         department: str,
         trials: Sequence[SelectorTrial],
         layouts: Sequence[Layout],
-    ) -> Iterator[tuple[Layout, OccupationOdds]]:
+    ) -> Iterator[tuple[Layout, OccupationOdds | FailedOccupation]]:
         pages = {
             material.name: material.page
             for material in JudgingMaterials(self._courses).courses(year, department)
@@ -97,7 +103,9 @@ class MeasureCalibration:
         unknown = sorted({name for trial in trials for name in trial.candidates} - pages.keys())
         if unknown:
             raise EvaluationError(f"判定の資料に無い候補があります: {'、'.join(unknown)}")
-        syllabi = self._courses.syllabi_of(year, set(pages.values()))
+        syllabi = self._courses.syllabi_of(
+            year, {pages[name] for trial in trials for name in trial.candidates}
+        )
         offered = [
             [CandidateCourse(name, syllabi[pages[name]]) for name in trial.candidates]
             for trial in trials
@@ -110,7 +118,7 @@ class MeasureCalibration:
 
     def _classify(
         self, trial: SelectorTrial, candidates: list[CandidateCourse], layout: Layout
-    ) -> OccupationOdds:
+    ) -> OccupationOdds | FailedOccupation:
         groups = [candidates] if layout is Layout.GROUPED else [[each] for each in candidates]
         parts = []
         for group in groups:
@@ -118,7 +126,7 @@ class MeasureCalibration:
                 part = self._classifier.classify(trial.profile, group)
             except ClassificationError as error:
                 self.spent_tokens += error.input_tokens
-                raise
+                return FailedOccupation(trial.occupation, str(error))
             self.spent_tokens += part.input_tokens
             parts.append(part)
         return OccupationOdds(

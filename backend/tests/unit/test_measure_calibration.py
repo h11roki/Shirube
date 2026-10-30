@@ -5,6 +5,7 @@ import pytest
 from app.application.evaluate_search import EvaluationError
 from app.application.evaluate_selection import Judgment, Judgments
 from app.application.measure_calibration import (
+    FailedOccupation,
     Layout,
     MeasureCalibration,
     OccupationOdds,
@@ -73,6 +74,7 @@ def test_the_candidates_go_to_the_classifier_together_or_one_by_one(
     )
 
     assert measured_layout is layout
+    assert isinstance(measured, OccupationOdds)
     assert classifier.calls == calls
     assert [odds.name for odds in measured.odds] == ["科目1", "科目2"]
     assert measured.input_tokens == 200
@@ -166,14 +168,22 @@ def test_both_layouts_come_out_as_one_stream_grouped_first() -> None:
     ]
 
 
-def test_a_failed_call_still_counts_the_tokens_jev_billed_for_it() -> None:
+def test_a_failed_call_fails_only_its_occupation_and_still_counts_the_billed_tokens() -> None:
     classifier = FakeClassifier(failing_call=2)
     measuring = measure(classifier)
-    outcomes = measuring.odds(2026, "情", [trial(("科目1", "科目2"))], [Layout.SEPARATE])
 
-    with pytest.raises(ClassificationError):
-        list(outcomes)
-    assert measuring.spent_tokens == 100 + 70
+    outcomes = list(
+        measuring.odds(
+            2026,
+            "情",
+            [trial(("科目1", "科目2")), trial(("科目1",), occupation="別の職業")],
+            [Layout.SEPARATE],
+        )
+    )
+
+    assert [type(outcome) for _, outcome in outcomes] == [FailedOccupation, OccupationOdds]
+    assert outcomes[0][1] == FailedOccupation("職業", "Jev の答えを読めません")
+    assert measuring.spent_tokens == 100 + 70 + 100
 
 
 def test_matched_breaks_ties_by_name_not_by_the_search_order() -> None:
