@@ -67,6 +67,7 @@ services:
     environment:
       BACKEND_URL: http://backend:8000
       SITE_URL: https://${SITE_DOMAIN}
+      AUTH_URL: https://${SITE_DOMAIN}
       AUTH_TRUST_HOST: "true"
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET を .env に書いてください}
