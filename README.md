@@ -59,7 +59,7 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 
 ## 本番
 
-EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて frontend に渡す(ADR 0009、0075)。ドメインは DuckDNS の無料のサブドメインで、Caddy が Let's Encrypt の証明書を自動で取って更新する。DB と backend のポートは外に出さない。ログはサービスごとに 10MB × 3 までで、古いものから消える。Caddy のアクセスログは、プライバシーポリシーに書いたとおり IP、時刻、URL、状態コードなどに絞り、要求と応答のヘッダーは書かない。
+EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて frontend に渡す(ADR 0009、0075)。ドメインは DuckDNS の無料のサブドメインで、Caddy が Let's Encrypt の証明書を自動で取って更新する。DB と backend のポートは外に出さない。ログはサービスごとに 10MB × 3 までで、古いものから消える。Caddy のアクセスログは、プライバシーポリシーに書いたとおり IP、時刻、要求の方法と URL、状態コード、応答の大きさと時間に絞り、要求と応答のヘッダーと、ログインの戻り先の URL の認証の符号(`code`、`state`)は書かない。
 
 ### 初めに用意するもの
 
@@ -75,11 +75,12 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 sudo usermod -aG docker "$USER"
+sudo timedatectl set-timezone Asia/Tokyo
 git clone https://github.com/h11roki/Shirube.git && cd Shirube
 cp .env.example .env && chmod 600 .env
 ```
 
-`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。
+`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
 
 ### 初めてのデプロイ
 
@@ -107,9 +108,12 @@ docker compose -f compose.prod.yaml up -d
 
 ### 更新するとき
 
+先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流して入れ替える(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
+
 ```sh
 git pull
 docker compose -f compose.prod.yaml build
+docker compose -f compose.prod.yaml stop backend worker
 docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
 docker compose -f compose.prod.yaml up -d
 ```
@@ -125,7 +129,7 @@ docker compose -f compose.prod.yaml up -d
 
 ### バックアップ
 
-サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に 7 日分残す(`mkdir ~/backups` のあと `crontab -e` に書く)。途中で失敗すると `.partial` のまま残り、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
+サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に新しい 7 つだけ残す(`mkdir ~/backups` のあと `crontab -e` に書く)。途中で失敗すると `.partial` のまま残り(次の回に消える)、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
 
 ```
 0 4 * * * ~/Shirube/backup.sh >> ~/backups/backup.log 2>&1
