@@ -101,9 +101,11 @@ export function PlanForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
-      startNavigation(() => router.push(`/plans/${plan.id}`));
+      startNavigation(() => {
+        setOccupation("");
+        router.push(`/plans/${plan.id}`);
+      });
       setSubmitting(false);
-      setOccupation("");
     } catch (error) {
       setSubmitError(messageOf(error));
       setSubmitting(false);
