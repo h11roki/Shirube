@@ -46,6 +46,17 @@ export default function PrivacyPage() {
         </p>
       </section>
       <section>
+        <h2>保存する場所</h2>
+        <p>
+          サーバーとデータベース(バックアップとログを含みます)は、Amazon Web
+          Services
+          のオーストラリア(シドニー)のデータセンターにあります。オーストラリアには個人情報の保護の法律(Privacy
+          Act
+          1988)があり、事業者が個人情報をどう扱うかをオーストラリアのプライバシー原則(Australian
+          Privacy Principles)で定めています。
+        </p>
+      </section>
+      <section>
         <h2>外部へ送る情報</h2>
         <ul>
           <li>
