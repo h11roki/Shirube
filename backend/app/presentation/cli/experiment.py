@@ -1,10 +1,8 @@
 import argparse
-import hashlib
 import json
 import math
 import re
 import signal
-import subprocess
 import sys
 import traceback
 from collections import Counter, defaultdict
@@ -81,6 +79,7 @@ from app.presentation.cli.evaluation_data import (
     silence_heldout_logs,
 )
 from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
+from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -96,7 +95,6 @@ PRICES = {
     "gpt-5.4-mini": (0.75, 0.075, 4.50),
     "gpt-5.4-nano": (0.20, 0.02, 1.25),
 }
-YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
 RUN_CONTROLS = frozenset({"budget"})
@@ -108,7 +106,6 @@ UNRECORDED_SETTINGS = {
     "search_by_skill": False,
 }
 PROFILES = ("analyzed", "handwritten")
-LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
 PROMPT_SETTING = "SELECTION_PROMPT"
 PAIRABLE_SETTINGS = (
@@ -175,12 +172,6 @@ def unpriced(models: Sequence[str]) -> list[str]:
     return sorted(model for model in models if price_of(model) is None)
 
 
-def label(text: str) -> str:
-    if not LABEL.fullmatch(text):
-        raise argparse.ArgumentTypeError("英数字と . _ - だけで、英数字から始めてください")
-    return text
-
-
 def setting(text: str) -> tuple[str, str]:
     name, _, value = text.partition("=")
     if not value or name not in PAIRABLE_SETTINGS:
@@ -205,26 +196,6 @@ def trial_instructions(path: str | None) -> str:
             "残っています。展開した文面から作ってください"
         )
     return text
-
-
-def digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()[:8]
-
-
-def current_commit() -> str | None:
-    here = Path(__file__).resolve().parent
-    try:
-        head = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"], cwd=here, capture_output=True, check=True
-        ).stdout
-        changes = subprocess.run(
-            ["git", "diff", "HEAD"], cwd=here, capture_output=True, check=True
-        ).stdout
-    except (OSError, subprocess.CalledProcessError) as error:
-        print(f"commit を記録できません(結果の commit は null): {error}", file=sys.stderr)
-        return None
-    commit = head.decode().strip()
-    return f"{commit}-dirty-{digest(changes)}" if changes else commit
 
 
 @dataclass(frozen=True)

@@ -1,4 +1,3 @@
-from collections.abc import Sequence
 from typing import Any, Self
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -47,7 +46,7 @@ def _excerpt(text: str, limit: int) -> str:
     return " ".join(text.split())[:limit]
 
 
-def candidate_request(profile: OccupationProfile, candidates: Sequence[CandidateCourse]) -> str:
+def _request(profile: OccupationProfile, candidates: list[CandidateCourse]) -> str:
     lines = [f"職業: {profile.interpretation}"]
     if profile.assumption is not None:
         lines.append(f"前提: {profile.assumption}")
@@ -143,10 +142,7 @@ class OpenAICourseSelector:
         client = self._chat.with_structured_output(
             _schema([candidate.name for candidate in candidates]), method="json_schema", strict=True
         )
-        messages = [
-            SystemMessage(self._instructions),
-            HumanMessage(candidate_request(profile, candidates)),
-        ]
+        messages = [SystemMessage(self._instructions), HumanMessage(_request(profile, candidates))]
         try:
             selection = _Selection.model_validate(client.invoke(messages))
             return [
