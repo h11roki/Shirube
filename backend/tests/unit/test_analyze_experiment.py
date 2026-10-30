@@ -156,9 +156,14 @@ def test_reading_losses_are_ranked_by_occupation_with_the_repeats_they_happened_
     assert len(losses.reading_losses) == TOP_OCCUPATIONS
 
 
-def test_a_recommendation_for_an_occupation_outside_the_dataset_is_refused() -> None:
-    with pytest.raises(EvaluationError, match="評価データに無い職業"):
-        analyze([card("知らない職業")], {"職業": frozenset()})
+def test_an_expected_course_missing_from_the_database_is_refused_not_counted_as_a_search_loss() -> (
+    None
+):
+    _, search = courses_ranked_by({"A": 0.9})
+    dataset = EvaluationDataset(2026, "情", (EvaluationCase("職業", SKILLS, ("B",)),))
+
+    with pytest.raises(EvaluationError, match="候補に無い科目名があります: B"):
+        AnalyzeExperiment(search, 2).run(dataset, [card("職業", (unsearched("B"),))])
 
 
 def test_the_reference_is_the_search_with_the_handwritten_skills_cut_at_the_candidate_limit() -> (

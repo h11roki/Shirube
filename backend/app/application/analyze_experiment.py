@@ -3,11 +3,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from enum import Enum
 
-from app.application.evaluate_search import (
-    EvaluationDataset,
-    EvaluationError,
-    HandwrittenProfiles,
-)
+from app.application.evaluate_search import EvaluationDataset, HandwrittenProfiles
 from app.application.evaluate_selection import ExpectedCourse, Judgment, SelectionResult
 from app.application.run_experiment import Scorecard
 from app.application.search_courses import SearchCourses
@@ -105,9 +101,6 @@ class _Tallies:
 def analyze(
     cards: Sequence[Scorecard], references: Mapping[str, frozenset[str]]
 ) -> ExperimentAnalysis:
-    unknown = sorted({card.occupation for card in cards} - references.keys())
-    if unknown:
-        raise EvaluationError(f"評価データに無い職業の推薦があります: {'、'.join(unknown)}")
     fates: Counter[Fate] = Counter()
     judgments: dict[Fate, Counter[Judgment]] = {placement: Counter() for placement in PLACEMENTS}
     missed = _Tallies()
@@ -150,6 +143,7 @@ class AnalyzeExperiment:
 
     def run(self, dataset: EvaluationDataset, cards: Sequence[Scorecard]) -> ExperimentAnalysis:
         candidates = self._search.candidates(dataset.year, dataset.department, ALL_SEMESTERS)
+        dataset.require_courses_in(candidates.names)
         profiles = HandwrittenProfiles(dataset)
         rankings = candidates.pick(
             [profiles.analyze(case.occupation) for case in dataset.cases], self._candidate_limit

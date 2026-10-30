@@ -18,7 +18,6 @@ from sqlalchemy import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.analyze_experiment import (
-    LOSSES,
     TOP_COURSES,
     TOP_OCCUPATIONS,
     AnalyzeExperiment,
@@ -154,7 +153,6 @@ STAGE_LABELS = {
     Fate.SEARCH: "検索",
 }
 PLACEMENT_LABELS = {Fate.CORE: "中心", Fate.FOUNDATION: "土台", Fate.UNLINKED: "外した土台"}
-SEARCH_SETTINGS = ("embedding_model", "search_by_skill", "candidate_limit")
 
 
 def price_of(model: str) -> tuple[float, float, float] | None:
@@ -586,14 +584,11 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     return "\n".join(lines)
 
 
-def _stages(tally: CourseTally) -> str:
-    return "、".join(
-        f"{STAGE_LABELS[fate]} {tally.counts[fate]}" for fate in LOSSES if fate in tally.counts
+def _tally_line(tally: CourseTally, labels: Mapping[Fate, str]) -> str:
+    breakdown = "、".join(
+        f"{label} {tally.counts[fate]}" for fate, label in labels.items() if fate in tally.counts
     )
-
-
-def _placements(tally: CourseTally) -> str:
-    return "、".join(f"{PLACEMENT_LABELS[fate]} {count}" for fate, count in tally.counts.items())
+    return f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {breakdown}"
 
 
 def _readings(document: Mapping[str, Any], loss: ReadingLoss) -> list[str]:
@@ -642,15 +637,9 @@ def render_analysis(
             for placement, counts in analysis.judgments.items()
         ),
         f"落とした回数の多い期待する科目(上から {TOP_COURSES} 件)",
-        *(
-            f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {_stages(tally)}"
-            for tally in analysis.missed
-        ),
+        *(_tally_line(tally, STAGE_LABELS) for tally in analysis.missed),
         f"関係なしで選んだ回数の多い科目(上から {TOP_COURSES} 件)",
-        *(
-            f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {_placements(tally)}"
-            for tally in analysis.unrelated
-        ),
+        *(_tally_line(tally, PLACEMENT_LABELS) for tally in analysis.unrelated),
         f"読み取りで落とした数の多い職業(上から {TOP_OCCUPATIONS} 件)",
     ]
     skills_of = {case.occupation: case.skills for case in dataset.cases}
@@ -662,6 +651,21 @@ def render_analysis(
             f"    手書きのスキル: {' / '.join(skills_of[loss.occupation])}",
         ]
     return "\n".join(lines)
+
+
+def search_config(settings: Settings) -> dict[str, Any]:
+    return {
+        "embedding_model": settings.embedding_model,
+        "search_by_skill": settings.search_by_skill,
+        "candidate_limit": settings.selection_candidate_limit,
+    }
+
+
+def scored(document: Mapping[str, Any]) -> ScoredRun:
+    return scored_run(
+        [scorecard(trial) for trial in document["trials"] if "failure" not in trial],
+        document["config"]["occupations"],
+    )
 
 
 def config_document(
@@ -681,9 +685,7 @@ def config_document(
         "selection_model": settings.selection_model,
         "selection_votes": settings.selection_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
-        "embedding_model": settings.embedding_model,
-        "search_by_skill": settings.search_by_skill,
-        "candidate_limit": settings.selection_candidate_limit,
+        **search_config(settings),
         "prompts": {
             "occupation": (
                 _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
@@ -969,13 +971,7 @@ def _compare(args: argparse.Namespace) -> None:
     if unscored:
         sys.exit(f"集計の無い結果は比べられません: {'、'.join(unscored)}")
     try:
-        old_run, new_run = (
-            scored_run(
-                [scorecard(trial) for trial in run["trials"] if "failure" not in trial],
-                run["config"]["occupations"],
-            )
-            for run in (before, after)
-        )
+        old_run, new_run = (scored(run) for run in (before, after))
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"実験の結果の推薦を読めません: {error!r}")
     if ran_interleaved(before, after):
@@ -990,8 +986,6 @@ def _analyze(args: argparse.Namespace) -> None:
         document = json.loads(args.run.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         sys.exit(f"実験の結果を読めません: {error}")
-    if document["summary"] is None:
-        sys.exit(f"集計の無い結果は分析できません: {document['label']}")
     try:
         dataset = load_dataset(args.dataset)
         fingerprint = _digest(args.dataset.read_bytes())
@@ -999,39 +993,38 @@ def _analyze(args: argparse.Namespace) -> None:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     if dataset.heldout:
         sys.exit("確かめ用の評価データは、職業と科目ごとの結果を出すことになるので分析しません")
-    config = UNRECORDED_SETTINGS | document["config"]
-    if config["dataset"] != fingerprint:
-        sys.exit(
-            f"結果は別の評価データで流しています(結果の指紋 {config['dataset']}、"
-            f"{args.dataset} の指紋 {fingerprint})"
-        )
     settings = load_settings()
-    current = {
-        "embedding_model": settings.embedding_model,
-        "search_by_skill": settings.search_by_skill,
-        "candidate_limit": settings.selection_candidate_limit,
-    }
-    differing = [
-        f"{key} が結果は {config[key]}、今は {current[key]}"
-        for key in SEARCH_SETTINGS
-        if config[key] != current[key]
-    ]
-    if differing:
-        sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
+    current = search_config(settings)
     try:
-        run = scored_run(
-            [scorecard(trial) for trial in document["trials"] if "failure" not in trial],
-            config["occupations"],
-        )
+        config = UNRECORDED_SETTINGS | document["config"]
+        if document["summary"] is None:
+            sys.exit(f"集計の無い結果は分析できません: {document['label']}")
+        if config["profiles"] != "analyzed":
+            sys.exit("手書きのスキルで流した結果は、読み取りを通っていないので分析しません")
+        if config["dataset"] != fingerprint:
+            sys.exit(
+                f"結果は別の評価データで流しています(結果の指紋 {config['dataset']}、"
+                f"{args.dataset} の指紋 {fingerprint})"
+            )
+        differing = [
+            f"{key} が結果は {config[key]}、今は {value}"
+            for key, value in current.items()
+            if config[key] != value
+        ]
+        if differing:
+            sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
+        run = scored(document)
     except (KeyError, TypeError, ValueError) as error:
-        sys.exit(f"実験の結果の推薦を読めません: {error!r}")
-    analyzer = AnalyzeExperiment(
-        search_courses(settings, database_engine(settings)), settings.selection_candidate_limit
-    )
+        sys.exit(f"実験の結果を読めません: {error!r}")
+    engine = database_engine(settings)
     try:
-        analysis = analyzer.run(dataset, run.cards)
+        analysis = AnalyzeExperiment(
+            search_courses(settings, engine), settings.selection_candidate_limit
+        ).run(dataset, run.cards)
     except ANALYSIS_ERRORS as error:
         sys.exit(f"分析できません: {error}")
+    finally:
+        engine.dispose()
     print(render_analysis(document, run, analysis, dataset))
 
 

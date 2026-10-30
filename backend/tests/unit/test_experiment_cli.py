@@ -5,6 +5,7 @@ from collections.abc import Iterator, Sequence
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -1009,7 +1010,7 @@ def test_the_analysis_shows_each_fate_with_its_share_and_the_readings_behind_the
         {fate: 0 for fate in Fate} | {Fate.CORE: 3, Fate.READING: 1},
         {placement: {judgment: 0 for judgment in Judgment} for placement in PLACEMENTS},
         (CourseTally("科目B", {Fate.READING: 2, Fate.SKIPPED: 1}, 1),),
-        (CourseTally("科目C", {Fate.FOUNDATION: 1}, 1),),
+        (CourseTally("科目C", {Fate.FOUNDATION: 1, Fate.CORE: 2}, 2),),
         (ReadingLoss("職業", (1, 2, 3), {"科目B": 3}),),
     )
     dataset = EvaluationDataset(
@@ -1021,7 +1022,7 @@ def test_the_analysis_shows_each_fate_with_its_share_and_the_readings_behind_the
     assert "  中心に選んだ 3(75.0%)" in lines
     assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(25.0%)" in lines
     assert "  科目B 3 回(1 職業): 選び直し 1、読み取り 2" in lines
-    assert "  科目C 1 回(1 職業): 土台 1" in lines
+    assert "  科目C 3 回(2 職業): 中心 2、土台 1" in lines
     assert lines[-4:] == [
         "  職業 3 件: 科目B 3",
         "    1、2 回目の読み取り: 読んだ職業(前提: 前提) / スキル: 甲 / 乙",
@@ -1072,6 +1073,7 @@ def written_run(tmp_path: Path, dataset: Path, **changed: Any) -> Path:
     content = run(
         "analyzed",
         occupations=1,
+        profiles="analyzed",
         dataset=experiment_cli._digest(dataset.read_bytes()),
         embedding_model="text-embedding-3-large",
         search_by_skill=True,
@@ -1097,12 +1099,15 @@ def test_analyze_traces_a_course_the_handwritten_skills_would_find_to_the_readin
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     _, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7})
-    monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: None)
+    disposed: list[bool] = []
+    engine = SimpleNamespace(dispose=lambda: disposed.append(True))
+    monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: engine)
     monkeypatch.setattr(experiment_cli, "search_courses", lambda settings, engine: search)
     dataset = written_dataset(tmp_path)
 
     main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
 
+    assert disposed == [True]
     lines = capsys.readouterr().out.splitlines()
     assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(100.0%)" in lines
     assert "  科目A 1 回(1 職業): 中心 1" in lines
@@ -1120,6 +1125,7 @@ def test_analyze_refuses_the_heldout_set_whose_courses_must_not_be_seen(tmp_path
         main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
 
 
+@pytest.mark.usefixtures("search_settings")
 def test_analyze_refuses_a_run_graded_with_another_dataset(tmp_path: Path) -> None:
     dataset = written_dataset(tmp_path)
     path = written_run(tmp_path, dataset, config={"dataset": "00000000"})
@@ -1142,6 +1148,7 @@ def test_analyze_refuses_to_search_differently_from_the_run(
         main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
 
 
+@pytest.mark.usefixtures("search_settings")
 def test_analyze_refuses_a_run_without_scores(tmp_path: Path) -> None:
     dataset = written_dataset(tmp_path)
 
@@ -1154,3 +1161,22 @@ def test_analyze_refuses_a_run_without_scores(tmp_path: Path) -> None:
                 str(dataset),
             ]
         )
+
+
+@pytest.mark.usefixtures("search_settings")
+def test_analyze_refuses_a_run_that_used_the_handwritten_skills_instead_of_a_reading(
+    tmp_path: Path,
+) -> None:
+    dataset = written_dataset(tmp_path)
+    path = written_run(tmp_path, dataset, config={"profiles": "handwritten"})
+
+    with pytest.raises(SystemExit, match="読み取りを通っていない"):
+        main(["analyze", str(path), "--dataset", str(dataset)])
+
+
+@pytest.mark.usefixtures("search_settings")
+def test_analyze_says_it_cannot_read_a_file_that_is_not_a_run(tmp_path: Path) -> None:
+    dataset = written_dataset(tmp_path)
+
+    with pytest.raises(SystemExit, match="実験の結果を読めません: KeyError"):
+        main(["analyze", str(dataset), "--dataset", str(dataset)])
