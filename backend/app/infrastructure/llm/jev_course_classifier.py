@@ -5,7 +5,7 @@ from typing import Self
 import httpx
 from pydantic import SecretStr
 
-from app.application.judging import OBJECTIVES_LENGTH, OVERVIEW_LENGTH, SCHEDULE_LENGTH
+from app.application.judging import excerpts
 from app.application.ports import Classification, ClassificationError, CourseOdds
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse
@@ -26,24 +26,19 @@ QUESTION = (
 )
 
 
-def _excerpt(text: str, length: int) -> str:
-    return " ".join(text.split())[:length]
-
-
 def state(profile: OccupationProfile, candidates: Sequence[CandidateCourse]) -> str:
     lines = [f"職業: {profile.interpretation}"]
     if profile.assumption is not None:
         lines.append(f"前提: {profile.assumption}")
     lines += [f"必要なスキル: {'、'.join(profile.skills)}", "", "候補の授業:"]
     for candidate in candidates:
-        page = candidate.syllabus
-        themes = "、".join(session.theme for session in page.sessions if session.theme.strip())
+        material = excerpts(candidate.syllabus)
         lines += [
             "",
             f"## {candidate.name}",
-            f"授業の概要と方法: {_excerpt(page.overview, OVERVIEW_LENGTH)}",
-            f"到達目標: {_excerpt(page.objectives, OBJECTIVES_LENGTH)}",
-            f"各回のテーマ: {_excerpt(themes, SCHEDULE_LENGTH)}",
+            f"授業の概要と方法: {material.overview}",
+            f"到達目標: {material.objectives}",
+            f"各回のテーマ: {material.schedule}",
         ]
     return "\n".join(lines)
 
@@ -90,20 +85,24 @@ class JevCourseClassifier:
             )
         try:
             payload = response.json()
+            input_tokens = int(payload["usage"]["input_tokens"])
+        except (ValueError, KeyError, TypeError) as error:
+            raise ClassificationError(f"Jev の答えを読めません: {error!r}") from error
+        try:
             odds = []
             for index, candidate in enumerate(candidates):
                 probabilities = payload["answers"][f"q{index}"]["probabilities"]
                 chances = [float(probabilities[choice]) for choice in (CORE, FOUNDATION, UNRELATED)]
                 odds.append(CourseOdds(candidate.name, *chances))
-            input_tokens = int(payload["usage"]["input_tokens"])
         except (ValueError, KeyError, TypeError) as error:
-            raise ClassificationError(f"Jev の答えを読めません: {error!r}") from error
+            raise ClassificationError(f"Jev の答えを読めません: {error!r}", input_tokens) from error
         for each in odds:
             chances = [each.core, each.foundation, each.unrelated]
             if not all(math.isfinite(chance) and 0 <= chance <= 1 for chance in chances) or (
                 abs(sum(chances) - 1) > SUM_TOLERANCE
             ):
                 raise ClassificationError(
-                    f"Jev の確率が 0〜1 に収まらないか、和が 1 になりません: {each.name} {chances}"
+                    f"Jev の確率が 0〜1 に収まらないか、和が 1 になりません: {each.name} {chances}",
+                    input_tokens,
                 )
         return Classification(tuple(odds), input_tokens)

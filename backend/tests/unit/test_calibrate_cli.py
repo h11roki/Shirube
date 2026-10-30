@@ -17,7 +17,7 @@ from app.application.ports import Classification, ClassificationError, CourseOdd
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, Relevance
 from app.presentation.cli.calibrate import collect, main, render, selector_trials, yen
-from app.presentation.cli.records import digest
+from app.presentation.cli.records import digest, reserve
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeCourseRepository
 
@@ -308,6 +308,17 @@ def test_run_says_it_cannot_read_a_run_missing_its_summary(tmp_path: Path) -> No
         run_main(run, dataset, judgments)
 
 
+def test_run_refuses_a_candidate_the_judges_never_saw(tmp_path: Path) -> None:
+    dataset, judgments = grading_files(tmp_path)
+    run = source_run(tmp_path, (dataset, judgments))
+    content = json.loads(run.read_text(encoding="utf-8"))
+    content["trials"][0]["candidates"].append("科目9")
+    run.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="判定していない候補があります: 科目9"):
+        run_main(run, dataset, judgments)
+
+
 def test_run_asks_for_the_jev_key_before_it_calls_anything(
     monkeypatch: pytest.MonkeyPatch, tmp_path: Path
 ) -> None:
@@ -319,16 +330,13 @@ def test_run_asks_for_the_jev_key_before_it_calls_anything(
         run_main(source_run(tmp_path, (dataset, judgments)), dataset, judgments)
 
 
-def test_show_reads_a_saved_result_without_calling_jev(
+def test_show_reads_a_saved_result_with_its_own_judgments_without_calling_jev(
     tmp_path: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    dataset, judgments = grading_files(tmp_path)
     saved = written(
         tmp_path,
         "calibration.json",
         calibration_document(
-            dataset=digest(dataset.read_bytes()),
-            judgments=digest(judgments.read_bytes()),
             trials=[run_trial()],
             layouts={
                 "grouped": [
@@ -336,8 +344,20 @@ def test_show_reads_a_saved_result_without_calling_jev(
                         "occupation": "職業",
                         "input_tokens": 1_000,
                         "odds": [
-                            {"name": "科目1", "core": 0.85, "foundation": 0.1, "unrelated": 0.05},
-                            {"name": "科目2", "core": 0.05, "foundation": 0.05, "unrelated": 0.9},
+                            {
+                                "name": "科目1",
+                                "core": 0.85,
+                                "foundation": 0.1,
+                                "unrelated": 0.05,
+                                "judgment": "expected",
+                            },
+                            {
+                                "name": "科目2",
+                                "core": 0.05,
+                                "foundation": 0.05,
+                                "unrelated": 0.9,
+                                "judgment": "unrelated",
+                            },
                         ],
                     }
                 ]
@@ -345,8 +365,17 @@ def test_show_reads_a_saved_result_without_calling_jev(
         ),
     )
 
-    main(["show", str(saved), "--dataset", str(dataset), "--judgments", str(judgments)])
+    main(["show", str(saved)])
 
     output = capsys.readouterr().out
     assert "1 職業 1 回(候補 20 科目をまとめる): 1 職業、2 科目" in output
     assert "選んだ 1 科目のうち関係なし: 選び手 100.0%、Jev 0.0%" in output
+
+
+def test_a_result_already_written_under_the_same_name_is_not_overwritten(tmp_path: Path) -> None:
+    taken = tmp_path / "20261030-120000-jev.json"
+    taken.write_text("{}", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="結果を書く場所を作れません"):
+        reserve(tmp_path, [taken])
+    assert taken.read_text(encoding="utf-8") == "{}"

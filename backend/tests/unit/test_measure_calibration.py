@@ -13,7 +13,7 @@ from app.application.measure_calibration import (
     calibration,
     matched,
 )
-from app.application.ports import Classification, CourseOdds
+from app.application.ports import Classification, ClassificationError, CourseOdds
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, Relevance
 from tests.builders import course_section, syllabus
@@ -24,13 +24,16 @@ CORE, FOUNDATION = Relevance.CORE, Relevance.FOUNDATION
 
 
 class FakeClassifier:
-    def __init__(self) -> None:
+    def __init__(self, failing_call: int | None = None) -> None:
         self.calls: list[list[str]] = []
+        self._failing_call = failing_call
 
     def classify(
         self, profile: OccupationProfile, candidates: Sequence[CandidateCourse]
     ) -> Classification:
         self.calls.append([candidate.syllabus.code for candidate in candidates])
+        if len(self.calls) == self._failing_call:
+            raise ClassificationError("Jev の答えを読めません", 70)
         return Classification(
             tuple(CourseOdds(candidate.name, 0.5, 0.3, 0.2) for candidate in candidates),
             100 * len(candidates),
@@ -65,8 +68,11 @@ def test_the_candidates_go_to_the_classifier_together_or_one_by_one(
 ) -> None:
     classifier = FakeClassifier()
 
-    [measured] = measure(classifier).odds(2026, "情", [trial(("科目1", "科目2"))], layout)
+    [(measured_layout, measured)] = measure(classifier).odds(
+        2026, "情", [trial(("科目1", "科目2"))], [layout]
+    )
 
+    assert measured_layout is layout
     assert classifier.calls == calls
     assert [odds.name for odds in measured.odds] == ["科目1", "科目2"]
     assert measured.input_tokens == 200
@@ -76,7 +82,7 @@ def test_a_candidate_without_the_judges_material_is_refused_before_any_call() ->
     classifier = FakeClassifier()
 
     with pytest.raises(EvaluationError, match="判定の資料に無い候補があります: 科目9"):
-        measure(classifier).odds(2026, "情", [trial(("科目1", "科目9"))], Layout.GROUPED)
+        measure(classifier).odds(2026, "情", [trial(("科目1", "科目9"))], [Layout.GROUPED])
     assert classifier.calls == []
 
 
@@ -138,3 +144,43 @@ def test_matched_picks_as_many_as_the_selector_did_by_each_probability() -> None
     assert compared.selector.expected == compared.classifier.expected == 1
     assert compared.selector.cores == compared.classifier.cores == 1
     assert (compared.selector.expected_cores, compared.classifier.expected_cores) == (0, 1)
+
+
+def test_both_layouts_come_out_as_one_stream_grouped_first() -> None:
+    classifier = FakeClassifier()
+
+    measured = list(
+        measure(classifier).odds(
+            2026,
+            "情",
+            [trial(("科目1",)), trial(("科目2",), occupation="別の職業")],
+            [Layout.GROUPED, Layout.SEPARATE],
+        )
+    )
+
+    assert [(layout, each.occupation) for layout, each in measured] == [
+        (Layout.GROUPED, "職業"),
+        (Layout.GROUPED, "別の職業"),
+        (Layout.SEPARATE, "職業"),
+        (Layout.SEPARATE, "別の職業"),
+    ]
+
+
+def test_a_failed_call_still_counts_the_tokens_jev_billed_for_it() -> None:
+    classifier = FakeClassifier(failing_call=2)
+    measuring = measure(classifier)
+    outcomes = measuring.odds(2026, "情", [trial(("科目1", "科目2"))], [Layout.SEPARATE])
+
+    with pytest.raises(ClassificationError):
+        list(outcomes)
+    assert measuring.spent_tokens == 100 + 70
+
+
+def test_matched_breaks_ties_by_name_not_by_the_search_order() -> None:
+    trials = [trial(("B", "A"), (("B", FOUNDATION),))]
+    measured = [occupation_odds(CourseOdds("B", 0.2, 0.3, 0.5), CourseOdds("A", 0.2, 0.3, 0.5))]
+    judgments = judged({("職業", "A"): Judgment.EXPECTED})
+
+    compared = matched(trials, measured, judgments)
+
+    assert compared.classifier.expected_picked == 1

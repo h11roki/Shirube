@@ -3,6 +3,7 @@ import hashlib
 import re
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 YEN_PER_DOLLAR = 150
@@ -33,3 +34,16 @@ def current_commit() -> str | None:
         return None
     commit = head.decode().strip()
     return f"{commit}-dirty-{digest(changes)}" if changes else commit
+
+
+def reserve(out: Path, paths: Sequence[Path]) -> None:
+    reserved: list[Path] = []
+    try:
+        out.mkdir(parents=True, exist_ok=True)
+        for path in paths:
+            path.touch(exist_ok=False)
+            reserved.append(path)
+    except OSError as error:
+        for path in reserved:
+            path.unlink(missing_ok=True)
+        sys.exit(f"結果を書く場所を作れません: {error}")

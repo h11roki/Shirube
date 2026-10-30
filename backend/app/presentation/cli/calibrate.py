@@ -1,4 +1,5 @@
 import argparse
+import inspect
 import json
 import math
 import signal
@@ -13,8 +14,14 @@ from typing import Any
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.evaluate_search import EvaluationDataset, EvaluationError
-from app.application.evaluate_selection import Judgments
-from app.application.judging import JudgingError
+from app.application.evaluate_selection import Judgment, Judgments
+from app.application.judging import (
+    OBJECTIVES_LENGTH,
+    OVERVIEW_LENGTH,
+    SCHEDULE_LENGTH,
+    JudgingError,
+    excerpts,
+)
 from app.application.measure_calibration import (
     Choices,
     Layout,
@@ -34,6 +41,7 @@ from app.infrastructure.llm.jev_course_classifier import (
     CRITERIA,
     QUESTION,
     JevCourseClassifier,
+    state,
 )
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -41,7 +49,7 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label
+from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label, reserve
 from app.presentation.composition import database_engine, load_settings
 
 RESULTS = DEFAULT_DATASET.with_name("calibration")
@@ -118,21 +126,19 @@ def collect(
     def stopped(reason: str | None, over_budget: bool = False) -> Collected:
         return Collected(measured, yen(measure.spent_tokens), reason, over_budget)
 
+    outcomes = measure.odds(dataset.year, dataset.department, trials, layouts)
     try:
-        for layout in layouts:
-            for occupation in measure.odds(dataset.year, dataset.department, trials, layout):
-                measured[layout].append(occupation)
-                done += 1
-                spent = yen(measure.spent_tokens)
-                print(
-                    f"{done}/{total} {LAYOUT_NAMES[layout]} {occupation.occupation}: "
-                    f"入力 {occupation.input_tokens:,} トークン、計 {spent:.2f} 円",
-                    file=sys.stderr,
-                )
-                if spent >= budget and done < total:
-                    return stopped(f"費用の上限 {budget:g} 円に達した", over_budget=True)
-    except (EvaluationError, JudgingError, SQLAlchemyError):
-        raise
+        for layout, occupation in outcomes:
+            measured[layout].append(occupation)
+            done += 1
+            spent = yen(measure.spent_tokens)
+            print(
+                f"{done}/{total} {LAYOUT_NAMES[layout]} {occupation.occupation}: "
+                f"入力 {occupation.input_tokens:,} トークン、計 {spent:.2f} 円",
+                file=sys.stderr,
+            )
+            if spent >= budget and done < total:
+                return stopped(f"費用の上限 {budget:g} 円に達した", over_budget=True)
     except ClassificationError as error:
         return stopped(str(error))
     except OSError as error:
@@ -231,11 +237,15 @@ def _run(args: argparse.Namespace) -> None:
         sys.exit(f"実験の結果を読めません: {error!r}")
     if not trials:
         sys.exit(f"{args.repeat} 回目の推薦がありません")
+    unjudged = sorted({name for trial in trials for name in trial.candidates} - judgments.courses)
+    if unjudged:
+        sys.exit(f"判定していない候補があります: {'、'.join(unjudged)}")
     settings = load_settings()
     if settings.jev_api_key is None:
         sys.exit("JEV_API_KEY を .envrc に書いてください")
     created = datetime.now(UNIVERSITY_TIME)
     path = RESULTS / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
+    reserve(RESULTS, [path])
     engine = database_engine(settings)
     classifier = JevCourseClassifier.connect(settings.jev_api_key, settings.jev_model)
     measure = MeasureCalibration(SqlCourseRepository(engine), classifier)
@@ -244,22 +254,34 @@ def _run(args: argparse.Namespace) -> None:
     try:
         collected = collect(measure, dataset, trials, LAYOUTS[args.layout], args.budget)
     except (EvaluationError, JudgingError) as error:
+        path.unlink(missing_ok=True)
         sys.exit(f"測れません: {error}")
     except OperationalError as error:
+        path.unlink(missing_ok=True)
         sys.exit(f"DB に接続できません: {error.orig}")
     except SQLAlchemyError as error:
+        path.unlink(missing_ok=True)
         sys.exit(f"DB の操作に失敗しました: {error}")
     finally:
         classifier.close()
         engine.dispose()
+    prompt = digest(
+        "\n".join(
+            [
+                QUESTION,
+                json.dumps(CRITERIA, ensure_ascii=False),
+                inspect.getsource(state),
+                inspect.getsource(excerpts),
+                f"{OVERVIEW_LENGTH} {OBJECTIVES_LENGTH} {SCHEDULE_LENGTH}",
+            ]
+        ).encode()
+    )
     document = {
         "label": args.label,
         "created": created.isoformat(timespec="seconds"),
         "commit": current_commit(),
         "model": settings.jev_model,
-        "prompt": digest(
-            json.dumps({"question": QUESTION, "criteria": CRITERIA}, ensure_ascii=False).encode()
-        ),
+        "prompt": prompt,
         "source": origin,
         "repeat": args.repeat,
         "dataset": config["dataset"],
@@ -285,14 +307,17 @@ def _run(args: argparse.Namespace) -> None:
                 {
                     "occupation": occupation.occupation,
                     "input_tokens": occupation.input_tokens,
-                    "odds": [asdict(odds) for odds in occupation.odds],
+                    "odds": [
+                        asdict(odds)
+                        | {"judgment": judgments.of(occupation.occupation, odds.name).value}
+                        for odds in occupation.odds
+                    ],
                 }
                 for occupation in occupations
             ]
             for layout, occupations in collected.measured.items()
         },
     }
-    path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if any(collected.measured.values()):
         print(render(document, trials, collected.measured, judgments))
@@ -306,20 +331,31 @@ def _show(args: argparse.Namespace) -> None:
         document = json.loads(args.result.read_text(encoding="utf-8"))
     except (OSError, ValueError) as error:
         sys.exit(f"校正の結果を読めません: {error}")
-    _, judgments = _grading(args.dataset, args.judgments)
     try:
-        _require_same_grading(document, args.dataset, args.judgments)
+        layouts = document["layouts"]
         measured = {
             Layout(name): [
                 OccupationOdds(
                     occupation["occupation"],
-                    tuple(CourseOdds(**odds) for odds in occupation["odds"]),
+                    tuple(
+                        CourseOdds(
+                            odds["name"], odds["core"], odds["foundation"], odds["unrelated"]
+                        )
+                        for odds in occupation["odds"]
+                    ),
                     occupation["input_tokens"],
                 )
                 for occupation in occupations
             ]
-            for name, occupations in document["layouts"].items()
+            for name, occupations in layouts.items()
         }
+        judged = {
+            (occupation["occupation"], odds["name"]): Judgment(odds["judgment"])
+            for occupations in layouts.values()
+            for occupation in occupations
+            for odds in occupation["odds"]
+        }
+        judgments = Judgments(frozenset(name for _, name in judged), judged)
         print(render(document, selector_trials(document["trials"]), measured, judgments))
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"校正の結果を読めません: {error!r}")
@@ -339,10 +375,8 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     run.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     run.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
     run.set_defaults(handle=_run)
-    show = commands.add_parser("show", help="残した校正の結果を出し直す")
+    show = commands.add_parser("show", help="残した校正の結果を、残した判定で出し直す")
     show.add_argument("result", type=Path)
-    show.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
-    show.add_argument("--judgments", type=Path, default=DEFAULT_JUDGMENTS)
     show.set_defaults(handle=_show)
     args = parser.parse_args(argv)
     if args.command == "run" and not (math.isfinite(args.budget) and args.budget > 0):

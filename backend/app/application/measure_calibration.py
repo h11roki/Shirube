@@ -6,7 +6,12 @@ from statistics import fmean
 from app.application.evaluate_search import EvaluationError
 from app.application.evaluate_selection import Judgment, Judgments
 from app.application.judging import JudgingMaterials
-from app.application.ports import CourseClassifier, CourseOdds, CourseRepository
+from app.application.ports import (
+    ClassificationError,
+    CourseClassifier,
+    CourseOdds,
+    CourseRepository,
+)
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, Relevance
 
@@ -79,8 +84,12 @@ class MeasureCalibration:
         self.spent_tokens = 0
 
     def odds(
-        self, year: int, department: str, trials: Sequence[SelectorTrial], layout: Layout
-    ) -> Iterator[OccupationOdds]:
+        self,
+        year: int,
+        department: str,
+        trials: Sequence[SelectorTrial],
+        layouts: Sequence[Layout],
+    ) -> Iterator[tuple[Layout, OccupationOdds]]:
         pages = {
             material.name: material.page
             for material in JudgingMaterials(self._courses).courses(year, department)
@@ -89,13 +98,14 @@ class MeasureCalibration:
         if unknown:
             raise EvaluationError(f"判定の資料に無い候補があります: {'、'.join(unknown)}")
         syllabi = self._courses.syllabi_of(year, set(pages.values()))
-        return (
-            self._classify(
-                trial,
-                [CandidateCourse(name, syllabi[pages[name]]) for name in trial.candidates],
-                layout,
-            )
+        offered = [
+            [CandidateCourse(name, syllabi[pages[name]]) for name in trial.candidates]
             for trial in trials
+        ]
+        return (
+            (layout, self._classify(trial, candidates, layout))
+            for layout in layouts
+            for trial, candidates in zip(trials, offered, strict=True)
         )
 
     def _classify(
@@ -104,7 +114,11 @@ class MeasureCalibration:
         groups = [candidates] if layout is Layout.GROUPED else [[each] for each in candidates]
         parts = []
         for group in groups:
-            part = self._classifier.classify(trial.profile, group)
+            try:
+                part = self._classifier.classify(trial.profile, group)
+            except ClassificationError as error:
+                self.spent_tokens += error.input_tokens
+                raise
             self.spent_tokens += part.input_tokens
             parts.append(part)
         return OccupationOdds(
@@ -118,23 +132,19 @@ def probability(odds: CourseOdds, target: Target) -> float:
     return odds.core if target is Target.CORE else odds.core + odds.foundation
 
 
-def hit(judgment: Judgment, target: Target) -> bool:
-    if target is Target.CORE:
-        return judgment is Judgment.EXPECTED
-    return judgment is not Judgment.UNRELATED
-
-
 def calibration(
     measured: Sequence[OccupationOdds], judgments: Judgments, target: Target
 ) -> Calibration:
-    outcomes = [
-        (
-            probability(odds, target),
-            hit(judgments.of(occupation.occupation, odds.name), target),
-        )
-        for occupation in measured
-        for odds in occupation.odds
-    ]
+    outcomes = []
+    for occupation in measured:
+        for odds in occupation.odds:
+            judgment = judgments.of(occupation.occupation, odds.name)
+            correct = (
+                judgment is Judgment.EXPECTED
+                if target is Target.CORE
+                else judgment is not Judgment.UNRELATED
+            )
+            outcomes.append((probability(odds, target), correct))
     grouped: list[list[tuple[float, bool]]] = [[] for _ in range(BINS)]
     for chance, correct in outcomes:
         grouped[min(int(chance * BINS), BINS - 1)].append((chance, correct))
@@ -209,8 +219,10 @@ def matched(
             )
         )
         odds = odds_of[trial.occupation]
-        by_relevance = sorted(odds, key=lambda each: -probability(each, Target.RELEVANT))
-        by_core = sorted(odds, key=lambda each: -each.core)
+        by_relevance = sorted(
+            odds, key=lambda each: (-probability(each, Target.RELEVANT), each.name)
+        )
+        by_core = sorted(odds, key=lambda each: (-each.core, each.name))
         classifier.append(
             _choices(
                 trial.occupation,

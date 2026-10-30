@@ -1,12 +1,13 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 
 from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.ports import CourseRepository
 from app.domain.course import ALL_GRADES, CourseSection
 from app.domain.recommendation import Relevance
 from app.domain.roadmap import ALL_SEMESTERS, opens_in_any
+from app.domain.syllabus import Syllabus
 
 JUDGES = ("engineer", "professor", "student")
 REASON_ORDER = ("professor", "student", "engineer")
@@ -18,6 +19,22 @@ SCHEDULE_LENGTH = 350
 
 class JudgingError(ValueError):
     pass
+
+
+@dataclass(frozen=True)
+class Excerpts:
+    overview: str
+    objectives: str
+    schedule: str
+
+
+def excerpts(page: Syllabus) -> Excerpts:
+    themes = "、".join(session.theme for session in page.sessions if session.theme.strip())
+    return Excerpts(
+        _excerpt(page.overview, OVERVIEW_LENGTH),
+        _excerpt(page.objectives, OBJECTIVES_LENGTH),
+        _excerpt(themes, SCHEDULE_LENGTH),
+    )
 
 
 @dataclass(frozen=True)
@@ -200,16 +217,7 @@ class JudgingMaterials:
                     if any(section.offered_to(department, grade, year) for section in group)
                 ),
                 pages[name],
-                _excerpt(syllabi[pages[name]].overview, OVERVIEW_LENGTH),
-                _excerpt(syllabi[pages[name]].objectives, OBJECTIVES_LENGTH),
-                _excerpt(
-                    "、".join(
-                        session.theme
-                        for session in syllabi[pages[name]].sessions
-                        if session.theme.strip()
-                    ),
-                    SCHEDULE_LENGTH,
-                ),
+                *astuple(excerpts(syllabi[pages[name]])),
             )
             for name, group in sorted(by_name.items())
         ]

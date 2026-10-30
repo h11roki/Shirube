@@ -88,8 +88,9 @@ def test_probabilities_outside_zero_to_one_or_not_adding_up_to_one_are_refused(
     def handle(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, content=json.dumps(answered([chances, (0.1, 0.3, 0.6)])))
 
-    with pytest.raises(ClassificationError, match="Jev の確率が 0〜1 に収まらないか"):
+    with pytest.raises(ClassificationError, match="Jev の確率が 0〜1 に収まらないか") as raised:
         classifier(handle).classify(PROFILE, CANDIDATES)
+    assert raised.value.input_tokens == 1234
 
 
 def test_closing_the_classifier_closes_its_connections() -> None:
@@ -112,8 +113,9 @@ def test_an_answer_missing_a_question_cannot_be_read() -> None:
     def handle(request: httpx.Request) -> httpx.Response:
         return httpx.Response(200, json=answered([(0.7, 0.2, 0.1)]))
 
-    with pytest.raises(ClassificationError, match="Jev の答えを読めません: KeyError"):
+    with pytest.raises(ClassificationError, match="Jev の答えを読めません: KeyError") as raised:
         classifier(handle).classify(PROFILE, CANDIDATES)
+    assert raised.value.input_tokens == 1234
 
 
 def test_a_failed_connection_says_jev_could_not_be_called() -> None:

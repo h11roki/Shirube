@@ -72,7 +72,9 @@ class CourseSelector(Protocol):
 
 
 class ClassificationError(ValueError):
-    pass
+    def __init__(self, message: str, input_tokens: int = 0) -> None:
+        super().__init__(message)
+        self.input_tokens = input_tokens
 
 
 @dataclass(frozen=True)

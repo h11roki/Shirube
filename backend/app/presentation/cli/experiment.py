@@ -79,7 +79,13 @@ from app.presentation.cli.evaluation_data import (
     silence_heldout_logs,
 )
 from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
-from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label
+from app.presentation.cli.records import (
+    YEN_PER_DOLLAR,
+    current_commit,
+    digest,
+    label,
+    reserve,
+)
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -710,19 +716,6 @@ def results_directory(out: Path | None, dataset: EvaluationDataset) -> Path:
     return HELDOUT_RUNS
 
 
-def _reserve(out: Path, paths: Sequence[Path]) -> None:
-    reserved: list[Path] = []
-    try:
-        out.mkdir(parents=True, exist_ok=True)
-        for path in paths:
-            path.touch(exist_ok=False)
-            reserved.append(path)
-    except OSError as error:
-        for path in reserved:
-            path.unlink(missing_ok=True)
-        sys.exit(f"結果を書く場所を作れません: {error}")
-
-
 def _collected(
     outcomes: Iterator[tuple[Side | None, Trial | FailedTrial]],
     total: int,
@@ -815,7 +808,7 @@ def _run(args: argparse.Namespace) -> None:
     commit = current_commit()
     config = config_document(args, settings, dataset, SELECTION_INSTRUCTIONS)
     path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
-    _reserve(out, [path])
+    reserve(out, [path])
     collection, spent_yen = _collected(
         ((None, outcome) for outcome in trials),
         len(dataset.cases) * args.repeat,
@@ -874,7 +867,7 @@ def _pair(args: argparse.Namespace) -> None:
     created = datetime.now(UNIVERSITY_TIME)
     commit = current_commit()
     paths = {side: out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side}
-    _reserve(out, list(paths.values()))
+    reserve(out, list(paths.values()))
     collection, spent_yen = _collected(
         interleave(trials[Side.BEFORE], trials[Side.AFTER], len(dataset.cases)),
         len(Side) * len(dataset.cases) * args.repeat,
