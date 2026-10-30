@@ -15,7 +15,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN pnpm install --frozen-lockfile
 COPY . .
 ARG SITE_URL
-RUN SITE_URL=${SITE_URL} pnpm build && pnpm prune --prod && rm -rf .next/cache
+RUN pnpm build && pnpm prune --prod && rm -rf .next/cache
 
 FROM node:24-slim AS runner
 
