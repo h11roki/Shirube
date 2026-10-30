@@ -761,7 +761,7 @@ export interface operations {
             query: {
                 department: string;
                 grade: number;
-                term?: components["schemas"]["Term"] | null;
+                term?: components["schemas"]["Term"];
             };
             header?: never;
             path?: never;

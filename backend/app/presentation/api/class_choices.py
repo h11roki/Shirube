@@ -24,9 +24,9 @@ def class_choices_router(
         department: Annotated[DepartmentName, Query()],
         grade: Annotated[int, Query(ge=min(ALL_GRADES), le=max(ALL_GRADES))],
         user_id: Annotated[UUID, Depends(current_user)],
-        term: Term | None = None,
+        term: Term = DEFAULT_START_TERM,
     ) -> ClassChoicesOut:
-        start = Semester(grade, term or DEFAULT_START_TERM)
+        start = Semester(grade, term)
         return ClassChoicesOut(
             term=start.term,
             courses=[

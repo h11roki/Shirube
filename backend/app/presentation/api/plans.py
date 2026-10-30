@@ -64,13 +64,12 @@ def plans_router(
         request: Request,
         response: Response,
     ) -> PlanOut:
-        term = body.term or DEFAULT_START_TERM
         plan = request_plan.run(
             user_id,
             body.occupation,
             body.department,
             curriculum_year,
-            Semester(body.grade, term),
+            Semester(body.grade, body.term or DEFAULT_START_TERM),
             body.chosen_classes,
         )
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))

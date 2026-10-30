@@ -537,15 +537,8 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "$ref": "#/components/schemas/Term"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Term"
+              "$ref": "#/components/schemas/Term",
+              "default": "spring"
             }
           }
         ],
