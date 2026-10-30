@@ -6,6 +6,8 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+x-site-url: &site-url https://${SITE_DOMAIN:?SITE_DOMAIN を .env に書いてください}
+
 x-backend-environment: &backend-environment
   DATABASE_URL: postgresql+psycopg://shirube:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD を .env に書いてください}@db:5432/shirube
   OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY を .env に書いてください}
@@ -63,12 +65,11 @@ services:
       context: ./frontend
       target: runner
       args:
-        SITE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN を .env に書いてください}
+        SITE_URL: *site-url
     environment:
       BACKEND_URL: http://backend:8000
-      SITE_URL: https://${SITE_DOMAIN}
-      AUTH_URL: https://${SITE_DOMAIN}
-      AUTH_TRUST_HOST: "true"
+      SITE_URL: *site-url
+      AUTH_URL: *site-url
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
       AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET を .env に書いてください}
       AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:?AUTH_GOOGLE_ID を .env に書いてください}
