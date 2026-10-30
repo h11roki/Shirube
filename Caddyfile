@@ -7,6 +7,14 @@
 		format filter {
 			request>headers delete
 			request>tls delete
+			request>remote_port delete
+			request>proto delete
+			request>host delete
+			request>uri query {
+				delete code
+				delete state
+				delete session_state
+			}
 			resp_headers delete
 			user_id delete
 		}

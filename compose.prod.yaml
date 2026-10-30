@@ -9,6 +9,11 @@ x-logging: &logging
 x-backend-environment: &backend-environment
   DATABASE_URL: postgresql+psycopg://shirube:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD を .env に書いてください}@db:5432/shirube
   OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY を .env に書いてください}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+  SEARCH_BY_SKILL: ${SEARCH_BY_SKILL:-}
+  SELECTION_VOTES: ${SELECTION_VOTES:-}
+  SELECTION_VOTE_DELAY_SECONDS: ${SELECTION_VOTE_DELAY_SECONDS:-}
+  OCCUPATION_READING_CACHE_SIZE: ${OCCUPATION_READING_CACHE_SIZE:-}
 
 services:
   db:
