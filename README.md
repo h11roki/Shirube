@@ -59,7 +59,7 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 
 ## 本番
 
-EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて frontend に渡す(ADR 0009、0075)。ドメインは DuckDNS の無料のサブドメインで、Caddy が Let's Encrypt の証明書を自動で取って更新する。DB と backend のポートは外に出さない。ログはサービスごとに 10MB × 3 までで、古いものから消える。
+EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて frontend に渡す(ADR 0009、0075)。ドメインは DuckDNS の無料のサブドメインで、Caddy が Let's Encrypt の証明書を自動で取って更新する。DB と backend のポートは外に出さない。ログはサービスごとに 10MB × 3 までで、古いものから消える。Caddy のアクセスログは、プライバシーポリシーに書いたとおり IP、時刻、URL、状態コードなどに絞り、要求と応答のヘッダーは書かない。
 
 ### 初めに用意するもの
 
@@ -69,11 +69,12 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面のテストの利用者に自分を足す(誰でも使えるように公開できるかは、そのときの Google の条件で確かめる)
 5. OpenAI: 前払いにして自動の補充を切る(ADR 0038)
 
-サーバーでは、スワップを足し(`next build` のメモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れ、リポジトリを置いて `.env` を書く。
+サーバーでは、スワップを足し(`next build` のメモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れて今の利用者を docker のグループに足し(sudo なしで `docker compose` と cron のバックアップを動かすため。足したら入り直す)、リポジトリを置いて `.env` を書く。
 
 ```sh
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
 echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+sudo usermod -aG docker "$USER"
 git clone https://github.com/h11roki/Shirube.git && cd Shirube
 cp .env.example .env && chmod 600 .env
 ```
@@ -90,7 +91,7 @@ docker compose -f compose.prod.yaml up -d db
 docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
 ```
 
-手元で科目の表の中身だけを出してサーバーに送り(利用者と道標の表は移さない)、サーバーで戻す。
+手元で科目の表の中身だけを出してサーバーに送り(利用者と道標の表は移さない)、サーバーで戻す。出す前に、手元の DB を本番と同じスキーマにし(main で `alembic upgrade head`)、今のモデル以外の埋め込みを消しておく(`embed --prune`。比べのために前のモデルの埋め込みを残していると、それも送ってしまう)。
 
 ```sh
 docker compose exec -T db pg_dump -U shirube -Fc --data-only -t course_sections -t syllabi -t syllabus_codes -t syllabus_chunks -t embeddings shirube > courses.dump
@@ -113,21 +114,30 @@ docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic up
 docker compose -f compose.prod.yaml up -d
 ```
 
-手元で取り込み直しや埋め込み直しをしたら、本番の科目の表を空にしてから同じように戻す。利用者と道標の表は科目の表を参照していないので、そのまま残る。
+手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。
 
 ```sh
+docker compose -f compose.prod.yaml stop backend worker
 docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings"
+docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --data-only --single-transaction < ~/courses.dump
+docker compose -f compose.prod.yaml up -d
 ```
 
 ### バックアップ
 
-サーバーの cron で毎日 DB 全体を `pg_dump` し、7 日分を残す(`mkdir ~/backups` のあと `crontab -e` に書く)。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
+サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に 7 日分残す(`mkdir ~/backups` のあと `crontab -e` に書く)。途中で失敗すると `.partial` のまま残り、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
 
 ```
-0 4 * * * cd ~/Shirube && docker compose -f compose.prod.yaml exec -T db pg_dump -U shirube -Fc shirube > ~/backups/shirube-$(date +\%F).dump && find ~/backups -name 'shirube-*.dump' -mtime +7 -delete
+0 4 * * * ~/Shirube/backup.sh >> ~/backups/backup.log 2>&1
 ```
 
-戻すときは `pg_restore -U shirube -d shirube --clean` に、そのファイルを渡す。
+戻すときは、backend と worker を止めてから 1 つのトランザクションで戻す。
+
+```sh
+docker compose -f compose.prod.yaml stop backend worker
+docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --clean --if-exists --single-transaction < ~/backups/shirube-<日付>.dump
+docker compose -f compose.prod.yaml up -d
+```
 
 ## 設計
 

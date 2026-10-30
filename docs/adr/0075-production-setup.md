@@ -24,13 +24,14 @@
 
 - 本番は `compose.prod.yaml` で動かし、開発用の `compose.yaml` はそのまま残す。秘密の値と設定はサーバーのリポジトリ直下の `.env`(git の管理外、ひな形は `.env.example`)から compose が読む
   - db: パスワードは `POSTGRES_PASSWORD`。ポートは外に出さない
-  - backend と worker: 同じイメージ。自動の読み直しもマウントもしない。backend のポートも外に出さず、frontend からだけ呼ぶ
-  - frontend: Dockerfile の `runner` の段で、`SITE_URL`(`https://` と `SITE_DOMAIN`)を渡して `next build` し、`next start` を node の利用者で動かす。開発用の compose は `dev` の段を使う
-  - caddy: 80 と 443 を受け、Let's Encrypt の証明書を自動で取って更新し、frontend に渡す。HSTS(1 年)を付け、本文を 1MB までにし、アクセスログ(IP を含む)を出す
+  - backend と worker: backend が作ったイメージ(shirube-prod-backend)を worker も使う。自動の読み直しもマウントもしない。backend のポートも外に出さず、frontend からだけ呼ぶ
+  - frontend: Dockerfile の `build` の段で、`SITE_URL`(`https://` と `SITE_DOMAIN`)を渡して `next build` し、開発用の依存を外す。`runner` の段に動かすのに要るものだけを写し、`next start` を node の利用者で動かす。応答の圧縮は Next が行う。開発用の compose は `dev` の段を使う
+  - caddy: 80 と 443 を受け、Let's Encrypt の証明書を自動で取って更新し、frontend に渡す。HSTS(1 年)を付け、本文を 1MB までにし、アクセスログを出す。ログは要求と応答のヘッダーと TLS の中身を消し、プライバシーポリシーに書いた IP、時刻、URL、状態コードなどに絞る
   - どのサービスも `restart: unless-stopped`。ログは json-file で 1 つのサービスにつき 10MB × 3 まで残し、古いものから消す
 - マイグレーションは、デプロイの手順で `alembic upgrade head` を手で流す
-- 科目データは、手元の DB から科目の表(`course_sections`、`syllabi`、`syllabus_codes`、`syllabus_chunks`、`embeddings`)の中身だけを `pg_dump` で出し、本番でスキーマを作ってから戻す。利用者と道標の表は移さない
-- バックアップは、サーバーの cron で毎日 `pg_dump` し、7 日分をサーバーに残す
+- 科目データは、手元の DB を本番と同じスキーマにし、今のモデル以外の埋め込みを消してから、科目の表(`course_sections`、`syllabi`、`syllabus_codes`、`syllabus_chunks`、`embeddings`)の中身だけを `pg_dump` で出し、本番でスキーマを作ってから戻す。利用者と道標の表は移さない。入れ替えるときは backend と worker を止める
+- バックアップは、サーバーの cron で毎日 `backup.sh` を流して DB 全体を `pg_dump` し、7 日分をサーバーに残す。失敗すると途中のファイルを本物にせず、ログに理由を残す。戻すときは backend と worker を止め、1 つのトランザクションで戻す
+- 退会した人の情報もバックアップに最長 7 日残ることを、高橋さんの判断でプライバシーポリシーに書き足す(改定の日付を出す)。ログの量(部品ごとに 30MB)もポリシーに書く(ADR 0042 で本番化のときに書き足すとしていた)
 - サーバーは t4g.small(Arm、メモリ 2GB)に 2GB のスワップを足し、Elastic IP を付けて DuckDNS の向き先を固定する。AWS の予算の通知を付ける
 - 手順は README の「本番」に書く
 
