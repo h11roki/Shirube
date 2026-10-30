@@ -18,7 +18,7 @@
 ## 決定
 
 - 本番の compose で、frontend に `SITE_URL` と同じ `https://${SITE_DOMAIN}` を `AUTH_URL` として渡す。3 か所(ビルドの SITE_URL、動かすときの SITE_URL と AUTH_URL)は YAML のアンカーで 1 つの値にする。`AUTH_URL` があれば Auth.js が転送のヘッダーを信じる設定(`trustHost`)を自分で有効にするので、`AUTH_TRUST_HOST` は外す
-- 開発用の compose では、`AUTH_URL` に `http://localhost:${FRONTEND_PORT}` を渡す。`SITE_URL` とは切り離し、OG や sitemap の確かめのために `SITE_URL` を本番に替えても、ログインは手元のままにする
+- 開発用の compose では、`AUTH_URL` に `http://localhost:${FRONTEND_PORT}` を渡す(手元の `AUTH_URL` があればそれを使い、127.0.0.1 やトンネルの URL で開くときに替えられる)。`SITE_URL` とは切り離し、OG や sitemap の確かめのために `SITE_URL` を本番に替えても、ログインは手元のままにする
 - e2e も、本番と同じに `AUTH_URL` で動かす
 - CI の production の job は、`SITE_DOMAIN` を Next の待ち受けと違う名前の `shirube.localhost`(Caddy が内部の証明書を出す)にし、`/api/auth/providers` の `callbackUrl` が `https://shirube.localhost/api/auth/callback/google` かを確かめる。名前とポートのどちらを取り違えても落ちる
 - ADR 0039 の送り元の確かめは変えない。本番の Caddy は `SITE_DOMAIN` の 1 つの名前だけを受け、`X-Forwarded-Host` をその名前で付けるので、送り元の確かめが見るホストと `AUTH_URL` のホストは食い違わない。ほとんどのブラウザは `Sec-Fetch-Site` を送り、こちらはホストを見ない
