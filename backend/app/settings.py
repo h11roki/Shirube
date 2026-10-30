@@ -13,6 +13,8 @@ class CurriculumSettings(BaseSettings):
 class Settings(CurriculumSettings):
     database_url: str
     openai_api_key: SecretStr | None = None
+    jev_api_key: SecretStr | None = None
+    jev_model: str = "jev-1.14.0"
     auth_jwt_secret: SecretStr | None = None
     embedding_model: str = "text-embedding-3-large"
     embedding_dimensions: int = 1536

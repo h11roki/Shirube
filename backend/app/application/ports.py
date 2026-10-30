@@ -1,4 +1,4 @@
-from collections.abc import Callable, Set
+from collections.abc import Callable, Sequence, Set
 from contextlib import AbstractContextManager
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -69,6 +69,30 @@ class CourseSelector(Protocol):
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
     ) -> list[CourseChoice]: ...
+
+
+class ClassificationError(ValueError):
+    pass
+
+
+@dataclass(frozen=True)
+class CourseOdds:
+    name: str
+    core: float
+    foundation: float
+    unrelated: float
+
+
+@dataclass(frozen=True)
+class Classification:
+    odds: tuple[CourseOdds, ...]
+    input_tokens: int
+
+
+class CourseClassifier(Protocol):
+    def classify(
+        self, profile: OccupationProfile, candidates: Sequence[CandidateCourse]
+    ) -> Classification: ...
 
 
 @dataclass(frozen=True)
