@@ -12,7 +12,7 @@ export function SiteHeader() {
           <span className="font-serif text-2xl font-extrabold tracking-wide">
             shirube
           </span>
-          <span className="text-[11px] tracking-[0.3em] text-sub">道標</span>
+          <span className="text-label tracking-[0.3em] text-sub">道標</span>
         </Link>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub">
           <Link href="/" className={NAV_LINK}>

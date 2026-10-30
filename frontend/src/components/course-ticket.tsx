@@ -70,14 +70,14 @@ export function CourseTicket({
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
-          className={`text-[11px] font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
+          className={`text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
         >
           {transfer ? RELEVANCE_LABELS.foundation : roleLabel(course)}
         </p>
         <h3 className={`leading-snug font-bold ${core ? "pr-10" : ""}`}>
           <Phrases parts={nameWords} />
         </h3>
-        <p className="text-[13px] leading-relaxed text-sub">{course.reason}</p>
+        <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
         {course.syllabus_url && (
           <a
             href={course.syllabus_url}
@@ -128,22 +128,22 @@ export function CourseTicket({
           className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
         >
           <div>
-            <dt className="text-[11px] tracking-[0.14em] text-sub">コマ</dt>
+            <dt className="text-label tracking-[0.14em] text-sub">コマ</dt>
             <dd className="text-sm font-bold">{slotsLabel(course)}</dd>
           </div>
           <div>
-            <dt className="text-[11px] tracking-[0.14em] text-sub">クラス</dt>
+            <dt className="text-label tracking-[0.14em] text-sub">クラス</dt>
             <dd className="text-sm font-bold">
               {course.class_code === null ? "—" : classLabel(course.class_code)}
               {!course.class_confirmed && (
-                <span className="block text-[11px] font-medium text-pillar">
+                <span className="block text-label font-medium text-pillar">
                   未確定
                 </span>
               )}
             </dd>
           </div>
           <div>
-            <dt className="text-[11px] tracking-[0.14em] text-sub">単位</dt>
+            <dt className="text-label tracking-[0.14em] text-sub">単位</dt>
             <dd className="text-sm font-bold">{course.credits}</dd>
           </div>
         </dl>

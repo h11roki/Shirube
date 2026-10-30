@@ -113,7 +113,7 @@ function CourseNote({ course }: { course: PlacedCourse }) {
       className={`mb-1 block rounded-sm px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${RELEVANCE_TONES[course.relevance].sticky}`}
     >
       {course.name}
-      <span className="mt-0.5 block text-[11px] font-medium text-sub">
+      <span className="mt-0.5 block text-label font-medium text-sub">
         {RELEVANCE_LABELS[course.relevance]}
         {course.class_code !== null && ` ・ ${classLabel(course.class_code)}`}
       </span>

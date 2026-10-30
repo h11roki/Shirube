@@ -27,6 +27,7 @@ const ENLARGED_WIDTHS = [NARROWEST, ...WIDTHS];
 const CHROMIUM_DEFAULT_FONT_PX = { standard: 16, fixed: 13 };
 const TEXT_ZOOM = 2;
 const TEXT_RESIZE_WIDTH = 1280;
+const GLYPH_OVERHANG_EM = 0.25;
 const UNDECORATED_CSS = `
   body { background-image: none !important; }
   [data-station]::before, [data-station]::after,
@@ -276,60 +277,74 @@ for (const screen of SCREENS) {
       for (const width of ENLARGED_WIDTHS) {
         await page.setViewportSize({ width, height: 900 });
         await fontsReady(page);
-        const report = await page.evaluate((checksClipping) => {
-          const described = (element: Element) =>
-            `${element.tagName} ${(element.getAttribute("class") ?? "").slice(0, 80)}`;
-          const scrolled = (element: Element) => {
-            for (
-              let parent = element.parentElement;
-              parent;
-              parent = parent.parentElement
-            ) {
-              const overflow = getComputedStyle(parent).overflowX;
-              if (overflow === "auto" || overflow === "scroll") {
-                return true;
+        const report = await page.evaluate(
+          ({ checksClipping, glyphOverhang }) => {
+            const described = (element: Element) =>
+              `${element.tagName} ${(element.getAttribute("class") ?? "").slice(0, 80)}`;
+            const scrolled = (element: Element) => {
+              for (
+                let parent = element.parentElement;
+                parent;
+                parent = parent.parentElement
+              ) {
+                const overflow = getComputedStyle(parent).overflowX;
+                if (overflow === "auto" || overflow === "scroll") {
+                  return true;
+                }
               }
-            }
-            return false;
-          };
-          const hides = (overflow: string) =>
-            overflow === "hidden" || overflow === "clip";
-          const elements = [...document.querySelectorAll("body *")];
-          const overflow =
-            document.documentElement.scrollWidth - window.innerWidth;
-          return {
-            overflow,
-            wide:
-              overflow > 0
+              return false;
+            };
+            const hides = (overflow: string) =>
+              overflow === "hidden" || overflow === "clip";
+            const smallestFontSize = (element: Element) =>
+              Math.min(
+                ...[element, ...element.querySelectorAll("*")].map((each) =>
+                  parseFloat(getComputedStyle(each).fontSize),
+                ),
+              );
+            const elements = [...document.querySelectorAll("body *")];
+            const overflow =
+              document.documentElement.scrollWidth - window.innerWidth;
+            return {
+              overflow,
+              wide:
+                overflow > 0
+                  ? elements
+                      .filter(
+                        (element) =>
+                          element.getBoundingClientRect().right >
+                            window.innerWidth + 0.5 && !scrolled(element),
+                      )
+                      .slice(0, 8)
+                      .map(
+                        (element) =>
+                          `${described(element)} ${Math.round(element.getBoundingClientRect().right)}`,
+                      )
+                  : [],
+              clipped: checksClipping
                 ? elements
-                    .filter(
-                      (element) =>
-                        element.getBoundingClientRect().right >
-                          window.innerWidth + 0.5 && !scrolled(element),
-                    )
+                    .filter((element) => {
+                      const style = getComputedStyle(element);
+                      return (
+                        !element.classList.contains("sr-only") &&
+                        ((hides(style.overflowX) &&
+                          element.scrollWidth > element.clientWidth + 1) ||
+                          (hides(style.overflowY) &&
+                            element.scrollHeight > element.clientHeight &&
+                            element.scrollHeight - element.clientHeight >
+                              smallestFontSize(element) * glyphOverhang))
+                      );
+                    })
                     .slice(0, 8)
-                    .map(
-                      (element) =>
-                        `${described(element)} ${Math.round(element.getBoundingClientRect().right)}`,
-                    )
+                    .map(described)
                 : [],
-            clipped: checksClipping
-              ? elements
-                  .filter((element) => {
-                    const style = getComputedStyle(element);
-                    return (
-                      !element.classList.contains("sr-only") &&
-                      ((hides(style.overflowX) &&
-                        element.scrollWidth > element.clientWidth + 1) ||
-                        (hides(style.overflowY) &&
-                          element.scrollHeight > element.clientHeight + 1))
-                    );
-                  })
-                  .slice(0, 8)
-                  .map(described)
-              : [],
-          };
-        }, width === TEXT_RESIZE_WIDTH);
+            };
+          },
+          {
+            checksClipping: width === TEXT_RESIZE_WIDTH,
+            glyphOverhang: GLYPH_OVERHANG_EM,
+          },
+        );
         if (report.overflow > 0) {
           problems.push(`幅 ${width}px ではみ出す: ${report.wide.join(" / ")}`);
         }

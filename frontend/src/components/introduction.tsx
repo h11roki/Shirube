@@ -53,7 +53,7 @@ export function Introduction() {
             {index < STEPS.length - 1 && (
               <span
                 aria-hidden
-                className="absolute top-9 bottom-[-1.5rem] left-[16px] w-1 bg-route sm:top-[16px] sm:right-[-2rem] sm:bottom-auto sm:left-9 sm:h-1 sm:w-auto"
+                className="absolute top-9 bottom-[-1.5rem] left-4 w-1 bg-route sm:top-4 sm:right-[-2rem] sm:bottom-auto sm:left-9 sm:h-1 sm:w-auto"
               />
             )}
             <h2 className="font-serif text-lg font-bold">{step.title}</h2>

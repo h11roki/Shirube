@@ -91,12 +91,12 @@ function StepLine({ steps }: { steps: Step[] }) {
     <div className="relative">
       <span
         aria-hidden
-        className="absolute inset-y-5.5 left-[8.5px] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--line)_0_6px,transparent_6px_12px)] motion-safe:animate-march"
+        className="absolute inset-y-5.5 left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--line)_0_6px,transparent_6px_12px)] motion-safe:animate-march"
       />
       <span
         aria-hidden
         style={{ height: `calc((100% - 2.75rem) * ${travelled(steps)})` }}
-        className="absolute top-5.5 left-[8.5px] w-[3px] rounded-full bg-route transition-[height] duration-700 ease-out"
+        className="absolute top-5.5 left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-route transition-[height] duration-700 ease-out"
       />
       <ol className="relative grid">
         {steps.map((step) => (
