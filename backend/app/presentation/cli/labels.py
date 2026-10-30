@@ -1,10 +1,17 @@
 from collections.abc import Sequence
 
+from app.application.evaluate_selection import Judgment
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CourseChoice, Relevance
 
 RELEVANCE_LABELS = {Relevance.CORE: "中心", Relevance.FOUNDATION: "土台"}
 SEARCH_MODES = {True: "スキルごと", False: "クエリ 1 つ"}
+JUDGMENT_LABELS = {
+    Judgment.EXPECTED: "期待",
+    Judgment.FOUNDATION: "土台",
+    Judgment.MINORITY: "少数",
+    Judgment.UNRELATED: "関係なし",
+}
 
 
 def with_prerequisite(name: str, prerequisite_for: str | None) -> str:
