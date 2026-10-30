@@ -18,9 +18,9 @@ export const DESTINATION_TEXT =
 export const TICKET_NOTCH_SHAPE =
   "before:absolute before:size-4 before:rounded-full before:border before:border-line before:bg-paper after:absolute after:size-4 after:rounded-full after:border after:border-line after:bg-paper";
 
-export const TICKET_NOTCH = `${TICKET_NOTCH_SHAPE} before:-top-2 before:-left-[9px] before:[clip-path:inset(50%_0_0_0)] after:-bottom-2 after:-left-[9px] after:[clip-path:inset(0_0_50%_0)]`;
+export const TICKET_NOTCH = `${TICKET_NOTCH_SHAPE} before:-top-2 before:-left-[calc(0.5rem+1px)] before:[clip-path:inset(50%_0_0_0)] after:-bottom-2 after:-left-[calc(0.5rem+1px)] after:[clip-path:inset(0_0_50%_0)]`;
 
-export const COURSE_TICKET_NOTCH = `${TICKET_NOTCH} max-sm:before:-top-[9px] max-sm:before:-left-2 max-sm:before:[clip-path:inset(0_0_0_50%)] max-sm:after:-top-[9px] max-sm:after:-right-2 max-sm:after:bottom-auto max-sm:after:left-auto max-sm:after:[clip-path:inset(0_50%_0_0)]`;
+export const COURSE_TICKET_NOTCH = `${TICKET_NOTCH} max-sm:before:-top-[calc(0.5rem+1px)] max-sm:before:-left-2 max-sm:before:[clip-path:inset(0_0_0_50%)] max-sm:after:-top-[calc(0.5rem+1px)] max-sm:after:-right-2 max-sm:after:bottom-auto max-sm:after:left-auto max-sm:after:[clip-path:inset(0_50%_0_0)]`;
 
 export const TICKET_STAMP =
   "absolute top-2.5 grid rotate-[-12deg] place-items-center rounded-full border-[2.5px] border-pillar font-serif font-extrabold text-pillar";
