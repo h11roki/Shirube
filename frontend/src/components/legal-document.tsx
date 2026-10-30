@@ -7,10 +7,12 @@ import { ISSUES_URL } from "@/lib/site";
 export function LegalDocument({
   title,
   enactedOn,
+  revisedOn,
   children,
 }: {
   title: readonly string[];
   enactedOn: string;
+  revisedOn?: string;
   children: ReactNode;
 }) {
   return (
@@ -19,7 +21,9 @@ export function LegalDocument({
         <h1 className="font-serif text-3xl font-extrabold">
           <Phrases parts={title} />
         </h1>
-        <p className="text-sm text-sub">{enactedOn} 制定</p>
+        <p className="text-sm text-sub">
+          {enactedOn} 制定{revisedOn && `、${revisedOn} 改定`}
+        </p>
       </header>
       {children}
     </article>

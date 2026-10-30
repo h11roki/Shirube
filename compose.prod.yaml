@@ -1,0 +1,99 @@
+name: shirube-prod
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+x-backend-environment: &backend-environment
+  DATABASE_URL: postgresql+psycopg://shirube:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD を .env に書いてください}@db:5432/shirube
+  OPENAI_API_KEY: ${OPENAI_API_KEY:?OPENAI_API_KEY を .env に書いてください}
+  EMBEDDING_MODEL: ${EMBEDDING_MODEL:-}
+  SEARCH_BY_SKILL: ${SEARCH_BY_SKILL:-}
+  SELECTION_VOTES: ${SELECTION_VOTES:-}
+  SELECTION_VOTE_DELAY_SECONDS: ${SELECTION_VOTE_DELAY_SECONDS:-}
+  OCCUPATION_READING_CACHE_SIZE: ${OCCUPATION_READING_CACHE_SIZE:-}
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: shirube
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD を .env に書いてください}
+      POSTGRES_DB: shirube
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shirube"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+    logging: *logging
+
+  backend:
+    build: ./backend
+    image: shirube-prod-backend
+    command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
+    environment:
+      <<: *backend-environment
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET を .env に書いてください}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  worker:
+    image: shirube-prod-backend
+    pull_policy: never
+    command: uv run --no-sync python -m app.presentation.worker
+    environment:
+      <<: *backend-environment
+    stop_grace_period: 17m
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    logging: *logging
+
+  frontend:
+    build:
+      context: ./frontend
+      target: runner
+      args:
+        SITE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN を .env に書いてください}
+    environment:
+      BACKEND_URL: http://backend:8000
+      SITE_URL: https://${SITE_DOMAIN}
+      AUTH_TRUST_HOST: "true"
+      AUTH_JWT_SECRET: ${AUTH_JWT_SECRET}
+      AUTH_SECRET: ${AUTH_SECRET:?AUTH_SECRET を .env に書いてください}
+      AUTH_GOOGLE_ID: ${AUTH_GOOGLE_ID:?AUTH_GOOGLE_ID を .env に書いてください}
+      AUTH_GOOGLE_SECRET: ${AUTH_GOOGLE_SECRET:?AUTH_GOOGLE_SECRET を .env に書いてください}
+    depends_on:
+      - backend
+    restart: unless-stopped
+    logging: *logging
+
+  caddy:
+    image: caddy:2.10
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - frontend
+    restart: unless-stopped
+    logging: *logging
+
+volumes:
+  db-data:
+  caddy-data:
+  caddy-config:

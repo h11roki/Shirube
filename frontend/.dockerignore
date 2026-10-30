@@ -1,0 +1,7 @@
+node_modules
+.next
+.pnpm-store
+test-results
+playwright-report
+.env*
+.envrc

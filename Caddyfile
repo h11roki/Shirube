@@ -1,0 +1,23 @@
+{$SITE_DOMAIN} {
+	header Strict-Transport-Security "max-age=31536000"
+	request_body {
+		max_size 1MB
+	}
+	log {
+		format filter {
+			request>headers delete
+			request>tls delete
+			request>remote_port delete
+			request>proto delete
+			request>host delete
+			request>uri query {
+				delete code
+				delete state
+				delete session_state
+			}
+			resp_headers delete
+			user_id delete
+		}
+	}
+	reverse_proxy frontend:3000
+}

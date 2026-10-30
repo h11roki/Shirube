@@ -47,7 +47,7 @@
 | [0006](0006-embedding-model.md) | 埋め込みモデルは text-embedding-3-small を使う | 承認(text-embedding-3-large に替えたことは 0063) |
 | [0007](0007-greedy-timetable.md) | 時間割は学期ごとに関連度順の貪欲法で組む | 承認 |
 | [0008](0008-rest-api.md) | API は REST + OpenAPI 型生成、同期、Next.js Route Handler 経由とする | 廃止(Superseded by 0024) |
-| [0009](0009-ec2-compose.md) | 本番は EC2 1台で docker compose を動かす | 承認 |
+| [0009](0009-ec2-compose.md) | 本番は EC2 1台で docker compose を動かす | 承認(本番の構成と手順は 0075) |
 | [0010](0010-graduation-roadmap.md) | 回生を入力し、卒業までの学期ごとの道標を生成する | 承認 |
 | [0011](0011-auth.md) | 認証は Auth.js の Google ログインとし、バックエンドへは署名付き JWT で本人性を渡す | 廃止(Superseded by 0027) |
 | [0012](0012-timetable-source.md) | 学科・配当回生・コマは授業時間割表から取り、授業コードでシラバスと結合する | 承認 |
@@ -113,3 +113,4 @@
 | [0072](0072-clip-tolerance.md) | 文字 200% の試験の縦の切れは、中の一番小さい字の 4 分の 1 までのはみ出しを許す | 承認 |
 | [0073](0073-experiment-analysis.md) | 実験の結果から、期待する科目をどの段で落としたかと、誤って選んだ科目を数える | 承認 |
 | [0074](0074-jev-calibration.md) | 選び直しの判定を Jev に聞き、確率の校正と今の選び手との差を開発用で測る | 承認 |
+| [0075](0075-production-setup.md) | 本番は DuckDNS のサブドメインと Caddy で公開し、手元の DB の科目データを移し、サーバーでビルドする | 承認 |

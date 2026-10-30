@@ -78,3 +78,35 @@ jobs:
           name: playwright-results
           path: frontend/test-results
           retention-days: 7
+
+  production:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: 試しの値で .env を書く
+        run: |
+          {
+            echo SITE_DOMAIN=localhost
+            echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"
+            echo OPENAI_API_KEY=sk-ci-unused
+            echo "AUTH_JWT_SECRET=$(openssl rand -hex 32)"
+            echo "AUTH_SECRET=$(openssl rand -hex 32)"
+            echo AUTH_GOOGLE_ID=ci-unused
+            echo AUTH_GOOGLE_SECRET=ci-unused
+          } > .env
+      - run: docker compose -f compose.prod.yaml build
+      - run: docker compose -f compose.prod.yaml up -d --wait db
+      - run: docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
+      - run: docker compose -f compose.prod.yaml up -d
+      - name: HTTPS のトップ、HSTS、ログインなしの API、HTTP からの転送
+        run: |
+          curl -fsSk --retry 30 --retry-all-errors --retry-delay 2 -o /dev/null https://localhost/
+          curl -fsSk -D - -o /dev/null https://localhost/ | grep -i '^strict-transport-security: max-age=31536000'
+          test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/plans)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/)" = 308
+      - name: バックアップ
+        run: |
+          ./backup.sh
+          test "$(stat -c %a "$HOME"/backups/shirube-*.dump)" = 600
+      - if: failure()
+        run: docker compose -f compose.prod.yaml logs --no-color
