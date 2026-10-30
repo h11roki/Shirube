@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState } from "react";
+import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
 import { TakenCourseList } from "@/components/taken-course-list";
@@ -41,6 +41,7 @@ export function PlanForm() {
   const [reloadingChoices, setReloadingChoices] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
+  const [navigating, startNavigation] = useTransition();
   const [takenRefresh, setTakenRefresh] = useState(0);
   const query = new URLSearchParams({
     department: DEPARTMENT,
@@ -99,7 +100,8 @@ export function PlanForm() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(request),
       });
-      router.push(`/plans/${plan.id}`);
+      startNavigation(() => router.push(`/plans/${plan.id}`));
+      setSubmitting(false);
     } catch (error) {
       setSubmitError(messageOf(error));
       setSubmitting(false);
@@ -242,12 +244,11 @@ export function PlanForm() {
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={submitting || loading}
+          disabled={submitting || navigating || loading}
           className="rounded-full bg-pillar px-6 py-2.5 font-bold text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting ? "受け付けています" : "道標を作る"}
+          {submitting || navigating ? "受け付けています" : "道標を作る"}
         </button>
-        <p className="text-xs text-sub">作るのにふだん 10〜30 秒かかります。</p>
       </div>
     </form>
   );
