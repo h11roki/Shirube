@@ -1,19 +1,17 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 
 from app.application.evaluate_selection import Judgment, judgment_of
 from app.application.ports import CourseRepository
 from app.domain.course import ALL_GRADES, CourseSection
+from app.domain.excerpts import excerpts
 from app.domain.recommendation import Relevance
 from app.domain.roadmap import ALL_SEMESTERS, opens_in_any
 
 JUDGES = ("engineer", "professor", "student")
 REASON_ORDER = ("professor", "student", "engineer")
 EVIDENCE_LENGTH = 40
-OVERVIEW_LENGTH = 450
-OBJECTIVES_LENGTH = 250
-SCHEDULE_LENGTH = 350
 
 
 class JudgingError(ValueError):
@@ -200,20 +198,7 @@ class JudgingMaterials:
                     if any(section.offered_to(department, grade, year) for section in group)
                 ),
                 pages[name],
-                _excerpt(syllabi[pages[name]].overview, OVERVIEW_LENGTH),
-                _excerpt(syllabi[pages[name]].objectives, OBJECTIVES_LENGTH),
-                _excerpt(
-                    "、".join(
-                        session.theme
-                        for session in syllabi[pages[name]].sessions
-                        if session.theme.strip()
-                    ),
-                    SCHEDULE_LENGTH,
-                ),
+                *astuple(excerpts(syllabi[pages[name]])),
             )
             for name, group in sorted(by_name.items())
         ]
-
-
-def _excerpt(text: str, length: int) -> str:
-    return " ".join(text.split())[:length]

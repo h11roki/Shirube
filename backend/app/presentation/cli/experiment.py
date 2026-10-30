@@ -1,10 +1,8 @@
 import argparse
-import hashlib
 import json
 import math
 import re
 import signal
-import subprocess
 import sys
 import traceback
 from collections import Counter, defaultdict
@@ -81,6 +79,13 @@ from app.presentation.cli.evaluation_data import (
     silence_heldout_logs,
 )
 from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
+from app.presentation.cli.records import (
+    YEN_PER_DOLLAR,
+    current_commit,
+    digest,
+    label,
+    reserve,
+)
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -96,7 +101,6 @@ PRICES = {
     "gpt-5.4-mini": (0.75, 0.075, 4.50),
     "gpt-5.4-nano": (0.20, 0.02, 1.25),
 }
-YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
 RUN_CONTROLS = frozenset({"budget"})
@@ -108,7 +112,6 @@ UNRECORDED_SETTINGS = {
     "search_by_skill": False,
 }
 PROFILES = ("analyzed", "handwritten")
-LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE")
 PROMPT_SETTING = "SELECTION_PROMPT"
 PAIRABLE_SETTINGS = (
@@ -175,12 +178,6 @@ def unpriced(models: Sequence[str]) -> list[str]:
     return sorted(model for model in models if price_of(model) is None)
 
 
-def label(text: str) -> str:
-    if not LABEL.fullmatch(text):
-        raise argparse.ArgumentTypeError("英数字と . _ - だけで、英数字から始めてください")
-    return text
-
-
 def setting(text: str) -> tuple[str, str]:
     name, _, value = text.partition("=")
     if not value or name not in PAIRABLE_SETTINGS:
@@ -205,26 +202,6 @@ def trial_instructions(path: str | None) -> str:
             "残っています。展開した文面から作ってください"
         )
     return text
-
-
-def _digest(data: bytes) -> str:
-    return hashlib.sha256(data).hexdigest()[:8]
-
-
-def _commit() -> str | None:
-    here = Path(__file__).resolve().parent
-    try:
-        head = subprocess.run(
-            ["git", "rev-parse", "--short", "HEAD"], cwd=here, capture_output=True, check=True
-        ).stdout
-        changes = subprocess.run(
-            ["git", "diff", "HEAD"], cwd=here, capture_output=True, check=True
-        ).stdout
-    except (OSError, subprocess.CalledProcessError) as error:
-        print(f"commit を記録できません(結果の commit は null): {error}", file=sys.stderr)
-        return None
-    commit = head.decode().strip()
-    return f"{commit}-dirty-{_digest(changes)}" if changes else commit
 
 
 @dataclass(frozen=True)
@@ -670,12 +647,12 @@ def config_document(
         **search_config(settings),
         "prompts": {
             "occupation": (
-                _digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
+                digest(occupation_prompt.INSTRUCTIONS.encode("utf-8")) if analyzed else None
             ),
-            "selection": _digest(instructions.encode("utf-8")),
+            "selection": digest(instructions.encode("utf-8")),
         },
-        "dataset": _digest(args.dataset.read_bytes()),
-        "judgments": _digest(args.judgments.read_bytes()),
+        "dataset": digest(args.dataset.read_bytes()),
+        "judgments": digest(args.judgments.read_bytes()),
     }
 
 
@@ -737,19 +714,6 @@ def results_directory(out: Path | None, dataset: EvaluationDataset) -> Path:
     if out is not None:
         sys.exit(f"確かめ用の結果は {HELDOUT_RUNS} にだけ書く(--out は受け付けない。ADR 0067)")
     return HELDOUT_RUNS
-
-
-def _reserve(out: Path, paths: Sequence[Path]) -> None:
-    reserved: list[Path] = []
-    try:
-        out.mkdir(parents=True, exist_ok=True)
-        for path in paths:
-            path.touch(exist_ok=False)
-            reserved.append(path)
-    except OSError as error:
-        for path in reserved:
-            path.unlink(missing_ok=True)
-        sys.exit(f"結果を書く場所を作れません: {error}")
 
 
 def _collected(
@@ -841,10 +805,10 @@ def _run(args: argparse.Namespace) -> None:
     experiment = _experiment(args, settings, dataset, engine, meter, SELECTION_INSTRUCTIONS)
     trials = _trials(experiment, dataset, judgments, args.repeat)
     created = datetime.now(UNIVERSITY_TIME)
-    commit = _commit()
+    commit = current_commit()
     config = config_document(args, settings, dataset, SELECTION_INSTRUCTIONS)
     path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
-    _reserve(out, [path])
+    reserve(out, [path])
     collection, spent_yen = _collected(
         ((None, outcome) for outcome in trials),
         len(dataset.cases) * args.repeat,
@@ -901,9 +865,9 @@ def _pair(args: argparse.Namespace) -> None:
     }
     trials = {side: _trials(experiments[side], dataset, judgments, args.repeat) for side in Side}
     created = datetime.now(UNIVERSITY_TIME)
-    commit = _commit()
+    commit = current_commit()
     paths = {side: out / f"{created:%Y%m%d-%H%M%S}-{args.label}-{side.value}.json" for side in Side}
-    _reserve(out, list(paths.values()))
+    reserve(out, list(paths.values()))
     collection, spent_yen = _collected(
         interleave(trials[Side.BEFORE], trials[Side.AFTER], len(dataset.cases)),
         len(Side) * len(dataset.cases) * args.repeat,
@@ -970,7 +934,7 @@ def _analyze(args: argparse.Namespace) -> None:
         sys.exit(f"実験の結果を読めません: {error}")
     try:
         dataset = load_dataset(args.dataset)
-        fingerprint = _digest(args.dataset.read_bytes())
+        fingerprint = digest(args.dataset.read_bytes())
     except (OSError, ValueError, KeyError, TypeError) as error:
         sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
     if dataset.heldout:

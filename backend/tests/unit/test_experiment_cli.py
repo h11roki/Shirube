@@ -60,7 +60,6 @@ from app.presentation.cli.experiment import (
     arguments,
     collect,
     compare,
-    label,
     main,
     pair_documents,
     ran_interleaved,
@@ -75,6 +74,7 @@ from app.presentation.cli.experiment import (
     unpriced,
     yen,
 )
+from app.presentation.cli.records import digest, label
 from tests.fakes import chat_answering, courses_ranked_by
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
@@ -1066,7 +1066,7 @@ def written_run(tmp_path: Path, dataset: Path, **changed: Any) -> Path:
         "analyzed",
         occupations=1,
         profiles="analyzed",
-        dataset=experiment_cli._digest(dataset.read_bytes()),
+        dataset=digest(dataset.read_bytes()),
         embedding_model="text-embedding-3-large",
         search_by_skill=True,
         candidate_limit=2,
