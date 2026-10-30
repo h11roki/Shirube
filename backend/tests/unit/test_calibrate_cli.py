@@ -17,7 +17,7 @@ from app.application.ports import Classification, ClassificationError, CourseOdd
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse, Relevance
 from app.presentation.cli.calibrate import collect, main, render, selector_trials, yen
-from app.presentation.cli.experiment import digest
+from app.presentation.cli.records import digest
 from tests.builders import course_section, syllabus
 from tests.fakes import FakeCourseRepository
 
@@ -90,6 +90,46 @@ def test_collect_stops_once_the_budget_is_spent() -> None:
     assert collected.stopped is not None and "費用の上限" in collected.stopped
 
 
+def test_collect_does_not_call_a_finished_run_stopped_when_its_last_call_crosses_the_budget() -> (
+    None
+):
+    trials = selector_trials([run_trial(), run_trial("別の職業")])
+
+    collected = collect(measure(Classifier()), DATASET, trials, (Layout.GROUPED,), yen(2_000_000))
+
+    assert len(collected.measured[Layout.GROUPED]) == 2
+    assert collected.stopped is None
+
+
+class Interrupted(Classifier):
+    def classify(
+        self, profile: OccupationProfile, candidates: Sequence[CandidateCourse]
+    ) -> Classification:
+        if self.calls == 1:
+            raise KeyboardInterrupt
+        return super().classify(profile, candidates)
+
+
+def test_collect_keeps_what_was_measured_when_interrupted() -> None:
+    trials = selector_trials([run_trial(), run_trial("別の職業")])
+
+    collected = collect(measure(Interrupted()), DATASET, trials, (Layout.GROUPED,), 100)
+
+    assert [occupation.occupation for occupation in collected.measured[Layout.GROUPED]] == ["職業"]
+    assert (collected.stopped, collected.over_budget) == ("中断した", False)
+
+
+def test_collect_counts_the_calls_made_before_a_one_by_one_occupation_failed() -> None:
+    trials = selector_trials([run_trial()])
+
+    collected = collect(
+        measure(Classifier(failing_call=2)), DATASET, trials, (Layout.SEPARATE,), 100
+    )
+
+    assert collected.measured[Layout.SEPARATE] == []
+    assert collected.spent_yen == pytest.approx(yen(1_000_000))
+
+
 def test_collect_keeps_what_was_measured_when_jev_fails() -> None:
     trials = selector_trials([run_trial(), run_trial("別の職業")])
 
@@ -106,6 +146,7 @@ def calibration_document(**changed: Any) -> dict[str, Any]:
         "label": "jev",
         "created": "2026-10-30T12:00:00+09:00",
         "model": "jev-1.14.0",
+        "prompt": "abcd1234",
         "source": {"file": "run.json", "label": "selection", "yen_per_plan": 0.99},
         "repeat": 1,
         "spent_yen": 0.12,
@@ -136,7 +177,7 @@ def test_the_report_shows_each_layout_with_its_calibration_and_the_matched_choic
     ).splitlines()
 
     assert lines[0] == (
-        "Jev の校正 jev(2026-10-30T12:00:00+09:00、モデル jev-1.14.0、"
+        "Jev の校正 jev(2026-10-30T12:00:00+09:00、モデル jev-1.14.0、問いの指紋 abcd1234、"
         "元の結果 selection の 1 回目、1 職業)"
     )
     assert "  途中で止めた: 費用の上限 1 円に達した" in lines
@@ -254,6 +295,17 @@ def test_run_refuses_judgments_other_than_the_ones_the_run_was_graded_with(tmp_p
         run_main(
             source_run(tmp_path, (dataset, judgments), judgments="00000000"), dataset, judgments
         )
+
+
+def test_run_says_it_cannot_read_a_run_missing_its_summary(tmp_path: Path) -> None:
+    dataset, judgments = grading_files(tmp_path)
+    run = source_run(tmp_path, (dataset, judgments))
+    content = json.loads(run.read_text(encoding="utf-8"))
+    del content["summary"]
+    run.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="実験の結果を読めません: KeyError"):
+        run_main(run, dataset, judgments)
 
 
 def test_run_asks_for_the_jev_key_before_it_calls_anything(

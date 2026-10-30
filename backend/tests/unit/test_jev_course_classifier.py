@@ -1,10 +1,12 @@
 import json
 from collections.abc import Callable
+from dataclasses import replace
 
 import httpx
 import pytest
 from pydantic import SecretStr
 
+from app.application.judging import OVERVIEW_LENGTH
 from app.application.ports import ClassificationError, CourseOdds
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import CandidateCourse
@@ -15,6 +17,7 @@ from app.infrastructure.llm.jev_course_classifier import (
     FOUNDATION,
     UNRELATED,
     JevCourseClassifier,
+    state,
 )
 from tests.builders import syllabus
 
@@ -68,6 +71,33 @@ def test_each_candidate_is_asked_the_judges_three_choices_about_one_shared_state
         CourseOdds("科目B", 0.1, 0.3, 0.6),
     )
     assert classified.input_tokens == 1234
+
+
+def test_the_state_cuts_each_excerpt_to_what_the_judges_read() -> None:
+    page = replace(syllabus("1"), overview="あ" * (OVERVIEW_LENGTH + 10))
+
+    written = state(PROFILE, [CandidateCourse("科目A", page)])
+
+    assert f"授業の概要と方法: {'あ' * OVERVIEW_LENGTH}\n" in written
+
+
+@pytest.mark.parametrize("chances", [(0.7, 0.4, 0.1), (1.2, -0.1, -0.1), (float("nan"), 0.5, 0.5)])
+def test_probabilities_outside_zero_to_one_or_not_adding_up_to_one_are_refused(
+    chances: tuple[float, float, float],
+) -> None:
+    def handle(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, content=json.dumps(answered([chances, (0.1, 0.3, 0.6)])))
+
+    with pytest.raises(ClassificationError, match="Jev の確率が 0〜1 に収まらないか"):
+        classifier(handle).classify(PROFILE, CANDIDATES)
+
+
+def test_closing_the_classifier_closes_its_connections() -> None:
+    client = httpx.Client(transport=httpx.MockTransport(lambda request: httpx.Response(200)))
+
+    JevCourseClassifier(client, SecretStr("test-key"), "jev-1.14.0").close()
+
+    assert client.is_closed
 
 
 def test_an_error_status_is_reported_with_the_status_and_its_detail() -> None:

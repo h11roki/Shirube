@@ -76,6 +76,7 @@ class MeasureCalibration:
     def __init__(self, courses: CourseRepository, classifier: CourseClassifier) -> None:
         self._courses = courses
         self._classifier = classifier
+        self.spent_tokens = 0
 
     def odds(
         self, year: int, department: str, trials: Sequence[SelectorTrial], layout: Layout
@@ -100,12 +101,12 @@ class MeasureCalibration:
     def _classify(
         self, trial: SelectorTrial, candidates: list[CandidateCourse], layout: Layout
     ) -> OccupationOdds:
-        if layout is Layout.GROUPED:
-            classification = self._classifier.classify(trial.profile, candidates)
-            return OccupationOdds(
-                trial.occupation, classification.odds, classification.input_tokens
-            )
-        parts = [self._classifier.classify(trial.profile, [candidate]) for candidate in candidates]
+        groups = [candidates] if layout is Layout.GROUPED else [[each] for each in candidates]
+        parts = []
+        for group in groups:
+            part = self._classifier.classify(trial.profile, group)
+            self.spent_tokens += part.input_tokens
+            parts.append(part)
         return OccupationOdds(
             trial.occupation,
             tuple(odds for part in parts for odds in part.odds),

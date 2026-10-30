@@ -1,7 +1,9 @@
 import argparse
 import json
 import math
+import signal
 import sys
+import traceback
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
@@ -28,14 +30,18 @@ from app.domain.course import UNIVERSITY_TIME
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Relevance
 from app.infrastructure.db.courses import SqlCourseRepository
-from app.infrastructure.llm.jev_course_classifier import JevCourseClassifier
+from app.infrastructure.llm.jev_course_classifier import (
+    CRITERIA,
+    QUESTION,
+    JevCourseClassifier,
+)
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.experiment import YEN_PER_DOLLAR, current_commit, digest, label
+from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label
 from app.presentation.composition import database_engine, load_settings
 
 RESULTS = DEFAULT_DATASET.with_name("calibration")
@@ -57,6 +63,7 @@ class Collected:
     measured: dict[Layout, list[OccupationOdds]]
     spent_yen: float
     stopped: str | None
+    over_budget: bool
 
 
 def yen(input_tokens: int) -> float:
@@ -105,30 +112,37 @@ def collect(
     budget: float,
 ) -> Collected:
     measured: dict[Layout, list[OccupationOdds]] = {layout: [] for layout in layouts}
-    spent = 0.0
+    total = len(trials) * len(layouts)
+    done = 0
+
+    def stopped(reason: str | None, over_budget: bool = False) -> Collected:
+        return Collected(measured, yen(measure.spent_tokens), reason, over_budget)
+
     try:
         for layout in layouts:
             for occupation in measure.odds(dataset.year, dataset.department, trials, layout):
                 measured[layout].append(occupation)
-                spent += yen(occupation.input_tokens)
+                done += 1
+                spent = yen(measure.spent_tokens)
                 print(
-                    f"{LAYOUT_NAMES[layout]} {occupation.occupation}: "
+                    f"{done}/{total} {LAYOUT_NAMES[layout]} {occupation.occupation}: "
                     f"入力 {occupation.input_tokens:,} トークン、計 {spent:.2f} 円",
                     file=sys.stderr,
                 )
-                if spent >= budget:
-                    return Collected(measured, spent, f"費用の上限 {budget:g} 円に達した")
+                if spent >= budget and done < total:
+                    return stopped(f"費用の上限 {budget:g} 円に達した", over_budget=True)
+    except (EvaluationError, JudgingError, SQLAlchemyError):
+        raise
     except ClassificationError as error:
-        return Collected(measured, spent, str(error))
-    return Collected(measured, spent, None)
-
-
-def _odds_document(occupation: OccupationOdds) -> dict[str, Any]:
-    return {
-        "occupation": occupation.occupation,
-        "input_tokens": occupation.input_tokens,
-        "odds": [asdict(odds) for odds in occupation.odds],
-    }
+        return stopped(str(error))
+    except OSError as error:
+        return stopped(f"入出力に失敗しました: {error}")
+    except KeyboardInterrupt:
+        return stopped("中断した")
+    except Exception as error:
+        traceback.print_exc()
+        return stopped(f"思わぬ失敗で止まった: {error!r}")
+    return stopped(None)
 
 
 def _ratio(part: int, whole: int) -> str:
@@ -158,7 +172,8 @@ def render(
     source = document["source"]
     lines = [
         f"Jev の校正 {document['label']}({document['created']}、モデル {document['model']}、"
-        f"元の結果 {source['label']} の {document['repeat']} 回目、{len(trials)} 職業)",
+        f"問いの指紋 {document['prompt']}、元の結果 {source['label']} の "
+        f"{document['repeat']} 回目、{len(trials)} 職業)",
         f"  使った費用 {document['spent_yen']:.2f} 円。今の推薦は 1 件 "
         f"{source['yen_per_plan']:.2f} 円(読み取りと選び直しの全て)",
     ]
@@ -191,32 +206,22 @@ def render(
     return "\n".join(lines)
 
 
-def _measured(document: Mapping[str, Any]) -> dict[Layout, list[OccupationOdds]]:
-    return {
-        Layout(name): [
-            OccupationOdds(
-                occupation["occupation"],
-                tuple(CourseOdds(**odds) for odds in occupation["odds"]),
-                occupation["input_tokens"],
-            )
-            for occupation in occupations
-        ]
-        for name, occupations in document["layouts"].items()
-    }
-
-
 def _run(args: argparse.Namespace) -> None:
     try:
         source = json.loads(args.run.read_text(encoding="utf-8"))
-        config = source["config"]
-        source_summary = source["summary"]
-    except (OSError, ValueError, KeyError, TypeError) as error:
-        sys.exit(f"実験の結果を読めません: {error!r}")
+    except (OSError, ValueError) as error:
+        sys.exit(f"実験の結果を読めません: {error}")
     dataset, judgments = _grading(args.dataset, args.judgments)
-    if config["profiles"] != "analyzed" or source_summary is None:
-        sys.exit("読み取りを通って採点した実験の結果だけを使います")
-    _require_same_grading(config, args.dataset, args.judgments)
     try:
+        config = source["config"]
+        if config["profiles"] != "analyzed" or source["summary"] is None:
+            sys.exit("読み取りを通って採点した実験の結果だけを使います")
+        _require_same_grading(config, args.dataset, args.judgments)
+        origin = {
+            "file": args.run.name,
+            "label": source["label"],
+            "yen_per_plan": source["summary"]["yen_per_plan"],
+        }
         trials = selector_trials(
             trial
             for trial in source["trials"]
@@ -232,10 +237,10 @@ def _run(args: argparse.Namespace) -> None:
     created = datetime.now(UNIVERSITY_TIME)
     path = RESULTS / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
     engine = database_engine(settings)
-    measure = MeasureCalibration(
-        SqlCourseRepository(engine),
-        JevCourseClassifier.connect(settings.jev_api_key, settings.jev_model),
-    )
+    classifier = JevCourseClassifier.connect(settings.jev_api_key, settings.jev_model)
+    measure = MeasureCalibration(SqlCourseRepository(engine), classifier)
+    for stop in (signal.SIGTERM, signal.SIGHUP):
+        signal.signal(stop, signal.default_int_handler)
     try:
         collected = collect(measure, dataset, trials, LAYOUTS[args.layout], args.budget)
     except (EvaluationError, JudgingError) as error:
@@ -245,17 +250,17 @@ def _run(args: argparse.Namespace) -> None:
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
     finally:
+        classifier.close()
         engine.dispose()
     document = {
         "label": args.label,
         "created": created.isoformat(timespec="seconds"),
         "commit": current_commit(),
         "model": settings.jev_model,
-        "source": {
-            "file": args.run.name,
-            "label": source["label"],
-            "yen_per_plan": source_summary["yen_per_plan"],
-        },
+        "prompt": digest(
+            json.dumps({"question": QUESTION, "criteria": CRITERIA}, ensure_ascii=False).encode()
+        ),
+        "source": origin,
         "repeat": args.repeat,
         "dataset": config["dataset"],
         "judgments": config["judgments"],
@@ -276,7 +281,14 @@ def _run(args: argparse.Namespace) -> None:
             for trial in trials
         ],
         "layouts": {
-            layout.value: [_odds_document(occupation) for occupation in occupations]
+            layout.value: [
+                {
+                    "occupation": occupation.occupation,
+                    "input_tokens": occupation.input_tokens,
+                    "odds": [asdict(odds) for odds in occupation.odds],
+                }
+                for occupation in occupations
+            ]
             for layout, occupations in collected.measured.items()
         },
     }
@@ -285,7 +297,7 @@ def _run(args: argparse.Namespace) -> None:
     if any(collected.measured.values()):
         print(render(document, trials, collected.measured, judgments))
     print(f"保存した: {path}")
-    if collected.stopped is not None and collected.spent_yen < args.budget:
+    if collected.stopped is not None and not collected.over_budget:
         sys.exit(1)
 
 
@@ -297,7 +309,18 @@ def _show(args: argparse.Namespace) -> None:
     _, judgments = _grading(args.dataset, args.judgments)
     try:
         _require_same_grading(document, args.dataset, args.judgments)
-        print(render(document, selector_trials(document["trials"]), _measured(document), judgments))
+        measured = {
+            Layout(name): [
+                OccupationOdds(
+                    occupation["occupation"],
+                    tuple(CourseOdds(**odds) for odds in occupation["odds"]),
+                    occupation["input_tokens"],
+                )
+                for occupation in occupations
+            ]
+            for name, occupations in document["layouts"].items()
+        }
+        print(render(document, selector_trials(document["trials"]), measured, judgments))
     except (KeyError, TypeError, ValueError) as error:
         sys.exit(f"校正の結果を読めません: {error!r}")
 
