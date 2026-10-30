@@ -129,13 +129,13 @@ docker compose -f compose.prod.yaml up -d
 
 ### バックアップ
 
-サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に新しい 7 つだけ残す(`mkdir ~/backups` のあと `crontab -e` に書く)。途中で失敗すると `.partial` のまま残り(次の回に消える)、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
+サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に新しい 7 つだけ残す(`mkdir ~/backups` のあと `crontab -e` に書く)。7 日より古いものは、失敗が続いてもサーバーを止めていても、次に流れたときに初めに消す。ファイルは本人だけが読める権限で作り、同時には 1 つしか流れない。途中で失敗すると `.partial` のまま残り、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
 
 ```
 0 4 * * * ~/Shirube/backup.sh >> ~/backups/backup.log 2>&1
 ```
 
-戻すときは、backend と worker を止めてから 1 つのトランザクションで戻す。
+戻すときは、backend と worker を止めてから 1 つのトランザクションで戻す。そのバックアップのあとに消した道標や退会した人の情報も戻るので、プライバシーポリシーに書いたとおり、戻したことをポリシーのページで知らせ、もう一度消すか退会するよう書く。
 
 ```sh
 docker compose -f compose.prod.yaml stop backend worker
