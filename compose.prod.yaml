@@ -29,6 +29,7 @@ services:
 
   backend:
     build: ./backend
+    image: shirube-prod-backend
     environment:
       <<: *backend-environment
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET を .env に書いてください}
@@ -39,7 +40,8 @@ services:
     logging: *logging
 
   worker:
-    build: ./backend
+    image: shirube-prod-backend
+    pull_policy: never
     command: uv run --no-sync python -m app.presentation.worker
     environment:
       <<: *backend-environment
