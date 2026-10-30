@@ -1,7 +1,5 @@
 import logging
 import math
-from collections.abc import Callable
-from datetime import date
 
 from fastapi import FastAPI, Request, status
 from fastapi.exceptions import RequestValidationError
@@ -97,7 +95,6 @@ def create_app(
     delete_account: DeleteAccount,
     identify: IdentifyUser,
     curriculum_year: int,
-    today: Callable[[], date],
 ) -> FastAPI:
     user = current_user(identify)
     app = FastAPI(title="shirube")
@@ -112,13 +109,12 @@ def create_app(
             syllabus_links,
             user,
             curriculum_year,
-            today,
         ),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,
     )
     app.include_router(
-        class_choices_router(list_class_choices, user, curriculum_year, today),
+        class_choices_router(list_class_choices, user, curriculum_year),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,
     )

@@ -159,7 +159,7 @@ export function PlanForm() {
               setChosenTerm(TERMS.find((value) => value === event.target.value))
             }
           >
-            {!term && <option value="">今日の日付から決める</option>}
+            {!term && <option value="">既定の学期</option>}
             {TERMS.map((value) => (
               <option key={value} value={value}>
                 {TERM_LABELS[value]}

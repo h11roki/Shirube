@@ -1,7 +1,7 @@
 import json
 from collections.abc import Callable, Sequence, Set
 from dataclasses import replace
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID, uuid4
 
@@ -376,7 +376,6 @@ def plan_app(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
-    today: date = date(2026, 10, 16),
 ) -> FastAPI:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     stored = plans or FakePlanRepository()
@@ -394,7 +393,6 @@ def plan_app(
         DeleteAccount(known, lambda: FIRST_CREATED_AT),
         identify,
         2026,
-        lambda: today,
     )
 
 
@@ -403,11 +401,10 @@ def plan_api(
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
     token: str | None = "token-a",
-    today: date = date(2026, 10, 16),
 ) -> TestClient:
     headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
     return TestClient(
-        plan_app(courses_and_search, plans, users, today),
+        plan_app(courses_and_search, plans, users),
         raise_server_exceptions=False,
         headers=headers,
     )

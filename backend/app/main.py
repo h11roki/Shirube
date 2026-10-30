@@ -19,7 +19,6 @@ from app.presentation.composition import (
     load_settings,
     now,
     request_plan,
-    university_today,
 )
 
 settings = load_settings()
@@ -45,5 +44,4 @@ app = create_app(
     delete_account=DeleteAccount(users, now),
     identify=IdentifyUser(verifier, users),
     curriculum_year=settings.curriculum_year,
-    today=university_today,
 )

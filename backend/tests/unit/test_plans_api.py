@@ -68,7 +68,7 @@ def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_lo
             "department": "情",
             "year": 2026,
             "grade": 3,
-            "term": "autumn",
+            "term": "spring",
             "chosen_classes": {},
             "credit_limit": 16,
         },
@@ -77,10 +77,12 @@ def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_lo
     }
 
 
-def test_a_given_term_overrides_the_term_of_today() -> None:
-    response = client().post("/api/v1/plans", json=body(term="spring"))
+def test_the_start_term_defaults_to_spring_and_a_given_term_overrides_it() -> None:
+    defaulted = client().post("/api/v1/plans", json=body())
+    given = client().post("/api/v1/plans", json=body(term="autumn"))
 
-    assert response.json()["conditions"]["term"] == "spring"
+    assert defaulted.json()["conditions"]["term"] == "spring"
+    assert given.json()["conditions"]["term"] == "autumn"
 
 
 def test_a_waiting_plan_is_shown_as_it_was_accepted() -> None:
