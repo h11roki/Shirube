@@ -100,8 +100,8 @@ jobs:
       - run: docker compose -f compose.prod.yaml up -d
       - name: HTTPS のトップ、HSTS、ログインなしの API、HTTP からの転送
         run: |
-          curl -fsSk --retry 30 --retry-all-errors --retry-delay 2 -D "$RUNNER_TEMP/headers.txt" -o /dev/null https://localhost/
-          grep -i '^strict-transport-security: max-age=31536000' "$RUNNER_TEMP/headers.txt"
+          curl -fsSk --retry 30 --retry-all-errors --retry-delay 2 -o /dev/null https://localhost/
+          curl -fsSk -D - -o /dev/null https://localhost/ | grep -i '^strict-transport-security: max-age=31536000'
           test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/api/plans)" = 401
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost/)" = 308
       - name: バックアップ
