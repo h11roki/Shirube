@@ -13,7 +13,11 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <LegalDocument title={PRIVACY_TITLE} enactedOn="2026 年 10 月 22 日">
+    <LegalDocument
+      title={PRIVACY_TITLE}
+      enactedOn="2026 年 10 月 22 日"
+      revisedOn="2026 年 10 月 30 日"
+    >
       <section>
         <p>
           shirube(以下「このアプリ」)は、個人({OPERATOR}
@@ -78,8 +82,17 @@ export default function PrivacyPage() {
         <p>
           障害の調査と不正な利用の防止のために、アクセスログ(IP
           アドレス、時刻、要求した
-          URL、状態コード)と、アプリのログ(道標の番号、状態、失敗の原因。失敗の原因には入力した職業名が含まれることがあります)を残します。障害の調査に必要な期間だけ残し、古いものから消します。Google
+          URL、状態コード)と、アプリのログ(道標の番号、状態、失敗の原因。失敗の原因には入力した職業名が含まれることがあります)を残します。障害の調査に必要な期間だけ残し、部品ごとに決まった量(30MB)を超えると古いものから消します。Google
           の番号はログに書きません。
+        </p>
+      </section>
+      <section>
+        <h2>バックアップ</h2>
+        <p>
+          障害でデータを失ったときに戻すために、データベースの全体(利用者の番号、道標、もう取ったと答えた授業を含みます)を毎日バックアップし、7
+          日分をサーバーに残します。古いものから消すので、消した道標や退会した人の情報も、バックアップからは最長
+          7
+          日で消えます。バックアップは障害で失ったデータを戻すときだけに使います。
         </p>
       </section>
       <section>
@@ -95,6 +108,7 @@ export default function PrivacyPage() {
             0 時を過ぎるまで残し、そのあと消します
           </li>
           <li>サーバーのログは上のとおり古いものから消えます</li>
+          <li>バックアップからは最長 7 日で消えます</li>
         </ul>
       </section>
       <ContactSection heading="問い合わせ" />
