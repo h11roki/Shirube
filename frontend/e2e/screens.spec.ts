@@ -330,6 +330,7 @@ for (const screen of SCREENS) {
                         ((hides(style.overflowX) &&
                           element.scrollWidth > element.clientWidth + 1) ||
                           (hides(style.overflowY) &&
+                            element.scrollHeight > element.clientHeight &&
                             element.scrollHeight - element.clientHeight >
                               smallestFontSize(element) * glyphOverhang))
                       );
