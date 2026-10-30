@@ -42,6 +42,7 @@ export function PlanForm() {
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [navigating, startNavigation] = useTransition();
+  const busy = submitting || navigating;
   const [takenRefresh, setTakenRefresh] = useState(0);
   const query = new URLSearchParams({
     department: DEPARTMENT,
@@ -102,6 +103,7 @@ export function PlanForm() {
       });
       startNavigation(() => router.push(`/plans/${plan.id}`));
       setSubmitting(false);
+      setOccupation("");
     } catch (error) {
       setSubmitError(messageOf(error));
       setSubmitting(false);
@@ -244,10 +246,10 @@ export function PlanForm() {
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={submitting || navigating || loading}
+          disabled={busy || loading}
           className="rounded-full bg-pillar px-6 py-2.5 font-bold text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
         >
-          {submitting || navigating ? "受け付けています" : "道標を作る"}
+          {busy ? "受け付けています" : "道標を作る"}
         </button>
       </div>
     </form>

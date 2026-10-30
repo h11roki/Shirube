@@ -353,7 +353,7 @@ test.describe("もう取った", () => {
 });
 
 test.describe("道標を作る", () => {
-  test("作って結果の画面に移ったあと、入力の画面に戻ると、もう一度作れる", async ({
+  test("作って結果の画面に移ったあと、入力の画面に戻ると、職業名が空でもう一度作れる", async ({
     page,
     api,
   }) => {
@@ -377,6 +377,7 @@ test.describe("道標を作る", () => {
       .getByRole("link", { name: "道標を作る" })
       .click();
     await expect(page).toHaveURL("/");
+    await expect(page.getByLabel("なりたい職業")).toHaveValue("");
     await expect(
       page.getByRole("button", { name: "道標を作る" }),
     ).toBeEnabled();
