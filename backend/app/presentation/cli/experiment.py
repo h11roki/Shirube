@@ -17,6 +17,16 @@ from typing import Any
 from sqlalchemy import Engine
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
+from app.application.analyze_experiment import (
+    LOSSES,
+    TOP_COURSES,
+    TOP_OCCUPATIONS,
+    AnalyzeExperiment,
+    CourseTally,
+    ExperimentAnalysis,
+    Fate,
+    ReadingLoss,
+)
 from app.application.compare_experiments import (
     CONFIDENCE,
     MIN_OCCUPATIONS,
@@ -44,12 +54,13 @@ from app.application.evaluate_selection import (
     SelectionResult,
     UnlinkedPick,
 )
-from app.application.ports import TokenUsage
+from app.application.ports import EmbeddingError, TokenUsage
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
     RunExperiment,
     Scorecard,
+    ScoredRun,
     Side,
     Trial,
     interleave,
@@ -71,7 +82,7 @@ from app.presentation.cli.evaluation_data import (
     shown_reason,
     silence_heldout_logs,
 )
-from app.presentation.cli.labels import SEARCH_MODES
+from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
 from app.presentation.composition import (
     course_selector,
     database_engine,
@@ -90,6 +101,7 @@ PRICES = {
 YEN_PER_DOLLAR = 150
 FAILURE_STREAK_LIMIT = 3
 STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
+ANALYSIS_ERRORS: tuple[type[Exception], ...] = (*STOPPING_ERRORS, EmbeddingError)
 RUN_CONTROLS = frozenset({"budget"})
 GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
@@ -127,6 +139,22 @@ OVERLAPS = (
     ("overlap", "揺れ(選んだ科目の重なり)", "coefficient"),
     ("core_overlap", "揺れ(中心の重なり)", "coefficient"),
 )
+FATE_LABELS = {
+    Fate.CORE: "中心に選んだ",
+    Fate.FOUNDATION: "土台に選んだ",
+    Fate.UNLINKED: "土台に選んだが中心につながらず外した",
+    Fate.SKIPPED: "候補にあったが選ばなかった(選び直しで落とした)",
+    Fate.READING: "候補に無く、手書きのスキルなら入る(読み取りで落とした)",
+    Fate.SEARCH: "候補に無く、手書きのスキルでも入らない(検索で落とした)",
+}
+STAGE_LABELS = {
+    Fate.UNLINKED: "外した",
+    Fate.SKIPPED: "選び直し",
+    Fate.READING: "読み取り",
+    Fate.SEARCH: "検索",
+}
+PLACEMENT_LABELS = {Fate.CORE: "中心", Fate.FOUNDATION: "土台", Fate.UNLINKED: "外した土台"}
+SEARCH_SETTINGS = ("embedding_model", "search_by_skill", "candidate_limit")
 
 
 def price_of(model: str) -> tuple[float, float, float] | None:
@@ -558,6 +586,84 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     return "\n".join(lines)
 
 
+def _stages(tally: CourseTally) -> str:
+    return "、".join(
+        f"{STAGE_LABELS[fate]} {tally.counts[fate]}" for fate in LOSSES if fate in tally.counts
+    )
+
+
+def _placements(tally: CourseTally) -> str:
+    return "、".join(f"{PLACEMENT_LABELS[fate]} {count}" for fate, count in tally.counts.items())
+
+
+def _readings(document: Mapping[str, Any], loss: ReadingLoss) -> list[str]:
+    repeats_of: dict[str, list[int]] = {}
+    for trial in document["trials"]:
+        if (
+            "failure" in trial
+            or trial["occupation"] != loss.occupation
+            or trial["repeat"] not in loss.repeats
+        ):
+            continue
+        assumption = "" if trial["assumption"] is None else f"(前提: {trial['assumption']})"
+        reading = f"{trial['interpretation']}{assumption} / スキル: {' / '.join(trial['skills'])}"
+        repeats_of.setdefault(reading, []).append(trial["repeat"])
+    return [
+        f"{'、'.join(str(repeat) for repeat in repeats)} 回目の読み取り: {reading}"
+        for reading, repeats in repeats_of.items()
+    ]
+
+
+def render_analysis(
+    document: Mapping[str, Any],
+    run: ScoredRun,
+    analysis: ExperimentAnalysis,
+    dataset: EvaluationDataset,
+) -> str:
+    config = UNRECORDED_SETTINGS | document["config"]
+    total = sum(analysis.fates.values())
+    lines = [
+        f"実験 {document['label']} の分析({document['created']}、commit {document['commit']})",
+        f"  採点した推薦 {len(run.cards)} 回(全職業がそろった回 {run.complete_repeats}、"
+        f"採点した回 {len(run.repeats)})。手書きのスキルの検索は今の DB で行う"
+        f"(埋め込み {config['embedding_model']}、検索 {SEARCH_MODES[config['search_by_skill']]}、"
+        f"候補 {config['candidate_limit']})",
+        f"期待する科目の行方({total} 件。期待する科目 × 採点した推薦)",
+        *(
+            f"  {FATE_LABELS[fate]} {count}({count / total:.1%})"
+            for fate, count in analysis.fates.items()
+        ),
+        "選んだ授業の判定",
+        *(
+            f"  {PLACEMENT_LABELS[placement]} {sum(counts.values())}: "
+            + "、".join(
+                f"{JUDGMENT_LABELS[judgment]} {count}" for judgment, count in counts.items()
+            )
+            for placement, counts in analysis.judgments.items()
+        ),
+        f"落とした回数の多い期待する科目(上から {TOP_COURSES} 件)",
+        *(
+            f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {_stages(tally)}"
+            for tally in analysis.missed
+        ),
+        f"関係なしで選んだ回数の多い科目(上から {TOP_COURSES} 件)",
+        *(
+            f"  {tally.name} {tally.total} 回({tally.occupations} 職業): {_placements(tally)}"
+            for tally in analysis.unrelated
+        ),
+        f"読み取りで落とした数の多い職業(上から {TOP_OCCUPATIONS} 件)",
+    ]
+    skills_of = {case.occupation: case.skills for case in dataset.cases}
+    for loss in analysis.reading_losses:
+        courses = "、".join(f"{name} {count}" for name, count in loss.courses.items())
+        lines += [
+            f"  {loss.occupation} {loss.total} 件: {courses}",
+            *(f"    {reading}" for reading in _readings(document, loss)),
+            f"    手書きのスキル: {' / '.join(skills_of[loss.occupation])}",
+        ]
+    return "\n".join(lines)
+
+
 def config_document(
     args: argparse.Namespace,
     settings: Settings,
@@ -879,6 +985,56 @@ def _compare(args: argparse.Namespace) -> None:
     print(compare(before, after, compare_experiments(old_run, new_run)))
 
 
+def _analyze(args: argparse.Namespace) -> None:
+    try:
+        document = json.loads(args.run.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as error:
+        sys.exit(f"実験の結果を読めません: {error}")
+    if document["summary"] is None:
+        sys.exit(f"集計の無い結果は分析できません: {document['label']}")
+    try:
+        dataset = load_dataset(args.dataset)
+        fingerprint = _digest(args.dataset.read_bytes())
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        sys.exit(f"評価データを読めません: {args.dataset}: {error!r}")
+    if dataset.heldout:
+        sys.exit("確かめ用の評価データは、職業と科目ごとの結果を出すことになるので分析しません")
+    config = UNRECORDED_SETTINGS | document["config"]
+    if config["dataset"] != fingerprint:
+        sys.exit(
+            f"結果は別の評価データで流しています(結果の指紋 {config['dataset']}、"
+            f"{args.dataset} の指紋 {fingerprint})"
+        )
+    settings = load_settings()
+    current = {
+        "embedding_model": settings.embedding_model,
+        "search_by_skill": settings.search_by_skill,
+        "candidate_limit": settings.selection_candidate_limit,
+    }
+    differing = [
+        f"{key} が結果は {config[key]}、今は {current[key]}"
+        for key in SEARCH_SETTINGS
+        if config[key] != current[key]
+    ]
+    if differing:
+        sys.exit(f"結果と同じ取り方で手書きのスキルの検索をできません: {'、'.join(differing)}")
+    try:
+        run = scored_run(
+            [scorecard(trial) for trial in document["trials"] if "failure" not in trial],
+            config["occupations"],
+        )
+    except (KeyError, TypeError, ValueError) as error:
+        sys.exit(f"実験の結果の推薦を読めません: {error!r}")
+    analyzer = AnalyzeExperiment(
+        search_courses(settings, database_engine(settings)), settings.selection_candidate_limit
+    )
+    try:
+        analysis = analyzer.run(dataset, run.cards)
+    except ANALYSIS_ERRORS as error:
+        sys.exit(f"分析できません: {error}")
+    print(render_analysis(document, run, analysis, dataset))
+
+
 def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="推薦を通しで流して、精度・揺れ・費用・時間を測る")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -909,6 +1065,13 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     versus = commands.add_parser("compare", help="2 つの実験の結果を比べる")
     versus.add_argument("runs", type=Path, nargs=2)
     versus.set_defaults(handle=_compare)
+    examine = commands.add_parser(
+        "analyze",
+        help="実験の結果から、期待する科目をどの段で落としたかと、誤って選んだ科目を数える",
+    )
+    examine.add_argument("run", type=Path)
+    examine.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
+    examine.set_defaults(handle=_analyze)
     args = parser.parse_args(argv)
     if args.command in ("run", "pair") and args.repeat < 1:
         parser.error("--repeat は 1 以上にしてください")

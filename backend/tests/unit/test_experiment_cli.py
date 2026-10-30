@@ -10,6 +10,13 @@ from typing import Any
 import pytest
 from langchain_core.messages import HumanMessage
 
+from app.application.analyze_experiment import (
+    PLACEMENTS,
+    CourseTally,
+    ExperimentAnalysis,
+    Fate,
+    ReadingLoss,
+)
 from app.application.compare_experiments import MIN_OCCUPATIONS, Change, Comparison, Interval
 from app.application.compare_experiments import OVERLAPS as MEASURED_OVERLAPS
 from app.application.evaluate_search import EvaluationCase, EvaluationDataset
@@ -25,6 +32,7 @@ from app.application.run_experiment import METRICS as MEASURED_METRICS
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
+    ScoredRun,
     Side,
     Spread,
     StageSeconds,
@@ -57,6 +65,7 @@ from app.presentation.cli.experiment import (
     pair_documents,
     ran_interleaved,
     render,
+    render_analysis,
     results_directory,
     scorecard,
     setting,
@@ -66,7 +75,7 @@ from app.presentation.cli.experiment import (
     unpriced,
     yen,
 )
-from tests.fakes import chat_answering
+from tests.fakes import chat_answering, courses_ranked_by
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
 THIRTY_YEN = {"gpt-5.4-nano": TokenUsage(1_000_000, 0, 0)}
@@ -978,3 +987,170 @@ def test_compare_refuses_a_saved_run_whose_recommendations_cannot_be_scored(
 
     assert str(stopped.value.code).startswith("実験の結果の推薦を読めません: ValueError(")
     assert reason in str(stopped.value.code)
+
+
+def test_the_analysis_shows_each_fate_with_its_share_and_the_readings_behind_the_losses() -> None:
+    reading = {"interpretation": "読んだ職業", "assumption": "前提", "skills": ["甲", "乙"]}
+    shown = document({"trials": 3}) | {
+        "trials": [
+            {"occupation": "職業", "repeat": 1, **reading},
+            {"occupation": "職業", "repeat": 2, **reading},
+            {
+                "occupation": "職業",
+                "repeat": 3,
+                "interpretation": "職業",
+                "assumption": None,
+                "skills": ["丙"],
+            },
+            {"occupation": "職業", "repeat": 4, "failure": "失敗"},
+        ]
+    }
+    analysis = ExperimentAnalysis(
+        {fate: 0 for fate in Fate} | {Fate.CORE: 3, Fate.READING: 1},
+        {placement: {judgment: 0 for judgment in Judgment} for placement in PLACEMENTS},
+        (CourseTally("科目B", {Fate.READING: 2, Fate.SKIPPED: 1}, 1),),
+        (CourseTally("科目C", {Fate.FOUNDATION: 1}, 1),),
+        (ReadingLoss("職業", (1, 2, 3), {"科目B": 3}),),
+    )
+    dataset = EvaluationDataset(
+        2026, "情", (EvaluationCase("職業", ("甲", "乙", "丙"), ("科目B",)),)
+    )
+
+    lines = render_analysis(shown, ScoredRun((), 0), analysis, dataset).splitlines()
+
+    assert "  中心に選んだ 3(75.0%)" in lines
+    assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(25.0%)" in lines
+    assert "  科目B 3 回(1 職業): 選び直し 1、読み取り 2" in lines
+    assert "  科目C 1 回(1 職業): 土台 1" in lines
+    assert lines[-4:] == [
+        "  職業 3 件: 科目B 3",
+        "    1、2 回目の読み取り: 読んだ職業(前提: 前提) / スキル: 甲 / 乙",
+        "    3 回目の読み取り: 職業 / スキル: 丙",
+        "    手書きのスキル: 甲 / 乙 / 丙",
+    ]
+
+
+def written_dataset(tmp_path: Path, heldout: bool = False) -> Path:
+    path = tmp_path / "occupations.json"
+    path.write_text(
+        json.dumps(
+            {
+                "year": 2026,
+                "department": "情",
+                "heldout": heldout,
+                "occupations": [
+                    {"name": "職業", "skills": ["甲", "乙", "丙"], "expected": {"科目B": "理由"}}
+                ],
+            },
+            ensure_ascii=False,
+        ),
+        encoding="utf-8",
+    )
+    return path
+
+
+def written_run(tmp_path: Path, dataset: Path, **changed: Any) -> Path:
+    trial = {
+        "occupation": "職業",
+        "repeat": 1,
+        "interpretation": "読んだ職業",
+        "assumption": None,
+        "skills": ["丁"],
+        "candidates": ["科目A"],
+        "courses": [
+            {
+                "name": "科目A",
+                "relevance": "core",
+                "judgment": "unrelated",
+                "reason": "理由",
+                "prerequisite_for": None,
+            }
+        ],
+        "unlinked": [],
+        "expected": [{"name": "科目B", "picked": None, "searched": False, "unlinked": False}],
+    }
+    content = run(
+        "analyzed",
+        occupations=1,
+        dataset=experiment_cli._digest(dataset.read_bytes()),
+        embedding_model="text-embedding-3-large",
+        search_by_skill=True,
+        candidate_limit=2,
+    ) | {"trials": [trial]}
+    content = content | {key: value for key, value in changed.items() if key != "config"}
+    content["config"] |= changed.get("config", {})
+    path = tmp_path / "run.json"
+    path.write_text(json.dumps(content, ensure_ascii=False), encoding="utf-8")
+    return path
+
+
+@pytest.fixture
+def search_settings(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.setenv("EMBEDDING_MODEL", "text-embedding-3-large")
+    monkeypatch.setenv("SEARCH_BY_SKILL", "true")
+    monkeypatch.setenv("SELECTION_CANDIDATE_LIMIT", "2")
+
+
+@pytest.mark.usefixtures("search_settings")
+def test_analyze_traces_a_course_the_handwritten_skills_would_find_to_the_reading(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7})
+    monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: None)
+    monkeypatch.setattr(experiment_cli, "search_courses", lambda settings, engine: search)
+    dataset = written_dataset(tmp_path)
+
+    main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert "  候補に無く、手書きのスキルなら入る(読み取りで落とした) 1(100.0%)" in lines
+    assert "  科目A 1 回(1 職業): 中心 1" in lines
+    assert lines[-3:] == [
+        "  職業 1 件: 科目B 1",
+        "    1 回目の読み取り: 読んだ職業 / スキル: 丁",
+        "    手書きのスキル: 甲 / 乙 / 丙",
+    ]
+
+
+def test_analyze_refuses_the_heldout_set_whose_courses_must_not_be_seen(tmp_path: Path) -> None:
+    dataset = written_dataset(tmp_path, heldout=True)
+
+    with pytest.raises(SystemExit, match="確かめ用の評価データ"):
+        main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
+
+
+def test_analyze_refuses_a_run_graded_with_another_dataset(tmp_path: Path) -> None:
+    dataset = written_dataset(tmp_path)
+    path = written_run(tmp_path, dataset, config={"dataset": "00000000"})
+
+    with pytest.raises(SystemExit, match="別の評価データ"):
+        main(["analyze", str(path), "--dataset", str(dataset)])
+
+
+@pytest.mark.usefixtures("search_settings")
+def test_analyze_refuses_to_search_differently_from_the_run(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    monkeypatch.setenv("EMBEDDING_MODEL", "text-embedding-3-small")
+    dataset = written_dataset(tmp_path)
+
+    with pytest.raises(
+        SystemExit,
+        match="embedding_model が結果は text-embedding-3-large、今は text-embedding-3-small",
+    ):
+        main(["analyze", str(written_run(tmp_path, dataset)), "--dataset", str(dataset)])
+
+
+def test_analyze_refuses_a_run_without_scores(tmp_path: Path) -> None:
+    dataset = written_dataset(tmp_path)
+
+    with pytest.raises(SystemExit, match="集計の無い結果"):
+        main(
+            [
+                "analyze",
+                str(written_run(tmp_path, dataset, summary=None)),
+                "--dataset",
+                str(dataset),
+            ]
+        )

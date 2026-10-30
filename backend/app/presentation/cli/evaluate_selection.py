@@ -23,20 +23,13 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.labels import RELEVANCE_LABELS, with_prerequisite
+from app.presentation.cli.labels import JUDGMENT_LABELS, RELEVANCE_LABELS, with_prerequisite
 from app.presentation.composition import (
     course_selector,
     database_engine,
     load_settings,
     search_courses,
 )
-
-JUDGMENT_LABELS = {
-    Judgment.EXPECTED: "期待",
-    Judgment.FOUNDATION: "土台",
-    Judgment.MINORITY: "少数",
-    Judgment.UNRELATED: "関係なし",
-}
 
 
 def _ratio(part: int, whole: int) -> str:
