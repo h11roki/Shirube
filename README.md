@@ -57,6 +57,78 @@ docker compose exec backend uv run --no-sync alembic upgrade head
 
 科目データは、時間割表の PDF と保存済みのシラバス(`backend/data/`、git 管理外)から取り込む。手順は `CLAUDE.md` のコマンド一覧にある。
 
+## 本番
+
+EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて frontend に渡す(ADR 0009、0075)。ドメインは DuckDNS の無料のサブドメインで、Caddy が Let's Encrypt の証明書を自動で取って更新する。DB と backend のポートは外に出さない。ログはサービスごとに 10MB × 3 までで、古いものから消える。
+
+### 初めに用意するもの
+
+1. AWS: 新しいアカウントを作り(2025-07-15 以降の新規は 6 か月のクレジット)、Budgets で予算の通知を付ける
+2. EC2: Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 を全体に、22 を自分の IP だけに開ける。Elastic IP を割り当てる
+3. DuckDNS: https://www.duckdns.org でサブドメインを作り、Elastic IP を向ける
+4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面のテストの利用者に自分を足す(誰でも使えるように公開できるかは、そのときの Google の条件で確かめる)
+5. OpenAI: 前払いにして自動の補充を切る(ADR 0038)
+
+サーバーでは、スワップを足し(`next build` のメモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れ、リポジトリを置いて `.env` を書く。
+
+```sh
+sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+git clone https://github.com/h11roki/Shirube.git && cd Shirube
+cp .env.example .env && chmod 600 .env
+```
+
+`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。
+
+### 初めてのデプロイ
+
+DB だけを起動してスキーマを作り、科目データを手元の DB から移してから全体を起動する。本番のイメージには取り込みの依存が無いので、科目データは本番では取り込まない。
+
+```sh
+docker compose -f compose.prod.yaml build
+docker compose -f compose.prod.yaml up -d db
+docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
+```
+
+手元で科目の表の中身だけを出してサーバーに送り(利用者と道標の表は移さない)、サーバーで戻す。
+
+```sh
+docker compose exec -T db pg_dump -U shirube -Fc --data-only -t course_sections -t syllabi -t syllabus_codes -t syllabus_chunks -t embeddings shirube > courses.dump
+scp courses.dump ubuntu@<サブドメイン>:~/
+```
+
+```sh
+docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --data-only --single-transaction < ~/courses.dump
+docker compose -f compose.prod.yaml up -d
+```
+
+`https://<サブドメイン>/` が開き、ログインして道標を作れれば終わり。
+
+### 更新するとき
+
+```sh
+git pull
+docker compose -f compose.prod.yaml build
+docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
+docker compose -f compose.prod.yaml up -d
+```
+
+手元で取り込み直しや埋め込み直しをしたら、本番の科目の表を空にしてから同じように戻す。利用者と道標の表は科目の表を参照していないので、そのまま残る。
+
+```sh
+docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings"
+```
+
+### バックアップ
+
+サーバーの cron で毎日 DB 全体を `pg_dump` し、7 日分を残す(`mkdir ~/backups` のあと `crontab -e` に書く)。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
+
+```
+0 4 * * * cd ~/Shirube && docker compose -f compose.prod.yaml exec -T db pg_dump -U shirube -Fc shirube > ~/backups/shirube-$(date +\%F).dump && find ~/backups -name 'shirube-*.dump' -mtime +7 -delete
+```
+
+戻すときは `pg_restore -U shirube -d shirube --clean` に、そのファイルを渡す。
+
 ## 設計
 
 ビジネスロジックは全てバックエンドに置き、フロントは API を呼んで表示するだけにする。バックエンドは domain / application / infrastructure / presentation の4層で、依存は presentation → application → domain の一方向。大学ごとのシラバス取得元は infrastructure の実装を足すだけで増やせる。
