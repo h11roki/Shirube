@@ -1,0 +1,7342 @@
+{
+ "label": "selection-min-votes-before",
+ "created": "2026-10-31T12:08:12+09:00",
+ "commit": "5fdb8e8",
+ "stopped": null,
+ "spent_yen": 53.9096295,
+ "config": {
+  "profiles": "analyzed",
+  "repeats": 1,
+  "budget": 130.0,
+  "occupations": 50,
+  "chat_model": "gpt-5.4-mini",
+  "occupation_reading_cache_size": 500,
+  "selection_model": "gpt-5.4-nano",
+  "selection_votes": 3,
+  "selection_min_votes": null,
+  "selection_vote_delay_seconds": 0.5,
+  "embedding_model": "text-embedding-3-large",
+  "search_by_skill": true,
+  "candidate_limit": 20,
+  "prompts": {
+   "occupation": "c3a5d946",
+   "selection": "c0249fb5"
+  },
+  "dataset": "5d4c7cbf",
+  "judgments": "2cc5a18c"
+ },
+ "summary": {
+  "trials": 50,
+  "failures": 0,
+  "complete_repeats": 1,
+  "scored_repeats": 1,
+  "recall@10": {
+   "mean": 0.7765714285714286,
+   "std": 0.0,
+   "low": 0.7765714285714286,
+   "high": 0.7765714285714286
+  },
+  "recall@20": {
+   "mean": 0.906952380952381,
+   "std": 0.0,
+   "low": 0.906952380952381,
+   "high": 0.906952380952381
+  },
+  "candidate_recall": {
+   "mean": 0.906952380952381,
+   "std": 0.0,
+   "low": 0.906952380952381,
+   "high": 0.906952380952381
+  },
+  "core_precision": {
+   "mean": 0.3745583038869258,
+   "std": 0.0,
+   "low": 0.3745583038869258,
+   "high": 0.3745583038869258
+  },
+  "expected_as_core": {
+   "mean": 0.7019867549668874,
+   "std": 0.0,
+   "low": 0.7019867549668874,
+   "high": 0.7019867549668874
+  },
+  "unrelated": {
+   "mean": 0.13445378151260504,
+   "std": 0.0,
+   "low": 0.13445378151260504,
+   "high": 0.13445378151260504
+  },
+  "cores": {
+   "mean": 5.66,
+   "std": 0.0,
+   "low": 5.66,
+   "high": 5.66
+  },
+  "foundations": {
+   "mean": 3.86,
+   "std": 0.0,
+   "low": 3.86,
+   "high": 3.86
+  },
+  "overlap": null,
+  "core_overlap": null,
+  "yen_per_plan": 1.07819259,
+  "tokens_per_plan": {
+   "gpt-5.4-mini-2026-03-17": {
+    "input": 828.22,
+    "cached": 0.0,
+    "output": 81.62
+   },
+   "gpt-5.4-nano-2026-03-17": {
+    "input": 35587.98,
+    "cached": 22625.28,
+    "output": 2523.56
+   }
+  },
+  "seconds": {
+   "reading": 1.2037702283400722,
+   "searching": 0.380984199160157,
+   "selecting": 6.695766124060028,
+   "total": 8.280520551560258
+  }
+ },
+ "trials": [
+  {
+   "occupation": "組込みソフトウェアエンジニア",
+   "repeat": 1,
+   "interpretation": "組込みソフトウェアエンジニア",
+   "assumption": null,
+   "skills": [
+    "C言語",
+    "リアルタイム制御",
+    "マイコン制御",
+    "デジタル回路",
+    "OSの基礎",
+    "ソフトウェア設計"
+   ],
+   "candidates": [
+    "組み込みシステム",
+    "応用Cプログラミング",
+    "制御工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "論理回路",
+    "オペレーティングシステム",
+    "ソフトウェア工学",
+    "電子情報工学演習",
+    "情報処理演習",
+    "微分方程式／ラプラス変換",
+    "電子情報工学実験Ⅲ",
+    "電子回路Ⅱ",
+    "コンピュータアーキテクチャⅠ",
+    "ハードウェア記述言語",
+    "電子情報工学入門",
+    "情報処理",
+    "並列処理",
+    "電子情報工学実験Ⅱ",
+    "電気回路Ⅱ",
+    "コンピュータアーキテクチャⅡ"
+   ],
+   "courses": [
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "組込み機器をCPSまで含めて俯瞰し、センサー/アクチュエータ、プロセッサ、メモリ、入出力、マルチタスクとスケジューリングを概説するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語の高度な使い方と、配列・ポインタ、入出力、構造体などを演習で実装し組込み実装に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "伝達関数に基づく動的システムの表現・解析・安定判別・フィードバック制御を学ぶため。制御を要する組込みの基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "マイコンや電子基板設計、回路設計、開発フロー、ディジタル入出力や割込みのプログラミングまで扱い実践に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "デジタル/アナログの違い、2進数表現、論理関数や組合せ/順序回路を扱い、マイコン周辺回路理解の土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "プロセス管理、スケジューリング、同期と通信、実/仮想記憶、入出力制御、割込みを学び組込みOSの基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析からアーキテクチャ、モジュール設計、テスト、保守・再利用まで学べ、組込みの正しい設計に必要なため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語文法に基づきプログラムを作り、デバッグ・テスト・レポート化まで行うため、より高度なC活用の土台になる。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "ラプラス変換を微分方程式への応用まで扱うため、制御工学で伝達関数や時間応答を導出する前提になる。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "MOS特性やSPICEシミュレーション、Verilog-HDL、論理演算・レジスタ・クロックなどを実験で扱い、ディジタル回路理解の前提になる。",
+     "prerequisite_for": "論理回路"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "アセンブリ、命令セット、データ表現、メモリ、入出力を扱うため、OSのプロセス管理や入出力制御の理解に必要。",
+     "prerequisite_for": "オペレーティングシステム"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語の文法を習得し、基本のプログラム作成を行うため、関数・配列/ポインタ・文字/ファイル入出力の応用に進める。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "オペレーティングシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 67
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34953,
+     "cached": 22016,
+     "output": 2961
+    }
+   },
+   "seconds": {
+    "reading": 1.265357166998001,
+    "searching": 1.0973356670037901,
+    "selecting": 7.716568915999233
+   }
+  },
+  {
+   "occupation": "半導体・LSI 設計エンジニア",
+   "repeat": 1,
+   "interpretation": "半導体・LSI 設計エンジニア",
+   "assumption": null,
+   "skills": [
+    "論理回路設計",
+    "ディジタル回路",
+    "アナログ回路",
+    "LSI設計",
+    "半導体工学",
+    "検証技術"
+   ],
+   "candidates": [
+    "半導体工学",
+    "論理回路",
+    "電子回路Ⅱ",
+    "電気回路Ⅱ",
+    "集積デバイス工学",
+    "電子回路Ⅰ",
+    "理工系日本語の技法",
+    "ハードウェア記述言語",
+    "電子情報工学実験Ⅱ",
+    "電気回路Ⅰ",
+    "電子情報工学実験Ⅰ",
+    "電子情報工学演習",
+    "高周波工学",
+    "技術者倫理",
+    "電子情報工学通論",
+    "コンピュータアーキテクチャⅡ",
+    "信号処理",
+    "制御工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学入門"
+   ],
+   "courses": [
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSトランジスタの動作原理や電流-電圧特性、PN接合の電位図と計算を学び、LSI設計で使うデバイス理解の中心になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "LSIの土台となる論理数学と組合せ・順序回路の設計方法、検証の考え方を体系的に学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSFET中心に増幅、周波数応答、差動増幅、オペアンプと演算回路を扱い、LSI周辺アナログ設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "半導体工学の知識を基に、MOS特性を使ったCMOS論理回路やメモリ、レイアウト、低消費電力を学びLSI設計の中心になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Verilog HDLで組合せ・順序回路を設計しテストベンチでシミュレーション検証するため、検証技術込みでLSI設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSトランジスタとオペアンプ特性をSPICEと実験で確認し、Verilog-HDLでFPGA実装まで行い検証力を作れるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "過渡応答解析、2端子対回路、分布定数回路を学び、電子回路Ⅱの周波数応答や増幅回路の解析の前提になるため。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "電子回路IIではMOSFET中心に特性解析と設計を扱うため、電子回路IのPNダイオード動作原理やMOS電流電圧特性、小信号等価回路の理解が前提。",
+     "prerequisite_for": "電子回路Ⅱ"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "電気回路Ⅰ",
+     "judgment": "foundation",
+     "reason": "交流とフェーザの複素表示や回路の性質、複素電力などを学び、電子回路Ⅰでの高周波効果や増幅・小信号等価の理解の前提になるため。",
+     "prerequisite_for": "電子回路Ⅰ"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "judgment": "foundation",
+     "reason": "実験の進め方や測定装置の使い方、データ整理を身につけるため、電子回路Ⅰで扱う寄生容量や高周波効果などの理解を実験的に確かにする前提になるため。",
+     "prerequisite_for": "電子回路Ⅰ"
+    }
+   ],
+   "expected": [
+    {
+     "name": "ハードウェア記述言語",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "半導体工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "集積デバイス工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 832,
+     "cached": 0,
+     "output": 68
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34899,
+     "cached": 22016,
+     "output": 2587
+    }
+   },
+   "seconds": {
+    "reading": 1.2211738750011136,
+    "searching": 0.28861912499996834,
+    "selecting": 6.369868375000806
+   }
+  },
+  {
+   "occupation": "通信・ネットワークエンジニア",
+   "repeat": 1,
+   "interpretation": "通信・ネットワークエンジニア",
+   "assumption": null,
+   "skills": [
+    "通信工学",
+    "ネットワーク理論",
+    "ルーティング",
+    "TCP/IP",
+    "無線通信",
+    "情報セキュリティ"
+   ],
+   "candidates": [
+    "コンピュータネットワーク",
+    "通信理論",
+    "情報理論",
+    "数理計画法",
+    "情報技術と社会",
+    "高周波工学",
+    "情報科学Ⅲ",
+    "情報と職業",
+    "電子情報工学通論",
+    "情報社会と倫理",
+    "制御工学",
+    "情報科学Ⅱ",
+    "電子情報工学実験Ⅲ",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "データエンジニアリング基礎",
+    "電子情報工学入門",
+    "情報科学Ⅰ",
+    "論理回路",
+    "情報処理",
+    "電磁気学Ⅰ"
+   ],
+   "courses": [
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IPの基本、IPアドレスと経路制御、DNS/ARP等、無線LAN、さらに中間者攻撃など攻撃と防御を扱うため。通信・ネットワーク業務の直接知識になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ディジタル通信の原理、符号化・復号、変調復調、無線伝送の損失などが中心で、無線や伝送設計に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "情報量、通信容量、符号化定理、畳込み符号やビタビ復号など、確実に伝えるための理論を学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "高周波工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "マイクロ波は携帯電話や無線LANに使われ、集中・分布定数、インピーダンス整合を扱うため無線系に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "情報セキュリティの基本、公開鍵暗号、電子署名、セキュリティプロトコル、ネットワークセキュリティを学び、攻防に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "コンピュータネットワークで理解する仕組みや設定を、自分のコードで検証・理解する土台としてCでの基本プログラム（変数型、制御、関数）を前提化する。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "電磁気学Ⅰ",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "高周波工学は波の概念や分布定数・集中定数、電子部品の特性を扱うので、電界・電位、電磁誘導など基礎法則の計算（ガウス/ファラデー等）が前提になる。",
+     "prerequisite_for": "高周波工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "通信理論",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 57
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34377,
+     "cached": 22016,
+     "output": 1862
+    }
+   },
+   "seconds": {
+    "reading": 1.1980318749992875,
+    "searching": 0.29032070900211693,
+    "selecting": 4.742998290999822
+   }
+  },
+  {
+   "occupation": "AI・機械学習エンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "AI・機械学習エンジニアを、AI を含むソフトウェア開発全般の IT エンジニアとして読んだ。",
+   "skills": [
+    "Python",
+    "機械学習",
+    "統計学",
+    "データ分析",
+    "プログラミング",
+    "アルゴリズム"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "応用Cプログラミング",
+    "ＡＩ・機械学習",
+    "確率統計",
+    "データサイエンス・AI基礎",
+    "情報処理演習",
+    "データ構造とアルゴリズム",
+    "情報と職業",
+    "情報処理",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "教養ゼミナール",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "コンパイラ",
+    "数理の世界",
+    "情報科学Ⅱ",
+    "数学演習Ⅰ（微分積分・線形代数）",
+    "近現代の科学技術",
+    "数理計画法",
+    "心理学入門",
+    "並列処理"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データの表現、収集、整形加工、データベース抽出、可視化まで一連の流れを学び、IT実装の入口になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cで関数・配列・ポインタや入出力、スタック/キュー等の実装を通じ、実務で必要なプログラミング基礔になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "画像中心に回帰・分類・ニューラルネットなどをMATLABで実装し、機械学習を業務に使える形で学ぶため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "確率分布や推定、区間推定、仮説検定を理論とコンピュータ実践で学べ、機械学習の判断に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ分析の進め方と手法、数学の基礎、機械学習の基本を演習で習得し、AI含む開発の土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語で入力・制御構造・配列・デバッグを行い、アルゴリズム実装の基礎力を確実にするため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "探索・整列・グラフなどを扱い、問題に適したデータ構造/手順を選べるようにするため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "深層学習の分類・回帰から時系列分類、物体検出、生成モデルまで応用を扱い実装するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理でCの文法を学び、初歩のプログラム作成をする前提として、演習側で入力・制御構造などを自分で実装するため。",
+     "prerequisite_for": "情報処理演習"
+    },
+    {
+     "name": "教養ゼミナール",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "データサイエンス・AI基礎はデータ分析理解に必要な数学基礎を学ぶ。教養ゼミナールは微分積分・線形代数・確率論等の統計学理解に必要な数学を輪読し説明できるようにする。",
+     "prerequisite_for": "データサイエンス・AI基礎"
+    },
+    {
+     "name": "数学演習Ⅰ（微分積分・線形代数）",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データサイエンス・AI基礎で「データ利活用に必要な数学の基礎」を扱うため、微分積分・線形代数の演習で理解を固める必要がある。",
+     "prerequisite_for": "データサイエンス・AI基礎"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 88
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35346,
+     "cached": 22016,
+     "output": 3048
+    }
+   },
+   "seconds": {
+    "reading": 1.0856023329979507,
+    "searching": 0.33052791700174566,
+    "selecting": 6.745361249999405
+   }
+  },
+  {
+   "occupation": "データサイエンティスト",
+   "repeat": 1,
+   "interpretation": "データサイエンティスト",
+   "assumption": null,
+   "skills": [
+    "統計学",
+    "機械学習",
+    "データ分析",
+    "Python",
+    "データベース",
+    "可視化"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "確率統計",
+    "ＡＩ・機械学習",
+    "データサイエンス・AI基礎",
+    "応用Cプログラミング",
+    "データ構造とアルゴリズム",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "情報と職業",
+    "教養ゼミナール",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "情報処理演習",
+    "情報技術と社会",
+    "情報の数理",
+    "電子情報工学演習",
+    "数理計画法",
+    "近現代の科学技術",
+    "心理学入門",
+    "情報処理",
+    "情報科学Ⅱ"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ収集・処理・蓄積、データ表現、データベースからの抽出、可視化、分析演習まで概観でき、実務のデータ扱いに直結。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "推定の基礎や区間推定、仮説検定など研究や実験に使える確率・統計の理論と実践的処理を学ぶため。データ分析の信頼性を支える。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "機械学習のワークフロー、回帰・分類、ニューラルネットと深層学習をMATLABで実装するため。分析モデル構築に直結。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ分析の進め方と設計、データ分析手法、機械学習・深層学習の基礎、演習で活用法まで学べるため。データサイエンス職の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報と職業",
+     "relevance": "core",
+     "judgment": "minority",
+     "reason": "データドリブン社会とAIを含め、職業観・倫理を学ぶ。実務で必要な判断軸を作るため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "文字とファイル入出力、配列・ポインタ、再帰や構造体を学ぶ。データ収集・整形・加工の実装で必要になるため。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ表現や分析過程で効率よく処理するために、探索・整列・グラフなどを含むアルゴリズム選択の考え方が前提になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "教養ゼミナール",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "微分積分・線形代数・確率論など、統計学理解に必要な数学を根本から理解する内容。確率統計の学習前提になるため。",
+     "prerequisite_for": "確率統計"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "収集データを加工・分析する前に必要なプログラミング基礎として、Cでデータの読み込み表示、制御構造、配列・関数、ポインタを扱う。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "データエンジニアリング基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "確率統計",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 826,
+     "cached": 0,
+     "output": 51
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 38328,
+     "cached": 24064,
+     "output": 2574
+    }
+   },
+   "seconds": {
+    "reading": 0.9766356250001991,
+    "searching": 0.2948526660002244,
+    "selecting": 6.645350750000944
+   }
+  },
+  {
+   "occupation": "ソフトウェア開発エンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "「ソフトウェア開発エンジニア」は、Web や業務システムを含む広いソフトウェア開発全般の IT エンジニアとして解釈した。",
+   "skills": [
+    "プログラミング",
+    "アルゴリズム",
+    "データ構造",
+    "ソフトウェア設計",
+    "データベース",
+    "ネットワーク"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "データ構造とアルゴリズム",
+    "データエンジニアリング基礎",
+    "ソフトウェア工学",
+    "情報技術と社会",
+    "コンピュータネットワーク",
+    "電子情報工学演習",
+    "コンパイラ",
+    "数理の世界",
+    "応用Cプログラミング",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "情報科学Ⅱ",
+    "情報社会と倫理",
+    "電子情報工学入門",
+    "情報処理",
+    "数理計画法",
+    "コンピュータアーキテクチャⅡ",
+    "ハードウェア記述言語",
+    "専門ゼミナール【二次元コードのデザイン演習】"
+   ],
+   "courses": [
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "効率の良い処理のためにデータ構造と探索・整列などを学び、設計と最適化に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "収集・表現・DB抽出・可視化までを学び、データ駆動の開発で必要な流れを押さえられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析〜テスト・保守までの工程とUMLを学び、ソフトウェア設計を実装へ落とす力になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IPの仕組み、経路制御、DNS等を理解し、ネットワーク側の設計と通信を扱えるようになるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンパイラ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "字句解析〜コード生成・最適化を扱い、プログラム実行の仕組みを理解して設計力に繋がるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語で文法からプログラム作成まで行い、ITエンジニアの土台となる実装力を直接鍛えるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報と職業",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "情報化社会での職業観・倫理を学び、情報処理を担う職業人としての考え方を前提に学べるため。",
+     "prerequisite_for": "情報処理"
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "「データ構造とアルゴリズム」と関連が深く、スタック・キューや二分木、ソートなどの応用をCで実装する前提になるため。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "情報処理演習",
+     "judgment": "foundation",
+     "reason": "C言語文法に基づき入出力や制御構造・配列・関数で実装し、応用Cで扱う各種応用に繋がるため。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "応用Cプログラミング",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 105
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36129,
+     "cached": 22016,
+     "output": 2403
+    }
+   },
+   "seconds": {
+    "reading": 1.2682907920025173,
+    "searching": 0.31371329099783907,
+    "selecting": 6.0889468749992375
+   }
+  },
+  {
+   "occupation": "制御・ロボットエンジニア",
+   "repeat": 1,
+   "interpretation": "制御・ロボットエンジニア",
+   "assumption": null,
+   "skills": [
+    "制御工学",
+    "システム理論",
+    "信号処理",
+    "センサ工学",
+    "アクチュエータ制御",
+    "C言語"
+   ],
+   "candidates": [
+    "工業技術概論",
+    "制御工学",
+    "組み込みシステム",
+    "信号処理",
+    "近現代の科学技術",
+    "電子情報工学演習",
+    "応用Cプログラミング",
+    "電子情報工学入門",
+    "ソフトウェア工学",
+    "オペレーティングシステム",
+    "メディア情報処理",
+    "電子情報工学通論",
+    "電子情報工学実験Ⅱ",
+    "情報処理演習",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "微分方程式／ラプラス変換",
+    "情報科学Ⅰ",
+    "情報理論",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "技術者倫理"
+   ],
+   "courses": [
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ラプラス変換で動的システムを表現・解析し、安定判別やフィードバック制御の設計法まで学べるため。ロボットの姿勢・速度制御に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "センサー・アクチュエータ、プロセッサ、入出力、マルチタスク等の概念を学び、組込み開発の基礎を作れるため。制御ロボットで必須。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "計測やセンサ信号をディジタル化して解析し、伝達関数・周波数解析・ディジタルフィルタ設計まで扱えるため。ロボットの感知品質を上げる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語を用いた数値計算や入出力、実装力を高められ、制御・組込みで必要なプログラム作成に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "デザイン型演習としてロボットを用いたプログラミング演習や、C言語によるシミュレーション演習があり、応用CプログラミングのC言語実装に備える。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "電子情報工学入門",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "プログラミング学習で必要なUNIXの使用法を習得する内容があり、組み込みシステムでのC系実習を進める前提となる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "プロセス管理やスケジューリング、プロセスの同期と通信などを扱うため、組み込みシステムでのマルチタスクやスケジューリング理解の前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組み込みシステムは組込みプログラミング実習があり、入出力やプロセッサ制御などを扱う。情報処理演習でC言語の文法に基づきプログラム作成とデバッグを身につける必要がある。両方に「C言語」と「プログラム作成」がある。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学がラプラス変換（伝達関数）で動的システムを表現・解析する前提として、ラプラス変換を微分方程式へ応用できる理解が必要。両方で「ラプラス変換」が鍵になる。",
+     "prerequisite_for": "制御工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "制御工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 55
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36372,
+     "cached": 22016,
+     "output": 2062
+    }
+   },
+   "seconds": {
+    "reading": 1.1245525829981489,
+    "searching": 0.3363119589994312,
+    "selecting": 5.1907484580005985
+   }
+  },
+  {
+   "occupation": "画像・音声処理エンジニア",
+   "repeat": 1,
+   "interpretation": "画像・音声処理エンジニア",
+   "assumption": null,
+   "skills": [
+    "信号処理",
+    "画像処理",
+    "音声処理",
+    "機械学習",
+    "C言語",
+    "Python"
+   ],
+   "candidates": [
+    "メディア情報処理",
+    "信号処理",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "フーリエ解析",
+    "ＡＩ・機械学習",
+    "応用Cプログラミング",
+    "情報処理演習",
+    "電子情報工学演習",
+    "電子情報工学通論",
+    "電子情報工学実験Ⅱ",
+    "振動波動入門",
+    "データサイエンス・AI基礎",
+    "情報処理",
+    "データ構造とアルゴリズム",
+    "電子情報工学入門",
+    "情報理論",
+    "教養ゼミナール",
+    "Understanding Language",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "コンパイラ"
+   ],
+   "courses": [
+    {
+     "name": "メディア情報処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声情報処理と画像情報処理を中心に、必要な情報抽出をMATLAB実装まで行えるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声や画像をディジタル信号として扱い、離散化・周波数解析・ディジタルフィルタ設計を学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "専門ゼミナール【目に見えない画像を可視化する技術】",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "赤外・X線CTなどの“見えない情報”を扱う応用を、光検出原理から定量議論まで学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "フーリエ解析",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "音声・画像を周波数領域へ変換する理解に直結し、周波数解析の土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "画像中心に機械学習〜深層学習をMATLABで実装し、認識系を作る力になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語で数値計算や入出力、プログラム実装の高度化を行い、画像/信号処理の実装力が伸びるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "メディア情報処理のMATLAB実装に備え、情報処理演習で入力・制御構造・関数などを自分で作りデバッグする力が基盤になる。",
+     "prerequisite_for": "メディア情報処理"
+    },
+    {
+     "name": "振動波動入門",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "ゼミナールは光や粒子の検出などを扱い、音波と波動方程式の理解など波の見方が定量議論に必要な基礎になるため。",
+     "prerequisite_for": "専門ゼミナール【目に見えない画像を可視化する技術】"
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "AI・機械学習の基礎理解に向け、データサイエンス・AI基礎で機械学習と深層学習の基礎や数学の前提を押さえられる。",
+     "prerequisite_for": "ＡＩ・機械学習"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語の文法を習得して初歩のプログラムを書くことが前提で、応用でも同じ文法の高度活用を行うため。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "メディア情報処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "信号処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 55
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36099,
+     "cached": 22016,
+     "output": 3154
+    }
+   },
+   "seconds": {
+    "reading": 1.3465475000011793,
+    "searching": 0.3918559160010773,
+    "selecting": 8.510613958998874
+   }
+  },
+  {
+   "occupation": "無線・高周波回路エンジニア",
+   "repeat": 1,
+   "interpretation": "無線・高周波回路エンジニア",
+   "assumption": null,
+   "skills": [
+    "電磁気学",
+    "高周波回路",
+    "回路解析",
+    "アンテナ工学",
+    "通信方式",
+    "信号処理"
+   ],
+   "candidates": [
+    "高周波工学",
+    "電磁気学Ⅰ",
+    "電気回路Ⅱ",
+    "電気回路Ⅰ",
+    "電子情報工学通論",
+    "通信理論",
+    "信号処理",
+    "電磁気学Ⅱ",
+    "電磁気学入門",
+    "電子回路Ⅰ",
+    "論理回路",
+    "ベクトル解析",
+    "情報理論",
+    "メディア情報処理",
+    "電子情報工学演習",
+    "物質科学",
+    "電子回路Ⅱ",
+    "微分方程式／ラプラス変換",
+    "電子情報工学応用演習",
+    "Non-verbal Communication"
+   ],
+   "courses": [
+    {
+     "name": "高周波工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "携帯電話や無線LANを念頭に、波の考えで集中定数/分布定数やインピーダンス整合を理解するため。スミスチャートで実設計に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ディジタル通信の動作原理や誤り制御、変調・復調の仕組みを定量的に学び、無線方式設計に必要な考え方になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "無線で扱う電磁波データを離散時間システムとして解析し、周波数特性やディジタルフィルタ設計の基礎を得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電磁気学Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "高周波で使う電界・電位、静電容量、磁界・起電力などの基礎を、ガウスの法則やファラデーの法則から計算できる力が前提。",
+     "prerequisite_for": "高周波工学"
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "分布定数回路や2端子対回路、共振回路・過渡現象を学ぶので、その前提として電気回路Ⅱの行列・微分方程式等での解析力が必要になる。",
+     "prerequisite_for": "高周波工学"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "高周波回路では複素インピーダンスやフェーザによる回路解析が必要になるため。直流/交流、コイルやコンデンサのインピーダンスを土台にする。",
+     "prerequisite_for": "高周波工学"
+    },
+    {
+     "name": "電磁気学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電磁波（電磁波の利用と課題まで）を扱うため、電磁気学の続きとして電磁誘導や電磁波の数式表現を理解していることが前提。",
+     "prerequisite_for": "高周波工学"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "通信で用いるディジタル処理や回路・応答はモデル化が微分方程式に基づく。ラプラス変換で解法を身につけておくことが前提になる。",
+     "prerequisite_for": "通信理論"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "高周波工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 831,
+     "cached": 0,
+     "output": 61
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 30267,
+     "cached": 19968,
+     "output": 1984
+    }
+   },
+   "seconds": {
+    "reading": 1.1129772089989274,
+    "searching": 0.3604243330009922,
+    "selecting": 4.616347333001613
+   }
+  },
+  {
+   "occupation": "CPU・コンピュータハードウェア設計エンジニア",
+   "repeat": 1,
+   "interpretation": "CPU・コンピュータハードウェア設計エンジニア",
+   "assumption": null,
+   "skills": [
+    "論理回路",
+    "計算機アーキテクチャ",
+    "デジタル回路設計",
+    "HDL記述",
+    "半導体素子",
+    "検証技術"
+   ],
+   "candidates": [
+    "ハードウェア記述言語",
+    "論理回路",
+    "コンピュータアーキテクチャⅠ",
+    "電子回路Ⅱ",
+    "現代人とヘルスケア",
+    "半導体工学",
+    "理工系日本語の技法",
+    "コンピュータアーキテクチャⅡ",
+    "電気回路Ⅱ",
+    "並列処理",
+    "電子情報工学実験Ⅱ",
+    "教養ゼミナール",
+    "電子回路Ⅰ",
+    "技術者倫理",
+    "電子情報工学通論",
+    "電気回路Ⅰ",
+    "コンパイラ",
+    "集積デバイス工学",
+    "情報理論",
+    "専門ゼミナール【目に見えない画像を可視化する技術】"
+   ],
+   "courses": [
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Verilog HDLで組合せ/順序回路を設計し、シミュレーションで動作確認できる。CPUハード設計の中核スキルだから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "2進数表現、論理式と論理関数、組合せ回路・順序回路の設計方法と検証を学び、デジタル回路の基礎を作れるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "命令セット、データ表現、アドレッシング、算術論理演算の実装を学ぶため。CPUの基本動作を理解し設計判断に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "MOS中心の特性解析と、差動増幅やオペアンプを用いた演算回路を学び、設計・解析の考え方を鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "PN接合やMOSトランジスタの動作原理、電流-電圧特性計算を学び、半導体素子選定と設計理解に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "プロセッサのデータパス/制御、パイプラインやハザード、メモリ階層や入出力制御を扱うため。設計の実力になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOS特性のSPICE/測定と、Verilog-HDLでのゲーム機RTL設計をFPGA実装。検証手順まで実体験できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "PNダイオードやMOS電流電圧特性、小信号等価回路、増幅原理、オペアンプ構成ブロック理解を作り、デジタル側の設計にも効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "LSI内部のMOSトランジスタ特性からCMOSゲート、ラッチ/フリップフロップ、メモリ、レイアウトまで学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電気回路Ⅱは直流/交流の解析を発展させ、複素表示や過渡応答などを扱う。前提として電気回路Ⅰのフェーザ表示や複素インピーダンス、電力・複素電力の理解が必要。",
+     "prerequisite_for": "電子回路Ⅱ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "論理回路",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 835,
+     "cached": 0,
+     "output": 76
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35334,
+     "cached": 22016,
+     "output": 3286
+    }
+   },
+   "seconds": {
+    "reading": 1.220928124999773,
+    "searching": 0.36267504100032966,
+    "selecting": 7.043800209001347
+   }
+  },
+  {
+   "occupation": "システムエンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "システムエンジニアを、要件定義から設計・実装・テストまで行う広いITエンジニアとして解釈した。",
+   "skills": [
+    "プログラミング",
+    "アルゴリズム",
+    "データベース",
+    "ソフトウェア設計",
+    "ネットワーク基礎",
+    "情報セキュリティ"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "データ構造とアルゴリズム",
+    "データエンジニアリング基礎",
+    "ソフトウェア工学",
+    "コンピュータネットワーク",
+    "情報科学Ⅲ",
+    "情報技術と社会",
+    "コンパイラ",
+    "数理の世界",
+    "情報科学Ⅱ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "情報理論",
+    "情報社会と倫理",
+    "電子情報工学演習",
+    "情報処理",
+    "数理計画法",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "ハードウェア記述言語",
+    "通信理論"
+   ],
+   "courses": [
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語の文法に基づき、入力・制御・関数・配列・文字列を自分で作りデバッグするため。要求から実装までの基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "効率的なプログラム作成に必要なデータ構造と探索・整列・グラフの考え方を学ぶため。開発で性能を作り込める。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ表現、収集、データベース、分析演習、ITセキュリティまで概観するため。実務のデータ基盤に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析から設計・モジュール設計、UML実習、テスト、保守再利用まで学ぶため。SE的な工程が中心。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IPの基礎、階層モデル、経路制御、主要プロトコルとセキュリティ技術まで扱うため。ネットワーク前提の設計に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "共通鍵・公開鍵暗号、電子署名、PKI、認証やネットワークセキュリティを扱うため。情報セキュリティ基盤を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "コンピュータの構成と動作やアルゴリズム、通信と符号化を扱うため、ネットワークプロトコルの理解につながる。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "Cの文法を学び、初歩のプログラム（条件分岐・反復・配列・関数・ポインタ）を書くための土台になる。",
+     "prerequisite_for": "情報処理演習"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 826,
+     "cached": 0,
+     "output": 102
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35625,
+     "cached": 22016,
+     "output": 2313
+    }
+   },
+   "seconds": {
+    "reading": 1.2113637080001354,
+    "searching": 0.3033274590015935,
+    "selecting": 6.471764624999196
+   }
+  },
+  {
+   "occupation": "インフラエンジニア",
+   "repeat": 1,
+   "interpretation": "インフラエンジニア",
+   "assumption": "電子情報工学科で学ぶネットワーク、サーバ、OS、制御や通信の基礎を土台に、ITインフラを設計・運用する職業として解釈した。",
+   "skills": [
+    "ネットワーク基礎",
+    "OS",
+    "サーバ構築",
+    "仮想化技術",
+    "情報セキュリティ",
+    "スクリプト言語"
+   ],
+   "candidates": [
+    "情報と職業",
+    "コンピュータネットワーク",
+    "オペレーティングシステム",
+    "専門ゼミナール【建設人としての日本語活用】",
+    "並列処理",
+    "情報科学Ⅲ",
+    "コンパイラ",
+    "データエンジニアリング基礎",
+    "情報理論",
+    "コンピュータアーキテクチャⅠ",
+    "コンピュータアーキテクチャⅡ",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "情報社会と倫理",
+    "教養ゼミナール",
+    "情報科学Ⅱ",
+    "通信理論",
+    "組み込みシステム",
+    "データ構造とアルゴリズム",
+    "ハードウェア記述言語",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）"
+   ],
+   "courses": [
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IPやIP、DNS/ICMP/ARPの仕組みを理解し、攻撃の種類と防ぐためのネットワーク設計・セキュリティ技術を学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "プロセス管理、同期通信、実記憶・仮想記憶、入出力制御、ファイルシステムと仮想化の基礎を扱う。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "暗号方式、電子署名、セキュリティプロトコル、脅威と対策、個人認証などを体系的に学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "minority",
+     "reason": "データ収集・表現・蓄積、DBからの抽出、可視化、ITセキュリティまで扱うため。インフラ上のデータ基盤に役立つ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プロセッサ/メモリ/入出力の方式に加え、キャッシュや仮想記憶、RAIDまで触れるため。サーバ性能と信頼性を理解できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "情報システム利用に必要なハード/ソフト基礎に加え、通信と符号化の基礎を学び、インフラ運用の理解に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "並列処理",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "オペレーティングシステムで扱うプロセス管理・同期通信・入出力制御に、並列に動く前提の考え方（並列実行）が必要になる。",
+     "prerequisite_for": "オペレーティングシステム"
+    },
+    {
+     "name": "コンパイラ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報科学Ⅲの暗号方式やセキュリティプロトコルを扱うには、オートマトン・構文解析など形式的な理論に慣れることが前提になる。",
+     "prerequisite_for": "情報科学Ⅲ"
+    },
+    {
+     "name": "情報理論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報科学Ⅱの「通信と符号化」を理解するには、情報量、符号化、通信容量など量的な計算・パラメータ理解が必要になる。",
+     "prerequisite_for": "情報科学Ⅱ"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "命令セットやデータ表現、アセンブリ、実数演算などを学ぶため、次にプロセッサの制御方式や入出力方式を理解する前提になる。",
+     "prerequisite_for": "コンピュータアーキテクチャⅡ"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報データの管理に関わるセキュリティやプライバシー、サイバーセキュリティ、暗号技術の基礎を扱うため、暗号方式や電子署名の学習の前提になる。",
+     "prerequisite_for": "情報科学Ⅲ"
+    },
+    {
+     "name": "通信理論",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "コンピュータネットワークで通信の理解を深めるには、フレーム構成、誤り制御、同期など通信方式の動作原理が土台になる。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "情報科学Ⅲのセキュリティプロトコル理解や脅威対策には、効率的な処理手順を選ぶための探索・整列・グラフの考え方が前提になる。",
+     "prerequisite_for": "情報科学Ⅲ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "オペレーティングシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 826,
+     "cached": 0,
+     "output": 110
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35712,
+     "cached": 22016,
+     "output": 2714
+    }
+   },
+   "seconds": {
+    "reading": 1.4041067090001889,
+    "searching": 0.3056615409986989,
+    "selecting": 6.770062583000254
+   }
+  },
+  {
+   "occupation": "Web エンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "Web エンジニアを、Web を含むソフトウェア開発全般の IT エンジニアとして読んだ。",
+   "skills": [
+    "プログラミング",
+    "データ構造とアルゴリズム",
+    "ソフトウェア設計",
+    "ネットワーク",
+    "データベース",
+    "Webの仕組みとプログラミング"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "データ構造とアルゴリズム",
+    "ソフトウェア工学",
+    "コンピュータネットワーク",
+    "データエンジニアリング基礎",
+    "情報処理",
+    "情報技術と社会",
+    "コンパイラ",
+    "応用Cプログラミング",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "情報社会と倫理",
+    "情報科学Ⅱ",
+    "電子情報工学実験Ⅲ",
+    "電子情報工学入門",
+    "並列処理",
+    "情報科学Ⅰ",
+    "電子情報工学演習",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "専門ゼミナール【二次元コードのデザイン演習】"
+   ],
+   "courses": [
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "探索・整列・グラフなどを通して、効率的な手順選択と実装の土台になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析やアーキテクチャ設計、UML実習とテストまで扱い、設計スキルを仕事に直結させるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IP等の仕組み、IPアドレスや経路制御、DNS/ARPなどを学び実装や設計に使うから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "収集・整形・データ表現、データベース抽出、可視化まで学び、データ活用の基礎になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cでプログラム例を学び自分で書くことで、実装力と基礎的な考え方を直接養えるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報と職業",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "企業におけるソフトウェア開発や職業観・倫理を理解し、開発工程を学ぶ動機づけになる。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語の基本構文（データ型・制御構造・配列・関数）を自分で作りデバッグする前提になる。",
+     "prerequisite_for": "情報処理"
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "応用Cプログラミングは関数・配列/ポインタの応用やスタック/キュー、二分木・ソートを学ぶ。データ構造とアルゴリズムの各構造や探索/整列をCで扱う基礎になる。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データのプライバシーやセキュリティ、AIの学習データの課題を学ぶ前提になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報科学Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "集合・論理・写像・グラフや符号化・オートマトン等の基礎が、データ表現やアルゴリズム理解に役立つ。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 824,
+     "cached": 0,
+     "output": 101
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36567,
+     "cached": 24064,
+     "output": 1871
+    }
+   },
+   "seconds": {
+    "reading": 1.4345588750002207,
+    "searching": 0.3268164159999287,
+    "selecting": 5.002533833998314
+   }
+  },
+  {
+   "occupation": "情報セキュリティエンジニア",
+   "repeat": 1,
+   "interpretation": "情報セキュリティエンジニア",
+   "assumption": null,
+   "skills": [
+    "情報セキュリティ",
+    "ネットワーク",
+    "OS",
+    "暗号技術",
+    "プログラミング",
+    "リスク管理"
+   ],
+   "candidates": [
+    "情報科学Ⅲ",
+    "情報社会と倫理",
+    "コンピュータネットワーク",
+    "オペレーティングシステム",
+    "情報の数理",
+    "情報処理演習",
+    "専門ゼミナール【主体的な海外活動実践の技法】",
+    "情報と職業",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "情報理論",
+    "コンピュータアーキテクチャⅠ",
+    "通信理論",
+    "コンパイラ",
+    "教養ゼミナール",
+    "データエンジニアリング基礎",
+    "情報技術と社会",
+    "数理計画法",
+    "組み込みシステム",
+    "情報科学Ⅱ",
+    "情報処理"
+   ],
+   "courses": [
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "暗号方式、電子署名、セキュリティプロトコル、ネットワーク脅威と対策を扱い、実装・運用に直結する基礎が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IP等と階層モデル、IP・主要プロトコルを学び、中間者攻撃など攻撃と防御の理解に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プロセス管理、同期通信、実/仮想記憶、入出力、仮想化を学び、OS上の弱点や挙動理解に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報の数理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "エントロピーや通信路符号化定理を通じて、情報量・誤り耐性の考え方を数理で支える。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "誤り制御や符号化、変調・復調など通信の動作原理を学び、安全な伝送の設計判断に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cでの制御、配列、関数、ポインタを身につけ、脆弱性解析やセキュリティ実装に必要な基礎の技術になるため。",
+     "prerequisite_for": null
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 58
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 37215,
+     "cached": 24064,
+     "output": 2317
+    }
+   },
+   "seconds": {
+    "reading": 1.0658044579977286,
+    "searching": 0.34958641700359294,
+    "selecting": 7.321761540999432
+   }
+  },
+  {
+   "occupation": "IT コンサルタント",
+   "repeat": 1,
+   "interpretation": "IT コンサルタント",
+   "assumption": null,
+   "skills": [
+    "業務分析",
+    "情報システム設計",
+    "データ分析",
+    "要件定義",
+    "プロジェクト管理"
+   ],
+   "candidates": [
+    "情報技術と社会",
+    "コーオプ演習（理論）【通年】",
+    "情報科学Ⅲ",
+    "データエンジニアリング基礎",
+    "電子情報工学演習",
+    "数理計画法",
+    "情報と職業",
+    "現代の経営",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "確率統計",
+    "ソフトウェア工学",
+    "Introductory Course to International Project Development",
+    "情報科学Ⅱ",
+    "経済と社会",
+    "電子情報工学入門",
+    "データサイエンス・AI基礎",
+    "組み込みシステム",
+    "社会と学ぶ課題解決",
+    "オペレーティングシステム",
+    "教養ゼミナール"
+   ],
+   "courses": [
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "問題発見・課題解決を企業活動で分析し、プロジェクトマネジメントと調査分析を実践できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "暗号・電子署名・個人認証などを学び、システム設計で必要なセキュリティ対策を定義できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ表現、収集、DB、可視化、ITセキュリティを扱い、分析基盤の設計に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "数理計画法",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "線形計画・ネットワーク計画を定式化して解く力を得て、最適化を要件に落とし込める。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "要求分析から設計、テスト、保守まで学び、要件を実装へ落とす流れを理解してコンサルで使える。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報技術と社会",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "情報技術が企業活動や社会生活をどう変えるか、データ利活用の仕方を理解して課題分析に臨める。",
+     "prerequisite_for": "コーオプ演習（理論）【通年】"
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "データ解析演習やC言語シミュレーション、ロボット/制御の経験が、要求分析や設計・テストへ進む前提になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "現代の経営",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "企業経営の全体像や経営戦略、社会から何が求められるかを学び、企業活動の分析に進む前提になる。",
+     "prerequisite_for": "コーオプ演習（理論）【通年】"
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ表現やアルゴリズム、確率的情報処理、通信と符号化の基礎が、データ表現・分析の理解前提になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ分析の進め方・設計、収集データの分析、機械学習の基礎や演習を学ぶ内容が、要求分析で扱うデータ活用観点の前提になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "確率統計",
+     "judgment": "foundation",
+     "reason": "確率分布や推定、仮説検定などの統計的理解が、データ分析や機械学習を理解する前提になる。",
+     "prerequisite_for": "データサイエンス・AI基礎"
+    }
+   ],
+   "expected": [
+    {
+     "name": "コーオプ演習（実践）",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報技術と社会",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "現代の経営",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 824,
+     "cached": 0,
+     "output": 50
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36054,
+     "cached": 22016,
+     "output": 1878
+    }
+   },
+   "seconds": {
+    "reading": 0.9838150420000602,
+    "searching": 0.3327205829991726,
+    "selecting": 6.390235791001032
+   }
+  },
+  {
+   "occupation": "スマートフォンアプリ開発エンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "スマートフォン向けという細かな開発対象よりも、電子情報工学科で学ぶソフトウェア開発全般としての IT エンジニアを指すと解釈した。",
+   "skills": [
+    "プログラミング",
+    "ソフトウェア設計",
+    "データ構造とアルゴリズム",
+    "ネットワーク",
+    "データベース",
+    "OSの基礎"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "ソフトウェア工学",
+    "データ構造とアルゴリズム",
+    "コンピュータネットワーク",
+    "データエンジニアリング基礎",
+    "オペレーティングシステム",
+    "電子情報工学演習",
+    "コンパイラ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "応用Cプログラミング",
+    "情報社会と倫理",
+    "情報技術と社会",
+    "コンピュータアーキテクチャⅠ",
+    "電子情報工学入門",
+    "情報処理",
+    "ハードウェア記述言語",
+    "情報科学Ⅱ",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "専門ゼミナール【二次元コードのデザイン演習】"
+   ],
+   "courses": [
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ソフトウェア開発工程や要求分析、UMLによる設計、アーキテクチャ/モジュール設計、テストまで扱うため。設計力を直接鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "効率的なプログラムのためのデータ構造とアルゴリズム選択、探索・整列・グラフ等を扱い実装に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IP等の基本原理や通信層、IP・DNS・ARPの役割を学び、さらに中間者攻撃など防御も扱う。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ表現、収集・整形・加工、データベースからの抽出、可視化と意味導出までを概観しIT実装に近い。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プロセス管理、同期・通信、実/仮想記憶管理、ファイルシステム、入出力制御などOS機能の基礎を学ぶ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ型・演算子・制御構造・配列・関数を実際に作りデバッグしレポート化する。UML実習やテストまでの基礎になる（ソフトウェア工学で開発工程・テストを扱う）。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "ネットワークは暗号技術やネットワークセキュリティを学ぶ。情報社会と倫理で個人情報保護やサイバーセキュリティ、暗号技術の基礎を扱い、設計の前提になる。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "OSではプロセス管理や実記憶/仮想記憶、入出力制御、割り込みまで扱う。コンピュータ動作原理やメモリ、入出力も学んで前提になる。",
+     "prerequisite_for": "オペレーティングシステム"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "要求分析や設計の前に、Cでデータ構造やポインタ等を含むプログラム作成・理解が必要になる（情報処理でデータ構造・ポインタを扱う）。",
+     "prerequisite_for": "ソフトウェア工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 830,
+     "cached": 0,
+     "output": 110
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 37260,
+     "cached": 24064,
+     "output": 2638
+    }
+   },
+   "seconds": {
+    "reading": 1.2848985420023382,
+    "searching": 0.32391208300032304,
+    "selecting": 6.383050791999267
+   }
+  },
+  {
+   "occupation": "ゲームプログラマー",
+   "repeat": 1,
+   "interpretation": "ゲームプログラマー",
+   "assumption": "ゲーム開発の中でも、電子情報工学科で身につくプログラミングと計算機の知識を活かす職種として解釈した。",
+   "skills": [
+    "プログラミング",
+    "アルゴリズム",
+    "データ構造",
+    "計算機アーキテクチャ",
+    "ソフトウェア設計",
+    "C++"
+   ],
+   "candidates": [
+    "コンパイラ",
+    "情報処理演習",
+    "データ構造とアルゴリズム",
+    "データエンジニアリング基礎",
+    "コンピュータアーキテクチャⅠ",
+    "ソフトウェア工学",
+    "応用Cプログラミング",
+    "情報と職業",
+    "情報処理",
+    "数理の世界",
+    "情報科学Ⅱ",
+    "コンピュータアーキテクチャⅡ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "並列処理",
+    "電子情報工学演習",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "数理計画法",
+    "論理回路",
+    "ハードウェア記述言語",
+    "組み込みシステム"
+   ],
+   "courses": [
+    {
+     "name": "コンパイラ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "字句解析・構文解析・意味解析・コード生成など言語処理の要点を理論と実装観点で理解でき、ツール開発にも効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ゲーム開発では探索・整列・グラフ処理が頻出。適切なデータ構造とアルゴリズム選択、効率的実装の考え方を学ぶため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プログラムがCPU・メモリ・命令でどう実行されるか、データ表現やアセンブリまで理解し、最適化の勘所になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析〜設計〜テスト〜保守までの工程とUMLでの設計を学び、ゲームの大規模化に耐える開発に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Cで高度な使い方を演習込みで実装。データ構造をCで実現する流れを作れて、ゲーム実装の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "並列処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "高速実行のための並列性を学び、Pthread/OpenMP等で並列プログラミングを実践できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語の文法に基づき入力・実行、デバッグ、配列や文字列、関数呼び出しを学ぶため、応用Cでの高度なC実装の前提になる。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "データ表現の基礎や、データを扱うための手順、プログラミング・アルゴリズムの基礎を学び、探索やグラフなど適用例の理解の土台になる。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "「情報処理」はCの文法とプログラム作成を学び、応用Cで必要な“Cの文法・基本を理解”の前提になる。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "プロセッサ方式、メモリアーキテクチャ、入出アーキテクチャを学び、並列処理で性能と実行の理解を深める前提になる。",
+     "prerequisite_for": "並列処理"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "応用Cプログラミング",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 823,
+     "cached": 0,
+     "output": 100
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34788,
+     "cached": 22016,
+     "output": 2336
+    }
+   },
+   "seconds": {
+    "reading": 1.525857625001663,
+    "searching": 0.3929437089973362,
+    "selecting": 6.565548250000575
+   }
+  },
+  {
+   "occupation": "ソフトウェアテストエンジニア",
+   "repeat": 1,
+   "interpretation": "ソフトウェアテストエンジニア",
+   "assumption": null,
+   "skills": [
+    "ソフトウェア工学",
+    "テスト設計",
+    "プログラミング",
+    "品質保証",
+    "デバッグ",
+    "仕様理解"
+   ],
+   "candidates": [
+    "ソフトウェア工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学実験Ⅱ",
+    "情報処理演習",
+    "技術者倫理",
+    "ハードウェア記述言語",
+    "電子情報工学演習",
+    "データエンジニアリング基礎",
+    "電子情報工学入門",
+    "コンピュータアーキテクチャⅡ",
+    "コンパイラ",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "スポーツ方法実習Ⅱ(D)【バドミントン】",
+    "コンピュータアーキテクチャⅠ",
+    "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+    "工業技術概論",
+    "電気回路Ⅱ",
+    "情報処理",
+    "教養ゼミナール",
+    "スポーツ方法実習Ⅰ(D)【バドミントン】"
+   ],
+   "courses": [
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析から設計、モジュール設計、さらにプログラミング／ソフトウェアテストまで扱い、テスト設計に必要な工程理解を深められる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プログラム作成・デバッグ・テストを課題で反復し、テスト実行時に必要な確認や原因切り分けの基礎が身につく。",
+     "prerequisite_for": null
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 57
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 41877,
+     "cached": 26112,
+     "output": 808
+    }
+   },
+   "seconds": {
+    "reading": 1.4164148750023742,
+    "searching": 0.32715570899745217,
+    "selecting": 2.6913567910014535
+   }
+  },
+  {
+   "occupation": "電子回路設計エンジニア",
+   "repeat": 1,
+   "interpretation": "電子回路設計エンジニア",
+   "assumption": null,
+   "skills": [
+    "アナログ回路",
+    "ディジタル回路",
+    "電子回路設計",
+    "半導体素子",
+    "回路シミュレーション",
+    "測定・評価"
+   ],
+   "candidates": [
+    "電子情報工学演習",
+    "論理回路",
+    "電子回路Ⅱ",
+    "電子回路Ⅰ",
+    "半導体工学",
+    "電気回路Ⅱ",
+    "電子情報工学実験Ⅰ",
+    "電子情報工学実験Ⅱ",
+    "電気回路Ⅰ",
+    "ハードウェア記述言語",
+    "集積デバイス工学",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "高周波工学",
+    "教養ゼミナール",
+    "電子情報工学通論",
+    "信号処理",
+    "情報科学Ⅱ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "組み込みシステム",
+    "微分方程式／ラプラス変換"
+   ],
+   "courses": [
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ディジタルとアナログの違い、数・文字表現、論理数学と論理回路設計、検証まで回路設計の基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSFET中心に増幅回路、差動増幅、カレントミラー、オペアンプ演算回路を特性解析と設計として扱うため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSトランジスタやPN接合の基礎、小信号等価回路、各種接地回路を学び、設計の土台となる動作理解が得られるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "PN接合やMOSトランジスタの動作原理を学び、電流-電圧特性計算までできるようにするため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "過渡応答解析、2端子対、分布定数回路など、設計で必要な回路挙動の数学的解析手法を学べるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSトランジスタやオペアンプのSPICEと特性測定、加えてRTL設計とFPGA実装で評価・実装力を鍛えられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "交流のフェーザ表示や複素インピーダンスなど、回路の性質を解析できる基礎理論として使うため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "半導体デバイス特性からCMOS回路やメモリ動作、消費電力・速度の決まり方まで学べ、回路設計で直接使うため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "実験Ⅱはデバイス特性測定やシミュレーション、実験レポート作成を含むため、実験の進め方・測定装置の扱い等を学んだ前提が必要。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電気回路Ⅰの交流・過渡の解析には微分方程式モデルとラプラス変換の理解が前提になり、到達目標とつながるため。",
+     "prerequisite_for": "電気回路Ⅰ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ハードウェア記述言語",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "論理回路",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "集積デバイス工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "高周波工学",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 67
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33693,
+     "cached": 22016,
+     "output": 2711
+    }
+   },
+   "seconds": {
+    "reading": 1.4505458339990582,
+    "searching": 0.3098400830022001,
+    "selecting": 6.462638707998849
+   }
+  },
+  {
+   "occupation": "半導体プロセスエンジニア",
+   "repeat": 1,
+   "interpretation": "半導体プロセスエンジニア",
+   "assumption": null,
+   "skills": [
+    "半導体工学",
+    "プロセス工学",
+    "材料科学",
+    "微細加工",
+    "計測・評価",
+    "品質管理"
+   ],
+   "candidates": [
+    "半導体工学",
+    "電子回路Ⅰ",
+    "ソフトウェア工学",
+    "材料と化学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学実験Ⅰ",
+    "数理計画法",
+    "電子情報工学演習",
+    "集積デバイス工学",
+    "制御工学",
+    "物質科学",
+    "高周波工学",
+    "Computers in Education",
+    "教養ゼミナール",
+    "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+    "電子情報工学実験Ⅱ",
+    "工業技術概論",
+    "化学２",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "専門ゼミナール【目に見えない画像を可視化する技術】"
+   ],
+   "courses": [
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "半導体の特性、PN接合、MOSトランジスタ動作原理と電流-電圧特性を学び、LSI理解の中核になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSトランジスタ特性を基にCMOS回路・メモリ動作、レイアウトと低消費電力化を学ぶため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSトランジスタの特性測定、SPICE、オペアンプ特性、FPGA実装など計測・評価の実践を積めるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "半導体工学で扱うPN接合とMOSトランジスタの動作を、電流-電圧特性や小信号等価回路の理解へ接続するから。",
+     "prerequisite_for": "半導体工学"
+    },
+    {
+     "name": "材料と化学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "原子・分子レベルから材料構造と機能を理解することで、半導体結晶やキャリアに関する基礎理解（エネルギーバンド等）に取り組みやすい。",
+     "prerequisite_for": "半導体工学"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電子情報工学実験ⅡのMOS特性測定やSPICE/実験を行うために、測定装置の使い方、データ取得・整理が基礎になるから。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "物質科学",
+     "judgment": "foundation",
+     "reason": "材料と化学の「原子・分子レベルでの解説」に進むには、量子力学の入門や物質の粒子性・波動性の理解が土台になる。",
+     "prerequisite_for": "材料と化学"
+    }
+   ],
+   "expected": [
+    {
+     "name": "半導体工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 57
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36858,
+     "cached": 24064,
+     "output": 1629
+    }
+   },
+   "seconds": {
+    "reading": 0.9001307910002652,
+    "searching": 0.5163287499999569,
+    "selecting": 5.170832834002795
+   }
+  },
+  {
+   "occupation": "センサ開発エンジニア",
+   "repeat": 1,
+   "interpretation": "センサ開発エンジニア",
+   "assumption": "電子情報工学で身につく電子回路・計測・信号処理を土台に、センサ本体の開発に携わる職業として解釈した。",
+   "skills": [
+    "センサ工学",
+    "電子回路",
+    "計測工学",
+    "信号処理",
+    "半導体基礎",
+    "組込み制御"
+   ],
+   "candidates": [
+    "電子情報工学演習",
+    "近現代の科学技術",
+    "電子回路Ⅱ",
+    "電子情報工学実験Ⅰ",
+    "信号処理",
+    "半導体工学",
+    "組み込みシステム",
+    "工業技術概論",
+    "電子情報工学通論",
+    "電子回路Ⅰ",
+    "ソフトウェア工学",
+    "メディア情報処理",
+    "集積デバイス工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学実験Ⅱ",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "電気回路Ⅱ",
+    "確率統計",
+    "情報理論",
+    "論理回路"
+   ],
+   "courses": [
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSFET中心で増幅・差動・オペアンプ等を解析設計でき、センサ信号の前処理回路を作る基礎になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "計測で得る時系列信号を離散化し、周波数解析やディジタルフィルタ設計を学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "PN接合やMOSトランジスタ動作・特性を理解し、センサの能動素子側の理解に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "センサをマイコンで制御する前提として、センサー/アクチュエータ、入出力、マルチタスク等を学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "半導体デバイスを組み合わせたCMOS回路やメモリ、速度・消費電力の決まり方まで学べ、センサIC設計の土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "専門ゼミナール【目に見えない画像を可視化する技術】",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "イメージセンサの仕組みや光検出の原理を学び、センサ開発で必要な物理と性能議論の力になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "電子情報工学演習でC言語シミュレーションやロボット制御のプログラミングを行い、組み込みシステムでの組込みプログラミング実習理解の前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電子情報工学実験Ⅰで各種測定装置の使い方、データの取り方・整理を学び、電子回路Ⅱの特性解析や設計を行う際のデータ取得理解の前提になる。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電子回路Ⅰで学ぶPNダイオード動作原理、小信号等価回路、増幅の原理、寄生容量・高周波効果などが、電子回路Ⅱのバイアスと小信号等価回路や周波数応答の理解前提になる。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "ソフトウェア工学で要求分析、構造化/オブジェクト指向分析、アーキテクチャ設計、テストまで学び、組み込みシステム開発に必要な基本知識の前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "確率統計",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "確率・統計の基本と推定・仮説検定の方法を学び、信号の周波数スペクトル計算や解釈、ディジタルフィルタ設計で扱う不確かさ理解の前提になる。",
+     "prerequisite_for": "信号処理"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "信号処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "専門ゼミナール【目に見えない画像を可視化する技術】",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 827,
+     "cached": 0,
+     "output": 101
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35052,
+     "cached": 22016,
+     "output": 3084
+    }
+   },
+   "seconds": {
+    "reading": 1.3144899580001947,
+    "searching": 0.32856070900015766,
+    "selecting": 8.696108374999312
+   }
+  },
+  {
+   "occupation": "車載ソフトウェアエンジニア",
+   "repeat": 1,
+   "interpretation": "組込みソフトウェアエンジニア",
+   "assumption": "車載ソフトウェアエンジニアを、電子情報工学で学ぶ組込みソフトウェア開発の応用先として読んだ。",
+   "skills": [
+    "C言語",
+    "リアルタイム制御",
+    "組込みシステム",
+    "マイコン",
+    "通信プロトコル",
+    "ソフトウェア設計"
+   ],
+   "candidates": [
+    "組み込みシステム",
+    "応用Cプログラミング",
+    "制御工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "高周波工学",
+    "コンピュータネットワーク",
+    "ソフトウェア工学",
+    "電子情報工学入門",
+    "情報処理演習",
+    "オペレーティングシステム",
+    "電子情報工学通論",
+    "コンパイラ",
+    "通信理論",
+    "電子情報工学演習",
+    "情報科学Ⅱ",
+    "情報処理",
+    "微分方程式／ラプラス変換",
+    "コンピュータアーキテクチャⅠ",
+    "コンピュータアーキテクチャⅡ",
+    "情報理論"
+   ],
+   "courses": [
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "センサー/アクチュエータ、プロセッサ、メモリ、入出力、マルチタスクとスケジューリングまで扱い、組込み開発の基礎をそのまま仕事に接続できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "マイコンと基板設計、回路・3D部品、割込みまで含め、実装の流れと設計ツールの使い方を身につけられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IPなどのプロトコル基礎に加え、中間者攻撃や電子署名等を学べ、組込み機器の通信設計に必要な土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析からアーキテクチャ設計、モジュール設計、テスト、保守・再利用まで学び、車載の品質要件に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "組込みはマイコン上でC言語の実装が前提になりやすい。Cの関数・配列とポインタ等を練習し、組込みのプログラミング実習に接続できる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "制御工学",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "センサーの入出力や制御に、伝達関数にもとづくモデル化・解析・安定性判別・フィードバック設計が役立つ。組込みの実現設計の前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組込みのマルチタスクやスケジューリングを理解するには、プロセス管理、スケジューリング、同期と通信、割り込み、入出力制御の知識が必要。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "コンパイラ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "マイコンでのプログラム開発に関連し、コンパイラの「コード生成」「最適化」や構文解析などの流れを理解しておく。",
+     "prerequisite_for": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）"
+    },
+    {
+     "name": "通信理論",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "通信路符号化定理、復号（ビタビ復号）や最適受信など、通信の原理を理解しておくとネットワークの仕組みを数理側から捉えられる。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "ソフトウェア工学で「プログラミング」やテストを行う前提として、Cで基礎文法に基づくプログラム作成をできる状態にする。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組込みはメモリや入出力、割り込み等を意識する。命令セット、データ表現、メモリ、入出力、割り込みの観点が設計理解の前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組込みのメモリや入出力の理解に、プロセッサの制御方式、キャッシュ/仮想記憶、入出力システム制御が前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "情報処理演習",
+     "judgment": "foundation",
+     "reason": "C言語の文法に基づき、入力からデバッグ・テストまで自力で進める。応用Cで関数やポインタ等の発展学習をする前提になる。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "制御工学",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "応用Cプログラミング",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 100
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35379,
+     "cached": 23808,
+     "output": 2837
+    }
+   },
+   "seconds": {
+    "reading": 1.3531965830006811,
+    "searching": 0.4048943749985483,
+    "selecting": 7.05436862499846
+   }
+  },
+  {
+   "occupation": "IoT エンジニア",
+   "repeat": 1,
+   "interpretation": "IoTエンジニア",
+   "assumption": "IoTエンジニアは、電子情報工学科で学ぶ組込み・通信・制御を基盤にした職種として、そのまま解釈した。",
+   "skills": [
+    "組込みシステム",
+    "センサ工学",
+    "通信方式",
+    "制御工学",
+    "マイコンプログラミング",
+    "ネットワーク基礎"
+   ],
+   "candidates": [
+    "電子情報工学通論",
+    "組み込みシステム",
+    "近現代の科学技術",
+    "通信理論",
+    "制御工学",
+    "応用Cプログラミング",
+    "コンピュータネットワーク",
+    "情報と職業",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学演習",
+    "情報理論",
+    "工業技術概論",
+    "コンパイラ",
+    "データエンジニアリング基礎",
+    "電子情報工学入門",
+    "オペレーティングシステム",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "Non-verbal Communication",
+    "ソフトウェア工学",
+    "情報処理演習"
+   ],
+   "courses": [
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "CPSを含む組込みの考え方を、センサー/アクチュエータやプロセッサ、メモリ、入出力、マルチタスクまで体系的に学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ディジタル通信の動作原理や専門用語、パラメータの定量を学び、IoTの通信方式理解に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ラプラス変換による伝達関数で動的システムを表現・解析し、フィードバック制御の設計法まで扱うため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "マイコンでも多用するCで、データ構造や入出力、再帰やポインタまで実装力を付けられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "IoTの基盤であるTCP/IPの仕組み、IPアドレスや経路制御、無線/セキュリティを学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報理論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報量や情報源符号化、通信容量と符号化定理、畳込み符号などの基礎を押さえ、通信理論の符号・復号の理解に前提となる。",
+     "prerequisite_for": "通信理論"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "「C言語の文法に基づいて」プログラム作成とデバッグを行う内容が、応用Cでの高度なC活用の前提になるため。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 100
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35922,
+     "cached": 22016,
+     "output": 1968
+    }
+   },
+   "seconds": {
+    "reading": 1.322858665997046,
+    "searching": 0.31719250100286445,
+    "selecting": 6.659522165999078
+   }
+  },
+  {
+   "occupation": "医療機器の開発エンジニア",
+   "repeat": 1,
+   "interpretation": "組込みエンジニア",
+   "assumption": "医療機器の動作を支えるハードウェアとソフトウェアの開発者として、電子情報工学科で学ぶ組込み系の職業に近いものとして解釈した。",
+   "skills": [
+    "組込みプログラミング",
+    "電子回路",
+    "制御工学",
+    "信号処理",
+    "リアルタイム処理",
+    "C言語"
+   ],
+   "candidates": [
+    "組み込みシステム",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子回路Ⅱ",
+    "制御工学",
+    "信号処理",
+    "並列処理",
+    "応用Cプログラミング",
+    "電子情報工学演習",
+    "コンパイラ",
+    "電子回路Ⅰ",
+    "工業技術概論",
+    "メディア情報処理",
+    "オペレーティングシステム",
+    "情報処理演習",
+    "電子情報工学通論",
+    "ソフトウェア工学",
+    "電気回路Ⅱ",
+    "近現代の科学技術",
+    "情報理論",
+    "情報処理"
+   ],
+   "courses": [
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "組込み機器の設計に必要な基本概念を、センサー/アクチュエータやプロセッサ、マルチタスク、スケジューリングまで学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "マイコンと電子基板の設計手法、回路設計、入出力や割込みまで、実開発に近い流れを学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOS中心で特性解析と設計方法を学び、増幅回路の周波数応答や差動増幅、オペアンプ演算回路を扱うためセンサ/前処理の電子回路に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "伝達関数で動的システムを表現し、安定性や周波数応答、フィードバック制御の設計法を扱うため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "センサ値などの離散信号を、伝達関数・周波数解析・ディジタルフィルタ設計で解析できる基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "並列処理",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ハードウェアとソフトウェア両面から並列性を理解し、実装力として並列プログラミングを身につけられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "システム設計ＣＡＤでマイコン／プログラム開発やディジタル/アナログ入出力、割込みを扱うため、Cで応用まで実装できる前提が要るため。",
+     "prerequisite_for": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "システム設計ＣＡＤの電子基板設計／回路設計やマイコン周りの入出力理解に、半導体・増幅の基本が要るため（電子基板設計／回路設計に直結）。",
+     "prerequisite_for": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "並列処理でプロセッサ上の並列実行を扱う前に、割り込みや入出力の制御、プロセス管理・スケジューリングの概念が前提になるため。",
+     "prerequisite_for": "並列処理"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組込みシステムで扱う入出力やマルチタスク等を進める前に、C言語でプログラム作成・デバッグ・テストができる基礎が必要になるため。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組み込みシステムのC実装に必要な初歩として、Cの文法理解と初歩のプログラム作成までを前提にするため。",
+     "prerequisite_for": "組み込みシステム"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "信号処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 830,
+     "cached": 0,
+     "output": 107
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33627,
+     "cached": 22016,
+     "output": 2858
+    }
+   },
+   "seconds": {
+    "reading": 1.1867349170024681,
+    "searching": 0.29257545799555373,
+    "selecting": 6.8702720830006
+   }
+  },
+  {
+   "occupation": "半導体デバイスの研究者",
+   "repeat": 1,
+   "interpretation": "半導体デバイス研究者",
+   "assumption": "「半導体デバイスの研究者」を、電子情報工学で学ぶ半導体分野の研究職として解釈した。",
+   "skills": [
+    "半導体物性",
+    "量子力学",
+    "デバイス物理",
+    "電気回路",
+    "材料工学",
+    "測定解析"
+   ],
+   "candidates": [
+    "半導体工学",
+    "電子回路Ⅰ",
+    "物質科学",
+    "力学入門",
+    "電気回路Ⅰ",
+    "材料と化学",
+    "フーリエ解析",
+    "集積デバイス工学",
+    "電子回路Ⅱ",
+    "物理基礎",
+    "電子情報工学通論",
+    "電気回路Ⅱ",
+    "化学２",
+    "数理の世界",
+    "電子情報工学実験Ⅱ",
+    "高周波工学",
+    "情報の数理",
+    "スポーツ方法実習Ⅱ(D)【アダプテッドスポーツ】",
+    "電子情報工学実験Ⅰ",
+    "工業技術概論"
+   ],
+   "courses": [
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "PN接合・MOSトランジスタの原理やエネルギーバンド、空乏層幅計算まで扱い、半導体デバイス研究で核になる基礎を直に学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "PNダイオードやMOSFETの電流電圧特性，小信号等価回路，増幅原理を通じて、デバイスの電気的振る舞いを解析できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "MOSトランジスタ特性を基にCMOS回路・メモリ・レイアウトまで学び、デバイスをLSI機能へ結びつける理解が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "MOS中心でバイアス・小信号等価回路や周波数応答、差動増幅・オペアンプ等の設計解析を学び、測定解釈にも効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "物質科学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "半導体工学で固体のエネルギー帯・キャリア・伝導を扱う前に、量子の粒子性/波動性やトンネル効果、エネルギー準位の離散化の理解が要る。",
+     "prerequisite_for": "半導体工学"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電子回路ⅠでPN接合やMOSFETの特性に加え、小信号等価回路や増幅の原理を扱うため、電圧/電流・オームの法則・交流の複素表示の基礎が要る。",
+     "prerequisite_for": "電子回路Ⅰ"
+    },
+    {
+     "name": "材料と化学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "半導体工学は結晶や半導体材料を扱うため、材料の原子・分子レベル構造と機能の見方（無機/有機など）を先に学ぶと理解が進む。",
+     "prerequisite_for": "半導体工学"
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "集積デバイス工学で「スイッチング特性と同期設計」や消費電力を扱うため、電気回路Ⅱの「過渡現象」「交流電力」など時間応答の考え方が前提になる。",
+     "prerequisite_for": "集積デバイス工学"
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "MOSトランジスタのSPICEシミュレーションと特性測定を扱うため、集積デバイス工学でのMOS特性理解や回路特性への理解を深める前提になるから。",
+     "prerequisite_for": "集積デバイス工学"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "力学入門",
+     "judgment": "foundation",
+     "reason": "物質科学は序盤で「力学・電磁気学における古典的粒子の運動を簡単に振り返る」としており、力学入門の運動や法則の理解が前提になる。",
+     "prerequisite_for": "物質科学"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "judgment": "foundation",
+     "reason": "電子情報工学実験ⅡではMOS特性測定・SPICEシミュレーションやレポート作成を行うので、電子情報工学実験Ⅰでの測定装置の扱い・データ整理の手順が前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    }
+   ],
+   "expected": [
+    {
+     "name": "半導体工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "集積デバイス工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 827,
+     "cached": 0,
+     "output": 89
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 31374,
+     "cached": 19968,
+     "output": 2559
+    }
+   },
+   "seconds": {
+    "reading": 1.5071443330016336,
+    "searching": 0.33152708399939,
+    "selecting": 6.872203457998694
+   }
+  },
+  {
+   "occupation": "技術営業",
+   "repeat": 1,
+   "interpretation": "技術営業",
+   "assumption": null,
+   "skills": [
+    "製品知識",
+    "顧客要件整理",
+    "技術説明力",
+    "問題解決",
+    "提案書作成",
+    "通信・制御の基礎"
+   ],
+   "candidates": [
+    "電子情報工学演習",
+    "教養ゼミナール",
+    "コーオプ演習（理論）【通年】",
+    "理工系日本語の技法",
+    "社会と学ぶ課題解決",
+    "コーオプ演習（実践）",
+    "通信理論",
+    "電子情報工学通論",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "ソフトウェア工学",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "電子情報工学応用演習",
+    "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+    "情報理論",
+    "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+    "工業技術概論",
+    "Liberal Arts Seminar",
+    "特殊講義（基礎専門）Ⅰ（技術者のキャリア）",
+    "データ構造とアルゴリズム",
+    "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】"
+   ],
+   "courses": [
+    {
+     "name": "電子情報工学演習",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "データ解析・機器制御・通信/制御に関わる基礎を演習で身につけ、製品知識を技術的に説明できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ディジタル通信の原理・専門用語・パラメータを定量で理解し、顧客へ技術的に説明しやすくなるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "要求分析や設計、UML、テストまで学び、顧客課題に対する提案品質を上げられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報理論",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "情報量や通信容量などの定量概念を計算方法ごと理解し、要件整理と提案に活かせるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "効率的なプログラム作成に必要なデータ構造・アルゴリズムの考え方が、要求分析後の設計や実装に必要になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "judgment": "expected",
+     "reason": "問題発見・課題解決プロセスやプロジェクトマネジメント、調査分析、企画書・提案書のまとめ方を基礎にして実践へ進む。",
+     "prerequisite_for": "コーオプ演習（実践）"
+    },
+    {
+     "name": "理工系日本語の技法",
+     "judgment": "minority",
+     "reason": "企画書・提案書で論理的に文章構造化が必要で、理系報告書の構成や明瞭な文章展開が前提になる。",
+     "prerequisite_for": "コーオプ演習（実践）"
+    }
+   ],
+   "expected": [
+    {
+     "name": "コーオプ演習（実践）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "picked": null,
+     "searched": true,
+     "unlinked": true
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 821,
+     "cached": 0,
+     "output": 58
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 44130,
+     "cached": 28160,
+     "output": 2741
+    }
+   },
+   "seconds": {
+    "reading": 0.9877327499998501,
+    "searching": 0.3254176250011369,
+    "selecting": 8.688926375001756
+   }
+  },
+  {
+   "occupation": "技術系公務員(電気・情報)",
+   "repeat": 1,
+   "interpretation": "技術系公務員(電気・情報)",
+   "assumption": null,
+   "skills": [
+    "電気回路",
+    "情報工学",
+    "制御工学",
+    "通信工学",
+    "プログラミング",
+    "システム設計"
+   ],
+   "candidates": [
+    "情報と職業",
+    "電気回路Ⅰ",
+    "情報科学Ⅱ",
+    "制御工学",
+    "通信理論",
+    "情報処理演習",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学演習",
+    "電気回路Ⅱ",
+    "メディア情報処理",
+    "工業技術概論",
+    "電子情報工学通論",
+    "コンパイラ",
+    "ソフトウェア工学",
+    "電子情報工学入門",
+    "電子回路Ⅰ",
+    "情報理論",
+    "近現代の科学技術",
+    "高周波工学",
+    "情報処理"
+   ],
+   "courses": [
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "直流・交流回路の基礎からフェーザ/インピーダンス、電力まで解析し、電気系の設計・見積りに直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "コンピュータ構成や動作、通信と符号化、確率的処理、AIまでを体系的に学び情報系業務の土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "伝達関数と時間応答、安定判別、フィードバック設計を扱い制御系の仕様・評価に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ディジタル通信の原理、同期、誤り制御、変復調などの専門用語と計算を定量的に理解できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "組込みシステム設計の流れと電子基板・マイコンの実践的開発を学び、行政の技術調達にも使えるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "過渡応答、2端子対、分布定数など実用解析に進むため、電気システムのふるまい理解に直結するから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "要求分析からアーキテクチャ設計、UML実習、テスト、保守まで学びシステム設計に必要な開発手順を作れるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "ソフトウェア開発ではプログラミングとテストが必須で、情報処理演習でCの文法に基づき作成・デバッグ・動作確認まで行う力が前提。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "電子情報工学通論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報科学Ⅱはコンピュータ/情報理論/知的情報処理の本質や新しいコンピュータ・IoT・AIを理解する授業なので、電子情報工学通論で先端技術の概要を先に掴むのが前提になるから。",
+     "prerequisite_for": "情報科学Ⅱ"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "ソフトウェア開発で必要な要求分析や設計、プログラミング、テストに進む前提として、C言語で文法を学びプログラム作成ができることが必要。",
+     "prerequisite_for": "ソフトウェア工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "国の行政組織",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 830,
+     "cached": 0,
+     "output": 61
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33171,
+     "cached": 19968,
+     "output": 2669
+    }
+   },
+   "seconds": {
+    "reading": 1.137001250001049,
+    "searching": 0.3572052919989801,
+    "selecting": 6.798674707999453
+   }
+  },
+  {
+   "occupation": "FPGA エンジニア",
+   "repeat": 1,
+   "interpretation": "FPGA エンジニア",
+   "assumption": null,
+   "skills": [
+    "デジタル回路設計",
+    "論理回路",
+    "HDL記述",
+    "タイミング設計",
+    "組込みシステム",
+    "C言語"
+   ],
+   "candidates": [
+    "ハードウェア記述言語",
+    "論理回路",
+    "電気回路Ⅱ",
+    "現代人とヘルスケア",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "組み込みシステム",
+    "応用Cプログラミング",
+    "電子情報工学通論",
+    "電子回路Ⅱ",
+    "電子回路Ⅰ",
+    "教養ゼミナール",
+    "コンピュータアーキテクチャⅡ",
+    "オペレーティングシステム",
+    "情報処理演習",
+    "電子情報工学実験Ⅱ",
+    "集積デバイス工学",
+    "電気回路Ⅰ",
+    "情報理論",
+    "制御工学",
+    "ソフトウェア工学"
+   ],
+   "courses": [
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Verilog HDLで組み合わせ回路・順序回路を設計し、シミュレーションで動作確認する。FPGA実装に直結するHDL記述力が身につく。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "2進数表現や論理式から組合せ回路・順序回路、最適化まで学ぶ。FPGAの論理設計の基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "組込みの設計と特徴、センサー/アクチュエータ、プロセッサ、入出力、メモリ、マルチタスクとスケジューリングを概説する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語で関数・配列・ポインタ等の応用と課題実装を行う。組込みや制御プログラム作成の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Verilog-HDLでFPGA向けゲーム機を設計し実装する実験がある。HDLから実機までの流れを定着できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "実験Ⅱ(A)はMOSトランジスタやオペアンプの特性を理解し、回路定理・原理や増幅の基礎が前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "組み込みシステムで必要なプロセッサやメモリの方式（記憶階層、キャッシュ、入出力制御）を理解する前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "組み込みシステムで扱うマルチタスクやスケジューリングの考え方を、OSのプロセス管理・スケジューリングで支える。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "応用CはC言語の高度な使用法で、事前にC言語の文法と基礎的プログラム作成が必要なため。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "実験ではデバイスの特性理解やシミュレーション・測定を行うので、交流のフェーザ、インピーダンス、複素電力など回路解析の基礎を前提にする。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "情報理論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "組込みシステムの入出力制御やデータ扱いに関わるため、通信容量や復号(ビタビ)など情報理論の基礎・パラメータ計算を前提にできる。",
+     "prerequisite_for": "組み込みシステム"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ハードウェア記述言語",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "論理回路",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 61
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35304,
+     "cached": 22016,
+     "output": 2512
+    }
+   },
+   "seconds": {
+    "reading": 0.9667689589987276,
+    "searching": 0.5124099580025359,
+    "selecting": 8.121589124999446
+   }
+  },
+  {
+   "occupation": "フィールドエンジニア",
+   "repeat": 1,
+   "interpretation": "フィールドエンジニア",
+   "assumption": "電子情報工学科の学生が目指す職種として、製品の設置・保守・故障対応を行う技術職のフィールドエンジニアとして解釈した。",
+   "skills": [
+    "電子回路",
+    "計測技術",
+    "制御工学",
+    "通信工学",
+    "組込みシステム",
+    "故障解析"
+   ],
+   "candidates": [
+    "電子情報工学演習",
+    "電子回路Ⅱ",
+    "電子情報工学実験Ⅰ",
+    "制御工学",
+    "通信理論",
+    "組み込みシステム",
+    "コンパイラ",
+    "電子情報工学通論",
+    "電子回路Ⅰ",
+    "高周波工学",
+    "工業技術概論",
+    "情報理論",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "論理回路",
+    "電子情報工学実験Ⅱ",
+    "電気回路Ⅱ",
+    "電気回路Ⅰ",
+    "ソフトウェア工学",
+    "電子情報工学入門",
+    "オペレーティングシステム"
+   ],
+   "courses": [
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "MOSFET中心に増幅や差動、オペアンプ演算を学び、現場での回路の動作点・設計の基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "伝達関数と時間応答、安定性、フィードバック設計を扱うため、制御系の評価・設計に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "minority",
+     "reason": "ディジタル通信の原理、同期、誤り制御、変調・復調などの要点と計算を体系的に身につけるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "センサー/アクチュエータやプロセッサ、入出力、マルチタスク、スケジューリングを学び現場の実装に効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOS特性・オペアンプをSPICE/実験で理解し、Verilog-HDLやCで基礎を定着できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "C言語シミュレーションやロボットを用いたプログラミングを通し、組み込みシステムの設計・入出力や組込みプログラミング理解に必要な基礎になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "測定装置の扱い方、データの取り方、実験ノートやデータ整理の手順が、MOS特性測定やSPICE/実験結果のレポート作成の前提になるため。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "MOS電子回路の基本動作やPNダイオード、MOSFETの電流電圧特性、小信号等価回路、増幅原理を先に学ぶ前提になるため。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "論理回路",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "ディジタル回路の構造と設計方法、順序回路や検証テストを理解していることが、FPGAでの論理演算・レジスタ利用に関わる前提になるため。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "交流とフェーザによる複素インピーダンスや周波数特性、複素電力を扱う内容が、制御工学の周波数応答解析の前提になる。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "要求分析やアーキテクチャ設計、モジュール設計、テスト、保守再利用の考え方が、組み込みシステム開発の基礎となるため。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "割り込み、入出力の制御、プロセス管理やスケジューリングなどの概念が、組み込みでのマルチタスクやスケジューリング理解の前提になるため。",
+     "prerequisite_for": "組み込みシステム"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータネットワーク",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 100
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 32103,
+     "cached": 19968,
+     "output": 2983
+    }
+   },
+   "seconds": {
+    "reading": 1.3671592909995525,
+    "searching": 0.3301182510003855,
+    "selecting": 7.328983041999891
+   }
+  },
+  {
+   "occupation": "音響エンジニア",
+   "repeat": 1,
+   "interpretation": "音響エンジニア",
+   "assumption": null,
+   "skills": [
+    "信号処理",
+    "アナログ回路",
+    "ディジタル回路",
+    "音響工学",
+    "制御工学",
+    "プログラミング"
+   ],
+   "candidates": [
+    "信号処理",
+    "メディア情報処理",
+    "論理回路",
+    "電子回路Ⅱ",
+    "高周波工学",
+    "制御工学",
+    "情報処理演習",
+    "電子情報工学演習",
+    "電子情報工学通論",
+    "電気回路Ⅱ",
+    "ハードウェア記述言語",
+    "フーリエ解析",
+    "工業技術概論",
+    "コンパイラ",
+    "電子情報工学入門",
+    "情報理論",
+    "電子回路Ⅰ",
+    "電気回路Ⅰ",
+    "振動波動入門",
+    "ソフトウェア工学"
+   ],
+   "courses": [
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声などの時系列信号を離散化して、伝達関数・周波数解析・ディジタルフィルタを学び音響で直接使える処理を身につけるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "メディア情報処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声情報処理を中心に、MATLABで実装しながら信号処理・周波数フィルタリング等の基礎を掴み音響向けに活用できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ディジタルとアナログの違いや数・文字の表現、組合せ・順序回路の設計を学び、信号処理実装に必要な土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "トランジスタ増幅、周波数応答、差動増幅、オペアンプと演算回路を扱い、アナログ信号処理に必要な回路設計力が得られるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "伝達関数に基づき時間応答や安定性、フィードバック制御の設計法を学ぶため、音響系の制御に直結するから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語で入力・制御構造・配列・デバッグ・レポートを実地で身につけ、信号処理/音声処理の実装に必要な土台になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学の伝達関数・安定判別の理解に、電気回路IIの過渡応答解析や2端子対・分布定数回路などの動的システムの見方が前提になるため。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "論理回路の理解を、組合せ/順序回路をVerilog HDLで設計しシミュレーション確認する流れで固めるため。",
+     "prerequisite_for": "論理回路"
+    },
+    {
+     "name": "フーリエ解析",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "フーリエ級数・フーリエ変換・DFT/DCTを学び、信号の周波数解析やスペクトル計算の考え方の前提になるため。",
+     "prerequisite_for": "信号処理"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "PNダイオードやMOSの小信号等価回路、各種接地回路、寄生容量や高周波効果を学び、電子回路Ⅱの増幅や周波数応答に繋がるため。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "フェーザや複素インピーダンス、周波数特性、複素電力などを扱うため、ラプラス変換による動的システム解析の前提になるため。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "振動波動入門",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "音波と波動方程式、正弦波の重ね合わせなど、音声の“波”としての理解（運動方程式・波の性質）が、信号の周波数解析や表現の前提になるため。",
+     "prerequisite_for": "信号処理"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "信号処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "メディア情報処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "振動波動入門",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 60
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 31863,
+     "cached": 19968,
+     "output": 2841
+    }
+   },
+   "seconds": {
+    "reading": 1.0050636659980228,
+    "searching": 0.3576021260014386,
+    "selecting": 7.334805958002107
+   }
+  },
+  {
+   "occupation": "自然言語処理エンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "自然言語処理エンジニアを、自然言語を扱うソフトウェア開発全般の IT エンジニアとして読んだ。",
+   "skills": [
+    "Python",
+    "機械学習",
+    "統計学",
+    "自然言語処理",
+    "データ分析",
+    "アルゴリズム"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "応用Cプログラミング",
+    "ＡＩ・機械学習",
+    "確率統計",
+    "Introduction to Computational Linguistics",
+    "データサイエンス・AI基礎",
+    "データ構造とアルゴリズム",
+    "情報と職業",
+    "情報処理演習",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "教養ゼミナール",
+    "Understanding Language",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "数理の世界",
+    "情報科学Ⅱ",
+    "情報処理",
+    "近現代の科学技術",
+    "数理計画法",
+    "コンパイラ",
+    "心理学入門"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ビッグデータの収集・整形・蓄積、データベース抽出、可視化まで扱い、ITエンジニアの実務に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "効率的な処理のための実装力をCで養い、データ構造やアルゴリズム実装の基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "機械学習から深層学習までをMATLAB実装で学び、自然言語以外も含む分析・予測に使える。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "確率分布、推定、仮説検定を基礎から学び、機械学習の評価や統計的判断に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ分析の進め方と設計、数学の基礎、機械学習と深層学習の考え方を演習で身につけられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "探索・整列・グラフなどを学び、効率を意識した設計を行うための核となる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理演習でC言語の文法に基づき配列などを自分でデバッグ・テストする力を作り、応用Cの発展的実装に進める。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "応用CはC文法のより高度な使用が目的で、情報処理でCの文法と基本プログラム作成を済ませる前提になる。",
+     "prerequisite_for": "応用Cプログラミング"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "Introduction to Computational Linguistics",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 89
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34140,
+     "cached": 22016,
+     "output": 2322
+    }
+   },
+   "seconds": {
+    "reading": 1.32410983400041,
+    "searching": 0.31102474900035304,
+    "selecting": 6.082481207999081
+   }
+  },
+  {
+   "occupation": "データエンジニア",
+   "repeat": 1,
+   "interpretation": "データエンジニア",
+   "assumption": null,
+   "skills": [
+    "データベース",
+    "データ処理",
+    "プログラミング",
+    "SQL",
+    "アルゴリズム",
+    "統計"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "データ構造とアルゴリズム",
+    "信号処理",
+    "情報処理演習",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "数理の世界",
+    "確率統計",
+    "情報と職業",
+    "情報技術と社会",
+    "情報処理",
+    "コンパイラ",
+    "教養ゼミナール",
+    "数理計画法",
+    "物質科学",
+    "電子情報工学演習",
+    "情報科学Ⅱ",
+    "メディア情報処理",
+    "応用Cプログラミング",
+    "並列処理",
+    "数学Ⅲ（線形代数）"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ビッグデータを「分析・管理・保護」し、データ表現や収集、データ整形・加工、データベース抽出まで概観し、扱う手順と基礎を体系的に学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "効率的なプログラム作成に必要な考え方を、探索・整列・グラフなど具体例で学び、データ処理で要点となる選択力を鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語の文法に基づき自分でプログラムを作りデバッグ・テストするため、データ処理やSQL連携前の実装力の核になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "確率・統計の基礎に加え、推定や仮説検定を学び、コンピュータで実践的な統計処理方法を習得できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "C言語でデータを読み込み表示し、制御構造や配列・関数・ポインタまで扱えるようになるので、データ処理の実装基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ構造をCで実現する内容があり、関数・配列/ポインタ応用などを通じてデータ処理を作り込む力がつく。",
+     "prerequisite_for": null
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "信号処理",
+     "judgment": "unrelated",
+     "reason": "メディア情報処理は「信号処理」として周波数フィルタリング等を扱うので、信号を離散化して周波数解析する基礎が前提。",
+     "prerequisite_for": "メディア情報処理"
+    },
+    {
+     "name": "数学Ⅲ（線形代数）",
+     "judgment": "unrelated",
+     "reason": "信号処理では伝達関数やインパルス応答、周波数領域表現で解析するため、行列・連立方程式などの計算理解が前提。",
+     "prerequisite_for": "信号処理"
+    }
+   ],
+   "expected": [
+    {
+     "name": "データエンジニアリング基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 53
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33654,
+     "cached": 22016,
+     "output": 2072
+    }
+   },
+   "seconds": {
+    "reading": 0.8732930420010234,
+    "searching": 0.29859183299777214,
+    "selecting": 5.327799375001632
+   }
+  },
+  {
+   "occupation": "クラウドエンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "クラウド基盤を含むソフトウェア開発全般のITエンジニアとして解釈した。",
+   "skills": [
+    "ネットワーク",
+    "OS",
+    "分散システム",
+    "プログラミング",
+    "データベース",
+    "情報セキュリティ"
+   ],
+   "candidates": [
+    "情報と職業",
+    "コンピュータネットワーク",
+    "オペレーティングシステム",
+    "組み込みシステム",
+    "情報処理演習",
+    "データエンジニアリング基礎",
+    "情報科学Ⅲ",
+    "情報技術と社会",
+    "情報社会と倫理",
+    "コンピュータアーキテクチャⅠ",
+    "並列処理",
+    "コンパイラ",
+    "データ構造とアルゴリズム",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "情報科学Ⅱ",
+    "情報理論",
+    "コンピュータアーキテクチャⅡ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "情報処理",
+    "専門ゼミナール【二次元コードのデザイン演習】"
+   ],
+   "courses": [
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IPの基本、IP/プロトコルの役割、DNS等を理解し、さらに中間者攻撃や防御技術を学ぶため。クラウド/通信系で直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "プロセス管理、スケジューリング、同期通信、実/仮想記憶、入出力、仮想化を学び、クラウドでの基盤理解に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cでの入力〜デバッグ〜テストまでを実施し、分散/クラウド開発で必要な基礎実装力の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ビッグデータの収集・蓄積・保護、データ表現、DBからの抽出、可視化まで扱い、データ基盤構築に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "暗号方式、電子署名、認証、ネットワークセキュリティ等を学び、ITエンジニアに必須のセキュリティ基礎を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "並列処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "並列性の原理とPthread/OpenMPでの実践を通じ、高速実行の設計・実装に必要な力を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "minority",
+     "reason": "効率的なプログラムのための探索・整列・グラフ等の選択と実装の考え方を学ぶため。開発全般に効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cでプログラミングを学び、配列・多次元、関数、ポインタまで扱うため、実装の土台を直接補強できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "「命令セット」「データの表現」「算術論理演算」など基本動作の理解が、「並列処理概論」「Pthread/OpenMP」の仕組み理解の前提になる。",
+     "prerequisite_for": "並列処理"
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "通信と符号化や確率的情報処理などの基盤を学んだ上で、暗号方式やセキュリティプロトコルを理解するため。",
+     "prerequisite_for": "情報科学Ⅲ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "オペレーティングシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 826,
+     "cached": 0,
+     "output": 83
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36828,
+     "cached": 24064,
+     "output": 2639
+    }
+   },
+   "seconds": {
+    "reading": 1.1835480419977102,
+    "searching": 0.3853382490015065,
+    "selecting": 6.960371917000884
+   }
+  },
+  {
+   "occupation": "検索・推薦システムのエンジニア",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "検索・推薦システムのような Web/アプリ基盤の実装を担うソフトウェア系の職種として、電子情報工学科で備えられる広い IT エンジニアに解釈した。",
+   "skills": [
+    "アルゴリズム",
+    "データ構造",
+    "機械学習",
+    "情報検索",
+    "データベース",
+    "Python"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "データ構造とアルゴリズム",
+    "応用Cプログラミング",
+    "ＡＩ・機械学習",
+    "情報と職業",
+    "情報技術と社会",
+    "情報処理演習",
+    "データサイエンス・AI基礎",
+    "数理の世界",
+    "情報処理",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "情報社会と倫理",
+    "情報科学Ⅱ",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "電子情報工学入門",
+    "数理計画法",
+    "コンピュータアーキテクチャⅡ",
+    "近現代の科学技術",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "情報科学Ⅲ"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ表現、データ収集、整形加工、データベース抽出、可視化まで扱い、検索・推薦のデータ基盤構築に必要だから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ構造と探索・整列・グラフなど、Web/アプリの要となる効率設計の考え方を学べるため。問題ごとに適切な手法選択できる力が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "深層学習まで、機械学習のワークフローや回帰・分類・CNNをMATLABで実装でき、検索・推薦の学習基盤になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cでのプログラム作成、デバッグ、テストを通じて実装力を作り、Web/アプリ基盤の実装作業に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ分析の進め方、数学の基礎、機械学習の流れを演習で習得し、検索・推薦の実装に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理でC言語の文法を学び、情報処理演習の「C言語の文法に基づいて実際にプログラムを作る」前提になるため。",
+     "prerequisite_for": "情報処理演習"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データエンジニアリング基礎に「ITセキュリティ」がテーマとしてある。情報社会と倫理はサイバーセキュリティや個人情報保護などを扱い、データ管理の前提になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データエンジニアリング基礎ではデータ収集・データベース・保護を扱う。情報科学Ⅱはコンピュータ構成や通信と符号化、AI等の理解を扱う。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 830,
+     "cached": 0,
+     "output": 105
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 37425,
+     "cached": 24064,
+     "output": 2515
+    }
+   },
+   "seconds": {
+    "reading": 1.3396255830011796,
+    "searching": 0.31066016699696775,
+    "selecting": 6.689434916002938
+   }
+  },
+  {
+   "occupation": "社内 SE(情報システム部門)",
+   "repeat": 1,
+   "interpretation": "社内SE",
+   "assumption": "社内の情報システム部門で、社内システムの導入・運用・改善を担う IT エンジニアとして解釈した。",
+   "skills": [
+    "情報システム",
+    "ネットワーク",
+    "データベース",
+    "プログラミング",
+    "セキュリティ",
+    "システム運用管理"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報技術と社会",
+    "コンピュータネットワーク",
+    "データエンジニアリング基礎",
+    "情報処理演習",
+    "情報科学Ⅲ",
+    "オペレーティングシステム",
+    "電子情報工学入門",
+    "情報科学Ⅱ",
+    "情報社会と倫理",
+    "データ構造とアルゴリズム",
+    "コンパイラ",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "ソフトウェア工学",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "情報処理",
+    "情報理論",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "応用Cプログラミング",
+    "平和人権フィールドスタディ【通年】"
+   ],
+   "courses": [
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "社内で使うネットワークを支えるため、TCP/IPの基本やDNS等の役割、サイバー攻撃と防御の考え方を体系的に学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "社内データの収集・蓄積・保護や抽出、可視化までを学び、運用改善に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "暗号方式、電子署名、脅威と対策、ネットワークセキュリティ等を扱い、社内システムの安全運用に必要だから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "プロセス管理、同期通信、実/仮想記憶、ファイルシステム、入出力制御を理解し、運用と性能課題の判断に役立つため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "要求分析や設計、UML、テスト、保守を学び、社内システムの導入・改善を計画的に進める基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cで入力・制御・配列・関数などを基礎から実装できるようになり、運用改善の自動化や簡易開発に使えるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理演習でCの文法に基づきプログラム作成・デバッグを習得し、情報処理のC文法習得と初歩プログラム作成の前提になるため。",
+     "prerequisite_for": "情報処理"
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報科学Ⅱで通信と符号化の基礎を扱い、コンピュータネットワークのプロトコルやインターネット動作理解の前提になるため。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報社会と倫理でプライバシーやサイバーセキュリティ、暗号技術の基礎を学び、情報科学Ⅲの暗号方式や脅威対策、電子署名理解の前提になるため。",
+     "prerequisite_for": "情報科学Ⅲ"
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "データ構造とアルゴリズムで探索・整列・グラフ等の効率的手法を学び、データ分析演習やデータベースからの抽出、加工の考え方の前提になるため。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報理論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報理論で情報量や通信容量、復号などの考え方を学び、情報科学Ⅲのセキュリティプロトコルや暗号・署名の理解に必要な前提になるため。",
+     "prerequisite_for": "情報科学Ⅲ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 93
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 38277,
+     "cached": 24064,
+     "output": 2475
+    }
+   },
+   "seconds": {
+    "reading": 1.4686782080025296,
+    "searching": 0.36923012499755714,
+    "selecting": 5.641432959000667
+   }
+  },
+  {
+   "occupation": "金融系システムエンジニア",
+   "repeat": 1,
+   "interpretation": "金融系システムエンジニア",
+   "assumption": "電子情報工学科で学ぶ情報システム開発の知識を土台に、金融業務向けのシステムを担当する職業として解釈した。",
+   "skills": [
+    "プログラミング",
+    "データベース",
+    "ソフトウェア設計",
+    "ネットワーク",
+    "情報セキュリティ",
+    "システム開発"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "データエンジニアリング基礎",
+    "ソフトウェア工学",
+    "コンピュータネットワーク",
+    "情報科学Ⅲ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学演習",
+    "コンパイラ",
+    "データ構造とアルゴリズム",
+    "ハードウェア記述言語",
+    "情報社会と倫理",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "オペレーティングシステム",
+    "情報技術と社会",
+    "情報処理",
+    "情報科学Ⅱ",
+    "組み込みシステム",
+    "情報理論",
+    "情報の数理"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "金融データを扱う前提として、データ表現・収集・整形加工・データベース抽出・分析と可視化まで一連を学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "金融業務向けシステムで必須の要求分析、設計、アーキテクチャ設計、モジュール設計、テスト、保守再利用を学ぶ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "決済や口座情報の通信で必要なTCP/IP、経路制御、主要プロトコル、攻撃と防御、暗号技術を体系的に学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅲ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "金融系SIで重要な暗号・電子署名・認証・セキュリティプロトコル、ネットワークセキュリティの基礎を扱う。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "効率のためのデータ構造と探索・整列・グラフを学び、金融系の高速処理に必要な設計力を鍛えられるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ分析の演習で必要な「プログラミングの基礎」を、入力・制御構造・配列・デバッグまで行う内容が支える。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "個人情報とプライバシー確保、サイバーセキュリティ、暗号の基礎や応用を学び、セキュリティ設計の判断の前提になるため。",
+     "prerequisite_for": "情報科学Ⅲ"
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "ネットワーク理解の土台として、通信や符号化、確率的情報処理、ソフトウェア/プログラミングを含む基礎を先に学ぶ。",
+     "prerequisite_for": "コンピュータネットワーク"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 105
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35046,
+     "cached": 22016,
+     "output": 2125
+    }
+   },
+   "seconds": {
+    "reading": 1.1698589160005213,
+    "searching": 0.3207007089986291,
+    "selecting": 5.379253499999322
+   }
+  },
+  {
+   "occupation": "プロダクトマネージャー",
+   "repeat": 1,
+   "interpretation": "プロダクトマネージャー",
+   "assumption": "電子情報工学科の学生が目指す文脈では、製品企画と開発推進を担うプロダクトマネージャーとして解釈した。",
+   "skills": [
+    "要件定義",
+    "システム設計",
+    "データ分析",
+    "ソフトウェア開発",
+    "プロジェクト管理",
+    "ユーザ分析"
+   ],
+   "candidates": [
+    "ソフトウェア工学",
+    "電子情報工学演習",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "データエンジニアリング基礎",
+    "並列処理",
+    "数理計画法",
+    "心理学入門",
+    "情報と職業",
+    "組み込みシステム",
+    "オペレーティングシステム",
+    "確率統計",
+    "電子情報工学入門",
+    "コーオプ演習（理論）【通年】",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "Liberal Arts Seminar",
+    "特殊講義（教養Ｅ）Ⅰ（清水寺の△△の○○（良い点）を磨け！、もしくは□□（困っている点）を救え!）【通年】",
+    "ハードウェア記述言語",
+    "データサイエンス・AI基礎",
+    "コンパイラ",
+    "Introductory Course to International Project Development"
+   ],
+   "courses": [
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "要求分析から設計、UML、テストまで学び、製品の仕様化と実装品質確保に直結するから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "minority",
+     "reason": "データ収集・整形・DB抽出・可視化まで扱い、ユーザ分析や効果検証の土台になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "心理学入門",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "記憶や行動分析などの枠組みを理解し、ユーザ行動を観察・分類して仮説にする視点が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "センサー/アクチュエータやマルチタスク、スケジューリングを学び、IoT系製品の要求に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "プロセス管理や同期・通信、入出力制御などを理解し、ソフトの挙動を設計・要件に落とし込める。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "問題発見から課題解決、プロジェクトマネジメント、調査分析、企画立案、提案書作成まで扱うから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "データ分析の進め方や設計、AI/機械学習を学び、ユーザや効果を根拠ある指標で判断する土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "Excel演習やC言語のシミュレーション、データ処理技術・基礎的デザイン力を育て、要求分析や開発工程の理解に必要だから。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "確率統計",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "確率・統計の基礎と推定、仮説検定を学び、データ分析演習での解釈や検証の前提になるから。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "電子情報工学入門",
+     "judgment": "unrelated",
+     "reason": "データ解析演習やC言語シミュレーションに必要な学び方・情報リテラシ（資料検索やPC/UNIX使用）を押さえる。",
+     "prerequisite_for": "電子情報工学演習"
+    }
+   ],
+   "expected": [
+    {
+     "name": "コーオプ演習（実践）",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 826,
+     "cached": 0,
+     "output": 99
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36192,
+     "cached": 22016,
+     "output": 2201
+    }
+   },
+   "seconds": {
+    "reading": 1.3681778749996738,
+    "searching": 0.31306154200137826,
+    "selecting": 5.876856416998635
+   }
+  },
+  {
+   "occupation": "EV・蓄電池の制御エンジニア",
+   "repeat": 1,
+   "interpretation": "制御エンジニア",
+   "assumption": "EV・蓄電池の制御を担う、電子情報工学で学ぶ制御分野の職種として解釈した。",
+   "skills": [
+    "制御工学",
+    "電気回路",
+    "組込みプログラミング",
+    "信号処理",
+    "電力電子工学",
+    "システム設計"
+   ],
+   "candidates": [
+    "電子情報工学演習",
+    "制御工学",
+    "電気回路Ⅰ",
+    "組み込みシステム",
+    "信号処理",
+    "電子情報工学通論",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "工業技術概論",
+    "ソフトウェア工学",
+    "電気回路Ⅱ",
+    "応用Cプログラミング",
+    "メディア情報処理",
+    "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+    "オペレーティングシステム",
+    "電子情報工学入門",
+    "近現代の科学技術",
+    "電子回路Ⅰ",
+    "コンパイラ",
+    "情報理論",
+    "電子情報工学実験Ⅰ"
+   ],
+   "courses": [
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ラプラス変換で動的システムを表し、時間応答・安定性・周波数応答を解析。フィードバック制御の目的と設計法も学べ、EV/蓄電の制御設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "機器内蔵の計算機で制御する仕組みを、ハード/ソフト両面で概説。センサー/アクチュエータ、プロセッサ、マルチタスク等を扱い制御実装に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "離散化された信号を、伝達関数・インパルス応答・周波数解析で解析。センサ計測→状態推定や制御に必要な処理の基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "組込み実装で使うC言語で、データ処理・入出力・レポート課題を通じて実装力を作れるため。制御ロジックの実装に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "データ処理とC言語シミュレーション、ロボット制御のプログラミング演習で、制御を動かす発想と設計力の基礎を作れる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "交流とフェーザ、インピーダンス、複素電力などを学び、制御対象の電気的振る舞い（回路の周波数特性）を理解する前提になる。",
+     "prerequisite_for": "制御工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "制御工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "専門ゼミナール【エネルギー活用とシミュレーション・状態推定技術～EV、蓄電池と社会～】",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 832,
+     "cached": 0,
+     "output": 93
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 35706,
+     "cached": 22016,
+     "output": 2055
+    }
+   },
+   "seconds": {
+    "reading": 1.055011292002746,
+    "searching": 0.3359020829957444,
+    "selecting": 6.137581082999532
+   }
+  },
+  {
+   "occupation": "空調・家電の制御エンジニア",
+   "repeat": 1,
+   "interpretation": "制御エンジニア",
+   "assumption": "空調・家電の制御を担当する制御エンジニアとして解釈した。",
+   "skills": [
+    "制御工学",
+    "マイコン制御",
+    "信号処理",
+    "組込みC言語",
+    "センサ工学",
+    "システム設計"
+   ],
+   "candidates": [
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "制御工学",
+    "組み込みシステム",
+    "信号処理",
+    "情報処理演習",
+    "近現代の科学技術",
+    "ソフトウェア工学",
+    "電子情報工学演習",
+    "工業技術概論",
+    "電子情報工学実験Ⅲ",
+    "メディア情報処理",
+    "応用Cプログラミング",
+    "電子情報工学通論",
+    "オペレーティングシステム",
+    "電子情報工学入門",
+    "微分方程式／ラプラス変換",
+    "電子情報工学実験Ⅱ",
+    "情報理論",
+    "情報処理",
+    "専門ゼミナール【目に見えない画像を可視化する技術】"
+   ],
+   "courses": [
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "マイコン入出力や割込みを含む組込み開発の流れと、電子基板・3D部品まで設計手法を掴めるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "ラプラス変換で動的システムを表し、伝達関数・安定性・周波数応答・フィードバック設計を学び、空調家電の制御設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "センサー・アクチュエータ、プロセッサ、入出力、マルチタスクとスケジューリングなど、家電制御の実装基盤を理解できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "計測信号を離散化して解析し、周波数特性やディジタルフィルタ設計を学べるため、センサ信号処理に役立つ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cで関数・配列・ポインタなど高度な実装を行い、自動制御のロジックを組み込むための土台になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "特殊講義は組込みでマイコン／プログラム開発やディジタル・アナログ入出力のプログラミング、割込みまで扱うため、Cの基礎が必要。",
+     "prerequisite_for": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）"
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組み込みシステムは設計（ハードウェアとソフトウェア）を扱うため、ソフトウェア開発工程、要求分析、アーキテクチャ設計などの前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "組み込みシステムでマルチタスクとスケジューリングを扱うため、OSのプロセス管理やスケジューリングの概念が前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学はラプラス変換（伝達関数）に基づくので、ラプラス変換や微分方程式への応用の理解が前提になるため。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "信号処理では離散化ディジタル信号の解析を学ぶため、データ読み込み・表示や制御構造、関数での処理実装の基礎が前提になる。",
+     "prerequisite_for": "信号処理"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "制御工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 831,
+     "cached": 0,
+     "output": 82
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 37095,
+     "cached": 24064,
+     "output": 2158
+    }
+   },
+   "seconds": {
+    "reading": 0.9733643330000632,
+    "searching": 0.33112591700046323,
+    "selecting": 5.6164159159998235
+   }
+  },
+  {
+   "occupation": "電子部品の開発エンジニア",
+   "repeat": 1,
+   "interpretation": "電子部品開発",
+   "assumption": "電子部品そのものの設計・試作・評価を行う職種として解釈した。",
+   "skills": [
+    "回路理論",
+    "電子材料",
+    "半導体工学",
+    "電気電子計測",
+    "信頼性工学",
+    "CAD設計"
+   ],
+   "candidates": [
+    "半導体工学",
+    "電気回路Ⅱ",
+    "材料と化学",
+    "電子回路Ⅰ",
+    "電子情報工学実験Ⅰ",
+    "確率統計",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "電子情報工学演習",
+    "電気回路Ⅰ",
+    "化学２",
+    "集積デバイス工学",
+    "電子情報工学実験Ⅱ",
+    "技術者倫理",
+    "ハードウェア記述言語",
+    "電子情報工学通論",
+    "通信理論",
+    "教養ゼミナール",
+    "高周波工学",
+    "電子回路Ⅱ",
+    "ソフトウェア工学"
+   ],
+   "courses": [
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "結晶・エネルギーバンド、PN接合、MOSFETの動作原理とI-V算出を学び、電子部品設計の物理的根拠になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "半導体物理から始め、PNダイオード、MOSの電流電圧特性と増幅・小信号等価回路を扱い、部品の基本動作を回路として捉えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "組込みシステム設計の手法と電子基板設計、部品ライブラリ、3D CADなどを扱い、開発で必要なCADスキルに直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOS特性を基にCMOS回路やメモリ動作を理解し、低消費電力やレイアウト設計まで含めて部品開発に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOS/オペアンプ特性をSPICEと実験で理解し、Verilog-HDLやCで集積回路設計・実装・評価の流れを体得できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "材料と化学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "材料の構造と機能を原子・分子レベルで捉える内容で、半導体の基礎特性理解の前提になる。",
+     "prerequisite_for": "半導体工学"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "測定装置の扱い、データの取り方、実験ノートと整理・報告書の書き方を学び、実験Ⅱの立案・実施に必要。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "確率統計",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "確率変数や推定、仮説検定の基礎とMatlab等での統計処理を学ぶ内容が、実験データ解析の前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "直流・交流、複素数表示、インピーダンスなどを学び、電子回路で必要な回路解析の土台になる。",
+     "prerequisite_for": "電子回路Ⅰ"
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "組合せ/順序回路をVerilog HDLで設計し、シミュレーションで動作確認する力が、実験ⅡのVerilog-HDL設計に必要。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "高周波工学",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "集中・分布定数回路の違いや高周波での電子部品特性などを理解し、LSI設計での実用的な振る舞い把握に役立つ。",
+     "prerequisite_for": "集積デバイス工学"
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "MOS中心にバイアスと小信号等価回路、増幅回路の周波数応答、オペアンプまで扱い、電子回路Ⅰの理解を補強する。",
+     "prerequisite_for": "電子回路Ⅰ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "高周波工学",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 77
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33729,
+     "cached": 22016,
+     "output": 3037
+    }
+   },
+   "seconds": {
+    "reading": 1.1585055420000572,
+    "searching": 0.48017629199966905,
+    "selecting": 7.468671582999377
+   }
+  },
+  {
+   "occupation": "放送・映像機器の技術者",
+   "repeat": 1,
+   "interpretation": "放送・映像機器の技術者",
+   "assumption": null,
+   "skills": [
+    "信号処理",
+    "画像処理",
+    "アナログ回路",
+    "デジタル回路",
+    "制御工学",
+    "通信工学"
+   ],
+   "candidates": [
+    "信号処理",
+    "メディア情報処理",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "論理回路",
+    "電子回路Ⅱ",
+    "制御工学",
+    "通信理論",
+    "電子情報工学通論",
+    "情報理論",
+    "電子情報工学実験Ⅱ",
+    "電気回路Ⅱ",
+    "ハードウェア記述言語",
+    "工業技術概論",
+    "高周波工学",
+    "電子情報工学演習",
+    "フーリエ解析",
+    "ＡＩ・機械学習",
+    "電子回路Ⅰ",
+    "電気回路Ⅰ",
+    "ソフトウェア工学"
+   ],
+   "courses": [
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声・画像・通信で扱う信号を、離散化したディジタル信号として解析し、周波数特性やディジタルフィルタ設計の考え方まで直接学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "メディア情報処理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "音声・画像・動画をMATLABで処理し、画像処理（空間/周波数フィルタ、幾何変換、2値画像、特徴抽出）を実装ベースで学べるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "論理回路",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ディジタルとアナログの違い、論理数学、組合せ/順序回路、検証テストまでを学び、放送・映像機器の基盤設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSFET中心に増幅・周波数応答・差動増幅・オペアンプ回路を学び、映像機器のアナログ信号処理基盤になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ラプラス変換（伝達関数）で動的システムを表し、時間応答や安定性、フィードバック制御を評価できるようになるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データを双方向でやりとりする原理を、同期・誤り制御・復調など具体技術と計算パラメータで理解できるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "組合せ回路/順序回路をVerilog HDLで設計し、シミュレーションで動作確認できるため。放送・映像機器の実装に必要。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "高周波工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "マイクロ波の特徴、分布定数/集中定数、インピーダンス整合、スミスチャートを学び、無線・高周波周辺回路の設計に効くため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学通論",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "先端技術の概説（画像処理に関わる分野の全体像）を掴み、音声・画像処理の基礎知識へつなげるため。",
+     "prerequisite_for": "メディア情報処理"
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語で画像・映像処理を実装し、RGB-YUV変換や画像のフィルタリング、動画差分処理を行うため、メディア情報処理の実装学習の前提になる。",
+     "prerequisite_for": "メディア情報処理"
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "高周波で必要な分布定数回路や過渡現象などの回路解析を理解する前提として、電気回路Ⅱの回路の振る舞いの解析力が役立つため。",
+     "prerequisite_for": "高周波工学"
+    },
+    {
+     "name": "フーリエ解析",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "信号を周波数領域で扱うために必要な、フーリエ級数/変換や離散フーリエ変換（DFT）などの基礎を作るため。",
+     "prerequisite_for": "信号処理"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電子回路Ⅱの設計・解析で使う小信号等価回路、増幅の原理、各種接地回路、オペアンプ概要などの基礎を固めるため。",
+     "prerequisite_for": "電子回路Ⅱ"
+    },
+    {
+     "name": "電気回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学で用いる伝達関数や時間応答を支えるため、フェーザ表示、複素インピーダンス、周波数特性といった回路の基礎を前提にする。",
+     "prerequisite_for": "制御工学"
+    }
+   ],
+   "unlinked": [
+    {
+     "name": "ソフトウェア工学",
+     "judgment": "unrelated",
+     "reason": "電子情報工学実験Ⅱでは画像・映像処理や実装を行うため、要求分析や設計、テストといったソフトウェア開発工程の基礎が前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    }
+   ],
+   "expected": [
+    {
+     "name": "メディア情報処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "信号処理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "通信理論",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 61
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 32832,
+     "cached": 19968,
+     "output": 4022
+    }
+   },
+   "seconds": {
+    "reading": 1.0996751249986119,
+    "searching": 0.3135471250025148,
+    "selecting": 8.48595183299767
+   }
+  },
+  {
+   "occupation": "中学・高校の情報科の教員",
+   "repeat": 1,
+   "interpretation": "情報科教員",
+   "assumption": "中学・高校で情報を教える教員として解釈した。",
+   "skills": [
+    "情報科内容の理解",
+    "プログラミング",
+    "情報モラル",
+    "ネットワーク基礎",
+    "データ活用",
+    "教材設計"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報科学Ⅱ",
+    "情報処理演習",
+    "情報社会と倫理",
+    "コンピュータネットワーク",
+    "データエンジニアリング基礎",
+    "教養ゼミナール",
+    "情報技術と社会",
+    "情報理論",
+    "コンパイラ",
+    "特殊講義（専門）Ⅰ（情報社会と倫理）",
+    "通信理論",
+    "データサイエンス・AI基礎",
+    "現代の教育",
+    "電子情報工学入門",
+    "情報科学Ⅰ",
+    "情報処理",
+    "情報の数理",
+    "電子情報工学通論",
+    "特殊講義（専門）Ⅲ（深層学習の応用）"
+   ],
+   "courses": [
+    {
+     "name": "情報と職業",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "教員として、情報化で職業観や倫理がどう変わるかを説明できるようになる。授業が教職希望者向けで教える視点も得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報社会と倫理",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "個人情報保護、著作権管理、AIのプライバシーや生成AI課題を、情報技術者・教育者として整理できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "TCP/IPの基本原理やDNS等の役割、ネットワーク設計とセキュリティ技術まで理解でき、教科のネットワークに直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ表現、収集・整形、データベース抽出、可視化と意味導出を学び、データ活用の実践的理解になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報技術と社会",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Society5.0を軸に、企業活動や社会生活の変化、データの読み方・扱い方を学べ、教材化しやすい。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "情報量、符号化、通信容量と符号化定理などを数値計算でき、情報通信・データの“なぜ”を説明できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "現代の教育",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "学習理論と教育実践、教材設計、教育メディアの選択を学び、情報科の教材設計に必要な観点が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "Cで入力〜制御構造、配列、関数、ポインタまで扱い、プログラミングの基礎を実際に書けるようにする。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "情報科学Ⅱでコンピュータ構成と動作、通信と符号化の基礎を学び、コンピュータネットワークのプロトコルの役割と仕組の理解の土台になる。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理ではCで配列や関数、ポインタまで扱う前提として、Cの文法に基づく基本プログラム作成が必要。両者が一致。",
+     "prerequisite_for": "情報処理"
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "foundation",
+     "judgment": "expected",
+     "reason": "データエンジニアリング基礎で必要なデータ分析の進め方・数学の基礎・機械学習の基礎を、データサイエンス・AI基礎で先に学ぶ。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報科学Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報理論で扱う情報量や情報源符号化・通信路符号化は、情報科学Ⅰの集合・論理・写像・グラフ基礎や情報量などの基礎理解が前提になる。",
+     "prerequisite_for": "情報理論"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "Computers in Education",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報と職業",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報技術と社会",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報社会と倫理",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "picked": "foundation",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅰ（情報社会と倫理）",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 72
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36651,
+     "cached": 24064,
+     "output": 2880
+    }
+   },
+   "seconds": {
+    "reading": 1.074776749999728,
+    "searching": 0.36025858300126856,
+    "selecting": 7.396202749998338
+   }
+  },
+  {
+   "occupation": "テック系スタートアップの起業家",
+   "repeat": 1,
+   "interpretation": "ITエンジニア",
+   "assumption": "「テック系スタートアップの起業家」を、技術を核にした事業を立ち上げるためのソフトウェア・システム開発寄りの職業として読んだ。",
+   "skills": [
+    "プログラミング",
+    "ソフトウェア設計",
+    "データベース",
+    "Webの仕組み",
+    "ネットワーク基礎",
+    "プロジェクト管理"
+   ],
+   "candidates": [
+    "情報と職業",
+    "情報処理演習",
+    "ソフトウェア工学",
+    "データエンジニアリング基礎",
+    "コンピュータネットワーク",
+    "情報理論",
+    "数理計画法",
+    "電子情報工学演習",
+    "コンパイラ",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "データ構造とアルゴリズム",
+    "電子情報工学実験Ⅲ",
+    "通信理論",
+    "コーオプ演習（理論）【通年】",
+    "情報技術と社会",
+    "情報処理",
+    "ハードウェア記述言語",
+    "情報科学Ⅱ",
+    "電子情報工学入門",
+    "電子情報工学通論"
+   ],
+   "courses": [
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ソフトウェア開発工程や要求分析、UMLで設計し、テストまで学べるため、実装だけでなく設計力を仕事に直結させられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "ビッグデータの収集・整形・データ表現、DBからの抽出、可視化まで扱い、データ基盤づくりに必要な基礎が身につく。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "TCP/IPの基本、IPアドレスやDNS等の役割、サイバー攻撃と対策まで学び、Web/システムを動かす基盤理解になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "C言語でデータ型・制御構造・配列・関数を使い、デバッグやテストまで行う流れが、ソフトウェア設計・テスト学習の土台になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "効率的なプログラムのために、探索・整列・グラフなどの手法や適用例を学ぶため、データ分析処理の基礎になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "C言語で文法に基づき初歩のプログラムを作り、情報処理の仕組みを説明できるようにするため、データ扱いのプログラミング基礎になる。",
+     "prerequisite_for": "データエンジニアリング基礎"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（実践）",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 828,
+     "cached": 0,
+     "output": 109
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36810,
+     "cached": 24064,
+     "output": 1672
+    }
+   },
+   "seconds": {
+    "reading": 1.1177764589992876,
+    "searching": 1.060365041001205,
+    "selecting": 4.995519083000545
+   }
+  },
+  {
+   "occupation": "計算機科学の研究者(大学院進学)",
+   "repeat": 1,
+   "interpretation": "計算機科学の研究者",
+   "assumption": "計算機科学の研究者として、大学院で計算機科学を深く研究する進路だと解釈した。",
+   "skills": [
+    "アルゴリズム",
+    "計算理論",
+    "プログラミング",
+    "離散数学",
+    "統計解析",
+    "研究手法"
+   ],
+   "candidates": [
+    "確率統計",
+    "データ構造とアルゴリズム",
+    "数理の世界",
+    "情報処理演習",
+    "情報科学Ⅰ",
+    "数理計画法",
+    "理工系日本語の技法",
+    "情報と職業",
+    "データエンジニアリング基礎",
+    "情報の数理",
+    "コンパイラ",
+    "特殊講義（自由）Ⅰ（数学基礎）",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "現代社会のフィールドワーク",
+    "電子情報基礎数学",
+    "数学Ⅲ（線形代数）",
+    "論理と思考",
+    "情報処理",
+    "数学演習Ⅰ（微分積分・線形代数）",
+    "心理学入門"
+   ],
+   "courses": [
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "推定や統計的仮説検定、実験に使える統計処理を学ぶことで、研究データ解析の方法論が身につく。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "効率的なプログラム作りに直結。探索・整列・グラフなどを通じて、研究で必要なアルゴリズム選択と実装力を鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "離散数学、符号理論、オートマトンの基礎を扱い、計算可能性や状態遷移の理解に必要な情報科学の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報の数理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "エントロピーやシャノンの定理、符号化など情報理論を学び、計算機科学研究で基礎になる見方が得られる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンパイラ",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "字句解析・構文解析・意味解析・コード生成など、言語処理の理論と実現方法が研究の基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "C言語でプログラミングしデバッグできる基礎が、字句解析・構文解析などの理解を実装へつなげる前提になる。",
+     "prerequisite_for": "コンパイラ"
+    },
+    {
+     "name": "電子情報基礎数学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "行列・指数/対数・微分積分などが、エントロピーやシャノンの定理を含む情報理論を理解する前提になる。",
+     "prerequisite_for": "情報の数理"
+    },
+    {
+     "name": "数学Ⅲ（線形代数）",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "行列・連立1次方程式・行列式の計算と理解が、情報構造を記述する離散数学の理解の土台になる。",
+     "prerequisite_for": "情報科学Ⅰ"
+    },
+    {
+     "name": "論理と思考",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "推論の妥当性や決定不能性・停止不能性・不完全性など、論理の枠組みがオートマトン理解の前提になる。",
+     "prerequisite_for": "情報科学Ⅰ"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "Cで制御構造・配列・関数・ポインタを学び、アルゴリズムを実装しデータ構造を扱う前提になる。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    },
+    {
+     "name": "数学演習Ⅰ（微分積分・線形代数）",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "微分・線形代数の基礎問題を確実に解けるようにすることで、推定や分布の理解を研究で進める土台になる。",
+     "prerequisite_for": "確率統計"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "オペレーティングシステム",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コンパイラ",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "並列処理",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 831,
+     "cached": 0,
+     "output": 84
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33426,
+     "cached": 22016,
+     "output": 2237
+    }
+   },
+   "seconds": {
+    "reading": 1.257213207998575,
+    "searching": 0.5536526670002786,
+    "selecting": 6.462202375001652
+   }
+  },
+  {
+   "occupation": "電子デバイスの開発エンジニア(ディスプレイ・LED)",
+   "repeat": 1,
+   "interpretation": "電子デバイス開発エンジニア",
+   "assumption": "電子デバイスの設計・評価・量産立上げに携わる、電子情報工学科で目指しやすい広い職種として解釈した。",
+   "skills": [
+    "半導体工学",
+    "電子回路",
+    "材料工学",
+    "計測評価",
+    "信号処理",
+    "製造工学"
+   ],
+   "candidates": [
+    "半導体工学",
+    "電子回路Ⅰ",
+    "電子回路Ⅱ",
+    "材料と化学",
+    "Computers in Education",
+    "信号処理",
+    "工業技術概論",
+    "電子情報工学演習",
+    "集積デバイス工学",
+    "電気回路Ⅱ",
+    "化学２",
+    "電子情報工学実験Ⅰ",
+    "メディア情報処理",
+    "近現代の科学技術",
+    "電子情報工学実験Ⅱ",
+    "高周波工学",
+    "論理回路",
+    "物質科学",
+    "電子情報工学応用演習",
+    "電子情報工学通論"
+   ],
+   "courses": [
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "半導体・PN接合・MOSFETの原理と特性を、バンド図やI-V計算まで扱い、デバイス設計の基礎になるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "PNダイオード、MOSトランジスタの電流電圧特性と小信号等価回路、増幅・高周波まで学び、評価設計に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子回路Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSFET中心の特性解析と設計法、差動・カレントミラー・オペアンプを通じ、回路の動作点解析に必要な力がつくため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "材料と化学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "材料を分子・構造から理解し、電池など機能材料も含めてデバイス開発で必要な材料視点の土台になるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "計測や通信の信号解析を、離散化したディジタル信号や周波数解析、ディジタルフィルタで扱えるから。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSのより深い特性からCMOS論理・メモリ、レイアウト設計や低消費電力化まで扱い、集積デバイス開発に直結するため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "MOSトランジスタやオペアンプの特性測定、SPICE、FPGA実装、画像処理実装で、デバイス評価と実装の流れを掴めるため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "ExcelやC言語シミュレーション、ロボット/データ解析演習でデータ処理と基本的デザイン力を養い、実験の立案・実施に必要になるため。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "化学２",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "化学結合・有機反応・構造と物性の基本原理を学び、集積回路開発で必要な材料の物性理解の土台になるため。",
+     "prerequisite_for": "集積デバイス工学"
+    },
+    {
+     "name": "電子情報工学実験Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "測定装置の扱い方、データ取得、実験ノート記録、データ整理を学び、電子情報工学実験Ⅱでの実験レポート作成・実施に前提となるため。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "メディア情報処理",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "音声・画像を処理解析し、MATLABで実装も行うため、電子情報工学実験Ⅱの画像フィルタリングや動画差分処理などのプログラミングに前提となる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "半導体工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 838,
+     "cached": 0,
+     "output": 99
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 31410,
+     "cached": 19968,
+     "output": 2829
+    }
+   },
+   "seconds": {
+    "reading": 1.1364049590010836,
+    "searching": 0.48089866599912057,
+    "selecting": 7.392544875001477
+   }
+  },
+  {
+   "occupation": "工場の自動化(FA)エンジニア",
+   "repeat": 1,
+   "interpretation": "制御エンジニア",
+   "assumption": "「工場の自動化(FA)エンジニア」を、工場設備の制御や自動化を担う制御系エンジニアとして解釈した。",
+   "skills": [
+    "制御工学",
+    "シーケンス制御",
+    "組込みシステム",
+    "センサ工学",
+    "アクチュエータ制御",
+    "PLCプログラミング"
+   ],
+   "candidates": [
+    "工業技術概論",
+    "制御工学",
+    "並列処理",
+    "組み込みシステム",
+    "近現代の科学技術",
+    "電子情報工学演習",
+    "ハードウェア記述言語",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "ソフトウェア工学",
+    "オペレーティングシステム",
+    "電子情報工学通論",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "電子情報工学実験Ⅱ",
+    "コンパイラ",
+    "電子情報工学入門",
+    "微分方程式／ラプラス変換",
+    "コンピュータアーキテクチャⅡ",
+    "コンピュータアーキテクチャⅠ",
+    "電子情報工学応用演習",
+    "技術者倫理"
+   ],
+   "courses": [
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "制御工学の基本として伝達関数で動的システムを表現し、時間応答や安定判別、フィードバック制御設計を学び、制御系の要点に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "センサーとアクチュエータ、入出力、マルチタスクやスケジューリングまで扱い、工場設備の制御を実装する土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "ロボットを使うプログラミング演習やC言語シミュレーション、データ解析で、制御に必要な実装と実験の入口を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "マイコンのプログラミング、ディジタル/アナログ入出力、割込みを含む設計手法・流れを学べ、実システム化に近い。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ソフトウェア工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "要求分析〜テストまでの開発工程とUMLを学び、組込み制御ソフトを安全に正しく作る設計力に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "VerilogによるFPGA実装やCでの画像/映像処理など、実験立案〜実装・レポートで開発力を鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "工業技術概論",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "実験Ⅱは半導体デバイスや集積回路設計などを扱うため、電気・電子やソフトウェア技術等の工業分野の基礎理解が前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "並列処理",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "組み込みシステムのマルチタスクや処理実行を扱うため、並列性を活用した実行原理と並列プログラミングの基礎が前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "ハードウェア記述言語",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "実験ⅡではVerilog-HDLを用いたFPGA実装を行うので、ハードウェア記述言語で回路設計やシミュレーション確認ができることが前提になる。",
+     "prerequisite_for": "電子情報工学実験Ⅱ"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "組み込みシステムでマルチタスクやスケジューリングを扱うには、プロセス管理や同期通信、割り込みなどOSの概念が前提になる。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "電子情報工学通論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "制御工学の考え方の有用性を理解するため、制御や最適化など関連する先端項目の概要を先に押さえる。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "コンパイラ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "ソフトウェア開発を正しく実現するために、構文解析や意味解析、コード生成、最適化といった基礎理解が前提になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学はラプラス変換（伝達関数）に基づき動的システムを扱うため、微分方程式とラプラス変換の解法が前提になる。",
+     "prerequisite_for": "制御工学"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅡ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "組み込みシステムでプロセッサや入出力、マルチタスクを設計するには、メモリ階層や入出力制御、割込みを理解している前提が要る。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "コンピュータアーキテクチャⅠ",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "組み込みシステムのプロセッサや入出力を理解するには、プログラム実行や命令、データ表現、メモリ・入出力の基本理解が必要。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "技術者倫理",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "ソフトウェアテストや保守まで含めて開発を正しく行うには、安全やリスク評価、技術者の社会的責任の理解が前提になる。",
+     "prerequisite_for": "ソフトウェア工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "制御工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 832,
+     "cached": 0,
+     "output": 108
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34167,
+     "cached": 22016,
+     "output": 3384
+    }
+   },
+   "seconds": {
+    "reading": 1.2951033330027713,
+    "searching": 0.37122270799955004,
+    "selecting": 10.640524416998232
+   }
+  },
+  {
+   "occupation": "光通信エンジニア",
+   "repeat": 1,
+   "interpretation": "光通信エンジニア",
+   "assumption": null,
+   "skills": [
+    "光通信工学",
+    "通信理論",
+    "信号処理",
+    "半導体デバイス",
+    "電磁気学",
+    "回路設計"
+   ],
+   "candidates": [
+    "電子情報工学通論",
+    "高周波工学",
+    "通信理論",
+    "信号処理",
+    "半導体工学",
+    "電磁気学Ⅰ",
+    "電気回路Ⅱ",
+    "情報と職業",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "情報理論",
+    "メディア情報処理",
+    "集積デバイス工学",
+    "電磁気学入門",
+    "電子回路Ⅱ",
+    "電子情報工学演習",
+    "電子情報工学実験Ⅱ",
+    "情報の数理",
+    "フーリエ解析",
+    "電子回路Ⅰ",
+    "電磁気学Ⅱ"
+   ],
+   "courses": [
+    {
+     "name": "高周波工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "光通信でも送受信の高周波設計（波の概念、分布定数、インピーダンス整合）が効く。集中/分布やスミスチャートを学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "通信理論",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "光通信は符号化・誤り制御・変調復調などの原理で性能が決まるため。用語と動作原理、各パラメータの意味を定量的に理解できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "光通信では波形の周波数解析やディジタルフィルタ設計が要点になる。離散時間システム解析や伝達関数、スペクトル計算を学べる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "半導体工学",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "光通信エンジニアに必須の半導体素子（PN接合やMOSに加え光半導体素子）を基礎から掴める。デバイス特性計算にも対応。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電気回路Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "通信機器のアナログフロントエンドでは共振、過渡応答、2端子対、分布定数が効く。複素電力や行列解析を身につける。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報理論",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "符号化と通信路の限界（通信容量・定理）を理解し、最適な符号設計の発想につなげられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "集積デバイス工学",
+     "relevance": "core",
+     "judgment": "unrelated",
+     "reason": "低消費電力・高速動作は素子特性とCMOS回路理解が要る。MOSトランジスタ特性からLSIの構成・消費電力まで扱う。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電磁気学Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "光ファイバや周辺の電磁場・電磁波の理解に直結する。電磁波の利用と課題まで数式表現と適用法を学ぶ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電磁気学Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電磁気学ⅡはIに続く講義で「Iに続くIIで完結」。電荷と電界、電流と磁界、電磁誘導など基礎をIで積む前提。",
+     "prerequisite_for": "電磁気学Ⅱ"
+    },
+    {
+     "name": "電子情報工学実験Ⅱ",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "集積デバイス工学でLSI理解に必要な実験基礎を補強できる。実験ⅡではMOSトランジスタ特性測定やSPICE、オペアンプ特性測定を扱う。",
+     "prerequisite_for": "集積デバイス工学"
+    },
+    {
+     "name": "フーリエ解析",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "信号処理で周波数領域表現やスペクトル計算を行う。フーリエ級数・変換で時間波形を周波数表現する前提になる。",
+     "prerequisite_for": "信号処理"
+    },
+    {
+     "name": "電子回路Ⅰ",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "電気回路Ⅱは「電気回路Iで学んだ基礎知識を発展」。直流・交流回路や過渡応答解析を行うための前段知識が必要。",
+     "prerequisite_for": "電気回路Ⅱ"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "通信理論",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 825,
+     "cached": 0,
+     "output": 57
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 33882,
+     "cached": 22016,
+     "output": 2975
+    }
+   },
+   "seconds": {
+    "reading": 1.1675593330000993,
+    "searching": 0.3063105830005952,
+    "selecting": 7.77500074999989
+   }
+  },
+  {
+   "occupation": "金融・保険のデータアナリスト",
+   "repeat": 1,
+   "interpretation": "データアナリスト",
+   "assumption": "「金融・保険のデータアナリスト」を、金融・保険分野のデータを扱うデータ分析職として解釈した。",
+   "skills": [
+    "統計学",
+    "データ解析",
+    "機械学習",
+    "SQL",
+    "Python",
+    "金融工学の基礎"
+   ],
+   "candidates": [
+    "データエンジニアリング基礎",
+    "確率統計",
+    "データサイエンス・AI基礎",
+    "ＡＩ・機械学習",
+    "専門ゼミナール【二次元コードのデザイン演習】",
+    "応用Cプログラミング",
+    "電子情報基礎数学",
+    "情報と職業",
+    "教養ゼミナール",
+    "信号処理",
+    "特殊講義（専門）Ⅲ（深層学習の応用）",
+    "データ構造とアルゴリズム",
+    "情報処理演習",
+    "数学基礎",
+    "電子情報工学演習",
+    "数理計画法",
+    "心理学入門",
+    "近現代の科学技術",
+    "並列処理",
+    "情報処理"
+   ],
+   "courses": [
+    {
+     "name": "データエンジニアリング基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ収集、整形加工、データベース抽出、可視化まで一連を概観する。分析に必要な基盤を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "確率統計",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "金融の不確実性を、確率分布・推定・仮説検定で扱える基礎になる。データのばらつき評価や意思決定の根拠を作れる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "データ駆動型の考え方と分析手順、機械学習の基本を学べる。金融データをどう分析設計し、AIで活用するかの入口になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "回帰・分類やニューラルネットワーク等をMATLABで実装し理解する。金融データの予測や分類に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "時系列（株価・為替）の数学的扱いと周波数解析、デジタルフィルタ設計の考え方を学べる。時系列特徴抽出に効く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "深層学習の応用で、時系列データ分類・予測を扱う。金融時系列への高精度モデル構築に近い内容。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "データ構造とアルゴリズム",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "探索・整列・グラフなどを通じ、効率的な処理手順を選べる。大量データ解析の実装で計算量を意識できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "効率的プログラム作成に必要なデータ構造の実装は、C言語で基本プログラムを実装できる力が前提。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    },
+    {
+     "name": "電子情報基礎数学",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "確率変数・分布、推定・仮説検定の計算で、行列・微分積分などの数学を道具にする前提が必要。",
+     "prerequisite_for": "確率統計"
+    },
+    {
+     "name": "数学基礎",
+     "relevance": "foundation",
+     "judgment": "minority",
+     "reason": "確率・統計は基礎専門や専門科目で必要な数学の力が前提。高校数学の復習から導入するため。",
+     "prerequisite_for": "確率統計"
+    },
+    {
+     "name": "数理計画法",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "問題を数理計画として定式化し解く力は、探索や整列などのアルゴリズム選択・適用の前提になる。",
+     "prerequisite_for": "データ構造とアルゴリズム"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "データエンジニアリング基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "データサイエンス・AI基礎",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "確率統計",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 829,
+     "cached": 0,
+     "output": 85
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 36426,
+     "cached": 24064,
+     "output": 3040
+    }
+   },
+   "seconds": {
+    "reading": 1.2436810419967514,
+    "searching": 0.29681149900352466,
+    "selecting": 7.940476042000228
+   }
+  },
+  {
+   "occupation": "ロボットのソフトウェアエンジニア",
+   "repeat": 1,
+   "interpretation": "組込みソフトウェアエンジニア",
+   "assumption": "ロボットのソフトウェアを担う職種として、電子情報工学科で学ぶ組込み・制御寄りのソフトウェアエンジニアと解釈した。",
+   "skills": [
+    "C言語",
+    "組込みシステム",
+    "制御工学",
+    "リアルタイム処理",
+    "センサ信号処理",
+    "通信プロトコル"
+   ],
+   "candidates": [
+    "組み込みシステム",
+    "応用Cプログラミング",
+    "特殊講義（専門）Ⅱ（システム設計ＣＡＤ）",
+    "制御工学",
+    "並列処理",
+    "信号処理",
+    "コンピュータネットワーク",
+    "電子情報工学入門",
+    "情報処理演習",
+    "オペレーティングシステム",
+    "工業技術概論",
+    "情報処理",
+    "メディア情報処理",
+    "通信理論",
+    "ソフトウェア工学",
+    "コンパイラ",
+    "電子情報工学通論",
+    "電子情報工学演習",
+    "微分方程式／ラプラス変換",
+    "電子情報工学実験Ⅱ"
+   ],
+   "courses": [
+    {
+     "name": "組み込みシステム",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "CPSやセンサー/アクチュエータ、マルチタスクとスケジューリング等、組込みの要点を実装前提で学べる。リアルタイム動作を作るための基礎になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "応用Cプログラミング",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "C言語を深く使い分け、関数・ポインタ・再帰・データ構造などを実装する力が、組込み実装の土台になる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "制御工学",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "伝達関数で動的システムを表現・解析し、フィードバック制御の安定性や設計法を学ぶため、制御寄り組込みで直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "信号処理",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "サンプリングや周波数解析、ディジタルフィルタ設計を学び、センサ信号の前処理・解析に使える。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IPの階層や主要プロトコル、セキュリティまで理解し、通信プロトコルを使う組込み連携に役立つ。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報処理演習",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "応用Cで必要な「入力・コンパイル・実行」「デバッグ」「配列・関数」「小テスト」を先に固める授業。講義でのC活用に直結する。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "組込みシステムの「マルチタスク」や「スケジューリング」を、OSの「スケジューリング」「プロセス管理」「同期と通信」「割り込み」理解の上で進める。",
+     "prerequisite_for": "組み込みシステム"
+    },
+    {
+     "name": "情報処理",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "情報処理でCの文法を学び、応用Cの「Cのより高度な使用法」やデータ構造の実現へつながるため。",
+     "prerequisite_for": "応用Cプログラミング"
+    },
+    {
+     "name": "通信理論",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "ネットワークが扱う通信の考え方を、通信方式の「符号化・誤り制御」「変調・復調」「損失とダイバーシチ」などの量的理解で支える。",
+     "prerequisite_for": "コンピュータネットワーク"
+    },
+    {
+     "name": "微分方程式／ラプラス変換",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "制御工学で用いる「ラプラス変換（伝達関数）に基づく表現・解析・制御」を、微分方程式とラプラス変換の計算で前提にする。",
+     "prerequisite_for": "制御工学"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "ソフトウェア工学",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "メディア情報処理",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "制御工学",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "応用Cプログラミング",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "組み込みシステム",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "特殊講義（専門）Ⅲ（深層学習の応用）",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    },
+    {
+     "name": "ＡＩ・機械学習",
+     "picked": null,
+     "searched": false,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 831,
+     "cached": 0,
+     "output": 110
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 34398,
+     "cached": 22016,
+     "output": 2745
+    }
+   },
+   "seconds": {
+    "reading": 1.0822819169989089,
+    "searching": 0.4073802080019959,
+    "selecting": 8.698167082999134
+   }
+  },
+  {
+   "occupation": "IT 企業のソリューション営業",
+   "repeat": 1,
+   "interpretation": "IT営業",
+   "assumption": "IT企業で顧客課題を技術で解決する提案営業として解釈した。",
+   "skills": [
+    "顧客課題の把握",
+    "ITシステム基礎",
+    "要件整理",
+    "提案書作成",
+    "プレゼンテーション",
+    "折衝・調整力"
+   ],
+   "candidates": [
+    "情報技術と社会",
+    "教養ゼミナール",
+    "情報科学Ⅱ",
+    "電子情報工学演習",
+    "コーオプ演習（理論）【通年】",
+    "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+    "Cross-cultural Encounters 2",
+    "専門ゼミナール【主体的な海外活動実践の技法】",
+    "現代社会のフィールドワーク",
+    "コンピュータネットワーク",
+    "社会と学ぶ課題解決",
+    "コーオプ演習（実践）",
+    "専門ゼミナール【目に見えない画像を可視化する技術】",
+    "現代の教育",
+    "情報と職業",
+    "シチズンシップ・スタディーズ",
+    "オペレーティングシステム",
+    "理工系日本語の技法",
+    "特殊講義（教養Ｅ）Ⅰ(アントレプレナーシップと事業創造)",
+    "異文化間テーマ演習"
+   ],
+   "courses": [
+    {
+     "name": "情報技術と社会",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "Society 5.0や企業での情報技術利活用など、ITが企業活動・生活にどう影響するかを説明する力が付く。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "情報科学Ⅱ",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "情報システム利用に必要なコンピュータ構成・動作、通信・符号化、確率的情報処理やAIを体系的に理解できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "問題発見・課題解決、プロジェクト運営、調査分析、企画立案、プレゼン、企画書・提案書を理論で学ぶため。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "専門ゼミナール【３分で「なるほど！」へ：英語プレゼンテーション設計と実演】",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "3分で核心メッセージを伝える設計、時間管理、発声や視線など発表技術を反復で鍛えられる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コンピュータネットワーク",
+     "relevance": "core",
+     "judgment": "foundation",
+     "reason": "TCP/IP等の基本、IPやプロトコル、セキュリティ技術を学び、ネットワーク課題の技術背景を説明できる。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "コーオプ演習（実践）",
+     "relevance": "core",
+     "judgment": "expected",
+     "reason": "企業・団体の現実テーマで課題を分析し、解決策を提案する実践。チーム協働で要件整理や提案の形を作る力に直結する。",
+     "prerequisite_for": null
+    },
+    {
+     "name": "電子情報工学演習",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "情報科学Ⅱはコンピュータ構成やソフトウェア、プログラミング、通信と符号化を扱う。電子情報工学演習のC言語シミュレーションやデータ解析が前提になる。",
+     "prerequisite_for": "情報科学Ⅱ"
+    },
+    {
+     "name": "オペレーティングシステム",
+     "relevance": "foundation",
+     "judgment": "unrelated",
+     "reason": "OSの概念や機能、プロセス管理、同期と通信、実記憶/仮想記憶管理、入出力制御を理解し、情報技術の本質理解の前提になる。",
+     "prerequisite_for": "情報科学Ⅱ"
+    },
+    {
+     "name": "理工系日本語の技法",
+     "relevance": "foundation",
+     "judgment": "foundation",
+     "reason": "コーオプ演習（理論）は企画書・提案書のまとめ方を扱う。理工系日本語の技術で論理的で明瞭な文章構成を身につけ、提案書作成の基礎になる。",
+     "prerequisite_for": "コーオプ演習（理論）【通年】"
+    }
+   ],
+   "unlinked": [],
+   "expected": [
+    {
+     "name": "コーオプ演習（実践）",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "コーオプ演習（理論）【通年】",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "情報技術と社会",
+     "picked": "core",
+     "searched": true,
+     "unlinked": false
+    },
+    {
+     "name": "社会と学ぶ課題解決",
+     "picked": null,
+     "searched": true,
+     "unlinked": false
+    }
+   ],
+   "usage": {
+    "gpt-5.4-mini-2026-03-17": {
+     "input": 827,
+     "cached": 0,
+     "output": 85
+    },
+    "gpt-5.4-nano-2026-03-17": {
+     "input": 45627,
+     "cached": 30208,
+     "output": 2607
+    }
+   },
+   "seconds": {
+    "reading": 1.1541227080015233,
+    "searching": 0.3305184589989949,
+    "selecting": 6.495574041000509
+   }
+  }
+ ],
+ "pair": {
+  "label": "selection-min-votes",
+  "side": "before",
+  "partner": "20261031-120812-selection-min-votes-after.json",
+  "spent_yen": 108.58421249999999
+ }
+}
