@@ -1,10 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { DestinationPlate } from "@/components/destination-plate";
 import { Phrases } from "@/components/phrases";
 import { Signpost } from "@/components/signpost";
+import { TEXT_LINK } from "@/components/styles";
 import type { Plan } from "@/lib/api/client";
 import {
   PROGRESS_HEADING,
@@ -21,6 +23,7 @@ import {
 import { destinationOf } from "@/lib/words";
 
 const TICK_MS = 1_000;
+const USUAL_DURATION = "10〜30 秒";
 const BLINKING_DOTS = [0, 1, 2];
 
 const LABEL_STYLES: Record<StepState, string> = {
@@ -171,12 +174,27 @@ function WaitedTime({ since }: { since: number }) {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
+  const facts = [
+    ["経過", `${Math.floor((now - since) / TICK_MS)} 秒`],
+    ["所要", USUAL_DURATION],
+  ];
   return (
-    <p className="text-xs text-sub">
-      <span className="tabular-nums">
-        待ち時間 {Math.floor((now - since) / TICK_MS)} 秒
-      </span>{" "}
-      ・ ふだん 10〜30 秒で終わります。このページを開いたままお待ちください。
-    </p>
+    <div className="grid gap-2">
+      <dl className="flex w-fit flex-wrap gap-x-8 gap-y-2 rounded-md border border-line bg-plate px-4 py-2.5 text-plate-ink shadow-paper">
+        {facts.map(([term, value]) => (
+          <div key={term} className="grid gap-0.5">
+            <dt className="text-label font-bold tracking-[0.28em]">{term}</dt>
+            <dd className="text-lg font-bold tabular-nums">{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-xs text-sub">
+        ページを閉じても作り続け、
+        <Link href="/plans" className={TEXT_LINK}>
+          自分の道標
+        </Link>
+        に出ます。
+      </p>
+    </div>
   );
 }
