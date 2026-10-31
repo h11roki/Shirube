@@ -1,6 +1,7 @@
 from typing import Annotated, Self
 
 from pydantic import Field, SecretStr, model_validator
+from pydantic_core import PydanticCustomError
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.domain.recommendation import majority
@@ -45,8 +46,9 @@ class Settings(CurriculumSettings):
     @model_validator(mode="after")
     def _min_votes_within_votes(self) -> Self:
         if self.selection_min_votes is not None and self.selection_min_votes > self.selection_votes:
-            raise ValueError(
-                "SELECTION_MIN_VOTES は SELECTION_VOTES 以下にしてください: "
-                f"{self.selection_min_votes} > {self.selection_votes}"
+            raise PydanticCustomError(
+                "min_votes_over_votes",
+                "SELECTION_MIN_VOTES は SELECTION_VOTES 以下にしてください: {min_votes} > {votes}",
+                {"min_votes": self.selection_min_votes, "votes": self.selection_votes},
             )
         return self
