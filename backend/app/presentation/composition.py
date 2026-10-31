@@ -102,7 +102,10 @@ def course_selector(
     if settings.selection_votes == 1:
         return selector
     return VotingCourseSelector(
-        selector, settings.selection_votes, settings.selection_vote_delay_seconds
+        selector,
+        settings.selection_votes,
+        settings.selection_kept_votes,
+        settings.selection_vote_delay_seconds,
     )
 
 

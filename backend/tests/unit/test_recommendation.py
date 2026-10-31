@@ -10,7 +10,7 @@ from app.domain.recommendation import (
     RecommendedCourse,
     Relevance,
     arrange,
-    majority_choices,
+    voted_choices,
 )
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
@@ -198,33 +198,36 @@ def test_arrange_rejects_a_choice_outside_the_matches(choice: CourseChoice) -> N
         arrange(PROFILE, matches_of("科目A"), [choice])
 
 
-def test_majority_keeps_courses_chosen_in_more_than_half_of_the_samples() -> None:
+def test_voted_choices_keep_courses_chosen_in_at_least_the_minimum_votes() -> None:
     samples = [
         [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
         [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目C", CORE, "理由C")],
         [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
     ]
 
-    assert [choice.name for choice in majority_choices(samples)] == ["科目A", "科目B"]
+    assert [choice.name for choice in voted_choices(samples, 2)] == [
+        "科目A",
+        "科目B",
+    ]
 
 
-def test_majority_needs_more_than_half_so_a_tie_between_two_samples_is_dropped() -> None:
+def test_a_course_short_of_the_minimum_votes_is_dropped() -> None:
     samples = [[CourseChoice("科目A", CORE, "理由A")], []]
 
-    assert majority_choices(samples) == []
+    assert voted_choices(samples, 2) == []
 
 
-def test_majority_takes_the_role_most_samples_gave_and_its_first_reason() -> None:
+def test_a_kept_course_takes_the_role_most_votes_gave_and_its_first_reason() -> None:
     samples = [
         [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")],
         [CourseChoice("科目B", CORE, "中心の理由 1")],
         [CourseChoice("科目B", CORE, "中心の理由 2")],
     ]
 
-    assert majority_choices(samples) == [CourseChoice("科目B", CORE, "中心の理由 1")]
+    assert voted_choices(samples, 2) == [CourseChoice("科目B", CORE, "中心の理由 1")]
 
 
-def test_majority_breaks_an_even_split_between_roles_toward_foundation() -> None:
+def test_an_even_split_between_roles_goes_to_foundation() -> None:
     samples = [
         [CourseChoice("科目B", CORE, "中心の理由")],
         [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")],
@@ -233,17 +236,27 @@ def test_majority_breaks_an_even_split_between_roles_toward_foundation() -> None
         [CourseChoice("科目B", CORE, "中心の理由 2")],
     ]
 
-    assert majority_choices(samples) == [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")]
+    assert voted_choices(samples, 3) == [CourseChoice("科目B", FOUNDATION, "土台の理由", "科目A")]
 
 
-def test_majority_counts_a_course_listed_twice_in_one_sample_once() -> None:
+def test_a_single_vote_keeps_every_course_any_sample_chose() -> None:
+    samples = [
+        [CourseChoice("科目A", CORE, "理由A")],
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
+        [CourseChoice("科目C", FOUNDATION, "理由C", "科目A")],
+    ]
+
+    assert [choice.name for choice in voted_choices(samples, 1)] == ["科目A", "科目B", "科目C"]
+
+
+def test_a_course_listed_twice_in_one_vote_counts_once() -> None:
     samples = [
         [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目A", CORE, "理由A")],
         [],
         [],
     ]
 
-    assert majority_choices(samples) == []
+    assert voted_choices(samples, 2) == []
 
 
 @pytest.mark.parametrize(
@@ -267,6 +280,6 @@ def test_the_same_answer_in_every_vote_arranges_like_a_single_answer(
 ) -> None:
     matches = matches_of("科目A", "科目B", "科目C")
 
-    assert arrange(PROFILE, matches, majority_choices([answer] * 3)) == arrange(
+    assert arrange(PROFILE, matches, voted_choices([answer] * 3, 2)) == arrange(
         PROFILE, matches, answer
     )

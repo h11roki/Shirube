@@ -72,6 +72,7 @@ from app.presentation.cli.experiment import (
     trial_document,
     trial_instructions,
     unpriced,
+    with_unrecorded,
     yen,
 )
 from app.presentation.cli.records import digest, label
@@ -367,6 +368,7 @@ def test_heldout_results_refuse_any_other_directory(out: Path) -> None:
     ("text", "parsed"),
     [
         ("SELECTION_VOTES=1", ("SELECTION_VOTES", "1")),
+        ("SELECTION_MIN_VOTES=1", ("SELECTION_MIN_VOTES", "1")),
         ("OCCUPATION_READING_CACHE_SIZE=0", ("OCCUPATION_READING_CACHE_SIZE", "0")),
         ("CHAT_MODEL=gpt-5.4-nano", ("CHAT_MODEL", "gpt-5.4-nano")),
         (
@@ -819,7 +821,7 @@ def test_compare_reads_a_run_from_before_votes_as_a_single_vote() -> None:
 
     lines = compare(before, after, NOTHING_MEASURED).splitlines()
 
-    assert "  設定の違い: selection_votes 1 → 3" in lines
+    assert "  設定の違い: selection_min_votes 1 → 2、selection_votes 1 → 3" in lines
     single = compare(
         before,
         run("after", selection_votes=1, selection_vote_delay_seconds=0.0),
@@ -1186,3 +1188,25 @@ def test_analyze_refuses_a_run_missing_a_reading_before_it_searches(
 
     with pytest.raises(SystemExit, match="実験の結果を読めません: KeyError"):
         main(["analyze", str(path), "--dataset", str(dataset)])
+
+
+def test_the_heading_names_how_many_votes_keep_a_course_only_when_votes_are_taken() -> None:
+    single = document(None)
+    voted = document(None)
+    voted["config"] = voted["config"] | {"selection_votes": 3, "selection_min_votes": 1}
+
+    assert "選び直し 1 回、" in render(single).splitlines()[0]
+    assert "選び直し 3 回(1 票で採る)、" in render(voted).splitlines()[0]
+
+
+def test_a_result_without_the_kept_votes_reads_as_a_majority_of_its_votes() -> None:
+    assert with_unrecorded({"selection_votes": 3})["selection_min_votes"] == 2
+    assert with_unrecorded({})["selection_min_votes"] == 1
+    assert (
+        with_unrecorded({"selection_votes": 3, "selection_min_votes": None})["selection_min_votes"]
+        == 2
+    )
+    assert (
+        with_unrecorded({"selection_votes": 3, "selection_min_votes": 1})["selection_min_votes"]
+        == 1
+    )

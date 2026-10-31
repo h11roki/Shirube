@@ -6,7 +6,7 @@ from threading import Thread
 
 from app.application.ports import CourseSelector
 from app.domain.occupation import OccupationProfile
-from app.domain.recommendation import CandidateCourse, CourseChoice, majority_choices
+from app.domain.recommendation import CandidateCourse, CourseChoice, voted_choices
 
 logger = logging.getLogger(__name__)
 
@@ -16,11 +16,15 @@ class VotingCourseSelector:
         self,
         selector: CourseSelector,
         votes: int,
+        min_votes: int,
         delay_seconds: float,
         wait: Callable[[float], None] = time.sleep,
     ) -> None:
+        if not 1 <= min_votes <= votes:
+            raise ValueError(f"残す票の下限は 1〜{votes} にしてください: {min_votes}")
         self._selector = selector
         self._votes = votes
+        self._min_votes = min_votes
         self._delay_seconds = delay_seconds
         self._wait = wait
 
@@ -50,4 +54,6 @@ class VotingCourseSelector:
             logger.warning("選び直しのほかの票も失敗しました: %r", failure)
         if failures:
             raise failures[0]
-        return majority_choices([answer for answer in answers if not isinstance(answer, Exception)])
+        return voted_choices(
+            [answer for answer in answers if not isinstance(answer, Exception)], self._min_votes
+        )

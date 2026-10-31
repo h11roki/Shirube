@@ -47,10 +47,24 @@ def test_the_selector_is_asked_once_per_vote_and_the_majority_is_kept() -> None:
         ]
     )
 
-    choices = VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+    choices = VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     assert selector.calls == 3
     assert [choice.name for choice in choices] == ["科目A", "科目B"]
+
+
+def test_a_course_chosen_by_fewer_votes_than_the_minimum_is_dropped() -> None:
+    answers = [
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
+        [CourseChoice("科目A", CORE, "理由A")],
+        [CourseChoice("科目A", CORE, "理由A")],
+    ]
+
+    kept_by_one = VotingCourseSelector(TakingTurns(answers), 3, 1, 0).select(PROFILE, [])
+    kept_by_two = VotingCourseSelector(TakingTurns(answers), 3, 2, 0).select(PROFILE, [])
+
+    assert [choice.name for choice in kept_by_one] == ["科目A", "科目B"]
+    assert [choice.name for choice in kept_by_two] == ["科目A"]
 
 
 def test_one_failed_vote_fails_the_whole_selection_after_every_vote_answered() -> None:
@@ -58,7 +72,7 @@ def test_one_failed_vote_fails_the_whole_selection_after_every_vote_answered() -
     selector = TakingTurns([answer, UPSTREAM, answer])
 
     with pytest.raises(CourseSelectionError, match="外部のサービスの呼び出しに失敗"):
-        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     assert selector.calls == 3
 
@@ -75,7 +89,7 @@ def test_one_failure_is_raised_and_the_other_failed_votes_are_logged(
     )
 
     with pytest.raises(CourseSelectionError) as raised:
-        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     other = "二つ目の失敗" if str(raised.value) == "一つ目の失敗" else "一つ目の失敗"
     assert other in caplog.text
@@ -97,7 +111,7 @@ def test_the_later_votes_are_sent_after_the_wait_so_the_first_prompt_can_be_cach
         first_asked.wait(timeout=5)
         events.append(f"wait {seconds}")
 
-    VotingCourseSelector(Recording(), 3, 0.5, wait).select(PROFILE, [])
+    VotingCourseSelector(Recording(), 3, 2, 0.5, wait).select(PROFILE, [])
 
     assert events == ["vote", "wait 0.5", "vote", "vote"]
 
@@ -110,7 +124,7 @@ def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() 
     )
 
     with LangChainUsageMeter().meter() as usage:
-        choices = VotingCourseSelector(selector, 3, 0).select(
+        choices = VotingCourseSelector(selector, 3, 2, 0).select(
             PROFILE, [CandidateCourse("科目A", syllabus("10000"))]
         )
 
@@ -124,10 +138,33 @@ def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() 
     ids=["single", "votes"],
 )
 def test_the_selection_votes_only_when_more_than_one_vote_is_set(votes: int, kind: type) -> None:
-    settings = Settings(
+    assert isinstance(course_selector(settings_with(votes)), kind)
+
+
+def settings_with(votes: int = 3, min_votes: int | None = None) -> Settings:
+    return Settings(
         database_url="postgresql+psycopg://shirube@localhost/shirube",
         openai_api_key=SecretStr("test-key"),
         selection_votes=votes,
+        selection_min_votes=min_votes,
     )
 
-    assert isinstance(course_selector(settings), kind)
+
+@pytest.mark.parametrize(("votes", "kept"), [(1, 1), (2, 2), (3, 2), (4, 3), (5, 3)])
+def test_the_kept_votes_default_to_a_majority(votes: int, kept: int) -> None:
+    assert settings_with(votes).selection_kept_votes == kept
+
+
+def test_the_kept_votes_can_be_lowered_to_a_single_vote() -> None:
+    assert settings_with(3, 1).selection_kept_votes == 1
+
+
+@pytest.mark.parametrize("min_votes", [0, 4])
+def test_a_voting_selector_refuses_a_minimum_it_can_never_meet(min_votes: int) -> None:
+    with pytest.raises(ValueError, match="残す票の下限は 1〜3"):
+        VotingCourseSelector(TakingTurns([]), 3, min_votes, 0)
+
+
+def test_the_minimum_votes_cannot_exceed_the_votes() -> None:
+    with pytest.raises(ValueError, match="SELECTION_MIN_VOTES は SELECTION_VOTES 以下"):
+        settings_with(votes=3, min_votes=4)

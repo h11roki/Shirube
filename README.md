@@ -204,7 +204,7 @@ git clone https://github.com/h11roki/Shirube.git && cd Shirube
 cp .env.example .env && chmod 600 .env
 ```
 
-`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
+`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_MIN_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
 
 #### 初めてのデプロイ
 

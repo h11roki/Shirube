@@ -106,7 +106,11 @@ class Recommendation:
             )
 
 
-def majority_choices(samples: Sequence[Sequence[CourseChoice]]) -> list[CourseChoice]:
+def majority(votes: int) -> int:
+    return votes // 2 + 1
+
+
+def voted_choices(samples: Sequence[Sequence[CourseChoice]], min_votes: int) -> list[CourseChoice]:
     chosen: dict[str, list[CourseChoice]] = defaultdict(list)
     for sample in samples:
         cores = [choice for choice in sample if choice.relevance is Relevance.CORE]
@@ -123,7 +127,7 @@ def majority_choices(samples: Sequence[Sequence[CourseChoice]]) -> list[CourseCh
             chosen[name].append(choice)
     kept = []
     for choices in chosen.values():
-        if len(choices) * 2 <= len(samples):
+        if len(choices) < min_votes:
             continue
         cores = [choice for choice in choices if choice.relevance is Relevance.CORE]
         foundations = [choice for choice in choices if choice.relevance is Relevance.FOUNDATION]

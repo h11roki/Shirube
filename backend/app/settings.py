@@ -1,7 +1,10 @@
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import Field, SecretStr
+from pydantic import Field, SecretStr, model_validator
+from pydantic_core import PydanticCustomError
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.domain.recommendation import majority
 
 
 class CurriculumSettings(BaseSettings):
@@ -24,6 +27,7 @@ class Settings(CurriculumSettings):
     selection_model: str = "gpt-5.4-nano"
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 20
     selection_votes: Annotated[int, Field(ge=1, le=5)] = 3
+    selection_min_votes: Annotated[int, Field(ge=1, le=5)] | None = None
     selection_vote_delay_seconds: Annotated[float, Field(ge=0, le=10)] = 0.5
     semester_credit_limit: Annotated[int, Field(gt=0)] = 16
     openai_timeout_seconds: Annotated[float, Field(gt=0)] = 45
@@ -32,3 +36,19 @@ class Settings(CurriculumSettings):
     plan_stall_minutes: Annotated[int, Field(gt=0)] = 20
     daily_plan_limit_per_user: Annotated[int, Field(gt=0)] = 3
     daily_plan_limit_total: Annotated[int, Field(gt=0)] = 30
+
+    @property
+    def selection_kept_votes(self) -> int:
+        if self.selection_min_votes is None:
+            return majority(self.selection_votes)
+        return self.selection_min_votes
+
+    @model_validator(mode="after")
+    def _min_votes_within_votes(self) -> Self:
+        if self.selection_min_votes is not None and self.selection_min_votes > self.selection_votes:
+            raise PydanticCustomError(
+                "min_votes_over_votes",
+                "SELECTION_MIN_VOTES は SELECTION_VOTES 以下にしてください: {min_votes} > {votes}",
+                {"min_votes": self.selection_min_votes, "votes": self.selection_votes},
+            )
+        return self

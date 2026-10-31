@@ -65,7 +65,7 @@ from app.application.run_experiment import (
 )
 from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
-from app.domain.recommendation import Relevance
+from app.domain.recommendation import Relevance, majority
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
@@ -121,6 +121,7 @@ PAIRABLE_SETTINGS = (
     "SELECTION_MODEL",
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
+    "SELECTION_MIN_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
     PROMPT_SETTING,
 )
@@ -395,8 +396,16 @@ def _counts(summary: Mapping[str, Any]) -> str:
     )
 
 
+def with_unrecorded(config: Mapping[str, Any]) -> dict[str, Any]:
+    filled = UNRECORDED_SETTINGS | dict(config)
+    if filled.get("selection_min_votes") is None:
+        filled["selection_min_votes"] = majority(filled["selection_votes"])
+    return filled
+
+
 def render(document: Mapping[str, Any]) -> str:
     config, summary = document["config"], document["summary"]
+    kept_by = f"({config['selection_min_votes']} 票で採る)" if config["selection_votes"] > 1 else ""
     models = " / ".join(
         model for model in (config["chat_model"], config["selection_model"]) if model
     )
@@ -406,7 +415,7 @@ def render(document: Mapping[str, Any]) -> str:
         f"職業の読み取り {config['profiles']}、{models}、埋め込み {config['embedding_model']}、"
         f"検索 {SEARCH_MODES[config['search_by_skill']]}、"
         f"候補 {config['candidate_limit']}、"
-        f"選び直し {config['selection_votes']} 回、"
+        f"選び直し {config['selection_votes']} 回{kept_by}、"
         f"2 票目から {config['selection_vote_delay_seconds']:g} 秒遅らせる)",
     ]
     if document["stopped"] is not None:
@@ -496,8 +505,8 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     for run in (before, after):
         stopped = "" if run["stopped"] is None else f"、途中で止めた({run['stopped']})"
         lines.append(f"  {run['label']}: {_counts(run['summary'])}{stopped}")
-    old_config = UNRECORDED_SETTINGS | before["config"] | {"commit": before["commit"]}
-    new_config = UNRECORDED_SETTINGS | after["config"] | {"commit": after["commit"]}
+    old_config = with_unrecorded(before["config"]) | {"commit": before["commit"]}
+    new_config = with_unrecorded(after["config"]) | {"commit": after["commit"]}
     differences = [
         f"{key} {old_config.get(key)} → {new_config.get(key)}"
         for key in sorted(old_config.keys() | new_config.keys())
@@ -643,6 +652,7 @@ def config_document(
         "occupation_reading_cache_size": settings.occupation_reading_cache_size if analyzed else 0,
         "selection_model": settings.selection_model,
         "selection_votes": settings.selection_votes,
+        "selection_min_votes": settings.selection_kept_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
         **search_config(settings),
         "prompts": {
@@ -940,7 +950,7 @@ def _analyze(args: argparse.Namespace) -> None:
     if dataset.heldout:
         sys.exit("確かめ用の評価データは、職業と科目ごとの結果を出すことになるので分析しません")
     try:
-        config = UNRECORDED_SETTINGS | document["config"]
+        config = with_unrecorded(document["config"])
         if document["summary"] is None:
             sys.exit(f"集計の無い結果は分析できません: {document['label']}")
         if config["profiles"] != "analyzed":
