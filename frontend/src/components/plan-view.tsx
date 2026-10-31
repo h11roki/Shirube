@@ -26,6 +26,7 @@ import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   DELETE_PLAN_NOTE,
+  MY_PLANS_LABEL,
   completionNotice,
   planTitlePrefix,
 } from "@/lib/labels";
@@ -143,7 +144,7 @@ export function PlanView() {
       <Notice title="道標が見つかりません">
         <p>消した道標か、URL が違うかもしれません。</p>
         <Link href="/plans" className={STANDALONE_LINK}>
-          自分の道標へ
+          {MY_PLANS_LABEL}へ
         </Link>
       </Notice>
     );
