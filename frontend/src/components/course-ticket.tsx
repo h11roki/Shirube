@@ -34,7 +34,7 @@ const EMPHASIS = {
 
 const TORN_PART = "bg-note shadow-[0_0_0_1px_var(--line)]";
 const TEARING_AWAY =
-  "origin-bottom-left animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:origin-top-left max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
+  "origin-bottom-left motion-safe:animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:origin-top-left max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
 
 function ticketId(section: string): string {
   return `ticket-${section}`;

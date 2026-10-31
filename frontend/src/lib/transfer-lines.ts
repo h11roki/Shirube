@@ -2,47 +2,78 @@ export type Box = { left: number; top: number; right: number; bottom: number };
 
 export type Point = { x: number; y: number };
 
-export type Gaps = { row: number; column: number };
+export type Layout = {
+  gaps: { row: number; column: number };
+  gutter: number;
+  sameGrid: boolean;
+};
+
+export type Side = "above" | "below";
 
 const ALIGNED = 2;
 
 const middle = (low: number, high: number) => (low + high) / 2;
 
-export function transferRoute(from: Box, to: Box, gaps: Gaps): Point[] {
-  const fromY = middle(from.top, from.bottom);
-  const toY = middle(to.top, to.bottom);
+const point = (x: number, y: number): Point => ({ x, y });
+
+export function transferRoute(from: Box, to: Box, layout: Layout): Point[] {
+  const { gaps, gutter, sameGrid } = layout;
   const fromX = middle(from.left, from.right);
-  if (Math.abs(from.left - to.left) < ALIGNED) {
-    const gutter = from.left - gaps.column / 2;
+  const toX = middle(to.left, to.right);
+  if (sameGrid && Math.abs(from.left - to.left) < ALIGNED) {
+    const side = from.left - gaps.column / 2;
+    const fromY = middle(from.top, from.bottom);
+    const toY = middle(to.top, to.bottom);
     return [
-      { x: from.left, y: fromY },
-      { x: gutter, y: fromY },
-      { x: gutter, y: toY },
-      { x: to.left, y: toY },
+      point(from.left, fromY),
+      point(side, fromY),
+      point(side, toY),
+      point(to.left, toY),
     ];
   }
   const below = to.top >= from.bottom;
   const above = to.bottom <= from.top;
   if (!below && !above) {
     const under = Math.max(from.bottom, to.bottom) + gaps.row / 2;
-    const toX = middle(to.left, to.right);
     return [
-      { x: fromX, y: from.bottom },
-      { x: fromX, y: under },
-      { x: toX, y: under },
-      { x: toX, y: to.bottom },
+      point(fromX, from.bottom),
+      point(fromX, under),
+      point(toX, under),
+      point(toX, to.bottom),
     ];
   }
-  const edge = below ? from.bottom : from.top;
-  const lane = below ? edge + gaps.row / 2 : edge - gaps.row / 2;
-  const gutter = to.left - gaps.column / 2;
+  const leave = below ? from.bottom : from.top;
+  const enter = below ? to.top : to.bottom;
+  const step = ((below ? 1 : -1) * gaps.row) / 2;
+  const leaving = leave + step;
+  const entering = enter - step;
+  if (Math.abs(leaving - entering) < ALIGNED) {
+    return [
+      point(fromX, leave),
+      point(fromX, leaving),
+      point(toX, leaving),
+      point(toX, enter),
+    ];
+  }
   return [
-    { x: fromX, y: edge },
-    { x: fromX, y: lane },
-    { x: gutter, y: lane },
-    { x: gutter, y: toY },
-    { x: to.left, y: toY },
+    point(fromX, leave),
+    point(fromX, leaving),
+    point(gutter, leaving),
+    point(gutter, entering),
+    point(toX, entering),
+    point(toX, enter),
   ];
+}
+
+export function offscreenSide(
+  rect: { top: number; bottom: number },
+  coveredTo: number,
+  height: number,
+): Side | null {
+  if (rect.bottom < coveredTo) {
+    return "above";
+  }
+  return rect.top > height ? "below" : null;
 }
 
 const tidy = (value: number) => Math.round(value * 10) / 10;

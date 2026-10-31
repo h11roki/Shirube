@@ -432,6 +432,23 @@ test.describe("乗り換えの線", () => {
     await expect(lines).toHaveCSS("opacity", "1");
   });
 
+  test.describe("動きを減らさない設定", () => {
+    test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+    test("触れると線を引く動きを付け、離れて薄れたら線を外す", async ({
+      page,
+      api,
+    }) => {
+      api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+      await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+      await ticketOf(page, foundation.name).hover();
+      const path = page.locator("svg[data-transfer-lines] path");
+      await expect(path).toHaveCSS("animation-name", "trace");
+      await page.mouse.move(0, 0);
+      await expect(path).toHaveCount(0);
+    });
+  });
+
   test("つながる切符が画面の外なら、端に駅番号と授業名の札を出す", async ({
     page,
     api,

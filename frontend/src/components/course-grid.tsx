@@ -12,7 +12,10 @@ export function CourseGrid({
   serials?: Map<string, string>;
 }) {
   return (
-    <div className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]">
+    <div
+      data-ticket-grid
+      className="grid gap-3 sm:grid-cols-[repeat(auto-fill,minmax(18rem,1fr))]"
+    >
       {courses.map((course) => (
         <CourseTicket
           key={"section_code" in course ? course.section_code : course.name}
