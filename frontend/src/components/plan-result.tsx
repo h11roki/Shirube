@@ -57,10 +57,12 @@ type Answered = {
 export function PlanResultView({
   plan,
   result,
+  arriving,
   onAnswered,
 }: {
   plan: Plan;
   result: Result;
+  arriving: boolean;
   onAnswered: (plan: Plan) => void;
 }) {
   const pathname = usePathname();
@@ -149,7 +151,7 @@ export function PlanResultView({
             {profile.occupation !== profile.interpretation && (
               <Kicker>入力した職業 {profile.occupation}</Kicker>
             )}
-            <DestinationPlate destination={destination} />
+            <DestinationPlate destination={destination} arriving={arriving} />
             {profile.assumption && (
               <p className="max-w-2xl text-sm text-sub">
                 前提: {profile.assumption}
