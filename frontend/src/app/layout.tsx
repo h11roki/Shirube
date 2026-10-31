@@ -22,7 +22,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html
       lang="ja"
-      className={`${mincho.variable} ${gothic.variable} scroll-pb-20 motion-safe:scroll-smooth`}
+      className={`${mincho.variable} ${gothic.variable} motion-safe:scroll-smooth`}
       data-scroll-behavior="smooth"
       suppressHydrationWarning
     >

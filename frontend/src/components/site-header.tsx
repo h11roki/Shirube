@@ -16,7 +16,10 @@ export function SiteHeader() {
           </span>
           <span className="text-label tracking-[0.3em] text-sub">道標</span>
         </Link>
-        <nav className="order-last flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub sm:order-none sm:ml-auto sm:w-auto">
+        <div className="ml-auto self-center">
+          <ThemeToggle />
+        </div>
+        <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub sm:w-auto">
           <Link href="/" className={NAV_LINK}>
             道標を作る
           </Link>
@@ -27,9 +30,6 @@ export function SiteHeader() {
             <Account />
           </Suspense>
         </nav>
-        <div className="ml-auto self-center sm:ml-0">
-          <ThemeToggle />
-        </div>
       </div>
     </header>
   );

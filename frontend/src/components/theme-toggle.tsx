@@ -40,15 +40,13 @@ export function ThemeToggle() {
       type="button"
       aria-pressed={dark}
       onClick={toggle}
-      className="flex items-center gap-2 rounded-full border border-edge py-1.5 pr-3.5 pl-2 text-xs whitespace-nowrap text-sub hover:text-ink"
+      className="flex items-center gap-1.5 rounded-full border border-edge py-1.5 pr-3 pl-2 text-xs whitespace-nowrap text-sub hover:text-ink"
     >
       <span
         aria-hidden
-        className={`relative h-4 w-7 rounded-full transition-colors ${dark ? "bg-route" : "bg-edge"}`}
+        className="relative h-4 w-7 rounded-full bg-edge motion-safe:transition-colors [[data-theme=dark]_&]:bg-route"
       >
-        <span
-          className={`absolute top-0.5 left-0.5 size-3 rounded-full bg-paper transition-transform ${dark ? "translate-x-3" : ""}`}
-        />
+        <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-paper motion-safe:transition-transform [[data-theme=dark]_&]:translate-x-3" />
       </span>
       ダークモード
     </button>
