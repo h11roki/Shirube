@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
+import { OUTLINED } from "@/components/styles";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 function subscribe(onChange: () => void) {
@@ -40,7 +41,7 @@ export function ThemeToggle() {
       type="button"
       aria-pressed={dark}
       onClick={toggle}
-      className="flex items-center gap-1 rounded-xs border border-edge py-1.5 pr-2.5 pl-2 text-xs whitespace-nowrap text-sub hover:border-ink hover:text-ink"
+      className={`flex items-center gap-1 py-1.5 pr-2.5 pl-2 text-xs whitespace-nowrap text-sub hover:border-ink hover:text-ink ${OUTLINED}`}
     >
       <span
         aria-hidden

@@ -186,10 +186,7 @@ export function PlanResultView({
             id={VIEWS_ANCHOR}
             className="flex scroll-mt-4 flex-wrap items-center justify-between gap-3"
           >
-            <nav
-              aria-label="見え方"
-              className="inline-flex gap-6 border-b border-line text-sm"
-            >
+            <nav aria-label="見え方" className="inline-flex gap-6 text-sm">
               {VIEWS.map((each) => (
                 <QueryLink
                   key={each}

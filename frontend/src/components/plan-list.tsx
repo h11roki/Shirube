@@ -135,11 +135,11 @@ export function PlanList() {
               style={{
                 animationDelay: `${Math.min(index, STAGGERED_ROWS) * ROW_STAGGER_MS}ms`,
               }}
-              className="flex flex-wrap items-center gap-2 border-b border-line motion-safe:animate-rise [&>div:last-child]:mb-3"
+              className="flex flex-wrap items-center gap-2 border-b border-line py-3 motion-safe:animate-rise"
             >
               <Link
                 href={`/plans/${plan.id}`}
-                className="group flex min-w-0 flex-1 basis-64 flex-wrap items-center justify-between gap-3 py-4"
+                className="group flex min-w-0 flex-1 basis-64 flex-wrap items-center justify-between gap-3 py-1"
               >
                 <span className="grid min-w-0 gap-0.5">
                   <span className="truncate font-serif text-lg font-bold underline-offset-4 group-hover:underline">
@@ -154,7 +154,7 @@ export function PlanList() {
                   <StatusBadge status={plan.status} />
                   <span
                     aria-hidden
-                    className="text-route transition-transform group-hover:translate-x-1"
+                    className="text-route motion-safe:transition-transform motion-safe:group-hover:translate-x-1"
                   >
                     →
                   </span>

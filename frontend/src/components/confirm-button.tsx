@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
-import { OUTLINE_BUTTON, SOLID_BUTTON } from "@/components/styles";
+import { DANGER_BUTTON, OUTLINED, OUTLINE_BUTTON } from "@/components/styles";
 import { messageOf } from "@/lib/api/client";
 import { CANCEL_LABEL } from "@/lib/labels";
 
@@ -63,7 +63,7 @@ export function ConfirmButton({
           setAsking(true);
           onOpen?.();
         }}
-        className="rounded-xs border border-edge px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
+        className={`px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger ${OUTLINED}`}
       >
         {label}
       </button>
@@ -94,7 +94,7 @@ export function ConfirmButton({
           type="button"
           aria-disabled={busy}
           onClick={() => void confirm()}
-          className={`bg-danger px-4 py-1.5 font-medium aria-disabled:opacity-50 ${SOLID_BUTTON}`}
+          className={`px-4 py-1.5 font-medium aria-disabled:opacity-50 ${DANGER_BUTTON}`}
         >
           {confirmLabel}
         </button>
