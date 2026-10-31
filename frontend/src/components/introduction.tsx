@@ -2,10 +2,9 @@ import { SignInButton } from "@/components/account";
 import { CourseWordsProvider } from "@/components/course-words";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
-import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { RouteMap } from "@/components/route-map";
-import { RELEVANCE_LABELS, sampleLabel, semesterLabel } from "@/lib/labels";
+import { RELEVANCE_LABELS } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
 import { courseNames } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -64,23 +63,23 @@ export function Introduction() {
 
       <section className="grid gap-5">
         <div className="grid gap-1">
-          <Kicker>{sampleLabel(conditions.occupation)}</Kicker>
           <h2 className="sr-only">{result.profile.interpretation}への道標</h2>
-          <DestinationPlate destination={SAMPLE_DESTINATION} />
+          <div className="flex flex-col items-start justify-self-start sm:flex-row sm:items-stretch">
+            <span className="grid place-items-center border border-b-0 border-ink px-2 font-serif text-sm font-semibold tracking-[0.24em] sm:border-r-0 sm:border-b sm:px-1.5 sm:[writing-mode:vertical-rl]">
+              見本
+            </span>
+            <DestinationPlate destination={SAMPLE_DESTINATION} />
+          </div>
           <p className="text-sm text-sub">
-            {conditions.year} 年度の時間割から作った、実際の出力です(
-            {semesterLabel(conditions.grade, conditions.term)}
-            から)。要約は卒業までのもので、道のりは最初の {
-              SAMPLE_SEMESTERS
-            }{" "}
-            学期だけを載せています。
+            実際に作った道標です。要約は卒業まで、道のりは初めの{" "}
+            {SAMPLE_SEMESTERS} 学期を載せています。
           </p>
         </div>
         <PlanCaution />
         <JourneySummary
           semesters={result.semesters}
           conditions={conditions}
-          destination={result.profile.interpretation}
+          skills={result.profile.skills}
         />
         <CourseWordsProvider words={SAMPLE_COURSE_WORDS}>
           <RouteMap

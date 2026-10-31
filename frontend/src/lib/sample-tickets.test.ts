@@ -1,10 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  SAMPLE_TICKETS,
-  halfWidthAlphanumerics,
-  lastSentence,
-} from "@/lib/sample-tickets";
+import { SAMPLE_TICKETS, lastSentence } from "@/lib/sample-tickets";
+import { halfWidthAlphanumerics } from "@/lib/ticket-face";
 
 describe("the sample tickets on the top page", () => {
   it("deal a foundation course and then a core course from the sample plan", () => {

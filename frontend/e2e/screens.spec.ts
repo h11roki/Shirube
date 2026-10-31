@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
-import { TICKET_NOTCH_SHAPE } from "@/components/styles";
+import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import { forgetTakenLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -29,13 +29,12 @@ const TEXT_ZOOM = 2;
 const TEXT_RESIZE_WIDTH = 1280;
 const GLYPH_OVERHANG_EM = 0.25;
 const UNDECORATED_CSS = `
-  body { background-image: none !important; }
+  body, [class*="${TICKET_GROUND}"] { background-image: none !important; }
   [data-station]::before, [data-station]::after,
   [class*="${TICKET_NOTCH_SHAPE}"]::before, [class*="${TICKET_NOTCH_SHAPE}"]::after { content: none !important; }
 `;
 const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
-  nonBmp: ["→", "◇"],
-  shortTextContent: ["柱"],
+  nonBmp: ["→"],
   bgOverlap: ["卒業", `${RUNNING_PLAN.conditions.grade} 回生`],
   elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation],
 };

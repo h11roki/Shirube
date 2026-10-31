@@ -9,9 +9,9 @@ import {
   COURSE_TICKET_NOTCH,
   SMALL_BUTTON,
   STANDALONE_LINK,
-  TICKET_STAMP,
 } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
+import { TicketStamp } from "@/components/ticket-stamp";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import {
@@ -44,14 +44,20 @@ export function revealTicket(section: string) {
 export function CourseTicket({
   course,
   transfer,
+  serial,
 }: {
   course: Course | PlacedCourse;
   transfer?: Transfer;
+  serial?: string;
 }) {
   const focusing = useTransferFocus();
   const answering = useContext(TakenAnswersContext);
   const nameWords = useCourseWords(course.name);
-  const core = course.relevance === "core";
+  const role = transfer ? RELEVANCE_LABELS.foundation : roleLabel(course);
+  const roleShown =
+    !transfer &&
+    course.relevance === "foundation" &&
+    Boolean(course.prerequisite_for);
   const placed = "slots" in course;
   const emphasis =
     focusing?.focus === course.name
@@ -66,15 +72,19 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${emphasis}`}
+      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${RELEVANCE_TONES[course.relevance].ground} ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
-          className={`text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`}
+          className={
+            roleShown
+              ? `pr-10 text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`
+              : "sr-only"
+          }
         >
-          {transfer ? RELEVANCE_LABELS.foundation : roleLabel(course)}
+          {role}
         </p>
-        <h3 className={`leading-snug font-bold ${core ? "pr-10" : ""}`}>
+        <h3 className="pr-10 leading-snug font-bold">
           <Phrases parts={nameWords} />
         </h3>
         <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
@@ -125,7 +135,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
+          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
         >
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">コマ</dt>
@@ -148,14 +158,18 @@ export function CourseTicket({
           </div>
         </dl>
       )}
-      {core && (
+      {serial && (
         <span
           aria-hidden
-          className={`right-3 size-9 ${TICKET_STAMP} ${placed ? "sm:right-[5.6rem]" : ""}`}
+          className="absolute right-2 bottom-1 text-label tracking-[0.08em] text-sub"
         >
-          {RELEVANCE_LABELS.core}
+          {serial}
         </span>
       )}
+      <TicketStamp
+        course={course}
+        className={`-top-2 right-3 size-9 ${placed ? "sm:right-[5.6rem]" : ""}`}
+      />
     </article>
   );
 }

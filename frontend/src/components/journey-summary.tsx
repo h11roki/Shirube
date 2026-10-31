@@ -5,11 +5,11 @@ import { routeTotals } from "@/lib/roadmap";
 export function JourneySummary({
   semesters,
   conditions,
-  destination,
+  skills,
 }: {
   semesters: SemesterPlan[];
-  conditions: { grade: number; term: Term };
-  destination: string;
+  conditions: { grade: number; term: Term; credit_limit: number; year: number };
+  skills: string[];
 }) {
   const totals = routeTotals(semesters);
   const facts = [
@@ -19,26 +19,43 @@ export function JourneySummary({
     [RELEVANCE_LABELS.foundation, `${totals.foundation} 科目`],
   ];
   return (
-    <div className="max-w-xl border border-line bg-sheet">
-      <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-route px-4 py-2 text-sm font-bold text-paper">
-        <span className="rounded-xs border border-paper/60 px-1 text-label">
-          出発
+    <div className="max-w-2xl border-t-2 border-b border-t-ink border-b-line dark:border-t-ink/60">
+      <div className="flex flex-wrap gap-x-4 border-b border-line py-2 text-sm">
+        <span>
+          <span className="font-bold">
+            {semesterLabel(conditions.grade, conditions.term)}
+          </span>{" "}
+          発
         </span>
-        {semesterLabel(conditions.grade, conditions.term)}
-        <span aria-hidden>→</span>
-        <span className="rounded-xs border border-paper/60 px-1 text-label">
-          到着
-        </span>
-        {destination}
-      </p>
-      <dl className="flex flex-wrap gap-x-6 gap-y-1 px-4 py-2.5 text-sm">
+        {skills.length > 0 && (
+          <div>
+            経由{" "}
+            <ul className="inline">
+              {skills.map((skill, index) => (
+                <li key={`${index}-${skill}`} className="inline">
+                  {skill}
+                  {index < skills.length - 1 && "、"}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
+      <dl className="grid grid-cols-2 gap-y-1 py-2.5 text-sm sm:flex sm:flex-wrap">
         {facts.map(([term, value]) => (
-          <div key={term} className="flex items-baseline gap-1.5">
+          <div
+            key={term}
+            className="flex items-baseline gap-1.5 sm:mr-5 sm:border-r sm:border-line sm:pr-5 sm:last:mr-0 sm:last:border-r-0 sm:last:pr-0"
+          >
             <dt className="text-xs text-sub">{term}</dt>
             <dd className="font-bold tabular-nums">{value}</dd>
           </div>
         ))}
       </dl>
+      <p className="border-t border-line py-1.5 text-label text-sub">
+        1 学期 {conditions.credit_limit} 単位まで ・ {conditions.year}{" "}
+        年度の時間割
+      </p>
     </div>
   );
 }

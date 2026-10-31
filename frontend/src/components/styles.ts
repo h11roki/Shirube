@@ -34,5 +34,5 @@ export const TICKET_NOTCH = `${TICKET_NOTCH_SHAPE} before:-top-2 before:-left-[c
 
 export const COURSE_TICKET_NOTCH = `${TICKET_NOTCH} max-sm:before:-top-[calc(0.5rem+1px)] max-sm:before:-left-2 max-sm:before:[clip-path:inset(0_0_0_50%)] max-sm:after:-top-[calc(0.5rem+1px)] max-sm:after:-right-2 max-sm:after:bottom-auto max-sm:after:left-auto max-sm:after:[clip-path:inset(0_50%_0_0)]`;
 
-export const TICKET_STAMP =
-  "absolute top-2.5 grid rotate-[-12deg] place-items-center rounded-full border-[2.5px] border-pillar font-serif font-extrabold text-pillar";
+export const TICKET_GROUND =
+  "bg-[repeating-linear-gradient(45deg,var(--ground)_0_0.75px,transparent_0.75px_5px)]";
