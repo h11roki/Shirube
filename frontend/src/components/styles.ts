@@ -6,14 +6,23 @@ export const STANDALONE_LINK = `${TARGET} ${TEXT_LINK}`;
 
 export const NAV_LINK = `${TARGET} hover:text-ink`;
 
-export const OUTLINE_BUTTON =
-  "rounded-full border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
+export const OUTLINED = "rounded-xs border border-edge";
 
-export const SMALL_BUTTON =
-  "rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
+export const OUTLINE_BUTTON = `${OUTLINED} bg-sheet px-4 py-1.5 text-ink hover:border-ink`;
 
-export const PLATE =
-  "rounded-md border border-line bg-plate text-plate-ink shadow-paper";
+export const SMALL_BUTTON = `${OUTLINED} px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50`;
+
+const SOLID_BUTTON = "rounded-xs text-paper hover:opacity-90";
+
+export const PRIMARY_BUTTON = `${SOLID_BUTTON} bg-ink`;
+
+export const DANGER_BUTTON = `${SOLID_BUTTON} bg-danger`;
+
+export function tabClass(current: boolean): string {
+  return `pt-1 ${current ? "border-b-[3px] border-route pb-1.5 text-ink" : "border-b border-line pb-2 text-sub hover:text-ink"}`;
+}
+
+export const PLATE = "border border-line bg-plate text-plate-ink";
 
 export const DESTINATION_TEXT =
   "text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug";

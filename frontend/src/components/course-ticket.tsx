@@ -66,7 +66,7 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 rounded-md border border-line bg-note shadow-paper transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${emphasis}`}
+      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p

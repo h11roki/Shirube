@@ -2,6 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
+import { OUTLINED } from "@/components/styles";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 function subscribe(onChange: () => void) {
@@ -40,13 +41,13 @@ export function ThemeToggle() {
       type="button"
       aria-pressed={dark}
       onClick={toggle}
-      className="flex items-center gap-1 rounded-full border border-edge py-1.5 pr-2.5 pl-2 text-xs whitespace-nowrap text-sub hover:border-ink hover:text-ink"
+      className={`flex items-center gap-1 py-1.5 pr-2.5 pl-2 text-xs whitespace-nowrap text-sub hover:border-ink hover:text-ink ${OUTLINED}`}
     >
       <span
         aria-hidden
-        className="relative h-4 w-7 rounded-full bg-edge motion-safe:transition-colors dark:bg-route"
+        className="relative h-4 w-7 rounded-xs bg-edge motion-safe:transition-colors dark:bg-route"
       >
-        <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-paper motion-safe:transition-transform dark:translate-x-3" />
+        <span className="absolute top-0.5 left-0.5 size-3 rounded-[1px] bg-paper motion-safe:transition-transform dark:translate-x-3" />
       </span>
       ダークモード
     </button>

@@ -19,7 +19,7 @@ export function JourneySummary({
     [RELEVANCE_LABELS.foundation, `${totals.foundation} 科目`],
   ];
   return (
-    <div className="max-w-xl overflow-hidden rounded-lg border border-line bg-sheet shadow-paper">
+    <div className="max-w-xl border border-line bg-sheet">
       <p className="flex flex-wrap items-center gap-x-2.5 gap-y-1 bg-route px-4 py-2 text-sm font-bold text-paper">
         <span className="rounded-xs border border-paper/60 px-1 text-label">
           出発

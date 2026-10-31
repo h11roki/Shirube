@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
+import { PRIMARY_BUTTON } from "@/components/styles";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
@@ -21,8 +22,7 @@ const GRADES = [1, 2, 3, 4];
 const TERMS: Term[] = ["spring", "autumn"];
 const MAX_OCCUPATION_LENGTH = 100;
 
-const fieldClass =
-  "w-full rounded-md border border-edge bg-paper px-3 py-2 text-ink";
+const fieldClass = "w-full border border-edge bg-paper px-3 py-2 text-ink";
 
 export function PlanForm() {
   const router = useRouter();
@@ -116,7 +116,7 @@ export function PlanForm() {
   return (
     <form
       onSubmit={submit}
-      className="space-y-6 rounded-lg border border-line bg-sheet p-6 shadow-paper motion-safe:animate-rise sm:p-8"
+      className="space-y-6 border border-line bg-sheet p-6 motion-safe:animate-rise sm:p-8"
     >
       <div className="space-y-2">
         <label htmlFor="occupation" className="block text-sm font-medium">
@@ -173,7 +173,7 @@ export function PlanForm() {
         </div>
         <div className="space-y-2">
           <span className="block text-sm font-medium">学科</span>
-          <p className="rounded-md border border-line bg-paper px-3 py-2 text-sub">
+          <p className="border border-line bg-paper px-3 py-2 text-sub">
             {DEPARTMENT_NAME}
           </p>
         </div>
@@ -189,7 +189,7 @@ export function PlanForm() {
       )}
 
       {choices && choices.courses.length > 0 && (
-        <details className="rounded-lg border border-line bg-paper p-4">
+        <details className="border border-line bg-paper p-4">
           <summary className="cursor-pointer py-1 text-sm font-medium">
             学科でクラスが分かれている科目({choices.courses.length}
             科目、任意)
@@ -249,7 +249,7 @@ export function PlanForm() {
         <button
           type="submit"
           disabled={busy || loading}
-          className="rounded-full bg-pillar px-6 py-2.5 font-bold text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`px-6 py-2.5 font-bold disabled:cursor-not-allowed disabled:opacity-50 ${PRIMARY_BUTTON}`}
         >
           {busy ? "受け付けています" : "道標を作る"}
         </button>

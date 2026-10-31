@@ -128,21 +128,21 @@ export function PlanList() {
           </Link>
         </p>
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid border-t-2 border-ink dark:border-ink/60">
           {plans.plans.map((plan, index) => (
             <li
               key={plan.id}
               style={{
                 animationDelay: `${Math.min(index, STAGGERED_ROWS) * ROW_STAGGER_MS}ms`,
               }}
-              className="flex flex-wrap items-center gap-2 motion-safe:animate-rise"
+              className="flex flex-wrap items-center gap-2 border-b border-line py-3 motion-safe:animate-rise"
             >
               <Link
                 href={`/plans/${plan.id}`}
-                className="group flex min-w-0 flex-1 basis-64 flex-wrap items-center justify-between gap-3 rounded-lg border border-l-4 border-line border-l-route bg-sheet px-5 py-4 shadow-paper transition-colors hover:border-l-pillar"
+                className="group flex min-w-0 flex-1 basis-64 flex-wrap items-center justify-between gap-3 py-1"
               >
                 <span className="grid min-w-0 gap-0.5">
-                  <span className="truncate font-serif text-lg font-bold">
+                  <span className="truncate font-serif text-lg font-bold underline-offset-4 group-hover:underline">
                     {plan.occupation}
                   </span>
                   <span className="text-xs text-sub">
@@ -154,7 +154,7 @@ export function PlanList() {
                   <StatusBadge status={plan.status} />
                   <span
                     aria-hidden
-                    className="text-route transition-transform group-hover:translate-x-1"
+                    className="text-route motion-safe:transition-transform motion-safe:group-hover:translate-x-1"
                   >
                     →
                   </span>

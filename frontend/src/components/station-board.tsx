@@ -18,9 +18,9 @@ export function StationBoard({
   destination: string;
 }) {
   return (
-    <div className="grid w-full max-w-lg grid-cols-[auto_minmax(0,1fr)] overflow-hidden rounded-md border border-line bg-sheet shadow-paper">
+    <div className="grid w-full max-w-lg grid-cols-[auto_minmax(0,1fr)] overflow-hidden border border-line bg-sheet">
       <div className="row-span-2 grid place-items-center border-r border-line px-3">
-        <span className="grid size-11 place-items-center rounded-md border-[3px] border-route text-xs font-bold tabular-nums">
+        <span className="grid size-11 place-items-center border-[3px] border-route text-xs font-bold tabular-nums">
           {stationLabel(index)}
         </span>
       </div>
@@ -30,7 +30,7 @@ export function StationBoard({
             {label(semester)}
           </h2>
           {index === 0 && (
-            <span className="rounded-xs bg-pillar px-1.5 text-label font-bold tracking-[0.12em] text-paper">
+            <span className="border border-ink px-1.5 text-label font-bold tracking-[0.12em] text-ink">
               始発
             </span>
           )}

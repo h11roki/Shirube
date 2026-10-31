@@ -223,7 +223,7 @@ function RouteStrip({
     <nav
       ref={strip}
       aria-label="路線図"
-      className="sticky top-2 z-20 scroll-px-6 overflow-x-auto rounded-full border border-line bg-sheet/90 px-6 py-2 shadow-paper backdrop-blur"
+      className="sticky top-2 z-20 scroll-px-6 overflow-x-auto border border-line bg-sheet px-6 py-2"
     >
       <ol className="flex w-max min-w-full items-start justify-between">
         {stops.map((stop, index) => {
@@ -350,7 +350,7 @@ function Station({
       <div
         id={weekId}
         hidden={!open}
-        className="min-w-0 rounded-lg border border-line bg-note p-3.5 motion-safe:animate-rise"
+        className="min-w-0 border border-line bg-note p-3.5 motion-safe:animate-rise"
       >
         {open && <WeekTable courses={all} />}
       </div>

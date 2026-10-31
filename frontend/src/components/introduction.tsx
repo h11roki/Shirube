@@ -46,14 +46,14 @@ export function Introduction() {
           >
             <span
               aria-hidden
-              className="absolute top-0 left-0 grid size-9 place-items-center rounded-full border-4 border-route bg-paper font-serif text-sm font-extrabold text-route"
+              className="absolute top-0 left-0 grid size-9 place-items-center rounded-full border-2 border-route bg-paper font-serif text-sm font-extrabold text-route"
             >
               {index + 1}
             </span>
             {index < STEPS.length - 1 && (
               <span
                 aria-hidden
-                className="absolute top-9 bottom-[-1.5rem] left-4 w-1 bg-route sm:top-4 sm:right-[-2rem] sm:bottom-auto sm:left-9 sm:h-1 sm:w-auto"
+                className="absolute top-9 bottom-[-1.5rem] left-[calc(1.125rem-1px)] w-0.5 bg-route sm:top-[calc(1.125rem-1px)] sm:right-[-2rem] sm:bottom-auto sm:left-9 sm:h-0.5 sm:w-auto"
               />
             )}
             <h2 className="font-serif text-lg font-bold">{step.title}</h2>
@@ -93,7 +93,7 @@ export function Introduction() {
         <SourceNote year={conditions.year} />
       </section>
 
-      <section className="grid justify-items-start gap-4 rounded-lg border border-line bg-sheet p-6 shadow-paper sm:p-8">
+      <section className="grid justify-items-start gap-4 border border-line bg-sheet p-6 sm:p-8">
         <h2 className="font-serif text-xl font-bold">自分の道標を作ってみる</h2>
         <p className="text-sm text-sub">
           作った道標は保存され、あとから一覧で見返せます。Google

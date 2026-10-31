@@ -27,7 +27,7 @@ async function SessionGate({ children, signedOut, heading }: Gate) {
   }
   return (
     signedOut ?? (
-      <section className="grid justify-items-start gap-4 rounded-lg border border-line bg-sheet p-6 text-sm shadow-paper">
+      <section className="grid justify-items-start gap-4 border border-line bg-sheet p-6 text-sm">
         <p>道標を作ったり見返したりするには、Google でログインしてください。</p>
         <SignInButton />
       </section>

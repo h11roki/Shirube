@@ -5,6 +5,7 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { CourseGrid } from "@/components/course-grid";
 import { revealTicket } from "@/components/course-ticket";
 import { QueryLink, pushQuery } from "@/components/query-link";
+import { tabClass } from "@/components/styles";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -72,7 +73,7 @@ export function TimetableBook({
   return (
     <TransferFocusContext.Provider value={focusing}>
       <div className="grid gap-4 motion-safe:animate-rise">
-        <nav aria-label="学期" className="flex flex-wrap gap-1.5">
+        <nav aria-label="学期" className="flex flex-wrap gap-x-5 gap-y-1">
           {semesters.map((each, index) => {
             const current = each === semester;
             return (
@@ -80,7 +81,7 @@ export function TimetableBook({
                 key={semesterKey(each)}
                 href={resultViewHref(planPath, "timetable", semesterKey(each))}
                 aria-current={current ? "page" : undefined}
-                className={`rounded-full border-[1.5px] px-3.5 py-1 text-fine ${current ? "border-ink bg-note font-bold text-ink" : "border-edge bg-sheet text-sub hover:text-ink"}`}
+                className={`text-fine ${tabClass(current)}`}
               >
                 <span className="mr-1.5 text-label text-route tabular-nums">
                   {stationLabel(index)}
@@ -91,7 +92,7 @@ export function TimetableBook({
           })}
         </nav>
         <div className="grid items-start gap-4 lg:grid-cols-[1.55fr_1fr]">
-          <div className="min-w-0 rounded-lg border border-line bg-note p-3.5">
+          <div className="min-w-0 border border-line bg-note p-3.5">
             <WeekTable courses={all} />
           </div>
           {all.length > 0 ? (
