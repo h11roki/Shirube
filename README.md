@@ -124,7 +124,7 @@ flowchart TB
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を組み立てて起動し HTTPS とログインの戻り先を確かめる job
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます(ADR 0056、0070)。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-10-31): backend 719、Vitest 137、e2e 202
+- 試験の数(2026-10-31): backend 734、Vitest 137、e2e 202
 
 ## 本番の構成
 
