@@ -5,6 +5,7 @@ import {
   type RefObject,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -30,12 +31,21 @@ const TIMING = {
   "--trace-ms": `${TRANSFER_DRAW_MS}ms`,
   transitionDuration: `${TRANSFER_FADE_MS}ms`,
 } as CSSProperties;
+const BADGE =
+  "border border-route bg-sheet px-3 py-1 text-xs text-route shadow-sticky";
+
+type Target = { name: string; station: number; element: HTMLElement };
 
 type Drawn = {
   focus: string;
   lines: { name: string; path: string; start: Point; end: Point }[];
-  away: { name: string; station: number; above: boolean }[];
+};
+
+type Away = {
+  focus: string;
   coveredTo: number;
+  above: Target[];
+  below: Target[];
 };
 
 export function TransferLines({
@@ -50,19 +60,20 @@ export function TransferLines({
   const focusing = useTransferFocus();
   const focus = focusing?.focus ?? null;
   const linked = focusing?.linked;
-  const stops = useMemo(
-    () =>
-      new Map(
-        semesters.flatMap((semester, station) =>
-          semester.courses.map((course) => [
-            course.name,
-            { section: course.section_code, station },
-          ]),
-        ),
-      ),
-    [semesters],
-  );
+  const stops = useMemo(() => {
+    const first = new Map<string, { section: string; station: number }>();
+    semesters.forEach((semester, station) => {
+      for (const course of semester.courses) {
+        if (!first.has(course.name)) {
+          first.set(course.name, { section: course.section_code, station });
+        }
+      }
+    });
+    return first;
+  }, [semesters]);
+  const canvas = useRef<SVGSVGElement>(null);
   const [drawn, setDrawn] = useState<Drawn | null>(null);
+  const [away, setAway] = useState<Away | null>(null);
 
   useEffect(() => {
     if (focus !== null) {
@@ -73,17 +84,21 @@ export function TransferLines({
   }, [focus]);
 
   useEffect(() => {
-    const box = area.current;
-    if (focus === null || !linked || !box) {
+    const container = area.current;
+    if (focus === null || !linked || linked.size === 0 || !container) {
       return;
     }
     const current = focus;
     const names = linked;
-    const container = box;
-    let frame = requestAnimationFrame(measure);
+    const box = container;
+    let targets: Target[] = [];
+    let placed = "";
+    let measuring = requestAnimationFrame(measure);
+    let placing = 0;
+
     function measure() {
-      frame = 0;
-      const origin = container.getBoundingClientRect();
+      measuring = 0;
+      const origin = box.getBoundingClientRect();
       const within = (rect: DOMRect): Box => ({
         left: rect.left - origin.left,
         top: rect.top - origin.top,
@@ -94,7 +109,9 @@ export function TransferLines({
       const from = source && findTicket(source.section);
       const grid = from?.parentElement;
       if (!from || !grid) {
+        targets = [];
         setDrawn(null);
+        place();
         return;
       }
       const spacing = getComputedStyle(grid);
@@ -102,62 +119,108 @@ export function TransferLines({
         row: parseFloat(spacing.rowGap),
         column: parseFloat(spacing.columnGap),
       };
+      const start = within(from.getBoundingClientRect());
+      targets = [...names].flatMap((name) => {
+        const stop = stops.get(name);
+        const element = stop && findTicket(stop.section);
+        return stop && element
+          ? [{ name, station: stop.station, element }]
+          : [];
+      });
+      setDrawn({
+        focus: current,
+        lines: targets.map(({ name, element }) => {
+          const points = transferRoute(
+            start,
+            within(element.getBoundingClientRect()),
+            gaps,
+          );
+          return {
+            name,
+            path: roundedPath(points, CORNER_PX),
+            start: points[1],
+            end: points[points.length - 2],
+          };
+        }),
+      });
+      place();
+    }
+
+    function place() {
+      placing = 0;
       const coveredTo = Math.max(
         cover?.current?.getBoundingClientRect().bottom ?? 0,
         0,
       );
-      const start = within(from.getBoundingClientRect());
-      const lines: Drawn["lines"] = [];
-      const away: Drawn["away"] = [];
-      for (const name of names) {
-        const stop = stops.get(name);
-        const to = stop && findTicket(stop.section);
-        if (!stop || !to) {
-          continue;
-        }
-        const rect = to.getBoundingClientRect();
-        const points = transferRoute(start, within(rect), gaps);
-        lines.push({
-          name,
-          path: roundedPath(points, CORNER_PX),
-          start: points[1],
-          end: points[points.length - 2],
-        });
-        if (rect.bottom < coveredTo || rect.top > innerHeight) {
-          away.push({
-            name,
-            station: stop.station,
-            above: rect.bottom < coveredTo,
-          });
-        }
+      const route = box.getBoundingClientRect();
+      const showing = route.bottom > coveredTo && route.top < innerHeight;
+      const rects = targets.map((target) => ({
+        target,
+        rect: target.element.getBoundingClientRect(),
+      }));
+      const above = showing
+        ? rects.filter(({ rect }) => rect.bottom < coveredTo)
+        : [];
+      const below = showing
+        ? rects.filter(({ rect }) => rect.top > innerHeight)
+        : [];
+      const signature = JSON.stringify([
+        above.map(({ target }) => target.name),
+        below.map(({ target }) => target.name),
+        above.length > 0 ? Math.round(coveredTo) : 0,
+      ]);
+      if (signature === placed) {
+        return;
       }
-      setDrawn({ focus: current, lines, away, coveredTo });
+      placed = signature;
+      setAway({
+        focus: current,
+        coveredTo,
+        above: above.map(({ target }) => target),
+        below: below.map(({ target }) => target),
+      });
     }
-    function schedule() {
-      if (!frame) {
-        frame = requestAnimationFrame(measure);
+
+    function remeasure() {
+      if (!measuring) {
+        measuring = requestAnimationFrame(measure);
       }
     }
-    const resized = new ResizeObserver(schedule);
-    resized.observe(container);
-    addEventListener("scroll", schedule, { passive: true });
-    addEventListener("resize", schedule);
+    function replace() {
+      if (!placing) {
+        placing = requestAnimationFrame(place);
+      }
+    }
+    function settled(event: AnimationEvent) {
+      if (!canvas.current?.contains(event.target as Node)) {
+        remeasure();
+      }
+    }
+    const resized = new ResizeObserver(remeasure);
+    resized.observe(box);
+    box.addEventListener("animationend", settled);
+    addEventListener("resize", remeasure);
+    addEventListener("scroll", replace, { passive: true });
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(measuring);
+      cancelAnimationFrame(placing);
       resized.disconnect();
-      removeEventListener("scroll", schedule);
-      removeEventListener("resize", schedule);
+      box.removeEventListener("animationend", settled);
+      removeEventListener("resize", remeasure);
+      removeEventListener("scroll", replace);
     };
   }, [area, cover, focus, linked, stops]);
 
   const shown = drawn !== null && drawn.focus === focus;
+  const badges = shown && away?.focus === focus ? away : null;
   return (
     <>
       <svg
+        ref={canvas}
         aria-hidden
         data-transfer-lines
         style={TIMING}
-        className={`pointer-events-none absolute inset-0 -z-10 size-full overflow-visible transition-opacity ${shown ? "" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-0 size-full overflow-visible motion-safe:transition-opacity ${shown ? "" : "opacity-0"}`}
       >
         {drawn?.lines.map((line) => (
           <g key={`${drawn.focus}-${line.name}`}>
@@ -169,17 +232,19 @@ export function TransferLines({
             {(
               [
                 [
+                  "start",
                   line.start,
                   "motion-safe:[animation-delay:var(--trace-delay)]",
                 ],
                 [
+                  "end",
                   line.end,
                   "motion-safe:[animation-delay:calc(var(--trace-delay)+var(--trace-ms))]",
                 ],
               ] as const
-            ).map(([point, delay]) => (
+            ).map(([end, point, delay]) => (
               <circle
-                key={`${point.x}-${point.y}`}
+                key={end}
                 cx={point.x}
                 cy={point.y}
                 r={4}
@@ -189,24 +254,33 @@ export function TransferLines({
           </g>
         ))}
       </svg>
-      {shown &&
-        drawn.away.map((target) => (
-          <p
-            key={target.name}
-            aria-hidden
-            style={
-              target.above
-                ? {
-                    top: `calc(max(${drawn.coveredTo}px, env(safe-area-inset-top)) + 0.5rem)`,
-                  }
-                : undefined
-            }
-            className={`pointer-events-none fixed left-1/2 z-30 max-w-[calc(100vw-2rem)] -translate-x-1/2 border border-route bg-sheet px-3 py-1 text-xs text-route shadow-sticky ${target.above ? "" : "bottom-[max(1rem,env(safe-area-inset-bottom))]"}`}
-          >
-            {target.above ? "↑" : "↓"} {stationLabel(target.station)}{" "}
-            {target.name}
-          </p>
-        ))}
+      {badges && badges.above.length > 0 && (
+        <div
+          aria-hidden
+          style={{
+            top: `calc(max(${badges.coveredTo}px, env(safe-area-inset-top)) + 0.5rem)`,
+          }}
+          className="pointer-events-none fixed left-1/2 z-20 grid max-w-[calc(100vw-2rem)] -translate-x-1/2 justify-items-center gap-1"
+        >
+          {badges.above.map((target) => (
+            <p key={target.name} className={BADGE}>
+              ↑ {stationLabel(target.station)} {target.name}
+            </p>
+          ))}
+        </div>
+      )}
+      {badges && badges.below.length > 0 && (
+        <div
+          aria-hidden
+          className="pointer-events-none fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 z-20 grid max-w-[calc(100vw-2rem)] -translate-x-1/2 justify-items-center gap-1"
+        >
+          {badges.below.map((target) => (
+            <p key={target.name} className={BADGE}>
+              ↓ {stationLabel(target.station)} {target.name}
+            </p>
+          ))}
+        </div>
+      )}
     </>
   );
 }

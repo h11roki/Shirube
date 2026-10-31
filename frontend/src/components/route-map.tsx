@@ -37,6 +37,7 @@ import {
 import {
   REDUCED_MOTION,
   STAGGER_MS,
+  TOUCH_SCREEN,
   TRANSFER_DELAY_MS,
   TRANSFER_DRAW_MS,
 } from "@/lib/motion";
@@ -83,7 +84,10 @@ export function RouteMap({
   const following = useRef<ReturnType<typeof setTimeout>>(undefined);
   const go = useCallback((transfer: Transfer) => {
     clearTimeout(following.current);
-    if (matchMedia(REDUCED_MOTION).matches) {
+    if (
+      !matchMedia(TOUCH_SCREEN).matches ||
+      matchMedia(REDUCED_MOTION).matches
+    ) {
       revealTicket(transfer.pillarSection);
       return;
     }
@@ -160,7 +164,7 @@ export function RouteMap({
 
   return (
     <TransferFocusContext.Provider value={focusing}>
-      <div ref={root} className="relative isolate grid gap-6">
+      <div ref={root} className="relative grid gap-6">
         <TransferLines
           area={root}
           semesters={visible}

@@ -10,6 +10,7 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   markTakenLabel,
+  stationLabel,
   syllabusLinkLabel,
   unmarkTakenLabel,
 } from "@/lib/labels";
@@ -429,6 +430,27 @@ test.describe("乗り換えの線", () => {
     const lines = page.locator("svg[data-transfer-lines]");
     await expect(lines.locator("path")).toHaveCount(1);
     await expect(lines).toHaveCSS("opacity", "1");
+  });
+
+  test("つながる切符が画面の外なら、端に駅番号と授業名の札を出す", async ({
+    page,
+    api,
+  }) => {
+    const later = SAMPLE_PLAN.result.semesters[1].courses.filter(
+      (course) =>
+        course.relevance === "foundation" && course.prerequisite_for !== null,
+    )[0];
+    await page.setViewportSize({ width: 375, height: 800 });
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    const ticket = ticketOf(page, later.name);
+    await ticket.evaluate((element) =>
+      element.scrollIntoView({ block: "center" }),
+    );
+    await ticket.hover();
+    await expect(
+      page.getByText(`↑ ${stationLabel(0)} ${later.prerequisite_for}`),
+    ).toBeVisible();
   });
 });
 

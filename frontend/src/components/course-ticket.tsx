@@ -66,7 +66,7 @@ export function CourseTicket({
     course.relevance === "foundation" &&
     Boolean(course.prerequisite_for);
   const placed = "slots" in course;
-  const tearing = placed && answering?.tearing === course.name;
+  const tearing = answering?.tearing === course.name;
   const ground = RELEVANCE_TONES[course.relevance].ground;
   const torn = tearing ? `${TORN_PART} ${ground}` : "";
   const emphasis =
