@@ -90,6 +90,15 @@ export function pickSemester(
   );
 }
 
+export function ticketSerials(semesters: SemesterPlan[]): Map<string, string> {
+  const codes = semesters.flatMap((semester) =>
+    semester.courses.map((course) => course.section_code),
+  );
+  return new Map(
+    codes.map((code, index) => [code, String(index + 1).padStart(4, "0")]),
+  );
+}
+
 export function routeTotals(
   semesters: SemesterPlan[],
 ): { credits: number } & Record<Relevance, number> {

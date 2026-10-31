@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE, SUBHEAD } from "@/lib/site";
+import { stampTilt } from "@/lib/ticket-face";
 
 const FRONTEND = new URL("../../", import.meta.url);
 
@@ -45,6 +46,20 @@ describe("the share card", () => {
         credits: String(course.credits),
       })),
     );
+  });
+
+  it("tilts the stamps on its tickets the same way as the top page", () => {
+    const tilt = (selector: string) =>
+      Number(
+        new RegExp(
+          `\\.${selector} \\{[^}]*transform: rotate\\((-?\\d+)deg\\)`,
+        ).exec(card)?.[1],
+      );
+    for (const course of SAMPLE_TICKETS) {
+      expect(tilt(course.relevance === "core" ? "stamp" : "seal")).toBe(
+        stampTilt(course.name),
+      );
+    }
   });
 
   it("names the courses on its tickets and the reason of the core one in the alt text", () => {

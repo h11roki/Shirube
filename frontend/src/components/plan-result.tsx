@@ -156,25 +156,11 @@ export function PlanResultView({
               </p>
             )}
             <PlanCaution />
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-fine text-sub">
-              {profile.skills.map((skill) => (
-                <li key={skill}>
-                  <span aria-hidden className="text-pillar">
-                    ◇{" "}
-                  </span>
-                  {skill}
-                </li>
-              ))}
-            </ul>
             <JourneySummary
               semesters={result.semesters}
               conditions={conditions}
-              destination={profile.interpretation}
+              skills={profile.skills}
             />
-            <p className="text-xs text-sub">
-              1 学期 {conditions.credit_limit} 単位まで ・ {conditions.year}{" "}
-              年度の時間割
-            </p>
             {result.offered_earlier.length > result.taken.length && (
               <p className="max-w-2xl text-xs text-sub">
                 前の学期にも開講された授業は、もう取っていれば切符の「もう取った」を押してください。道標から外して置き直します。
@@ -203,7 +189,7 @@ export function PlanResultView({
                 <span key={relevance} className="flex items-center gap-1.5">
                   <span
                     aria-hidden
-                    className={`size-2.5 rounded-xs ${RELEVANCE_TONES[relevance].fill}`}
+                    className={`size-3 ${RELEVANCE_TONES[relevance].mark}`}
                   />
                   {RELEVANCE_LABELS[relevance]}の授業
                 </span>

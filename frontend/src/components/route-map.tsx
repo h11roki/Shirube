@@ -37,6 +37,7 @@ import {
   type Transfer,
   semesterCourses,
   semesterKey,
+  ticketSerials,
   transfers,
 } from "@/lib/roadmap";
 import { VIEWS_ANCHOR, activeStation, resultViewHref } from "@/lib/result-view";
@@ -61,6 +62,7 @@ export function RouteMap({
   endNote: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
+  const serials = useMemo(() => ticketSerials(semesters), [semesters]);
   const visible = semesters.slice(0, shown);
   const arrive = visible.length * STAGGER_MS;
   const continuation = routeEndContinuation(shown, semesters.length);
@@ -154,6 +156,7 @@ export function RouteMap({
               index={index}
               semesters={semesters}
               found={found}
+              serials={serials}
               planPath={planPath}
               destination={destination.name}
               delayMs={index * STAGGER_MS}
@@ -267,6 +270,7 @@ function Station({
   index,
   semesters,
   found,
+  serials,
   planPath,
   destination,
   delayMs,
@@ -274,6 +278,7 @@ function Station({
   index: number;
   semesters: SemesterPlan[];
   found: Map<string, Transfer>;
+  serials: Map<string, string>;
   planPath?: string;
   destination: string;
   delayMs: number;
@@ -309,7 +314,11 @@ function Station({
         <p className="text-sm text-sub">{EMPTY_SEMESTER_LABEL}</p>
       )}
       {semester.courses.length > 0 && (
-        <CourseGrid courses={semester.courses} transfers={found} />
+        <CourseGrid
+          courses={semester.courses}
+          transfers={found}
+          serials={serials}
+        />
       )}
       {semester.continuing.length > 0 && (
         <p className="text-fine text-sub">
