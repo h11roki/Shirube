@@ -3,6 +3,7 @@ import { Suspense } from "react";
 
 import { Account } from "@/components/account";
 import { NAV_LINK } from "@/components/styles";
+import { MY_PLANS_LABEL } from "@/lib/labels";
 
 export function SiteHeader() {
   return (
@@ -19,7 +20,7 @@ export function SiteHeader() {
             道標を作る
           </Link>
           <Link href="/plans" className={NAV_LINK}>
-            自分の道標
+            {MY_PLANS_LABEL}
           </Link>
           <Suspense fallback={null}>
             <Account />

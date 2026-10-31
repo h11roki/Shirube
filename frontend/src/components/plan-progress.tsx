@@ -6,11 +6,17 @@ import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { DestinationPlate } from "@/components/destination-plate";
 import { Phrases } from "@/components/phrases";
 import { Signpost } from "@/components/signpost";
-import { TEXT_LINK } from "@/components/styles";
+import { PLATE, TEXT_LINK } from "@/components/styles";
 import type { Plan } from "@/lib/api/client";
 import {
+  KEEPS_BUILDING_LABEL,
+  LISTED_IN_LABEL,
+  MY_PLANS_LABEL,
   PROGRESS_HEADING,
   STAGE_LABELS,
+  USUAL_DURATION,
+  USUAL_DURATION_LABEL,
+  WAITED_LABEL,
   WAITING_LABEL,
   semesterLabel,
 } from "@/lib/labels";
@@ -23,7 +29,6 @@ import {
 import { destinationOf } from "@/lib/words";
 
 const TICK_MS = 1_000;
-const USUAL_DURATION = "10〜30 秒";
 const BLINKING_DOTS = [0, 1, 2];
 
 const LABEL_STYLES: Record<StepState, string> = {
@@ -174,26 +179,30 @@ function WaitedTime({ since }: { since: number }) {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
-  const facts = [
-    ["経過", `${Math.floor((now - since) / TICK_MS)} 秒`],
-    ["所要", USUAL_DURATION],
+  const facts: readonly (readonly [string, string])[] = [
+    [WAITED_LABEL, `${Math.floor((now - since) / TICK_MS)} 秒`],
+    [USUAL_DURATION_LABEL, USUAL_DURATION],
   ];
   return (
     <div className="grid gap-2">
-      <dl className="flex w-fit flex-wrap gap-x-8 gap-y-2 rounded-md border border-line bg-plate px-4 py-2.5 text-plate-ink shadow-paper">
+      <dl
+        className={`flex w-fit flex-wrap gap-x-8 gap-y-2 px-4 py-2.5 ${PLATE}`}
+      >
         {facts.map(([term, value]) => (
           <div key={term} className="grid gap-0.5">
             <dt className="text-label font-bold tracking-[0.28em]">{term}</dt>
-            <dd className="text-lg font-bold tabular-nums">{value}</dd>
+            <dd className="text-lg font-bold break-keep tabular-nums">
+              {value}
+            </dd>
           </div>
         ))}
       </dl>
       <p className="text-xs text-sub">
-        ページを閉じても作り続け、
+        {KEEPS_BUILDING_LABEL}
         <Link href="/plans" className={TEXT_LINK}>
-          自分の道標
+          {MY_PLANS_LABEL}
         </Link>
-        に出ます。
+        {LISTED_IN_LABEL}
       </p>
     </div>
   );
