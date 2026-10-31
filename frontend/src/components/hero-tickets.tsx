@@ -1,12 +1,13 @@
 import { Kicker } from "@/components/kicker";
 import { Phrases } from "@/components/phrases";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
-import { TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
+import { TICKET_NOTCH } from "@/components/styles";
 import { Tilt } from "@/components/tilt";
 import type { Relevance } from "@/lib/api/client";
 import { RELEVANCE_LABELS, sampleLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
+import { stampTilt } from "@/lib/ticket-face";
 import { wordsOf } from "@/lib/words";
 
 const PLACES: Record<Relevance, string> = {
@@ -37,17 +38,10 @@ export function HeroTickets() {
                   style={
                     core ? { animationDelay: `${THUD_DELAY_MS}ms` } : undefined
                   }
-                  className={`relative grid grid-cols-[minmax(0,1fr)_var(--stub)] border border-line bg-note [--stub:3.625rem] md:[--stub:4.375rem] ${core ? "motion-safe:animate-thud" : ""}`}
+                  className={`relative grid grid-cols-[minmax(0,1fr)_var(--stub)] border border-line bg-note [--stub:3.625rem] md:[--stub:4.375rem] ${RELEVANCE_TONES[course.relevance].ground} ${core ? "motion-safe:animate-thud" : ""}`}
                 >
                   <div className="grid gap-0.5 px-3.5 py-3 md:px-4 md:pt-3.5 md:pb-4">
-                    <p
-                      className={`text-label font-bold tracking-[0.14em] md:text-xs ${RELEVANCE_TONES[course.relevance].text}`}
-                    >
-                      {RELEVANCE_LABELS[course.relevance]}
-                    </p>
-                    <p
-                      className={`text-lg leading-snug font-bold md:text-[1.3125rem] ${core ? "pr-9 md:pr-10" : ""}`}
-                    >
+                    <p className="pr-9 text-lg leading-snug font-bold md:pr-10 md:text-[1.3125rem]">
                       <Phrases parts={wordsOf(course.name)} />
                     </p>
                     <p className="text-xs leading-relaxed text-sub md:text-fine">
@@ -73,14 +67,15 @@ export function HeroTickets() {
                       </div>
                     ))}
                   </dl>
-                  {core && (
-                    <span
-                      style={{ animationDelay: `${STAMP_DELAY_MS}ms` }}
-                      className={`right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] motion-safe:animate-stamp md:size-9 md:text-base ${TICKET_STAMP}`}
-                    >
-                      {RELEVANCE_LABELS.core}
-                    </span>
-                  )}
+                  <span
+                    style={{
+                      rotate: `${stampTilt(course.name)}deg`,
+                      animationDelay: core ? `${STAMP_DELAY_MS}ms` : undefined,
+                    }}
+                    className={`right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] md:size-9 md:text-base ${RELEVANCE_TONES[course.relevance].stamp} ${core ? "motion-safe:animate-stamp" : ""}`}
+                  >
+                    {RELEVANCE_LABELS[course.relevance]}
+                  </span>
                 </div>
               </div>
             );

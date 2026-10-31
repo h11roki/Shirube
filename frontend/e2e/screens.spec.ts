@@ -29,7 +29,7 @@ const TEXT_ZOOM = 2;
 const TEXT_RESIZE_WIDTH = 1280;
 const GLYPH_OVERHANG_EM = 0.25;
 const UNDECORATED_CSS = `
-  body { background-image: none !important; }
+  body, [class*="repeating-linear-gradient"] { background-image: none !important; }
   [data-station]::before, [data-station]::after,
   [class*="${TICKET_NOTCH_SHAPE}"]::before, [class*="${TICKET_NOTCH_SHAPE}"]::after { content: none !important; }
 `;

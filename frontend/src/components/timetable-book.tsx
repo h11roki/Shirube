@@ -23,6 +23,7 @@ import {
   pickSemester,
   semesterCourses,
   semesterKey,
+  ticketSerials,
   transfers,
 } from "@/lib/roadmap";
 import { resultViewHref } from "@/lib/result-view";
@@ -41,6 +42,7 @@ export function TimetableBook({
   planPath: string;
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
+  const serials = useMemo(() => ticketSerials(semesters), [semesters]);
   const semester = pickSemester(semesters, selected);
   const shownKey = semester ? semesterKey(semester) : null;
   const pending = useRef<string | null>(null);
@@ -98,7 +100,11 @@ export function TimetableBook({
           {all.length > 0 ? (
             <div className="grid min-w-0 gap-3">
               {semester.courses.length > 0 && (
-                <CourseGrid courses={semester.courses} transfers={found} />
+                <CourseGrid
+                  courses={semester.courses}
+                  transfers={found}
+                  serials={serials}
+                />
               )}
               {semester.continuing.length > 0 && (
                 <p className="pt-1 text-xs font-bold text-sub">
@@ -106,7 +112,11 @@ export function TimetableBook({
                 </p>
               )}
               {semester.continuing.length > 0 && (
-                <CourseGrid courses={semester.continuing} transfers={found} />
+                <CourseGrid
+                  courses={semester.continuing}
+                  transfers={found}
+                  serials={serials}
+                />
               )}
             </div>
           ) : (

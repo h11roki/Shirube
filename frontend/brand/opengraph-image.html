@@ -28,9 +28,9 @@
       }
       .kicker {
         font-size: 22px;
-        font-weight: 700;
-        letter-spacing: 0.28em;
-        color: #b23d27;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        color: #6b6257;
       }
       .catch {
         max-width: 760px;
@@ -69,22 +69,15 @@
         display: grid;
         grid-template-columns: minmax(0, 1fr) 96px;
         width: 400px;
-        border: 1px solid #d8cfbe;
-        border-radius: 10px;
-        background: #fffaf0;
-        box-shadow: 0 14px 28px rgb(60 40 20 / 0.14);
+        border: 1px solid #c9bea9;
+        background-color: #fffaf0;
+        box-shadow: 0 2px 0 rgb(60 40 20 / 0.08);
       }
       .ticket .body {
         display: grid;
         align-content: start;
         gap: 6px;
         padding: 20px 22px 22px;
-      }
-      .ticket .role {
-        margin: 0;
-        font-size: 17px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
       }
       .ticket .name {
         margin: 0;
@@ -137,31 +130,54 @@
         font-size: 24px;
         font-weight: 700;
       }
-      .foundation .role {
-        color: #2f5874;
+      .foundation {
+        background-image: repeating-linear-gradient(
+          45deg,
+          rgb(47 88 116 / 0.08) 0 0.75px,
+          transparent 0.75px 5px
+        );
       }
-      .core .role {
-        color: #b23d27;
+      .core {
+        background-image: repeating-linear-gradient(
+          45deg,
+          rgb(178 61 39 / 0.07) 0 0.75px,
+          transparent 0.75px 5px
+        );
       }
-      .core .name {
-        padding-right: 52px;
+      .ticket .name {
+        padding-right: 56px;
       }
-      .stamp {
+      .stamp,
+      .seal {
         position: absolute;
-        top: 14px;
+        top: -14px;
         right: 110px;
         display: grid;
         place-items: center;
         width: 50px;
         height: 50px;
         box-sizing: border-box;
-        border: 3px solid #b23d27;
-        border-radius: 50%;
-        color: #b23d27;
+        background: #fffaf0;
         font-family: "Shippori Mincho", "Hiragino Mincho ProN", serif;
         font-size: 24px;
         font-weight: 800;
-        transform: rotate(-12deg);
+      }
+      .stamp {
+        border: 2px solid #b23d27;
+        border-radius: 50%;
+        box-shadow:
+          inset 0 0 0 2px #fffaf0,
+          inset 0 0 0 3px #b23d27;
+        color: #b23d27;
+        transform: rotate(-9deg);
+      }
+      .seal {
+        border: 2px solid #2f5874;
+        box-shadow:
+          inset 0 0 0 2px #fffaf0,
+          inset 0 0 0 3px #2f5874;
+        color: #2f5874;
+        transform: rotate(-4deg);
       }
       .back {
         top: 132px;
@@ -176,13 +192,12 @@
     </style>
   </head>
   <body>
-    <div class="kicker">立命館大学 理工学部 電子情報工学科 ・ 非公式</div>
+    <div class="kicker">〔立命館大学 理工学部 電子情報工学科 ・ 非公式〕</div>
     <h1 class="catch">履修に迷ったら、<br />なりたい職業から。</h1>
     <p class="sub">なぜ学ぶかが見える、卒業までの時間割。</p>
     <div class="brand">shirube<small>道標</small></div>
     <article class="ticket foundation back">
       <div class="body">
-        <p class="role">礎</p>
         <p class="name">電子情報基礎数学</p>
         <p class="reason">確率分布や推定・検定で使う数学の前提になるため。</p>
       </div>
@@ -196,10 +211,10 @@
           <dd>2</dd>
         </div>
       </dl>
+      <span class="seal">礎</span>
     </article>
     <article class="ticket core front">
       <div class="body">
-        <p class="role">柱</p>
         <p class="name">AI・機械学習</p>
         <p class="reason">予測モデル開発に直結する。</p>
       </div>

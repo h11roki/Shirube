@@ -13,6 +13,7 @@ import {
   semesterCourses,
   linkedNames,
   semesterKey,
+  ticketSerials,
   transfers,
 } from "@/lib/roadmap";
 
@@ -53,6 +54,14 @@ describe("roadmap", () => {
     semester(3, "spring", [yearLong, placed("礎の授業", "foundation")]),
     semester(3, "autumn", [placed("柱の授業", "core")], [yearLong]),
   ];
+
+  it("numbers the tickets in the order of the route, leaving out the courses continuing from the semester before", () => {
+    expect([...ticketSerials(semesters)]).toEqual([
+      ["通年の授業", "0001"],
+      ["礎の授業", "0002"],
+      ["柱の授業", "0003"],
+    ]);
+  });
 
   it("keys a semester by grade and term", () => {
     expect(semesterKey({ grade: 3, term: "autumn" })).toBe("3-autumn");
