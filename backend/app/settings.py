@@ -34,6 +34,12 @@ class Settings(CurriculumSettings):
     daily_plan_limit_per_user: Annotated[int, Field(gt=0)] = 3
     daily_plan_limit_total: Annotated[int, Field(gt=0)] = 30
 
+    @property
+    def selection_kept_votes(self) -> int:
+        if self.selection_min_votes is None:
+            return self.selection_votes // 2 + 1
+        return self.selection_min_votes
+
     @model_validator(mode="after")
     def _min_votes_within_votes(self) -> Self:
         if self.selection_min_votes is not None and self.selection_min_votes > self.selection_votes:

@@ -20,6 +20,8 @@ class VotingCourseSelector:
         delay_seconds: float,
         wait: Callable[[float], None] = time.sleep,
     ) -> None:
+        if not 1 <= min_votes <= votes:
+            raise ValueError(f"残す票の下限は 1〜{votes} にしてください: {min_votes}")
         self._selector = selector
         self._votes = votes
         self._min_votes = min_votes

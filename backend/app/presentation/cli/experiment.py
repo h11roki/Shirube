@@ -107,7 +107,6 @@ RUN_CONTROLS = frozenset({"budget"})
 GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
     "selection_votes": 1,
-    "selection_min_votes": None,
     "selection_vote_delay_seconds": 0.0,
     "occupation_reading_cache_size": 0,
     "search_by_skill": False,
@@ -397,10 +396,17 @@ def _counts(summary: Mapping[str, Any]) -> str:
     )
 
 
+def with_unrecorded(config: Mapping[str, Any]) -> dict[str, Any]:
+    filled = UNRECORDED_SETTINGS | dict(config)
+    if filled.get("selection_min_votes") is None:
+        filled["selection_min_votes"] = filled["selection_votes"] // 2 + 1
+    return filled
+
+
 def render(document: Mapping[str, Any]) -> str:
     config, summary = document["config"], document["summary"]
-    min_votes = config.get("selection_min_votes")
-    kept_by = "" if min_votes is None else f"({min_votes} 票で採る)"
+    votes, min_votes = config["selection_votes"], config.get("selection_min_votes")
+    kept_by = f"({min_votes} 票で採る)" if votes > 1 and min_votes is not None else ""
     models = " / ".join(
         model for model in (config["chat_model"], config["selection_model"]) if model
     )
@@ -500,8 +506,8 @@ def compare(before: Mapping[str, Any], after: Mapping[str, Any], comparison: Com
     for run in (before, after):
         stopped = "" if run["stopped"] is None else f"、途中で止めた({run['stopped']})"
         lines.append(f"  {run['label']}: {_counts(run['summary'])}{stopped}")
-    old_config = UNRECORDED_SETTINGS | before["config"] | {"commit": before["commit"]}
-    new_config = UNRECORDED_SETTINGS | after["config"] | {"commit": after["commit"]}
+    old_config = with_unrecorded(before["config"]) | {"commit": before["commit"]}
+    new_config = with_unrecorded(after["config"]) | {"commit": after["commit"]}
     differences = [
         f"{key} {old_config.get(key)} → {new_config.get(key)}"
         for key in sorted(old_config.keys() | new_config.keys())
@@ -647,7 +653,7 @@ def config_document(
         "occupation_reading_cache_size": settings.occupation_reading_cache_size if analyzed else 0,
         "selection_model": settings.selection_model,
         "selection_votes": settings.selection_votes,
-        "selection_min_votes": settings.selection_min_votes,
+        "selection_min_votes": settings.selection_kept_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
         **search_config(settings),
         "prompts": {
@@ -945,7 +951,7 @@ def _analyze(args: argparse.Namespace) -> None:
     if dataset.heldout:
         sys.exit("確かめ用の評価データは、職業と科目ごとの結果を出すことになるので分析しません")
     try:
-        config = UNRECORDED_SETTINGS | document["config"]
+        config = with_unrecorded(document["config"])
         if document["summary"] is None:
             sys.exit(f"集計の無い結果は分析できません: {document['label']}")
         if config["profiles"] != "analyzed":

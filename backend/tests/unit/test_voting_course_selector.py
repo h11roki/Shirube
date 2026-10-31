@@ -138,13 +138,7 @@ def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() 
     ids=["single", "votes"],
 )
 def test_the_selection_votes_only_when_more_than_one_vote_is_set(votes: int, kind: type) -> None:
-    settings = Settings(
-        database_url="postgresql+psycopg://shirube@localhost/shirube",
-        openai_api_key=SecretStr("test-key"),
-        selection_votes=votes,
-    )
-
-    assert isinstance(course_selector(settings), kind)
+    assert isinstance(course_selector(settings_with(votes)), kind)
 
 
 def settings_with(votes: int = 3, min_votes: int | None = None) -> Settings:
@@ -156,9 +150,19 @@ def settings_with(votes: int = 3, min_votes: int | None = None) -> Settings:
     )
 
 
-def test_the_minimum_votes_default_to_a_majority_and_can_be_lowered() -> None:
-    assert settings_with().selection_min_votes is None
-    assert settings_with(min_votes=1).selection_min_votes == 1
+@pytest.mark.parametrize(("votes", "kept"), [(1, 1), (2, 2), (3, 2), (4, 3), (5, 3)])
+def test_the_kept_votes_default_to_a_majority(votes: int, kept: int) -> None:
+    assert settings_with(votes).selection_kept_votes == kept
+
+
+def test_the_kept_votes_can_be_lowered_to_a_single_vote() -> None:
+    assert settings_with(3, 1).selection_kept_votes == 1
+
+
+@pytest.mark.parametrize("min_votes", [0, 4])
+def test_a_voting_selector_refuses_a_minimum_it_can_never_meet(min_votes: int) -> None:
+    with pytest.raises(ValueError, match="残す票の下限は 1〜3"):
+        VotingCourseSelector(TakingTurns([]), 3, min_votes, 0)
 
 
 def test_the_minimum_votes_cannot_exceed_the_votes() -> None:
