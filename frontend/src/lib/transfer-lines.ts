@@ -2,17 +2,18 @@ export type Box = { left: number; top: number; right: number; bottom: number };
 
 export type Point = { x: number; y: number };
 
-const HALF_GAP = 6;
+export type Gaps = { row: number; column: number };
+
 const ALIGNED = 2;
 
 const middle = (low: number, high: number) => (low + high) / 2;
 
-export function transferRoute(from: Box, to: Box): Point[] {
+export function transferRoute(from: Box, to: Box, gaps: Gaps): Point[] {
   const fromY = middle(from.top, from.bottom);
   const toY = middle(to.top, to.bottom);
   const fromX = middle(from.left, from.right);
   if (Math.abs(from.left - to.left) < ALIGNED) {
-    const gutter = from.left - HALF_GAP;
+    const gutter = from.left - gaps.column / 2;
     return [
       { x: from.left, y: fromY },
       { x: gutter, y: fromY },
@@ -23,7 +24,7 @@ export function transferRoute(from: Box, to: Box): Point[] {
   const below = to.top >= from.bottom;
   const above = to.bottom <= from.top;
   if (!below && !above) {
-    const under = Math.max(from.bottom, to.bottom) + HALF_GAP;
+    const under = Math.max(from.bottom, to.bottom) + gaps.row / 2;
     const toX = middle(to.left, to.right);
     return [
       { x: fromX, y: from.bottom },
@@ -33,8 +34,8 @@ export function transferRoute(from: Box, to: Box): Point[] {
     ];
   }
   const edge = below ? from.bottom : from.top;
-  const lane = below ? edge + HALF_GAP : edge - HALF_GAP;
-  const gutter = to.left - HALF_GAP;
+  const lane = below ? edge + gaps.row / 2 : edge - gaps.row / 2;
+  const gutter = to.left - gaps.column / 2;
   return [
     { x: fromX, y: edge },
     { x: fromX, y: lane },
@@ -46,11 +47,14 @@ export function transferRoute(from: Box, to: Box): Point[] {
 
 const tidy = (value: number) => Math.round(value * 10) / 10;
 
-function toward(from: Point, to: Point, distance: number): Point {
-  const length = Math.hypot(to.x - from.x, to.y - from.y);
+const distance = (from: Point, to: Point) =>
+  Math.hypot(to.x - from.x, to.y - from.y);
+
+function toward(from: Point, to: Point, length: number): Point {
+  const whole = distance(from, to);
   return {
-    x: tidy(from.x + ((to.x - from.x) * distance) / length),
-    y: tidy(from.y + ((to.y - from.y) * distance) / length),
+    x: tidy(from.x + ((to.x - from.x) * length) / whole),
+    y: tidy(from.y + ((to.y - from.y) * length) / whole),
   };
 }
 
@@ -60,9 +64,13 @@ export function roundedPath(points: Point[], radius: number): string {
     const [before, corner, after] = points.slice(index - 1, index + 2);
     const round = Math.min(
       radius,
-      Math.hypot(corner.x - before.x, corner.y - before.y) / 2,
-      Math.hypot(after.x - corner.x, after.y - corner.y) / 2,
+      distance(before, corner) / 2,
+      distance(corner, after) / 2,
     );
+    if (round === 0) {
+      steps.push(`L ${tidy(corner.x)} ${tidy(corner.y)}`);
+      continue;
+    }
     const enter = toward(corner, before, round);
     const leave = toward(corner, after, round);
     steps.push(

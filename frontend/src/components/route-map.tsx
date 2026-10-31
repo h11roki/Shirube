@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
@@ -69,10 +70,11 @@ export function RouteMap({
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
   const serials = useMemo(() => ticketSerials(semesters), [semesters]);
-  const visible = semesters.slice(0, shown);
+  const visible = useMemo(() => semesters.slice(0, shown), [semesters, shown]);
   const arrive = visible.length * STAGGER_MS;
   const continuation = routeEndContinuation(shown, semesters.length);
   const root = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const reachable = useCallback(
     (transfer: Transfer) => transfer.station < shown,
@@ -162,14 +164,11 @@ export function RouteMap({
         <TransferLines
           area={root}
           semesters={visible}
-          labelTop={
-            withStrip
-              ? "top-[calc(env(safe-area-inset-top)+6rem)]"
-              : "top-[calc(env(safe-area-inset-top)+1rem)]"
-          }
+          cover={withStrip ? strip : undefined}
         />
         {withStrip && (
           <RouteStrip
+            ref={strip}
             semesters={visible}
             destinationWords={destination.words}
             active={active}
@@ -218,11 +217,13 @@ export function RouteMap({
 }
 
 function RouteStrip({
+  ref: strip,
   semesters,
   destinationWords,
   active,
   onPick,
 }: {
+  ref: RefObject<HTMLElement | null>;
   semesters: SemesterPlan[];
   destinationWords: readonly string[];
   active: number;
@@ -240,7 +241,6 @@ function RouteStrip({
       name: <Phrases parts={destinationWords} />,
     },
   ];
-  const strip = useRef<HTMLElement>(null);
   useEffect(() => {
     const current = strip.current?.querySelector<HTMLElement>("[aria-current]");
     if (strip.current && current) {
@@ -250,7 +250,7 @@ function RouteStrip({
           (strip.current.clientWidth - current.offsetWidth) / 2,
       });
     }
-  }, [active]);
+  }, [active, strip]);
   return (
     <nav
       ref={strip}

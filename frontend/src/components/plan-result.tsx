@@ -111,7 +111,12 @@ export function PlanResultView({
 
   async function answer(name: string, change: TakenChange) {
     const held = document.activeElement?.matches(":focus-visible") ?? false;
-    const torn = change === "mark" && !matchMedia(REDUCED_MOTION).matches;
+    const torn =
+      change === "mark" &&
+      result.semesters.some((semester) =>
+        semester.courses.some((course) => course.name === name),
+      ) &&
+      !matchMedia(REDUCED_MOTION).matches;
     setBusy(true);
     setTearing(torn ? name : null);
     try {

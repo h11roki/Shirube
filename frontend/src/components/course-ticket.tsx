@@ -34,7 +34,7 @@ const EMPHASIS = {
 
 const TORN_PART = "bg-note shadow-[0_0_0_1px_var(--line)]";
 const TEARING_AWAY =
-  "animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
+  "origin-bottom-left animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:origin-top-left max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
 
 function ticketId(section: string): string {
   return `ticket-${section}`;
@@ -148,7 +148,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH} ${tearing ? `${torn} origin-bottom-left max-sm:origin-top-left ${TEARING_AWAY}` : ""}`}
+          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH} ${tearing ? `${torn} ${TEARING_AWAY}` : ""}`}
         >
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">コマ</dt>
@@ -167,17 +167,19 @@ export function CourseTicket({
           </div>
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">単位</dt>
-            <dd className="text-sm font-bold">{course.credits}</dd>
+            <dd className="text-sm font-bold">
+              {course.credits}
+              {serial && (
+                <span
+                  aria-hidden
+                  className="absolute right-2 bottom-1 text-label font-normal tracking-[0.08em] text-sub"
+                >
+                  {serial}
+                </span>
+              )}
+            </dd>
           </div>
         </dl>
-      )}
-      {serial && (
-        <span
-          aria-hidden
-          className={`absolute right-2 bottom-1 text-label tracking-[0.08em] text-sub ${tearing ? TEARING_AWAY : ""}`}
-        >
-          {serial}
-        </span>
       )}
       <TicketStamp
         course={course}
