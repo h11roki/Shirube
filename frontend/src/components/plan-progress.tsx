@@ -1,14 +1,21 @@
 "use client";
 
+import Link from "next/link";
 import { type ReactNode, useEffect, useMemo, useState } from "react";
 
 import { DestinationPlate } from "@/components/destination-plate";
 import { Phrases } from "@/components/phrases";
 import { Signpost } from "@/components/signpost";
+import { PLATE, TEXT_LINK } from "@/components/styles";
 import type { Plan } from "@/lib/api/client";
 import {
+  KEEPS_BUILDING_NOTE,
+  MY_PLANS_LABEL,
   PROGRESS_HEADING,
   STAGE_LABELS,
+  USUAL_DURATION,
+  USUAL_DURATION_LABEL,
+  WAITED_LABEL,
   WAITING_LABEL,
   semesterLabel,
 } from "@/lib/labels";
@@ -21,6 +28,9 @@ import {
 import { destinationOf } from "@/lib/words";
 
 const TICK_MS = 1_000;
+const SECOND_MS = 1_000;
+const BOARD_TERM = "text-label font-bold tracking-[0.28em]";
+const BOARD_VALUE = "text-lg font-bold break-keep tabular-nums";
 const BLINKING_DOTS = [0, 1, 2];
 
 const LABEL_STYLES: Record<StepState, string> = {
@@ -80,7 +90,12 @@ export function PlanProgress({
           </p>
           {stalled}
         </div>
-        {!stalled && <WaitedTime since={startedAt} />}
+        {!stalled && (
+          <>
+            <WaitingBoard since={startedAt} />
+            <KeepsBuildingNote />
+          </>
+        )}
       </div>
     </section>
   );
@@ -165,18 +180,36 @@ function StationDot({ state }: { state: StepState }) {
   );
 }
 
-function WaitedTime({ since }: { since: number }) {
+function WaitingBoard({ since }: { since: number }) {
   const [now, setNow] = useState(Date.now);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), TICK_MS);
     return () => clearInterval(timer);
   }, []);
   return (
+    <dl className={`flex w-fit flex-wrap gap-x-8 gap-y-2 px-4 py-2.5 ${PLATE}`}>
+      <div className="grid gap-0.5">
+        <dt className={BOARD_TERM}>{WAITED_LABEL}</dt>
+        <dd className={BOARD_VALUE}>
+          {Math.floor((now - since) / SECOND_MS)} 秒
+        </dd>
+      </div>
+      <div className="grid gap-0.5">
+        <dt className={BOARD_TERM}>{USUAL_DURATION_LABEL}</dt>
+        <dd className={BOARD_VALUE}>{USUAL_DURATION}</dd>
+      </div>
+    </dl>
+  );
+}
+
+function KeepsBuildingNote() {
+  return (
     <p className="text-xs text-sub">
-      <span className="tabular-nums">
-        待ち時間 {Math.floor((now - since) / TICK_MS)} 秒
-      </span>{" "}
-      ・ ふだん 10〜30 秒で終わります。このページを開いたままお待ちください。
+      {KEEPS_BUILDING_NOTE.beforeLink}
+      <Link href="/plans" className={TEXT_LINK}>
+        {MY_PLANS_LABEL}
+      </Link>
+      {KEEPS_BUILDING_NOTE.afterLink}
     </p>
   );
 }
