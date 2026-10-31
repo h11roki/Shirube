@@ -106,6 +106,10 @@ class Recommendation:
             )
 
 
+def majority(votes: int) -> int:
+    return votes // 2 + 1
+
+
 def voted_choices(samples: Sequence[Sequence[CourseChoice]], min_votes: int) -> list[CourseChoice]:
     chosen: dict[str, list[CourseChoice]] = defaultdict(list)
     for sample in samples:

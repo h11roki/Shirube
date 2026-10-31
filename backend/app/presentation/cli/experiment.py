@@ -65,7 +65,7 @@ from app.application.run_experiment import (
 )
 from app.application.search_courses import SearchError
 from app.domain.course import UNIVERSITY_TIME
-from app.domain.recommendation import Relevance
+from app.domain.recommendation import Relevance, majority
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
@@ -399,14 +399,13 @@ def _counts(summary: Mapping[str, Any]) -> str:
 def with_unrecorded(config: Mapping[str, Any]) -> dict[str, Any]:
     filled = UNRECORDED_SETTINGS | dict(config)
     if filled.get("selection_min_votes") is None:
-        filled["selection_min_votes"] = filled["selection_votes"] // 2 + 1
+        filled["selection_min_votes"] = majority(filled["selection_votes"])
     return filled
 
 
 def render(document: Mapping[str, Any]) -> str:
     config, summary = document["config"], document["summary"]
-    votes, min_votes = config["selection_votes"], config.get("selection_min_votes")
-    kept_by = f"({min_votes} 票で採る)" if votes > 1 and min_votes is not None else ""
+    kept_by = f"({config['selection_min_votes']} 票で採る)" if config["selection_votes"] > 1 else ""
     models = " / ".join(
         model for model in (config["chat_model"], config["selection_model"]) if model
     )

@@ -3,6 +3,8 @@ from typing import Annotated, Self
 from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+from app.domain.recommendation import majority
+
 
 class CurriculumSettings(BaseSettings):
     model_config = SettingsConfigDict(env_ignore_empty=True)
@@ -37,7 +39,7 @@ class Settings(CurriculumSettings):
     @property
     def selection_kept_votes(self) -> int:
         if self.selection_min_votes is None:
-            return self.selection_votes // 2 + 1
+            return majority(self.selection_votes)
         return self.selection_min_votes
 
     @model_validator(mode="after")
