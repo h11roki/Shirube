@@ -136,7 +136,7 @@ flowchart TB
 
 - フロントは API を呼んで表示するだけで、業務ロジックを置きません。Next.js の Route Handler がログインを確かめ、Google の利用者の番号を入れた JWT を付けて backend に転送します([ADR 0027](docs/adr/0027-auth-backend.md)、[0028](docs/adr/0028-auth-frontend.md))
 - API の型は OpenAPI から生成してコミットし、backend の試験が OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
-- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-10-31 時点で 81 本)
+- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-10-31 時点で 82 本)
 
 このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。ADR の中では、作者を「高橋さん」と書いています。
 
