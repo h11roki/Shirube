@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 
 import type { PlacedCourse, Plan, Relevance, Weekday } from "@/lib/api/client";
 import {
@@ -486,3 +486,51 @@ test.describe("時間割帳の週", () => {
     ).toBeHidden();
   });
 });
+
+test.describe("見た目の切り替え", () => {
+  test("幅 375px では、ロゴの行の右端に置き、ナビを次の行に回し、Tab もロゴ、切り替え、ナビの順に移る", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    const { logo, toggle, nav } = await openHeader(page);
+    const [logoBox, toggleBox, navBox] = await boxesOf(logo, toggle, nav);
+    expect(toggleBox.y).toBeLessThan(logoBox.y + logoBox.height);
+    expect(toggleBox.y + toggleBox.height).toBeLessThanOrEqual(navBox.y);
+  });
+
+  test("幅 1280px では、ロゴとナビのあいだに並べ、Tab もロゴ、切り替え、ナビの順に移る", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    const { logo, toggle, nav } = await openHeader(page);
+    const [logoBox, toggleBox, navBox] = await boxesOf(logo, toggle, nav);
+    expect(logoBox.x + logoBox.width).toBeLessThan(toggleBox.x);
+    expect(toggleBox.x + toggleBox.width).toBeLessThan(navBox.x);
+    expect(toggleBox.y).toBeLessThan(navBox.y + navBox.height);
+    expect(navBox.y).toBeLessThan(toggleBox.y + toggleBox.height);
+  });
+});
+
+async function openHeader(page: Page) {
+  await page.goto("/terms");
+  const banner = page.getByRole("banner");
+  const logo = banner.getByRole("link", { name: "shirube" });
+  const toggle = banner.getByRole("button", { name: "ダークモード" });
+  const nav = banner.getByRole("link", { name: "道標を作る" });
+  await logo.focus();
+  await page.keyboard.press("Tab");
+  await expect(toggle).toBeFocused();
+  await page.keyboard.press("Tab");
+  await expect(nav).toBeFocused();
+  return { logo, toggle, nav };
+}
+
+async function boxesOf(...locators: Locator[]) {
+  return Promise.all(
+    locators.map(async (locator) => {
+      const box = await locator.boundingBox();
+      expect(box).not.toBeNull();
+      return box!;
+    }),
+  );
+}

@@ -19,7 +19,7 @@ export function SiteHeader() {
         <div className="ml-auto self-center">
           <ThemeToggle />
         </div>
-        <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub sm:w-auto">
+        <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub lg:w-auto">
           <Link href="/" className={NAV_LINK}>
             道標を作る
           </Link>

@@ -44,9 +44,9 @@ export function ThemeToggle() {
     >
       <span
         aria-hidden
-        className="relative h-4 w-7 rounded-full bg-edge motion-safe:transition-colors [[data-theme=dark]_&]:bg-route"
+        className="relative h-4 w-7 rounded-full bg-edge motion-safe:transition-colors dark:bg-route"
       >
-        <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-paper motion-safe:transition-transform [[data-theme=dark]_&]:translate-x-3" />
+        <span className="absolute top-0.5 left-0.5 size-3 rounded-full bg-paper motion-safe:transition-transform dark:translate-x-3" />
       </span>
       ダークモード
     </button>
