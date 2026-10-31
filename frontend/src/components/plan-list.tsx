@@ -135,7 +135,7 @@ export function PlanList() {
               style={{
                 animationDelay: `${Math.min(index, STAGGERED_ROWS) * ROW_STAGGER_MS}ms`,
               }}
-              className="flex flex-wrap items-center gap-2 border-b border-line motion-safe:animate-rise"
+              className="flex flex-wrap items-center gap-2 border-b border-line motion-safe:animate-rise [&>div:last-child]:mb-3"
             >
               <Link
                 href={`/plans/${plan.id}`}

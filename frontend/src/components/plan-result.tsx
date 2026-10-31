@@ -195,7 +195,7 @@ export function PlanResultView({
                   key={each}
                   href={resultViewHref(pathname, each, semester)}
                   aria-current={view === each ? "page" : undefined}
-                  className={`-mb-px ${tabClass(view === each)}`}
+                  className={tabClass(view === each)}
                 >
                   {RESULT_VIEW_LABELS[each]}
                 </QueryLink>

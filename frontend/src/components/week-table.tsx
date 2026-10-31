@@ -110,7 +110,7 @@ function CourseNote({ course }: { course: PlacedCourse }) {
   return (
     <span
       title={course.reason}
-      className={`mb-1 block rounded-sm px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${RELEVANCE_TONES[course.relevance].sticky}`}
+      className={`mb-1 block px-2 py-1.5 leading-snug font-bold shadow-sticky [overflow-wrap:anywhere] last:mb-0 ${RELEVANCE_TONES[course.relevance].sticky}`}
     >
       {course.name}
       <span className="mt-0.5 block text-label font-medium text-sub">

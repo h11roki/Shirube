@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
-import { OUTLINE_BUTTON } from "@/components/styles";
+import { OUTLINE_BUTTON, SOLID_BUTTON } from "@/components/styles";
 import { messageOf } from "@/lib/api/client";
 import { CANCEL_LABEL } from "@/lib/labels";
 
@@ -73,7 +73,7 @@ export function ConfirmButton({
     <div
       role="group"
       aria-label={name ?? label}
-      className="mb-3 grid max-w-md basis-full gap-2 border border-danger/30 bg-danger-soft p-3 text-sm"
+      className="grid max-w-md basis-full gap-2 border border-danger/30 bg-danger-soft p-3 text-sm"
     >
       <p className="text-ink">{note}</p>
       <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export function ConfirmButton({
           type="button"
           aria-disabled={busy}
           onClick={() => void confirm()}
-          className="rounded-xs bg-danger px-4 py-1.5 font-medium text-paper hover:opacity-90 aria-disabled:opacity-50"
+          className={`bg-danger px-4 py-1.5 font-medium aria-disabled:opacity-50 ${SOLID_BUTTON}`}
         >
           {confirmLabel}
         </button>

@@ -1,10 +1,10 @@
 "use client";
 
-import { PRIMARY_BUTTON } from "@/components/styles";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 
 import { FailureNotice } from "@/components/failure-notice";
+import { PRIMARY_BUTTON } from "@/components/styles";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,

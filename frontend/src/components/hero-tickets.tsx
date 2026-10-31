@@ -1,3 +1,4 @@
+import { Kicker } from "@/components/kicker";
 import { Phrases } from "@/components/phrases";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { TICKET_NOTCH, TICKET_STAMP } from "@/components/styles";
@@ -36,7 +37,7 @@ export function HeroTickets() {
                   style={
                     core ? { animationDelay: `${THUD_DELAY_MS}ms` } : undefined
                   }
-                  className={`relative grid grid-cols-[minmax(0,1fr)_var(--stub)] rounded-lg border border-line bg-note shadow-[0_4px_10px_var(--shadow),0_14px_30px_var(--shadow)] [--stub:3.625rem] motion-safe:transition-shadow motion-safe:duration-300 motion-safe:group-hover:shadow-[0_8px_16px_var(--shadow),0_22px_40px_var(--shadow)] md:[--stub:4.375rem] ${core ? "motion-safe:animate-thud" : ""}`}
+                  className={`relative grid grid-cols-[minmax(0,1fr)_var(--stub)] border border-line bg-note [--stub:3.625rem] md:[--stub:4.375rem] ${core ? "motion-safe:animate-thud" : ""}`}
                 >
                   <div className="grid gap-0.5 px-3.5 py-3 md:px-4 md:pt-3.5 md:pb-4">
                     <p
@@ -86,9 +87,7 @@ export function HeroTickets() {
           })}
         </div>
       </Tilt>
-      <p className="text-xs text-sub">
-        {sampleLabel(SAMPLE_PLAN.conditions.occupation)}
-      </p>
+      <Kicker>{sampleLabel(SAMPLE_PLAN.conditions.occupation)}</Kicker>
     </div>
   );
 }

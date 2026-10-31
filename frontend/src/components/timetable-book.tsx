@@ -1,11 +1,11 @@
 "use client";
 
-import { tabClass } from "@/components/styles";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
 import { revealTicket } from "@/components/course-ticket";
 import { QueryLink, pushQuery } from "@/components/query-link";
+import { tabClass } from "@/components/styles";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -73,10 +73,7 @@ export function TimetableBook({
   return (
     <TransferFocusContext.Provider value={focusing}>
       <div className="grid gap-4 motion-safe:animate-rise">
-        <nav
-          aria-label="学期"
-          className="flex flex-wrap gap-x-5 gap-y-1 border-b border-line"
-        >
+        <nav aria-label="学期" className="flex flex-wrap gap-x-5 gap-y-1">
           {semesters.map((each, index) => {
             const current = each === semester;
             return (

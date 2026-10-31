@@ -12,10 +12,12 @@ export const OUTLINE_BUTTON =
 export const SMALL_BUTTON =
   "rounded-xs border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
 
-export const PRIMARY_BUTTON = "rounded-xs bg-ink text-paper hover:opacity-90";
+export const SOLID_BUTTON = "rounded-xs text-paper hover:opacity-90";
+
+export const PRIMARY_BUTTON = `${SOLID_BUTTON} bg-ink`;
 
 export function tabClass(current: boolean): string {
-  return `border-b-[3px] pt-1 pb-1.5 ${current ? "border-route font-bold text-ink" : "border-transparent text-sub hover:text-ink"}`;
+  return `-mb-px pt-1 ${current ? "border-b-[3px] border-route pb-1.5 font-bold text-ink" : "border-b border-line pb-2 text-sub hover:text-ink"}`;
 }
 
 export const PLATE = "border border-line bg-plate text-plate-ink";
