@@ -54,6 +54,10 @@ export function CourseTicket({
   const answering = useContext(TakenAnswersContext);
   const nameWords = useCourseWords(course.name);
   const role = transfer ? RELEVANCE_LABELS.foundation : roleLabel(course);
+  const roleShown =
+    !transfer &&
+    course.relevance === "foundation" &&
+    course.prerequisite_for !== null;
   const placed = "slots" in course;
   const emphasis =
     focusing?.focus === course.name
@@ -73,9 +77,9 @@ export function CourseTicket({
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
           className={
-            role === RELEVANCE_LABELS[course.relevance]
-              ? "sr-only"
-              : `pr-10 text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`
+            roleShown
+              ? `pr-10 text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`
+              : "sr-only"
           }
         >
           {role}
@@ -131,7 +135,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
+          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
         >
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">コマ</dt>

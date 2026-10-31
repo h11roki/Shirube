@@ -31,9 +31,9 @@ export function JourneySummary({
           <div>
             経由{" "}
             <ul className="inline">
-              {skills.map((skill) => (
+              {skills.map((skill, index) => (
                 <li
-                  key={skill}
+                  key={`${index}-${skill}`}
                   className="inline after:content-['、'] last:after:content-none"
                 >
                   {skill}

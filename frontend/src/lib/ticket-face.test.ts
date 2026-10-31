@@ -19,6 +19,10 @@ describe("ticket face", () => {
     }
   });
 
+  it("tilts a course the same way whether its name is written in full-width or half-width letters", () => {
+    expect(stampTilt("ＡＩ・機械学習")).toBe(stampTilt("AI・機械学習"));
+  });
+
   it("varies the tilt between courses", () => {
     const tilts = new Set(
       [
