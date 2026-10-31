@@ -488,15 +488,21 @@ test.describe("時間割帳の週", () => {
 });
 
 test.describe("見た目の切り替え", () => {
-  test("幅 375px では、ロゴの行の右端に置き、ナビを次の行に回し、Tab もロゴ、切り替え、ナビの順に移る", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 375, height: 800 });
-    const { logo, toggle, nav } = await openHeader(page);
-    const [logoBox, toggleBox, navBox] = await boxesOf(logo, toggle, nav);
-    expect(toggleBox.y).toBeLessThan(logoBox.y + logoBox.height);
-    expect(toggleBox.y + toggleBox.height).toBeLessThanOrEqual(navBox.y);
-  });
+  for (const { width, gutter } of [
+    { width: 375, gutter: 16 },
+    { width: 680, gutter: 24 },
+  ]) {
+    test(`幅 ${width}px では、ロゴの行の右端に置き、ナビを次の行に回し、Tab もロゴ、切り替え、ナビの順に移る`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      const { logo, toggle, nav } = await openHeader(page);
+      const [logoBox, toggleBox, navBox] = await boxesOf(logo, toggle, nav);
+      expect(toggleBox.y).toBeLessThan(logoBox.y + logoBox.height);
+      expect(toggleBox.y + toggleBox.height).toBeLessThanOrEqual(navBox.y);
+      expect(toggleBox.x + toggleBox.width).toBeCloseTo(width - gutter, 0);
+    });
+  }
 
   test("幅 1280px では、ロゴとナビのあいだに並べ、Tab もロゴ、切り替え、ナビの順に移る", async ({
     page,

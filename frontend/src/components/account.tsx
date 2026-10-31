@@ -16,7 +16,7 @@ export async function Account() {
   }
   return (
     <form className="flex items-center gap-3" action={signOutToTop}>
-      <span className="hidden sm:inline">
+      <span className="hidden max-w-48 truncate sm:inline-block">
         {session.user?.name ?? "Google のアカウント"}
       </span>
       <button type="submit" className={NAV_LINK}>
