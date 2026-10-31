@@ -1,5 +1,11 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+
 import type { SemesterPlan } from "@/lib/api/client";
 import { semesterLabel, semesterReading, stationLabel } from "@/lib/labels";
+
+const SEEN_RATIO = 0.6;
 
 const label = (semester: SemesterPlan) =>
   semesterLabel(semester.grade, semester.term);
@@ -17,8 +23,32 @@ export function StationBoard({
   next?: SemesterPlan;
   destination: string;
 }) {
+  const board = useRef<HTMLDivElement>(null);
+  const [seen, setSeen] = useState(false);
+
+  useEffect(() => {
+    const target = board.current;
+    if (!target) {
+      return;
+    }
+    const watching = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setSeen(true);
+          watching.disconnect();
+        }
+      },
+      { threshold: SEEN_RATIO },
+    );
+    watching.observe(target);
+    return () => watching.disconnect();
+  }, []);
+
   return (
-    <div className="grid w-full max-w-lg grid-cols-[auto_minmax(0,1fr)] overflow-hidden border border-line bg-sheet">
+    <div
+      ref={board}
+      className="grid w-full max-w-lg grid-cols-[auto_minmax(0,1fr)] overflow-hidden border border-line bg-sheet"
+    >
       <div className="row-span-2 grid place-items-center border-r border-line px-3">
         <span className="grid size-11 place-items-center border-[3px] border-route text-xs font-bold tabular-nums">
           {stationLabel(index)}
@@ -39,7 +69,10 @@ export function StationBoard({
           {semesterReading(semester.grade, semester.term)}
         </p>
       </div>
-      <span aria-hidden className="col-start-2 h-2 bg-route" />
+      <span
+        aria-hidden
+        className={`col-start-2 h-2 origin-left bg-route ${seen ? "motion-safe:animate-band" : "motion-safe:scale-x-0"}`}
+      />
       <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-direction text-sub">
         <span>{previous && `← ${label(previous)}`}</span>
         <span>{next ? label(next) : destination} →</span>

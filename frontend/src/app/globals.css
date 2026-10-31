@@ -85,6 +85,7 @@
     backwards;
   --animate-stamp: stamp 0.32s cubic-bezier(0.3, 1.5, 0.6, 1) backwards;
   --animate-thud: thud 0.28s ease-out backwards;
+  --animate-band: band 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 
   @keyframes rise {
     from {
@@ -161,6 +162,12 @@
   @keyframes thud {
     35% {
       transform: scale(0.975);
+    }
+  }
+
+  @keyframes band {
+    from {
+      scale: 0 1;
     }
   }
 
