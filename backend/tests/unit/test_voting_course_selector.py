@@ -47,10 +47,24 @@ def test_the_selector_is_asked_once_per_vote_and_the_majority_is_kept() -> None:
         ]
     )
 
-    choices = VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+    choices = VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     assert selector.calls == 3
     assert [choice.name for choice in choices] == ["科目A", "科目B"]
+
+
+def test_a_course_chosen_by_fewer_votes_than_the_minimum_is_dropped() -> None:
+    answers = [
+        [CourseChoice("科目A", CORE, "理由A"), CourseChoice("科目B", CORE, "理由B")],
+        [CourseChoice("科目A", CORE, "理由A")],
+        [CourseChoice("科目A", CORE, "理由A")],
+    ]
+
+    kept_by_one = VotingCourseSelector(TakingTurns(answers), 3, 1, 0).select(PROFILE, [])
+    kept_by_two = VotingCourseSelector(TakingTurns(answers), 3, 2, 0).select(PROFILE, [])
+
+    assert [choice.name for choice in kept_by_one] == ["科目A", "科目B"]
+    assert [choice.name for choice in kept_by_two] == ["科目A"]
 
 
 def test_one_failed_vote_fails_the_whole_selection_after_every_vote_answered() -> None:
@@ -58,7 +72,7 @@ def test_one_failed_vote_fails_the_whole_selection_after_every_vote_answered() -
     selector = TakingTurns([answer, UPSTREAM, answer])
 
     with pytest.raises(CourseSelectionError, match="外部のサービスの呼び出しに失敗"):
-        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     assert selector.calls == 3
 
@@ -75,7 +89,7 @@ def test_one_failure_is_raised_and_the_other_failed_votes_are_logged(
     )
 
     with pytest.raises(CourseSelectionError) as raised:
-        VotingCourseSelector(selector, 3, 0).select(PROFILE, [])
+        VotingCourseSelector(selector, 3, 2, 0).select(PROFILE, [])
 
     other = "二つ目の失敗" if str(raised.value) == "一つ目の失敗" else "一つ目の失敗"
     assert other in caplog.text
@@ -97,7 +111,7 @@ def test_the_later_votes_are_sent_after_the_wait_so_the_first_prompt_can_be_cach
         first_asked.wait(timeout=5)
         events.append(f"wait {seconds}")
 
-    VotingCourseSelector(Recording(), 3, 0.5, wait).select(PROFILE, [])
+    VotingCourseSelector(Recording(), 3, 2, 0.5, wait).select(PROFILE, [])
 
     assert events == ["vote", "wait 0.5", "vote", "vote"]
 
@@ -110,7 +124,7 @@ def test_the_usage_of_every_vote_is_counted_although_the_votes_run_in_threads() 
     )
 
     with LangChainUsageMeter().meter() as usage:
-        choices = VotingCourseSelector(selector, 3, 0).select(
+        choices = VotingCourseSelector(selector, 3, 2, 0).select(
             PROFILE, [CandidateCourse("科目A", syllabus("10000"))]
         )
 
@@ -131,3 +145,22 @@ def test_the_selection_votes_only_when_more_than_one_vote_is_set(votes: int, kin
     )
 
     assert isinstance(course_selector(settings), kind)
+
+
+def settings_with(votes: int = 3, min_votes: int | None = None) -> Settings:
+    return Settings(
+        database_url="postgresql+psycopg://shirube@localhost/shirube",
+        openai_api_key=SecretStr("test-key"),
+        selection_votes=votes,
+        selection_min_votes=min_votes,
+    )
+
+
+def test_the_minimum_votes_default_to_a_majority_and_can_be_lowered() -> None:
+    assert settings_with().selection_min_votes is None
+    assert settings_with(min_votes=1).selection_min_votes == 1
+
+
+def test_the_minimum_votes_cannot_exceed_the_votes() -> None:
+    with pytest.raises(ValueError, match="SELECTION_MIN_VOTES は SELECTION_VOTES 以下"):
+        settings_with(votes=3, min_votes=4)

@@ -107,6 +107,7 @@ RUN_CONTROLS = frozenset({"budget"})
 GRADING = ("dataset", "judgments")
 UNRECORDED_SETTINGS = {
     "selection_votes": 1,
+    "selection_min_votes": None,
     "selection_vote_delay_seconds": 0.0,
     "occupation_reading_cache_size": 0,
     "search_by_skill": False,
@@ -121,6 +122,7 @@ PAIRABLE_SETTINGS = (
     "SELECTION_MODEL",
     "SELECTION_CANDIDATE_LIMIT",
     "SELECTION_VOTES",
+    "SELECTION_MIN_VOTES",
     "SELECTION_VOTE_DELAY_SECONDS",
     PROMPT_SETTING,
 )
@@ -397,6 +399,8 @@ def _counts(summary: Mapping[str, Any]) -> str:
 
 def render(document: Mapping[str, Any]) -> str:
     config, summary = document["config"], document["summary"]
+    min_votes = config.get("selection_min_votes")
+    kept_by = "" if min_votes is None else f"({min_votes} 票で採る)"
     models = " / ".join(
         model for model in (config["chat_model"], config["selection_model"]) if model
     )
@@ -406,7 +410,7 @@ def render(document: Mapping[str, Any]) -> str:
         f"職業の読み取り {config['profiles']}、{models}、埋め込み {config['embedding_model']}、"
         f"検索 {SEARCH_MODES[config['search_by_skill']]}、"
         f"候補 {config['candidate_limit']}、"
-        f"選び直し {config['selection_votes']} 回、"
+        f"選び直し {config['selection_votes']} 回{kept_by}、"
         f"2 票目から {config['selection_vote_delay_seconds']:g} 秒遅らせる)",
     ]
     if document["stopped"] is not None:
@@ -643,6 +647,7 @@ def config_document(
         "occupation_reading_cache_size": settings.occupation_reading_cache_size if analyzed else 0,
         "selection_model": settings.selection_model,
         "selection_votes": settings.selection_votes,
+        "selection_min_votes": settings.selection_min_votes,
         "selection_vote_delay_seconds": settings.selection_vote_delay_seconds,
         **search_config(settings),
         "prompts": {

@@ -20,6 +20,7 @@ from app.application.search_courses import (
 )
 from app.application.voting_course_selector import VotingCourseSelector
 from app.domain.quota import PlanQuota
+from app.domain.recommendation import majority
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
@@ -102,7 +103,10 @@ def course_selector(
     if settings.selection_votes == 1:
         return selector
     return VotingCourseSelector(
-        selector, settings.selection_votes, settings.selection_vote_delay_seconds
+        selector,
+        settings.selection_votes,
+        settings.selection_min_votes or majority(settings.selection_votes),
+        settings.selection_vote_delay_seconds,
     )
 
 
