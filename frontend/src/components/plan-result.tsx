@@ -31,6 +31,7 @@ import {
   unmarkTakenLabel,
   semesterLabel,
 } from "@/lib/labels";
+import { REDUCED_MOTION, TEAR_MS } from "@/lib/motion";
 import { courseNames } from "@/lib/roadmap";
 import {
   type ResultView,
@@ -68,6 +69,7 @@ export function PlanResultView({
   const pathname = usePathname();
   const { view, semester } = readResultView(useSearchParams());
   const [busy, setBusy] = useState(false);
+  const [tearing, setTearing] = useState<string | null>(null);
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
@@ -109,14 +111,18 @@ export function PlanResultView({
 
   async function answer(name: string, change: TakenChange) {
     const held = document.activeElement?.matches(":focus-visible") ?? false;
+    const torn = change === "mark" && !matchMedia(REDUCED_MOTION).matches;
     setBusy(true);
+    setTearing(torn ? name : null);
     try {
-      onAnswered(
-        await requestJson<Plan>(
+      const [latest] = await Promise.all([
+        requestJson<Plan>(
           `${planApi}/taken-courses/${encodeURIComponent(name)}`,
           { method: TAKEN_METHODS[change] },
         ),
-      );
+        torn && new Promise((done) => setTimeout(done, TEAR_MS)),
+      ]);
+      onAnswered(latest);
       setAnswered({
         message: answeredLabel(name, change),
         failed: false,
@@ -131,6 +137,7 @@ export function PlanResultView({
         held,
       });
     } finally {
+      setTearing(null);
       setBusy(false);
       notice.current?.focus({ preventScroll: true });
     }
@@ -142,6 +149,7 @@ export function PlanResultView({
         value={{
           asked: new Set(result.offered_earlier),
           busy,
+          tearing,
           answer: (name, change) => void answer(name, change),
         }}
       >

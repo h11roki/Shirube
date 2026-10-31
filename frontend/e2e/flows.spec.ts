@@ -352,6 +352,37 @@ test.describe("もう取った", () => {
   });
 });
 
+test.describe("もう取ったの半券(動きを減らさない設定)", () => {
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("答えを待つあいだ半券が裂け、断られたら切符に戻る", async ({
+    page,
+    api,
+  }) => {
+    const replied = Promise.withResolvers<void>();
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), {
+      status: 409,
+      json: { detail: CONFLICT },
+      until: replied.promise,
+    });
+    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    const mark = page.getByRole("button", {
+      name: markTakenLabel(TAKEN.name),
+    });
+    const stub = page.locator("article").filter({ has: mark }).locator("dl");
+    await expect(stub).toHaveCSS("animation-name", "none");
+    await mark.click();
+    await expect(stub).toHaveCSS("animation-name", "tear");
+    replied.resolve();
+    await expect(
+      page.getByRole("status").filter({ hasText: CONFLICT }),
+    ).toBeFocused();
+    await expect(stub).toHaveCSS("animation-name", "none");
+    await expect(mark).toBeEnabled();
+  });
+});
+
 test.describe("道標を作る", () => {
   test("作って結果の画面に移ったあと、入力の画面に戻ると、職業名が空でもう一度作れる", async ({
     page,
