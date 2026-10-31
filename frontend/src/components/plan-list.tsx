@@ -128,7 +128,7 @@ export function PlanList() {
           </Link>
         </p>
       ) : (
-        <ul className="grid border-t-2 border-ink dark:border-edge">
+        <ul className="grid border-t-2 border-ink dark:border-ink/60">
           {plans.plans.map((plan, index) => (
             <li
               key={plan.id}

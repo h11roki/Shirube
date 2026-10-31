@@ -1,5 +1,6 @@
 "use client";
 
+import { PRIMARY_BUTTON } from "@/components/styles";
 import { useRouter } from "next/navigation";
 import { type FormEvent, useEffect, useState, useTransition } from "react";
 
@@ -248,7 +249,7 @@ export function PlanForm() {
         <button
           type="submit"
           disabled={busy || loading}
-          className="rounded-xs bg-ink px-6 py-2.5 font-bold text-paper hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className={`px-6 py-2.5 font-bold disabled:cursor-not-allowed disabled:opacity-50 ${PRIMARY_BUTTON}`}
         >
           {busy ? "受け付けています" : "道標を作る"}
         </button>

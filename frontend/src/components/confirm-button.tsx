@@ -73,7 +73,7 @@ export function ConfirmButton({
     <div
       role="group"
       aria-label={name ?? label}
-      className="grid max-w-md basis-full gap-2 border border-danger/30 bg-danger-soft p-3 text-sm"
+      className="mb-3 grid max-w-md basis-full gap-2 border border-danger/30 bg-danger-soft p-3 text-sm"
     >
       <p className="text-ink">{note}</p>
       <div className="flex flex-wrap gap-2">

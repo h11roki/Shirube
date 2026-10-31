@@ -1,5 +1,6 @@
 "use client";
 
+import { tabClass } from "@/components/styles";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
@@ -74,7 +75,7 @@ export function TimetableBook({
       <div className="grid gap-4 motion-safe:animate-rise">
         <nav
           aria-label="学期"
-          className="flex flex-wrap gap-x-5 border-b border-line"
+          className="flex flex-wrap gap-x-5 gap-y-1 border-b border-line"
         >
           {semesters.map((each, index) => {
             const current = each === semester;
@@ -83,7 +84,7 @@ export function TimetableBook({
                 key={semesterKey(each)}
                 href={resultViewHref(planPath, "timetable", semesterKey(each))}
                 aria-current={current ? "page" : undefined}
-                className={`-mb-px border-b-[3px] pt-1 pb-1.5 text-fine ${current ? "border-route font-bold text-ink" : "border-transparent text-sub hover:text-ink"}`}
+                className={`text-fine ${tabClass(current)}`}
               >
                 <span className="mr-1.5 text-label text-route tabular-nums">
                   {stationLabel(index)}

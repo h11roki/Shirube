@@ -8,11 +8,12 @@ import { CourseGrid } from "@/components/course-grid";
 import { CourseWordsProvider } from "@/components/course-words";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
+import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
-import { SMALL_BUTTON, STANDALONE_LINK } from "@/components/styles";
+import { SMALL_BUTTON, STANDALONE_LINK, tabClass } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { TimetableBook } from "@/components/timetable-book";
 import {
@@ -145,6 +146,9 @@ export function PlanResultView({
         <div className="grid gap-8">
           <section className="grid gap-4">
             <h1 className="sr-only">{profile.interpretation}への道標</h1>
+            {profile.occupation !== profile.interpretation && (
+              <Kicker>入力した職業 {profile.occupation}</Kicker>
+            )}
             <DestinationPlate destination={destination} />
             {profile.assumption && (
               <p className="max-w-2xl text-sm text-sub">
@@ -191,7 +195,7 @@ export function PlanResultView({
                   key={each}
                   href={resultViewHref(pathname, each, semester)}
                   aria-current={view === each ? "page" : undefined}
-                  className={`-mb-px border-b-[3px] pt-1 pb-1.5 ${view === each ? "border-route font-bold text-ink" : "border-transparent text-sub hover:text-ink"}`}
+                  className={`-mb-px ${tabClass(view === each)}`}
                 >
                   {RESULT_VIEW_LABELS[each]}
                 </QueryLink>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { signIn } from "@/auth";
-import { NAV_LINK, TEXT_LINK } from "@/components/styles";
+import { NAV_LINK, PRIMARY_BUTTON, TEXT_LINK } from "@/components/styles";
 import { currentSession } from "@/lib/session";
 import { signOutToTop } from "@/lib/sign-out";
 
@@ -37,7 +37,7 @@ export function SignInButton() {
     >
       <button
         type="submit"
-        className="rounded-xs bg-ink px-4 py-1.5 font-medium text-paper hover:opacity-90"
+        className={`px-4 py-1.5 font-medium ${PRIMARY_BUTTON}`}
       >
         Google でログイン
       </button>
