@@ -6,7 +6,7 @@ import { ISSUES_URL, OPERATOR, REPOSITORY_URL } from "@/lib/site";
 export function SiteFooter() {
   return (
     <footer className="border-t border-line">
-      <div className="mx-auto grid max-w-5xl gap-3 px-4 pt-8 pb-20 text-xs text-sub sm:px-6">
+      <div className="mx-auto grid max-w-5xl gap-3 px-4 py-8 text-xs text-sub sm:px-6">
         <p>
           shirube は、立命館大学とは関係のない個人({OPERATOR}
           )が作った非公式のアプリです。授業の情報は、大学の公開シラバスと時間割表によります。

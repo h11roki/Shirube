@@ -37,7 +37,7 @@ const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
   nonBmp: ["→", "◇"],
   shortTextContent: ["柱"],
   bgOverlap: ["卒業", `${RUNNING_PLAN.conditions.grade} 回生`],
-  elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation, "ダークモード"],
+  elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation],
 };
 
 type Screen = {

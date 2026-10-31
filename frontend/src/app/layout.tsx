@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { gothic, mincho } from "@/lib/fonts";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/site";
 import { siteUrl } from "@/lib/site-url";
@@ -36,7 +35,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           {children}
         </main>
         <SiteFooter />
-        <ThemeToggle />
       </body>
     </html>
   );

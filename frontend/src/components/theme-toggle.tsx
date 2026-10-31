@@ -40,7 +40,7 @@ export function ThemeToggle() {
       type="button"
       aria-pressed={dark}
       onClick={toggle}
-      className="fixed right-[max(1rem,env(safe-area-inset-right))] bottom-[max(1rem,env(safe-area-inset-bottom))] z-10 flex items-center gap-2 rounded-full border border-edge bg-sheet/90 py-1.5 pr-3.5 pl-2 text-xs text-sub shadow-paper backdrop-blur hover:text-ink"
+      className="flex items-center gap-2 rounded-full border border-edge py-1.5 pr-3.5 pl-2 text-xs whitespace-nowrap text-sub hover:text-ink"
     >
       <span
         aria-hidden
