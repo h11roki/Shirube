@@ -72,7 +72,7 @@ export function HeroTickets() {
                       rotate: `${stampTilt(course.name)}deg`,
                       animationDelay: core ? `${STAMP_DELAY_MS}ms` : undefined,
                     }}
-                    className={`right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] md:size-9 md:text-base ${RELEVANCE_TONES[course.relevance].stamp} ${core ? "motion-safe:animate-stamp" : ""}`}
+                    className={`top-2.5 right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] md:size-9 md:text-base ${RELEVANCE_TONES[course.relevance].stamp} ${core ? "motion-safe:animate-stamp" : ""}`}
                   >
                     {RELEVANCE_LABELS[course.relevance]}
                   </span>

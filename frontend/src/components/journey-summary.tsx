@@ -20,15 +20,29 @@ export function JourneySummary({
   ];
   return (
     <div className="max-w-2xl border-t-2 border-b border-t-ink border-b-line dark:border-t-ink/60">
-      <p className="flex flex-wrap gap-x-4 border-b border-line py-2 text-sm">
+      <div className="flex flex-wrap gap-x-4 border-b border-line py-2 text-sm">
         <span>
           <span className="font-bold">
             {semesterLabel(conditions.grade, conditions.term)}
           </span>{" "}
           発
         </span>
-        {skills.length > 0 && <span>経由 {skills.join("・")}</span>}
-      </p>
+        {skills.length > 0 && (
+          <div>
+            経由{" "}
+            <ul className="inline">
+              {skills.map((skill) => (
+                <li
+                  key={skill}
+                  className="inline after:content-['、'] last:after:content-none"
+                >
+                  {skill}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </div>
       <dl className="grid grid-cols-2 gap-y-1 py-2.5 text-sm sm:flex sm:flex-wrap">
         {facts.map(([term, value]) => (
           <div

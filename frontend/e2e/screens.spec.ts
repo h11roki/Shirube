@@ -34,7 +34,7 @@ const UNDECORATED_CSS = `
   [class*="${TICKET_NOTCH_SHAPE}"]::before, [class*="${TICKET_NOTCH_SHAPE}"]::after { content: none !important; }
 `;
 const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
-  nonBmp: ["→", "◇"],
+  nonBmp: ["→"],
   shortTextContent: ["柱"],
   bgOverlap: ["卒業", `${RUNNING_PLAN.conditions.grade} 回生`],
   elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation],

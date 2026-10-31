@@ -53,7 +53,6 @@ export function CourseTicket({
   const focusing = useTransferFocus();
   const answering = useContext(TakenAnswersContext);
   const nameWords = useCourseWords(course.name);
-  const kind = transfer ? "foundation" : course.relevance;
   const role = transfer ? RELEVANCE_LABELS.foundation : roleLabel(course);
   const placed = "slots" in course;
   const emphasis =
@@ -69,14 +68,14 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${RELEVANCE_TONES[kind].ground} ${emphasis}`}
+      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${RELEVANCE_TONES[course.relevance].ground} ${emphasis}`}
     >
       <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
         <p
           className={
-            role === RELEVANCE_LABELS[kind]
+            role === RELEVANCE_LABELS[course.relevance]
               ? "sr-only"
-              : `text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[kind].text}`
+              : `pr-10 text-label font-bold tracking-[0.14em] ${RELEVANCE_TONES[course.relevance].text}`
           }
         >
           {role}
@@ -153,25 +152,22 @@ export function CourseTicket({
             <dt className="text-label tracking-[0.14em] text-sub">単位</dt>
             <dd className="text-sm font-bold">{course.credits}</dd>
           </div>
-          {serial && (
-            <div
-              aria-hidden
-              className="max-sm:col-span-3 max-sm:text-right sm:mt-1"
-            >
-              <dt className="sr-only">番号</dt>
-              <dd className="text-label tracking-[0.08em] text-sub">
-                {serial}
-              </dd>
-            </div>
-          )}
         </dl>
+      )}
+      {serial && (
+        <span
+          aria-hidden
+          className="absolute right-2 bottom-1 text-label tracking-[0.08em] text-sub"
+        >
+          {serial}
+        </span>
       )}
       <span
         aria-hidden
         style={{ rotate: `${stampTilt(course.name)}deg` }}
-        className={`right-3 size-9 ${RELEVANCE_TONES[kind].stamp} ${placed ? "sm:right-[5.6rem]" : ""}`}
+        className={`-top-2.5 right-3 size-9 ${RELEVANCE_TONES[course.relevance].stamp} ${placed ? "sm:right-[5.6rem]" : ""}`}
       >
-        {RELEVANCE_LABELS[kind]}
+        {RELEVANCE_LABELS[course.relevance]}
       </span>
     </article>
   );

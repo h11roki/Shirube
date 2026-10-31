@@ -5,7 +5,6 @@ export const RELEVANCE_TONES: Record<
   Relevance,
   {
     text: string;
-    fill: string;
     sticky: string;
     stamp: string;
     mark: string;
@@ -14,7 +13,6 @@ export const RELEVANCE_TONES: Record<
 > = {
   core: {
     text: "text-pillar",
-    fill: "bg-pillar",
     sticky: "rotate-[0.4deg] bg-pillar-soft",
     stamp: TICKET_STAMP,
     mark: "rounded-full border border-pillar shadow-[inset_0_0_0_1.5px_var(--paper),inset_0_0_0_2.25px_var(--pillar)]",
@@ -23,7 +21,6 @@ export const RELEVANCE_TONES: Record<
   },
   foundation: {
     text: "text-route",
-    fill: "bg-route",
     sticky: "rotate-[-0.4deg] bg-route-soft",
     stamp: TICKET_SEAL,
     mark: "border border-route shadow-[inset_0_0_0_1.5px_var(--paper),inset_0_0_0_2.25px_var(--route)]",
