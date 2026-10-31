@@ -75,7 +75,7 @@ export function TakenCourseList({
     return null;
   }
   return (
-    <details className="rounded-lg border border-line bg-paper p-4">
+    <details className="border border-line bg-paper p-4">
       <summary
         ref={summary}
         className="cursor-pointer py-1 text-sm font-medium"

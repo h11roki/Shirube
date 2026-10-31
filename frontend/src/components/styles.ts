@@ -7,13 +7,12 @@ export const STANDALONE_LINK = `${TARGET} ${TEXT_LINK}`;
 export const NAV_LINK = `${TARGET} hover:text-ink`;
 
 export const OUTLINE_BUTTON =
-  "rounded-full border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
+  "rounded-xs border border-edge bg-sheet px-4 py-1.5 text-ink hover:border-ink";
 
 export const SMALL_BUTTON =
-  "rounded-full border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
+  "rounded-xs border border-edge px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50";
 
-export const PLATE =
-  "rounded-md border border-line bg-plate text-plate-ink shadow-paper";
+export const PLATE = "border border-line bg-plate text-plate-ink";
 
 export const DESTINATION_TEXT =
   "text-[clamp(1.125rem,5.9vw,1.5rem)] leading-snug";

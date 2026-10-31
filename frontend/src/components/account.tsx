@@ -37,7 +37,7 @@ export function SignInButton() {
     >
       <button
         type="submit"
-        className="rounded-full bg-pillar px-4 py-1.5 font-medium text-paper hover:opacity-90"
+        className="rounded-xs bg-ink px-4 py-1.5 font-medium text-paper hover:opacity-90"
       >
         Google でログイン
       </button>

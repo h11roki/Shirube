@@ -71,7 +71,6 @@
   --color-plate: var(--plate);
   --color-plate-ink: var(--plate-ink);
   --color-plate-accent: var(--plate-accent);
-  --shadow-paper: 0 1px 0 var(--shadow);
   --shadow-sticky: 0 2px 0 var(--shadow);
   --animate-rise: rise 0.5s ease both;
   --animate-beacon: beacon 1.2s ease-in-out infinite;

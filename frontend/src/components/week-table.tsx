@@ -42,7 +42,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
               {row.cells.map((cell, index) => (
                 <td
                   key={table.weekdays[index]}
-                  className={`h-14 align-top ${cell.length === 0 ? "rounded-md border-[1.5px] border-dashed border-line" : ""}`}
+                  className={`h-14 align-top ${cell.length === 0 ? "border-[1.5px] border-dashed border-line" : ""}`}
                 >
                   {cell.map((course) => (
                     <CourseNote key={course.section_code} course={course} />
@@ -64,7 +64,7 @@ export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
             </dt>
             <dd className="grid gap-1">
               {day.lessons.length === 0 ? (
-                <span className="rounded-md border-[1.5px] border-dashed border-line px-2 py-1.5 text-sub">
+                <span className="border-[1.5px] border-dashed border-line px-2 py-1.5 text-sub">
                   {NO_LESSONS_LABEL}
                 </span>
               ) : (

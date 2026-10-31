@@ -8,7 +8,6 @@ import { CourseGrid } from "@/components/course-grid";
 import { CourseWordsProvider } from "@/components/course-words";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
-import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
 import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
@@ -146,7 +145,6 @@ export function PlanResultView({
         <div className="grid gap-8">
           <section className="grid gap-4">
             <h1 className="sr-only">{profile.interpretation}への道標</h1>
-            <Kicker>目的地 ── {profile.occupation}</Kicker>
             <DestinationPlate destination={destination} />
             {profile.assumption && (
               <p className="max-w-2xl text-sm text-sub">
@@ -186,14 +184,14 @@ export function PlanResultView({
           >
             <nav
               aria-label="見え方"
-              className="inline-flex gap-1 rounded-full border border-edge bg-sheet p-0.5 text-sm"
+              className="inline-flex gap-6 border-b border-line text-sm"
             >
               {VIEWS.map((each) => (
                 <QueryLink
                   key={each}
                   href={resultViewHref(pathname, each, semester)}
                   aria-current={view === each ? "page" : undefined}
-                  className={`rounded-full px-4 py-1 ${view === each ? "bg-ink text-paper" : "text-sub hover:text-ink"}`}
+                  className={`-mb-px border-b-[3px] pt-1 pb-1.5 ${view === each ? "border-route font-bold text-ink" : "border-transparent text-sub hover:text-ink"}`}
                 >
                   {RESULT_VIEW_LABELS[each]}
                 </QueryLink>
@@ -229,7 +227,7 @@ export function PlanResultView({
           )}
 
           {result.taken.length > 0 && (
-            <section className="grid gap-3 rounded-lg border border-line bg-sheet p-4 sm:p-5">
+            <section className="grid gap-3 border border-line bg-sheet p-4 sm:p-5">
               <h2 className="font-serif text-lg font-bold">もう取った授業</h2>
               <p className="text-sm text-sub">
                 もう取ったと答えた授業です。道標から外しています。戻すと、もう一度置き直します。
@@ -262,7 +260,7 @@ export function PlanResultView({
           )}
 
           {result.unplaced.length > 0 && (
-            <section className="grid gap-3 rounded-lg border border-dashed border-line p-4 sm:p-5">
+            <section className="grid gap-3 border border-dashed border-line p-4 sm:p-5">
               <h2 className="font-serif text-lg font-bold">置けなかった授業</h2>
               <p className="text-sm text-sub">
                 残りの学期で、コマが空いていて単位の上限にも収まるクラスが見つからなかった授業です。
@@ -316,7 +314,7 @@ export function PlanResultView({
         >
           {answered && (
             <p
-              className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-full border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
+              className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xs border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
             >
               {answered.message}
               {undo && (

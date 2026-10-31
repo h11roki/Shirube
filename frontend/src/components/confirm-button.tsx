@@ -63,7 +63,7 @@ export function ConfirmButton({
           setAsking(true);
           onOpen?.();
         }}
-        className="rounded-full border border-edge px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
+        className="rounded-xs border border-edge px-3 py-1 text-sm text-sub hover:border-danger hover:text-danger"
       >
         {label}
       </button>
@@ -73,7 +73,7 @@ export function ConfirmButton({
     <div
       role="group"
       aria-label={name ?? label}
-      className="grid max-w-md basis-full gap-2 rounded-md border border-danger/30 bg-danger-soft p-3 text-sm"
+      className="grid max-w-md basis-full gap-2 border border-danger/30 bg-danger-soft p-3 text-sm"
     >
       <p className="text-ink">{note}</p>
       <div className="flex flex-wrap gap-2">
@@ -94,7 +94,7 @@ export function ConfirmButton({
           type="button"
           aria-disabled={busy}
           onClick={() => void confirm()}
-          className="rounded-full bg-danger px-4 py-1.5 font-medium text-paper hover:opacity-90 aria-disabled:opacity-50"
+          className="rounded-xs bg-danger px-4 py-1.5 font-medium text-paper hover:opacity-90 aria-disabled:opacity-50"
         >
           {confirmLabel}
         </button>
