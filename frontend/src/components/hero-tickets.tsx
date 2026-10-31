@@ -2,12 +2,12 @@ import { Kicker } from "@/components/kicker";
 import { Phrases } from "@/components/phrases";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { TICKET_NOTCH } from "@/components/styles";
+import { TicketStamp } from "@/components/ticket-stamp";
 import { Tilt } from "@/components/tilt";
 import type { Relevance } from "@/lib/api/client";
-import { RELEVANCE_LABELS, sampleLabel } from "@/lib/labels";
+import { sampleLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
-import { stampTilt } from "@/lib/ticket-face";
 import { wordsOf } from "@/lib/words";
 
 const PLACES: Record<Relevance, string> = {
@@ -67,15 +67,11 @@ export function HeroTickets() {
                       </div>
                     ))}
                   </dl>
-                  <span
-                    style={{
-                      rotate: `${stampTilt(course.name)}deg`,
-                      animationDelay: core ? `${STAMP_DELAY_MS}ms` : undefined,
-                    }}
-                    className={`top-2.5 right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] md:size-9 md:text-base ${RELEVANCE_TONES[course.relevance].stamp} ${core ? "motion-safe:animate-stamp" : ""}`}
-                  >
-                    {RELEVANCE_LABELS[course.relevance]}
-                  </span>
+                  <TicketStamp
+                    course={course}
+                    delayMs={core ? STAMP_DELAY_MS : undefined}
+                    className={`top-2.5 right-[calc(var(--stub)+0.75rem)] size-8 text-[0.9375rem] md:size-9 md:text-base ${core ? "motion-safe:animate-stamp" : ""}`}
+                  />
                 </div>
               </div>
             );

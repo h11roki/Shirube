@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
-import { TICKET_NOTCH_SHAPE } from "@/components/styles";
+import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import { forgetTakenLabel } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -29,7 +29,7 @@ const TEXT_ZOOM = 2;
 const TEXT_RESIZE_WIDTH = 1280;
 const GLYPH_OVERHANG_EM = 0.25;
 const UNDECORATED_CSS = `
-  body, [class*="repeating-linear-gradient"] { background-image: none !important; }
+  body, [class*="${TICKET_GROUND}"] { background-image: none !important; }
   [data-station]::before, [data-station]::after,
   [class*="${TICKET_NOTCH_SHAPE}"]::before, [class*="${TICKET_NOTCH_SHAPE}"]::after { content: none !important; }
 `;

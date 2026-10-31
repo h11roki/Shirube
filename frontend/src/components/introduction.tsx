@@ -71,9 +71,8 @@ export function Introduction() {
             <DestinationPlate destination={SAMPLE_DESTINATION} />
           </div>
           <p className="text-sm text-sub">
-            {conditions.year}{" "}
-            年度の時間割による実際の出力。要約は卒業まで、道のりは初めの{" "}
-            {SAMPLE_SEMESTERS} 学期を掲載
+            実際に作った道標です。要約は卒業まで、道のりは初めの{" "}
+            {SAMPLE_SEMESTERS} 学期を載せています。
           </p>
         </div>
         <PlanCaution />

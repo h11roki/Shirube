@@ -34,15 +34,5 @@ export const TICKET_NOTCH = `${TICKET_NOTCH_SHAPE} before:-top-2 before:-left-[c
 
 export const COURSE_TICKET_NOTCH = `${TICKET_NOTCH} max-sm:before:-top-[calc(0.5rem+1px)] max-sm:before:-left-2 max-sm:before:[clip-path:inset(0_0_0_50%)] max-sm:after:-top-[calc(0.5rem+1px)] max-sm:after:-right-2 max-sm:after:bottom-auto max-sm:after:left-auto max-sm:after:[clip-path:inset(0_50%_0_0)]`;
 
-const STAMP_SHAPE =
-  "absolute grid place-items-center border-[1.5px] bg-note font-serif font-extrabold";
-
-export const STAMP_RING =
-  "shadow-[inset_0_0_0_1.5px_var(--ring-gap),inset_0_0_0_2.25px_var(--ring)]";
-
 export const TICKET_GROUND =
   "bg-[repeating-linear-gradient(45deg,var(--ground)_0_0.75px,transparent_0.75px_5px)]";
-
-export const TICKET_STAMP = `${STAMP_SHAPE} ${STAMP_RING} rounded-full border-pillar text-pillar [--ring-gap:var(--note)] [--ring:var(--pillar)]`;
-
-export const TICKET_SEAL = `${STAMP_SHAPE} ${STAMP_RING} border-route text-route [--ring-gap:var(--note)] [--ring:var(--route)]`;

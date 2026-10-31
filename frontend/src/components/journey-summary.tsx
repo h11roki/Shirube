@@ -32,11 +32,9 @@ export function JourneySummary({
             経由{" "}
             <ul className="inline">
               {skills.map((skill, index) => (
-                <li
-                  key={`${index}-${skill}`}
-                  className="inline after:content-['、'] last:after:content-none"
-                >
+                <li key={`${index}-${skill}`} className="inline">
                   {skill}
+                  {index < skills.length - 1 && "、"}
                 </li>
               ))}
             </ul>

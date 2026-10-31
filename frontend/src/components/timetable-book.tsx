@@ -112,11 +112,7 @@ export function TimetableBook({
                 </p>
               )}
               {semester.continuing.length > 0 && (
-                <CourseGrid
-                  courses={semester.continuing}
-                  transfers={found}
-                  serials={serials}
-                />
+                <CourseGrid courses={semester.continuing} transfers={found} />
               )}
             </div>
           ) : (

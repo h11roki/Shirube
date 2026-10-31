@@ -11,6 +11,7 @@ import {
   STANDALONE_LINK,
 } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
+import { TicketStamp } from "@/components/ticket-stamp";
 import { useTransferFocus } from "@/components/transfer-focus";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import {
@@ -23,7 +24,6 @@ import {
   transferLabel,
 } from "@/lib/labels";
 import type { Transfer } from "@/lib/roadmap";
-import { stampTilt } from "@/lib/ticket-face";
 
 const EMPHASIS = {
   self: "ring-2 ring-ink/20",
@@ -57,7 +57,7 @@ export function CourseTicket({
   const roleShown =
     !transfer &&
     course.relevance === "foundation" &&
-    course.prerequisite_for !== null;
+    Boolean(course.prerequisite_for);
   const placed = "slots" in course;
   const emphasis =
     focusing?.focus === course.name
@@ -166,13 +166,10 @@ export function CourseTicket({
           {serial}
         </span>
       )}
-      <span
-        aria-hidden
-        style={{ rotate: `${stampTilt(course.name)}deg` }}
-        className={`-top-2.5 right-3 size-9 ${RELEVANCE_TONES[course.relevance].stamp} ${placed ? "sm:right-[5.6rem]" : ""}`}
-      >
-        {RELEVANCE_LABELS[course.relevance]}
-      </span>
+      <TicketStamp
+        course={course}
+        className={`-top-2 right-3 size-9 ${placed ? "sm:right-[5.6rem]" : ""}`}
+      />
     </article>
   );
 }
