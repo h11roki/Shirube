@@ -17,7 +17,6 @@ import {
   USUAL_DURATION_LABEL,
   WAITED_LABEL,
   WAITING_LABEL,
-  secondsLabel,
   semesterLabel,
 } from "@/lib/labels";
 import {
@@ -29,6 +28,7 @@ import {
 import { destinationOf } from "@/lib/words";
 
 const TICK_MS = 1_000;
+const SECOND_MS = 1_000;
 const BOARD_TERM = "text-label font-bold tracking-[0.28em]";
 const BOARD_VALUE = "text-lg font-bold break-keep tabular-nums";
 const BLINKING_DOTS = [0, 1, 2];
@@ -90,8 +90,12 @@ export function PlanProgress({
           </p>
           {stalled}
         </div>
-        {!stalled && <WaitingBoard since={startedAt} />}
-        <KeepsBuildingNote />
+        {!stalled && (
+          <>
+            <WaitingBoard since={startedAt} />
+            <KeepsBuildingNote />
+          </>
+        )}
       </div>
     </section>
   );
@@ -187,7 +191,7 @@ function WaitingBoard({ since }: { since: number }) {
       <div className="grid gap-0.5">
         <dt className={BOARD_TERM}>{WAITED_LABEL}</dt>
         <dd className={BOARD_VALUE}>
-          {secondsLabel(Math.floor((now - since) / TICK_MS))}
+          {Math.floor((now - since) / SECOND_MS)} 秒
         </dd>
       </div>
       <div className="grid gap-0.5">
@@ -199,14 +203,13 @@ function WaitingBoard({ since }: { since: number }) {
 }
 
 function KeepsBuildingNote() {
-  const [before, after] = KEEPS_BUILDING_NOTE;
   return (
     <p className="text-xs text-sub">
-      {before}
+      {KEEPS_BUILDING_NOTE.beforeLink}
       <Link href="/plans" className={TEXT_LINK}>
         {MY_PLANS_LABEL}
       </Link>
-      {after}
+      {KEEPS_BUILDING_NOTE.afterLink}
     </p>
   );
 }

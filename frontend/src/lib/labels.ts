@@ -200,14 +200,10 @@ export const MY_PLANS_LABEL = "自分の道標";
 export const WAITED_LABEL = "待ち時間";
 export const USUAL_DURATION_LABEL = "目安";
 export const USUAL_DURATION = "10〜30 秒";
-export const KEEPS_BUILDING_NOTE = [
-  "ページを閉じても作り続け、",
-  "に出ます。",
-] as const;
-
-export function secondsLabel(seconds: number): string {
-  return `${seconds} 秒`;
-}
+export const KEEPS_BUILDING_NOTE = {
+  beforeLink: "ページを閉じても作り続け、",
+  afterLink: "に出ます。",
+};
 
 export const TERMS_TITLE = ["利用規約"];
 
