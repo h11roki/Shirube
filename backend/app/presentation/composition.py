@@ -1,5 +1,5 @@
 import sys
-from datetime import UTC, date, datetime
+from datetime import UTC, datetime
 from typing import Any
 
 from pydantic import SecretStr, ValidationError
@@ -19,7 +19,6 @@ from app.application.search_courses import (
     whole_query,
 )
 from app.application.voting_course_selector import VotingCourseSelector
-from app.domain.course import UNIVERSITY_TIME
 from app.domain.quota import PlanQuota
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
@@ -157,7 +156,3 @@ def forget_deleted_plans(engine: Engine) -> ForgetDeletedPlans:
 
 def now() -> datetime:
     return datetime.now(UTC)
-
-
-def university_today() -> date:
-    return datetime.now(UNIVERSITY_TIME).date()

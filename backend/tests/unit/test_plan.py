@@ -1,5 +1,4 @@
 from dataclasses import replace
-from datetime import date
 from uuid import uuid4
 
 import pytest
@@ -21,29 +20,12 @@ from app.domain.roadmap import (
     Semester,
     SemesterPlan,
     remaining_semesters,
-    term_on,
 )
 from tests.builders import course_section
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
 START = Semester(3, Term.SPRING)
 CONDITIONS = PlanConditions("職業", "情", 2026, START, (), 16)
-
-
-@pytest.mark.parametrize(
-    ("day", "term"),
-    [
-        (date(2026, 4, 1), Term.SPRING),
-        (date(2026, 8, 31), Term.SPRING),
-        (date(2026, 9, 1), Term.AUTUMN),
-        (date(2027, 1, 15), Term.AUTUMN),
-        (date(2027, 3, 31), Term.AUTUMN),
-    ],
-)
-def test_the_term_is_spring_from_april_to_august_and_autumn_otherwise(
-    day: date, term: Term
-) -> None:
-    assert term_on(day) is term
 
 
 def roadmap_from(

@@ -16,9 +16,11 @@ import { POLL_INTERVAL_MS } from "@/lib/polling";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 import {
+  CLASS_CHOICES,
   FAILED_PLAN,
   PLAN_LIST,
   RUNNING_PLAN,
+  TAKEN_COURSES,
   asFailed,
   asRunning,
   expect,
@@ -347,6 +349,38 @@ test.describe("もう取った", () => {
     await expect(
       page.getByRole("button", { name: unmarkTakenLabel(TAKEN.name) }),
     ).toBeVisible();
+  });
+});
+
+test.describe("道標を作る", () => {
+  test("作って結果の画面に移ったあと、入力の画面に戻ると、職業名が空でもう一度作れる", async ({
+    page,
+    api,
+  }) => {
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/taken-courses": TAKEN_COURSES,
+      [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN,
+    });
+    api.respond("POST", "/api/plans", { status: 202, json: SAMPLE_PLAN });
+    await page.goto("/");
+    await page
+      .getByLabel("なりたい職業")
+      .fill(SAMPLE_PLAN.conditions.occupation);
+    await page.getByRole("button", { name: "道標を作る" }).click();
+    await expect(page).toHaveURL(`/plans/${SAMPLE_PLAN.id}`);
+    await expect(
+      page.getByRole("button", { name: DELETE_PLAN_LABEL }),
+    ).toBeVisible();
+    await page
+      .getByRole("navigation")
+      .getByRole("link", { name: "道標を作る" })
+      .click();
+    await expect(page).toHaveURL("/");
+    await expect(page.getByLabel("なりたい職業")).toHaveValue("");
+    await expect(
+      page.getByRole("button", { name: "道標を作る" }),
+    ).toBeEnabled();
   });
 });
 

@@ -10,7 +10,7 @@ from app.application.search_courses import SearchError
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.plan import Plan, PlanError, PlanStatus
 from app.domain.quota import PlanRefusedError
-from app.domain.roadmap import PlacedCourse, RoadmapError, Semester, term_on
+from app.domain.roadmap import DEFAULT_START_TERM, PlacedCourse, RoadmapError, Semester
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.cli.labels import (
@@ -29,7 +29,6 @@ from app.presentation.composition import (
     database_engine,
     load_settings,
     request_plan,
-    university_today,
 )
 
 CLI_SUBJECT = "cli:local"
@@ -114,8 +113,8 @@ def main() -> None:
     create.add_argument(
         "--term",
         choices=[term.value for term in Term],
-        default=term_on(university_today()).value,
-        help="始める学期(spring か autumn)。既定は今日の月から決める",
+        default=DEFAULT_START_TERM.value,
+        help="始める学期(spring か autumn)。既定は春学期",
     )
     add_department_option(create)
     add_year_option(create)

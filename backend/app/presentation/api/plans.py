@@ -1,5 +1,4 @@
 from collections.abc import Callable
-from datetime import date
 from typing import Annotated
 from uuid import UUID
 
@@ -12,7 +11,7 @@ from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
 from app.application.syllabus_links import SyllabusLinks
 from app.domain.plan import Plan
-from app.domain.roadmap import Semester, term_on
+from app.domain.roadmap import DEFAULT_START_TERM, Semester
 from app.presentation.api.taken_courses import TakenCourseName
 from app.presentation.schemas.errors import (
     BUSY_RESPONSE,
@@ -46,7 +45,6 @@ def plans_router(
     syllabus_links: SyllabusLinks,
     current_user: Callable[..., UUID],
     curriculum_year: int,
-    today: Callable[[], date],
 ) -> APIRouter:
     router = APIRouter()
 
@@ -66,13 +64,12 @@ def plans_router(
         request: Request,
         response: Response,
     ) -> PlanOut:
-        term = body.term or term_on(today())
         plan = request_plan.run(
             user_id,
             body.occupation,
             body.department,
             curriculum_year,
-            Semester(body.grade, term),
+            Semester(body.grade, body.term or DEFAULT_START_TERM),
             body.chosen_classes,
         )
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))
