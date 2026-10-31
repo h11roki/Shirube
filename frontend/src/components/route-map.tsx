@@ -17,6 +17,7 @@ import { Phrases } from "@/components/phrases";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
 import { DESTINATION_TEXT, STANDALONE_LINK } from "@/components/styles";
+import { TransferLines } from "@/components/transfer-lines";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -32,7 +33,12 @@ import {
   slotsLabel,
   stationLabel,
 } from "@/lib/labels";
-import { STAGGER_MS } from "@/lib/motion";
+import {
+  REDUCED_MOTION,
+  STAGGER_MS,
+  TRANSFER_DELAY_MS,
+  TRANSFER_DRAW_MS,
+} from "@/lib/motion";
 import {
   type Transfer,
   semesterCourses,
@@ -72,14 +78,28 @@ export function RouteMap({
     (transfer: Transfer) => transfer.station < shown,
     [shown],
   );
-  const go = useCallback(
-    (transfer: Transfer) => revealTicket(transfer.pillarSection),
-    [],
-  );
+  const following = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const go = useCallback((transfer: Transfer) => {
+    clearTimeout(following.current);
+    if (matchMedia(REDUCED_MOTION).matches) {
+      revealTicket(transfer.pillarSection);
+      return;
+    }
+    following.current = setTimeout(
+      () => revealTicket(transfer.pillarSection),
+      TRANSFER_DELAY_MS + TRANSFER_DRAW_MS,
+    );
+  }, []);
   const picked = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusing = useTransferFocusValue(found, reachable, go);
 
-  useEffect(() => () => clearTimeout(picked.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(picked.current);
+      clearTimeout(following.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!withStrip) {
@@ -138,7 +158,16 @@ export function RouteMap({
 
   return (
     <TransferFocusContext.Provider value={focusing}>
-      <div ref={root} className="grid gap-6">
+      <div ref={root} className="relative isolate grid gap-6">
+        <TransferLines
+          area={root}
+          semesters={visible}
+          labelTop={
+            withStrip
+              ? "top-[calc(env(safe-area-inset-top)+6rem)]"
+              : "top-[calc(env(safe-area-inset-top)+1rem)]"
+          }
+        />
         {withStrip && (
           <RouteStrip
             semesters={visible}

@@ -40,10 +40,12 @@ function ticketId(section: string): string {
   return `ticket-${section}`;
 }
 
+export function findTicket(section: string): HTMLElement | null {
+  return document.getElementById(ticketId(section));
+}
+
 export function revealTicket(section: string) {
-  document
-    .getElementById(ticketId(section))
-    ?.scrollIntoView({ block: "center" });
+  findTicket(section)?.scrollIntoView({ block: "center" });
 }
 
 export function CourseTicket({

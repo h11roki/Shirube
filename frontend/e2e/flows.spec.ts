@@ -10,6 +10,7 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   markTakenLabel,
+  syllabusLinkLabel,
   unmarkTakenLabel,
 } from "@/lib/labels";
 import { POLL_INTERVAL_MS } from "@/lib/polling";
@@ -30,6 +31,8 @@ import {
 } from "./fixtures";
 
 const LATER = "01:00";
+const NARROW_WIDTH = 320;
+const WIDE_WIDTH = 1280;
 const PAUSE_AHEAD_MS = 60_000;
 const TAKEN = SAMPLE_PLAN.result.semesters[0].courses[0];
 const CONFLICT = "ほかの画面の答えで道標が変わりました。";
@@ -380,6 +383,52 @@ test.describe("もう取ったの半券(動きを減らさない設定)", () => 
     ).toBeFocused();
     await expect(stub).toHaveCSS("animation-name", "none");
     await expect(mark).toBeEnabled();
+  });
+});
+
+test.describe("乗り換えの線", () => {
+  const foundation = SAMPLE_PLAN.result.semesters[0].courses.filter(
+    (course) => course.relevance === "foundation",
+  )[0];
+
+  function ticketOf(page: Page, name: string): Locator {
+    return page
+      .locator("article")
+      .filter({ has: page.getByRole("heading", { name, exact: true }) });
+  }
+
+  for (const width of [NARROW_WIDTH, WIDE_WIDTH]) {
+    test(`幅 ${width}px で、乗り換えのある切符に触れると柱まで線を引き、横にはみ出さず、離れると消す`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 800 });
+      api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+      await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+      const lines = page.locator("svg[data-transfer-lines]");
+      await expect(lines).toHaveCSS("opacity", "0");
+      await ticketOf(page, foundation.name).hover();
+      await expect(lines.locator("path")).toHaveCount(1);
+      await expect(lines).toHaveCSS("opacity", "1");
+      expect(
+        await page.evaluate(
+          () => document.documentElement.scrollWidth - innerWidth,
+        ),
+      ).toBeLessThanOrEqual(0);
+      await page.mouse.move(0, 0);
+      await expect(lines).toHaveCSS("opacity", "0");
+    });
+  }
+
+  test("切符の中にフォーカスがあるときも線を引く", async ({ page, api }) => {
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    await ticketOf(page, foundation.name)
+      .getByRole("link", { name: syllabusLinkLabel(foundation.name) })
+      .focus();
+    const lines = page.locator("svg[data-transfer-lines]");
+    await expect(lines.locator("path")).toHaveCount(1);
+    await expect(lines).toHaveCSS("opacity", "1");
   });
 });
 
