@@ -8,6 +8,7 @@ import type {
 } from "@/lib/api/client";
 import {
   courseNames,
+  courseStops,
   pickSemester,
   routeTotals,
   semesterCourses,
@@ -61,6 +62,24 @@ describe("roadmap", () => {
       ["礎の授業", "0002"],
       ["柱の授業", "0003"],
     ]);
+  });
+
+  it("finds each course's first ticket on the route, leaving out the courses continuing from the semester before", () => {
+    const repeated = [
+      semester(3, "spring", [placed("確率統計", "core")]),
+      semester(3, "autumn", [
+        { ...placed("確率統計", "core"), section_code: "後" },
+      ]),
+    ];
+    expect([...courseStops(semesters)]).toEqual([
+      ["通年の授業", { section: "通年の授業", station: 0, relevance: "core" }],
+      [
+        "礎の授業",
+        { section: "礎の授業", station: 0, relevance: "foundation" },
+      ],
+      ["柱の授業", { section: "柱の授業", station: 1, relevance: "core" }],
+    ]);
+    expect(courseStops(repeated).get("確率統計")?.section).toBe("確率統計");
   });
 
   it("keys a semester by grade and term", () => {

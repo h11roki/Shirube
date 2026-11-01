@@ -2,6 +2,7 @@
 
 import {
   type CSSProperties,
+  type RefObject,
   useCallback,
   useEffect,
   useId,
@@ -17,6 +18,7 @@ import { Phrases } from "@/components/phrases";
 import { QueryLink } from "@/components/query-link";
 import { StationBoard } from "@/components/station-board";
 import { DESTINATION_TEXT, STANDALONE_LINK } from "@/components/styles";
+import { TransferLines } from "@/components/transfer-lines";
 import {
   TransferFocusContext,
   useTransferFocusValue,
@@ -32,7 +34,13 @@ import {
   slotsLabel,
   stationLabel,
 } from "@/lib/labels";
-import { STAGGER_MS } from "@/lib/motion";
+import {
+  REDUCED_MOTION,
+  STAGGER_MS,
+  TOUCH_SCREEN,
+  TRANSFER_DELAY_MS,
+  TRANSFER_DRAW_MS,
+} from "@/lib/motion";
 import {
   type Transfer,
   semesterCourses,
@@ -63,23 +71,41 @@ export function RouteMap({
 }) {
   const found = useMemo(() => transfers(semesters), [semesters]);
   const serials = useMemo(() => ticketSerials(semesters), [semesters]);
-  const visible = semesters.slice(0, shown);
+  const visible = useMemo(() => semesters.slice(0, shown), [semesters, shown]);
   const arrive = visible.length * STAGGER_MS;
   const continuation = routeEndContinuation(shown, semesters.length);
   const root = useRef<HTMLDivElement>(null);
+  const strip = useRef<HTMLElement>(null);
   const [active, setActive] = useState(0);
   const reachable = useCallback(
     (transfer: Transfer) => transfer.station < shown,
     [shown],
   );
-  const go = useCallback(
-    (transfer: Transfer) => revealTicket(transfer.pillarSection),
-    [],
-  );
+  const following = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const go = useCallback((transfer: Transfer) => {
+    clearTimeout(following.current);
+    if (
+      !matchMedia(TOUCH_SCREEN).matches ||
+      matchMedia(REDUCED_MOTION).matches
+    ) {
+      revealTicket(transfer.pillarSection);
+      return;
+    }
+    following.current = setTimeout(
+      () => revealTicket(transfer.pillarSection),
+      TRANSFER_DELAY_MS + TRANSFER_DRAW_MS,
+    );
+  }, []);
   const picked = useRef<ReturnType<typeof setTimeout>>(undefined);
   const focusing = useTransferFocusValue(found, reachable, go);
 
-  useEffect(() => () => clearTimeout(picked.current), []);
+  useEffect(
+    () => () => {
+      clearTimeout(picked.current);
+      clearTimeout(following.current);
+    },
+    [],
+  );
 
   useEffect(() => {
     if (!withStrip) {
@@ -138,9 +164,15 @@ export function RouteMap({
 
   return (
     <TransferFocusContext.Provider value={focusing}>
-      <div ref={root} className="grid gap-6">
+      <div ref={root} className="relative grid gap-6">
+        <TransferLines
+          area={root}
+          semesters={visible}
+          cover={withStrip ? strip : undefined}
+        />
         {withStrip && (
           <RouteStrip
+            ref={strip}
             semesters={visible}
             destinationWords={destination.words}
             active={active}
@@ -189,11 +221,13 @@ export function RouteMap({
 }
 
 function RouteStrip({
+  ref: strip,
   semesters,
   destinationWords,
   active,
   onPick,
 }: {
+  ref: RefObject<HTMLElement | null>;
   semesters: SemesterPlan[];
   destinationWords: readonly string[];
   active: number;
@@ -211,7 +245,6 @@ function RouteStrip({
       name: <Phrases parts={destinationWords} />,
     },
   ];
-  const strip = useRef<HTMLElement>(null);
   useEffect(() => {
     const current = strip.current?.querySelector<HTMLElement>("[aria-current]");
     if (strip.current && current) {
@@ -221,7 +254,7 @@ function RouteStrip({
           (strip.current.clientWidth - current.offsetWidth) / 2,
       });
     }
-  }, [active]);
+  }, [active, strip]);
   return (
     <nav
       ref={strip}

@@ -163,7 +163,12 @@ export function PlanView() {
   let body: ReactNode;
   if (plan.status === "succeeded") {
     body = plan.result ? (
-      <PlanResultView plan={plan} result={plan.result} onAnswered={setPlan} />
+      <PlanResultView
+        plan={plan}
+        result={plan.result}
+        arriving={sawProgress}
+        onAnswered={setPlan}
+      />
     ) : (
       <Notice title="道標の中身を読めませんでした">
         <RetryButton onClick={retry} />

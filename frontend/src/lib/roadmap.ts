@@ -13,22 +13,33 @@ export type Transfer = {
   semester: SemesterPlan;
 };
 
-export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
-  const pillars = new Map<string, { station: number; section: string }>();
+export type Stop = { section: string; station: number; relevance: Relevance };
+
+export function courseStops(semesters: SemesterPlan[]): Map<string, Stop> {
+  const first = new Map<string, Stop>();
   semesters.forEach((semester, station) => {
     for (const course of semester.courses) {
-      if (course.relevance === "core" && !pillars.has(course.name)) {
-        pillars.set(course.name, { station, section: course.section_code });
+      if (!first.has(course.name)) {
+        first.set(course.name, {
+          section: course.section_code,
+          station,
+          relevance: course.relevance,
+        });
       }
     }
   });
+  return first;
+}
+
+export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
+  const stops = courseStops(semesters);
   const found = new Map<string, Transfer>();
   for (const semester of semesters) {
     for (const course of semester.courses) {
       const pillar =
         course.relevance === "foundation" ? course.prerequisite_for : null;
-      const target = pillar === null ? undefined : pillars.get(pillar);
-      if (pillar !== null && target !== undefined) {
+      const target = pillar === null ? undefined : stops.get(pillar);
+      if (pillar !== null && target?.relevance === "core") {
         found.set(course.name, {
           pillar,
           pillarSection: target.section,

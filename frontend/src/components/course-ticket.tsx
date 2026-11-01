@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext } from "react";
+import { type CSSProperties, useContext } from "react";
 
 import { useCourseWords } from "@/components/course-words";
 import { Phrases } from "@/components/phrases";
@@ -23,6 +23,7 @@ import {
   syllabusLinkLabel,
   transferLabel,
 } from "@/lib/labels";
+import { TEAR_MS } from "@/lib/motion";
 import type { Transfer } from "@/lib/roadmap";
 
 const EMPHASIS = {
@@ -31,14 +32,20 @@ const EMPHASIS = {
     "ring-2 ring-route shadow-[0_0_0_6px_color-mix(in_srgb,var(--route)_18%,transparent)]",
 };
 
+const TORN_PART = "bg-note shadow-[0_0_0_1px_var(--line)]";
+const TEARING_AWAY =
+  "origin-bottom-left motion-safe:animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:origin-top-left max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
+
 function ticketId(section: string): string {
   return `ticket-${section}`;
 }
 
+export function findTicket(section: string): HTMLElement | null {
+  return document.getElementById(ticketId(section));
+}
+
 export function revealTicket(section: string) {
-  document
-    .getElementById(ticketId(section))
-    ?.scrollIntoView({ block: "center" });
+  findTicket(section)?.scrollIntoView({ block: "center" });
 }
 
 export function CourseTicket({
@@ -59,6 +66,9 @@ export function CourseTicket({
     course.relevance === "foundation" &&
     Boolean(course.prerequisite_for);
   const placed = "slots" in course;
+  const tearing = answering?.tearing === course.name;
+  const ground = RELEVANCE_TONES[course.relevance].ground;
+  const torn = tearing ? `${TORN_PART} ${ground}` : "";
   const emphasis =
     focusing?.focus === course.name
       ? EMPHASIS.self
@@ -72,9 +82,12 @@ export function CourseTicket({
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
       onBlur={() => focusing?.select(null)}
-      className={`relative grid min-w-0 border border-line bg-note transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${RELEVANCE_TONES[course.relevance].ground} ${emphasis}`}
+      style={
+        tearing ? ({ "--tear-ms": `${TEAR_MS}ms` } as CSSProperties) : undefined
+      }
+      className={`relative grid min-w-0 border transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${tearing ? "border-transparent" : `border-line bg-note ${ground}`} ${emphasis}`}
     >
-      <div className="grid min-w-0 content-start gap-1 px-3.5 py-3">
+      <div className={`grid min-w-0 content-start gap-1 px-3.5 py-3 ${torn}`}>
         <p
           className={
             roleShown
@@ -135,7 +148,7 @@ export function CourseTicket({
       </div>
       {placed && (
         <dl
-          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH}`}
+          className={`relative grid content-center gap-1.5 border-dashed border-line px-2 py-3 text-center tabular-nums max-sm:grid-cols-3 max-sm:border-t-2 max-sm:py-2 ${serial ? "pb-6 max-sm:pb-5" : ""} sm:w-[4.75rem] sm:border-l-2 ${COURSE_TICKET_NOTCH} ${tearing ? `${torn} ${TEARING_AWAY}` : ""}`}
         >
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">コマ</dt>
@@ -154,17 +167,19 @@ export function CourseTicket({
           </div>
           <div>
             <dt className="text-label tracking-[0.14em] text-sub">単位</dt>
-            <dd className="text-sm font-bold">{course.credits}</dd>
+            <dd className="text-sm font-bold">
+              {course.credits}
+              {serial && (
+                <span
+                  aria-hidden
+                  className="absolute right-2 bottom-1 text-label font-normal tracking-[0.08em] text-sub"
+                >
+                  {serial}
+                </span>
+              )}
+            </dd>
           </div>
         </dl>
-      )}
-      {serial && (
-        <span
-          aria-hidden
-          className="absolute right-2 bottom-1 text-label tracking-[0.08em] text-sub"
-        >
-          {serial}
-        </span>
       )}
       <TicketStamp
         course={course}

@@ -31,6 +31,7 @@ import {
   unmarkTakenLabel,
   semesterLabel,
 } from "@/lib/labels";
+import { REDUCED_MOTION, TEAR_MS } from "@/lib/motion";
 import { courseNames } from "@/lib/roadmap";
 import {
   type ResultView,
@@ -57,15 +58,18 @@ type Answered = {
 export function PlanResultView({
   plan,
   result,
+  arriving,
   onAnswered,
 }: {
   plan: Plan;
   result: Result;
+  arriving: boolean;
   onAnswered: (plan: Plan) => void;
 }) {
   const pathname = usePathname();
   const { view, semester } = readResultView(useSearchParams());
   const [busy, setBusy] = useState(false);
+  const [tearing, setTearing] = useState<string | null>(null);
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
@@ -107,14 +111,23 @@ export function PlanResultView({
 
   async function answer(name: string, change: TakenChange) {
     const held = document.activeElement?.matches(":focus-visible") ?? false;
+    const torn =
+      change === "mark" &&
+      result.semesters.some((semester) =>
+        semester.courses.some((course) => course.name === name),
+      ) &&
+      !matchMedia(REDUCED_MOTION).matches;
     setBusy(true);
+    setTearing(torn ? name : null);
     try {
-      onAnswered(
-        await requestJson<Plan>(
+      const [latest] = await Promise.all([
+        requestJson<Plan>(
           `${planApi}/taken-courses/${encodeURIComponent(name)}`,
           { method: TAKEN_METHODS[change] },
         ),
-      );
+        torn && new Promise((done) => setTimeout(done, TEAR_MS)),
+      ]);
+      onAnswered(latest);
       setAnswered({
         message: answeredLabel(name, change),
         failed: false,
@@ -129,6 +142,7 @@ export function PlanResultView({
         held,
       });
     } finally {
+      setTearing(null);
       setBusy(false);
       notice.current?.focus({ preventScroll: true });
     }
@@ -140,6 +154,7 @@ export function PlanResultView({
         value={{
           asked: new Set(result.offered_earlier),
           busy,
+          tearing,
           answer: (name, change) => void answer(name, change),
         }}
       >
@@ -149,7 +164,7 @@ export function PlanResultView({
             {profile.occupation !== profile.interpretation && (
               <Kicker>入力した職業 {profile.occupation}</Kicker>
             )}
-            <DestinationPlate destination={destination} />
+            <DestinationPlate destination={destination} arriving={arriving} />
             {profile.assumption && (
               <p className="max-w-2xl text-sm text-sub">
                 前提: {profile.assumption}
