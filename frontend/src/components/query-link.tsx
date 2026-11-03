@@ -10,15 +10,18 @@ type QueryLinkProps = Omit<
   onNavigate?: () => void;
 };
 
-export function pushQuery(href: string): boolean {
+function pushQuery(href: string) {
   const target = new URL(href, window.location.href);
-  const changed =
+  if (
     target.pathname + target.search !==
-    window.location.pathname + window.location.search;
-  if (changed) {
+    window.location.pathname + window.location.search
+  ) {
     window.history.pushState(null, "", href);
   }
-  return changed;
+}
+
+export function replaceQuery(href: string) {
+  window.history.replaceState(null, "", href);
 }
 
 export function QueryLink({ href, onNavigate, ...rest }: QueryLinkProps) {

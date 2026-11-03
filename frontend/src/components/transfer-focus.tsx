@@ -2,11 +2,14 @@
 
 import { createContext, useContext, useMemo, useState } from "react";
 
+import type { SemesterPlan } from "@/lib/api/client";
+import { REDUCED_MOTION } from "@/lib/motion";
 import { type Hop, type TransferRoutes, linkedNames } from "@/lib/roadmap";
 
 export type Trip = { from: Hop; to: Hop; button: string };
 
 export type TransferFocus = {
+  routes: TransferRoutes;
   focus: string | null;
   linked: Set<string>;
   hover: (name: string | null) => void;
@@ -26,7 +29,7 @@ export function useTransferFocus(): TransferFocus | null {
 export function useTransferFocusValue(
   routes: TransferRoutes,
   reachable: (hop: Hop) => boolean,
-  go: (hop: Hop, focusId: string) => void,
+  go: (focusId: string, semester: SemesterPlan) => void,
 ): TransferFocus {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
@@ -40,6 +43,7 @@ export function useTransferFocusValue(
 
   return useMemo(
     () => ({
+      routes,
       focus,
       linked: linkedNames(routes, focus),
       hover: setHovered,
@@ -47,13 +51,15 @@ export function useTransferFocusValue(
       reachable,
       trip,
       follow: (next) => {
+        setHovered(null);
         setTrip(next);
-        go(next.to, ticketHeadingId(next.to.section));
+        go(ticketHeadingId(next.to.section), next.to.semester);
       },
       back: () => {
         if (trip) {
+          setHovered(null);
           setTrip(null);
-          go(trip.from, trip.button);
+          go(trip.button, trip.from.semester);
         }
       },
     }),
@@ -63,4 +69,13 @@ export function useTransferFocusValue(
 
 export function ticketHeadingId(section: string): string {
   return `ticket-${section}-name`;
+}
+
+export function revealElement(id: string) {
+  const element = document.getElementById(id);
+  element?.scrollIntoView({
+    block: "center",
+    behavior: matchMedia(REDUCED_MOTION).matches ? "instant" : "smooth",
+  });
+  element?.focus({ preventScroll: true });
 }

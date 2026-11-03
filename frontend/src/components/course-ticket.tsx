@@ -23,7 +23,7 @@ import {
   slotsLabel,
   syllabusLinkLabel,
 } from "@/lib/labels";
-import { REDUCED_MOTION, TEAR_MS } from "@/lib/motion";
+import { TEAR_MS } from "@/lib/motion";
 import type { Transfer } from "@/lib/roadmap";
 
 const EMPHASIS = {
@@ -36,18 +36,6 @@ const EMPHASIS = {
 const TORN_PART = "bg-note shadow-[0_0_0_1px_var(--line)]";
 const TEARING_AWAY =
   "origin-bottom-left motion-safe:animate-tear [--tear:translate(0.75rem,0.25rem)_rotate(8deg)] max-sm:origin-top-left max-sm:[--tear:translate(0,0.75rem)_rotate(3deg)]";
-
-function ticketId(section: string): string {
-  return `ticket-${section}`;
-}
-
-export function revealTicket(section: string, focusId: string) {
-  document.getElementById(ticketId(section))?.scrollIntoView({
-    block: "center",
-    behavior: matchMedia(REDUCED_MOTION).matches ? "instant" : "smooth",
-  });
-  document.getElementById(focusId)?.focus({ preventScroll: true });
-}
 
 export function CourseTicket({
   course,
@@ -63,17 +51,19 @@ export function CourseTicket({
   const focusing = useTransferFocus();
   const answering = useContext(TakenAnswersContext);
   const nameWords = useCourseWords(course.name);
-  const role = transfer ? RELEVANCE_LABELS.foundation : roleLabel(course);
+  const departs = focusing?.routes.departures.has(course.name) ?? false;
+  const role = departs ? RELEVANCE_LABELS.foundation : roleLabel(course);
   const roleShown =
-    !transfer &&
+    !departs &&
     course.relevance === "foundation" &&
     Boolean(course.prerequisite_for);
   const placed = "slots" in course;
+  const boarding = placed && Boolean(transfer || arrivals);
   const tearing = answering?.tearing === course.name;
   const ground = RELEVANCE_TONES[course.relevance].ground;
   const torn = tearing ? `${TORN_PART} ${ground}` : "";
   const emphasis =
-    placed && focusing?.trip?.to.section === course.section_code
+    boarding && focusing?.trip?.to.section === course.section_code
       ? EMPHASIS.arrived
       : focusing?.focus === course.name
         ? EMPHASIS.self
@@ -82,7 +72,6 @@ export function CourseTicket({
           : "";
   return (
     <article
-      id={placed ? ticketId(course.section_code) : undefined}
       onPointerEnter={() => focusing?.hover(course.name)}
       onPointerLeave={() => focusing?.hover(null)}
       onFocus={() => focusing?.select(course.name)}
@@ -103,13 +92,13 @@ export function CourseTicket({
           {role}
         </p>
         <h3
-          id={placed ? ticketHeadingId(course.section_code) : undefined}
-          tabIndex={placed ? -1 : undefined}
+          id={boarding ? ticketHeadingId(course.section_code) : undefined}
+          tabIndex={boarding ? -1 : undefined}
           className="pr-10 leading-snug font-bold"
         >
           <Phrases parts={nameWords} />
         </h3>
-        {placed && <BackFromTrip section={course.section_code} />}
+        {boarding && <BackFromTrip section={course.section_code} />}
         <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
         {course.syllabus_url && (
           <a

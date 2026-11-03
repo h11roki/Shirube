@@ -6,6 +6,7 @@ import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
+  TRANSFER_LABEL,
   answeredLabel,
   deletePlanLabel,
   deletedPlanLabel,
@@ -17,12 +18,7 @@ import {
   unmarkTakenLabel,
 } from "@/lib/labels";
 import { POLL_INTERVAL_MS } from "@/lib/polling";
-import {
-  type Transfer,
-  type TransferRoutes,
-  semesterKey,
-  transferRoutes,
-} from "@/lib/roadmap";
+import { semesterKey, transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 import {
@@ -395,19 +391,18 @@ test.describe("もう取ったの半券(動きを減らさない設定)", () => 
   });
 });
 
-function backwardTransfer(routes: TransferRoutes): Transfer {
-  const found = [...routes.departures.values()].find(
-    (transfer) => transfer.to.station < transfer.from.station,
-  );
-  if (!found) {
-    throw new Error("見本の道標に、前の駅の柱へ乗り換える礎が無い");
-  }
-  return found;
-}
-
 test.describe("乗換の欄", () => {
   const routes = transferRoutes(SAMPLE_PLAN.result.semesters);
-  const transfer = backwardTransfer(routes);
+  const transfer = [...routes.departures.values()].find(
+    (each) => each.to.station < each.from.station,
+  );
+  if (!transfer) {
+    throw new Error("見本の道標に、前の駅の柱へ乗り換える礎が無い");
+  }
+  const departureOf = (page: Page): Locator =>
+    ticketOf(page, transfer.from.name).getByRole("button", {
+      name: new RegExp(`^${TRANSFER_LABEL}`),
+    });
 
   function ticketOf(page: Page, name: string): Locator {
     return page.locator("article").filter({ has: nameOf(page, name) });
@@ -415,12 +410,6 @@ test.describe("乗換の欄", () => {
 
   function nameOf(page: Page, name: string): Locator {
     return page.getByRole("heading", { name, exact: true });
-  }
-
-  function departureOf(page: Page): Locator {
-    return ticketOf(page, transfer.from.name).getByRole("button", {
-      name: /^乗換/,
-    });
   }
 
   for (const width of [NARROW_WIDTH, WIDE_WIDTH]) {
@@ -443,6 +432,7 @@ test.describe("乗換の欄", () => {
       ).toBeLessThanOrEqual(0);
       await departure.click();
       await expect(nameOf(page, transfer.to.name)).toBeFocused();
+      await expect(nameOf(page, transfer.to.name)).toBeInViewport();
       const back = page.getByRole("button", {
         name: `${transfer.from.name}${backPlace(transfer.from)}`,
       });

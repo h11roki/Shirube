@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { revealTicket } from "@/components/course-ticket";
-import { QueryLink } from "@/components/query-link";
+import { QueryLink, replaceQuery } from "@/components/query-link";
 import { tabClass } from "@/components/styles";
 import {
   TransferFocusContext,
+  revealElement,
   useTransferFocusValue,
 } from "@/components/transfer-focus";
 import { WeekTable } from "@/components/week-table";
@@ -19,7 +19,6 @@ import {
   stationLabel,
 } from "@/lib/labels";
 import {
-  type Hop,
   pickSemester,
   semesterCourses,
   semesterKey,
@@ -45,31 +44,27 @@ export function TimetableBook({
   const serials = useMemo(() => ticketSerials(semesters), [semesters]);
   const semester = pickSemester(semesters, selected);
   const shownKey = semester ? semesterKey(semester) : null;
-  const pending = useRef<{ section: string; focusId: string } | null>(null);
+  const pending = useRef<string | null>(null);
   const shown = useRef(shownKey);
   const go = useCallback(
-    (hop: Hop, focusId: string) => {
-      const target = semesterKey(hop.semester);
+    (focusId: string, to: SemesterPlan) => {
+      const target = semesterKey(to);
       if (target === shown.current) {
-        revealTicket(hop.section, focusId);
+        revealElement(focusId);
         return;
       }
-      pending.current = { section: hop.section, focusId };
-      window.history.replaceState(
-        null,
-        "",
-        resultViewHref(planPath, "timetable", target),
-      );
+      pending.current = focusId;
+      replaceQuery(resultViewHref(planPath, "timetable", target));
     },
     [planPath],
   );
   const focusing = useTransferFocusValue(routes, reachableEverywhere, go);
   useEffect(() => {
     shown.current = shownKey;
-    const target = pending.current;
+    const focusId = pending.current;
     pending.current = null;
-    if (target) {
-      revealTicket(target.section, target.focusId);
+    if (focusId) {
+      revealElement(focusId);
     }
   }, [shownKey]);
   if (!semester) {

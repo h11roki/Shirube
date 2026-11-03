@@ -61,9 +61,8 @@ export function transferRoutes(semesters: SemesterPlan[]): TransferRoutes {
       ? [{ from: hopOf(stop), to: hopOf(pillar) }]
       : [];
   });
-  const pillars = [...stops.keys()].filter((name) =>
-    legs.some((leg) => leg.to.name === name),
-  );
+  const targets = new Set(legs.map((leg) => leg.to.name));
+  const pillars = [...stops.keys()].filter((name) => targets.has(name));
   const departures = new Map<string, Transfer>();
   const arrivals = new Map<string, Transfer[]>();
   for (const leg of legs) {

@@ -11,7 +11,6 @@ import {
 } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { revealTicket } from "@/components/course-ticket";
 import { DestinationName } from "@/components/destination-name";
 import { Phrases } from "@/components/phrases";
 import { QueryLink } from "@/components/query-link";
@@ -19,6 +18,7 @@ import { StationBoard } from "@/components/station-board";
 import { DESTINATION_TEXT, STANDALONE_LINK } from "@/components/styles";
 import {
   TransferFocusContext,
+  revealElement,
   useTransferFocusValue,
 } from "@/components/transfer-focus";
 import { WeekTable } from "@/components/week-table";
@@ -71,11 +71,7 @@ export function RouteMap({
   const [active, setActive] = useState(0);
   const reachable = useCallback((hop: Hop) => hop.station < shown, [shown]);
   const picked = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const go = useCallback(
-    (hop: Hop, focusId: string) => revealTicket(hop.section, focusId),
-    [],
-  );
-  const focusing = useTransferFocusValue(routes, reachable, go);
+  const focusing = useTransferFocusValue(routes, reachable, revealElement);
 
   useEffect(
     () => () => {
