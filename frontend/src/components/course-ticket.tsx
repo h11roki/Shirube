@@ -41,12 +41,8 @@ function ticketId(section: string): string {
   return `ticket-${section}`;
 }
 
-export function findTicket(section: string): HTMLElement | null {
-  return document.getElementById(ticketId(section));
-}
-
 export function revealTicket(section: string, focusId: string) {
-  findTicket(section)?.scrollIntoView({
+  document.getElementById(ticketId(section))?.scrollIntoView({
     block: "center",
     behavior: matchMedia(REDUCED_MOTION).matches ? "instant" : "smooth",
   });

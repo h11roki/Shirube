@@ -18,7 +18,7 @@ const PERFORATED = "border-t-2 border-dashed border-line pt-2 text-xs";
 const HOP_BUTTON = "grid min-h-6 w-full gap-0.5 text-left text-route";
 
 export function Departure({ transfer }: { transfer: Transfer }) {
-  const button = departureId(transfer.from.section);
+  const button = `transfer-${transfer.from.section}`;
   return (
     <div className={PERFORATED}>
       <HopLink
@@ -50,7 +50,7 @@ export function Arrivals({ arrivals }: { arrivals: Transfer[] }) {
             <HopLink
               from={transfer.to}
               to={transfer.from}
-              button={arrivalId(transfer)}
+              button={`transfer-${transfer.to.section}-${transfer.from.section}`}
               title={<HopName name={transfer.from.name} />}
             />
           </li>
@@ -133,12 +133,4 @@ function TransferMark({ mark }: { mark: string }) {
       {mark}
     </span>
   );
-}
-
-function departureId(section: string): string {
-  return `transfer-${section}`;
-}
-
-function arrivalId(transfer: Transfer): string {
-  return `transfer-${transfer.to.section}-${transfer.from.section}`;
 }

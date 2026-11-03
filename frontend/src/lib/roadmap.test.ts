@@ -173,6 +173,27 @@ describe("roadmap", () => {
       ]);
     });
 
+    it("marks the pillars after Z with two letters", () => {
+      const many = transferRoutes([
+        semester(
+          3,
+          "spring",
+          Array.from({ length: 28 }, (_, index) => [
+            placed(`柱${index}`, "core"),
+            {
+              ...placed(`礎${index}`, "foundation"),
+              prerequisite_for: `柱${index}`,
+            },
+          ]).flat(),
+        ),
+      ]);
+      expect(
+        ["礎0", "礎25", "礎26", "礎27"].map(
+          (name) => many.departures.get(name)?.mark,
+        ),
+      ).toEqual(["A", "Z", "AA", "AB"]);
+    });
+
     it("lists a pillar's foundations in the order of the route", () => {
       expect(
         routes.arrivals.get("確率統計")?.map((transfer) => transfer.from.name),

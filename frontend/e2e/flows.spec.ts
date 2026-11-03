@@ -483,11 +483,31 @@ test.describe("乗換の欄", () => {
     await page.goto(
       `/plans/${SAMPLE_PLAN.id}?view=timetable&semester=${semesterKey(transfer.from.semester)}`,
     );
+    const entries = await page.evaluate(() => history.length);
     await departureOf(page).click();
     await expect(nameOf(page, transfer.to.name)).toBeFocused();
     await expect(page).toHaveURL(
       new RegExp(`semester=${semesterKey(transfer.to.semester)}`),
     );
+    expect(await page.evaluate(() => history.length)).toBe(entries);
+  });
+
+  test("道標が変わると、着いた切符の戻る道を外す", async ({ page, api }) => {
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await departureOf(page).click();
+    const back = page.getByRole("button", {
+      name: `${transfer.from.name}${backPlace(transfer.from)}`,
+    });
+    await expect(back).toBeVisible();
+    await page
+      .getByRole("button", { name: markTakenLabel(TAKEN.name) })
+      .click();
+    await expect(
+      page.getByRole("button", { name: unmarkTakenLabel(TAKEN.name) }),
+    ).toBeVisible();
+    await expect(back).toHaveCount(0);
   });
 });
 

@@ -141,7 +141,7 @@ export function RouteMap({
 
   return (
     <TransferFocusContext.Provider value={focusing}>
-      <div ref={root} className="relative grid gap-6">
+      <div ref={root} className="grid gap-6">
         {withStrip && (
           <RouteStrip
             semesters={visible}

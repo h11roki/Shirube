@@ -31,6 +31,11 @@ export function useTransferFocusValue(
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [trip, setTrip] = useState<Trip | null>(null);
+  const [tripRoutes, setTripRoutes] = useState(routes);
+  if (tripRoutes !== routes) {
+    setTripRoutes(routes);
+    setTrip(null);
+  }
   const focus = hovered ?? selected;
 
   return useMemo(
