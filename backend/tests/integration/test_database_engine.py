@@ -3,6 +3,7 @@ from collections.abc import Iterator
 from contextlib import ExitStack
 
 import pytest
+from psycopg.errors import DivisionByZero
 from sqlalchemy import URL, Engine, text
 from sqlalchemy.exc import DataError
 
@@ -50,10 +51,8 @@ def test_pooled_connections_the_database_closed_are_replaced_before_the_next_que
 def test_the_logged_traceback_of_a_failed_query_leaves_out_its_parameters(
     app_engine: Engine,
 ) -> None:
-    with (
-        app_engine.connect() as connection,
-        pytest.raises(DataError, match="division by zero") as raised,
-    ):
+    with app_engine.connect() as connection, pytest.raises(DataError) as raised:
         connection.execute(text("SELECT CAST(:subject AS text), 1 / 0"), {"subject": SUBJECT})
 
+    assert isinstance(raised.value.orig, DivisionByZero)
     assert SUBJECT not in "".join(traceback.format_exception(raised.value))
