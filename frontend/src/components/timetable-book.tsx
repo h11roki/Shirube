@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { revealTicket } from "@/components/course-ticket";
-import { QueryLink, pushQuery } from "@/components/query-link";
+import { QueryLink } from "@/components/query-link";
 import { tabClass } from "@/components/styles";
 import {
   TransferFocusContext,
+  revealElement,
   useTransferFocusValue,
 } from "@/components/transfer-focus";
 import { WeekTable } from "@/components/week-table";
@@ -19,12 +19,11 @@ import {
   stationLabel,
 } from "@/lib/labels";
 import {
-  type Transfer,
   pickSemester,
   semesterCourses,
   semesterKey,
   ticketSerials,
-  transfers,
+  transferRoutes,
 } from "@/lib/roadmap";
 import { resultViewHref } from "@/lib/result-view";
 
@@ -41,31 +40,35 @@ export function TimetableBook({
   selected: string | null;
   planPath: string;
 }) {
-  const found = useMemo(() => transfers(semesters), [semesters]);
+  const routes = useMemo(() => transferRoutes(semesters), [semesters]);
   const serials = useMemo(() => ticketSerials(semesters), [semesters]);
   const semester = pickSemester(semesters, selected);
   const shownKey = semester ? semesterKey(semester) : null;
   const pending = useRef<string | null>(null);
   const shown = useRef(shownKey);
   const go = useCallback(
-    (transfer: Transfer) => {
-      const target = semesterKey(transfer.semester);
+    (focusId: string, to: SemesterPlan) => {
+      const target = semesterKey(to);
       if (target === shown.current) {
-        revealTicket(transfer.pillarSection);
+        revealElement(focusId);
         return;
       }
-      pending.current = transfer.pillarSection;
-      pushQuery(resultViewHref(planPath, "timetable", target));
+      pending.current = focusId;
+      window.history.replaceState(
+        null,
+        "",
+        resultViewHref(planPath, "timetable", target),
+      );
     },
     [planPath],
   );
-  const focusing = useTransferFocusValue(found, reachableEverywhere, go);
+  const focusing = useTransferFocusValue(routes, reachableEverywhere, go);
   useEffect(() => {
     shown.current = shownKey;
-    const section = pending.current;
+    const focusId = pending.current;
     pending.current = null;
-    if (section) {
-      revealTicket(section);
+    if (focusId) {
+      revealElement(focusId);
     }
   }, [shownKey]);
   if (!semester) {
@@ -102,7 +105,7 @@ export function TimetableBook({
               {semester.courses.length > 0 && (
                 <CourseGrid
                   courses={semester.courses}
-                  transfers={found}
+                  routes={routes}
                   serials={serials}
                 />
               )}
@@ -112,7 +115,7 @@ export function TimetableBook({
                 </p>
               )}
               {semester.continuing.length > 0 && (
-                <CourseGrid courses={semester.continuing} transfers={found} />
+                <CourseGrid courses={semester.continuing} />
               )}
             </div>
           ) : (

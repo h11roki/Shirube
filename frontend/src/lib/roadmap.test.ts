@@ -8,14 +8,13 @@ import type {
 } from "@/lib/api/client";
 import {
   courseNames,
-  courseStops,
+  linkedNames,
   pickSemester,
   routeTotals,
   semesterCourses,
-  linkedNames,
   semesterKey,
   ticketSerials,
-  transfers,
+  transferRoutes,
 } from "@/lib/roadmap";
 
 function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
@@ -64,24 +63,6 @@ describe("roadmap", () => {
     ]);
   });
 
-  it("finds each course's first ticket on the route, leaving out the courses continuing from the semester before", () => {
-    const repeated = [
-      semester(3, "spring", [placed("確率統計", "core")]),
-      semester(3, "autumn", [
-        { ...placed("確率統計", "core"), section_code: "後" },
-      ]),
-    ];
-    expect([...courseStops(semesters)]).toEqual([
-      ["通年の授業", { section: "通年の授業", station: 0, relevance: "core" }],
-      [
-        "礎の授業",
-        { section: "礎の授業", station: 0, relevance: "foundation" },
-      ],
-      ["柱の授業", { section: "柱の授業", station: 1, relevance: "core" }],
-    ]);
-    expect(courseStops(repeated).get("確率統計")?.section).toBe("確率統計");
-  });
-
   it("keys a semester by grade and term", () => {
     expect(semesterKey({ grade: 3, term: "autumn" })).toBe("3-autumn");
   });
@@ -114,7 +95,7 @@ describe("roadmap", () => {
     });
   });
 
-  it("transfers each foundation, before, with or after its pillar, to the pillar's station", () => {
+  describe("transfers", () => {
     const pillar = placed("確率統計", "core");
     const early = {
       ...placed("基礎数学", "foundation"),
@@ -122,6 +103,10 @@ describe("roadmap", () => {
     };
     const late = {
       ...placed("情報処理", "foundation"),
+      prerequisite_for: "確率統計",
+    };
+    const together = {
+      ...placed("同時の礎", "foundation"),
       prerequisite_for: "確率統計",
     };
     const orphan = {
@@ -132,54 +117,106 @@ describe("roadmap", () => {
       ...placed("機械学習", "core"),
       prerequisite_for: "確率統計",
     };
-    const together = {
-      ...placed("同時の礎", "foundation"),
-      prerequisite_for: "確率統計",
+    const secondPillar = placed("信号処理", "core");
+    const secondFoundation = {
+      ...placed("回路理論", "foundation"),
+      prerequisite_for: "信号処理",
     };
     const route = [
-      semester(2, "autumn", [early]),
+      semester(2, "autumn", [early, secondPillar]),
       semester(3, "spring", [pillar, together]),
-      semester(3, "autumn", [late, orphan, linkedPillar]),
+      semester(3, "autumn", [late, orphan, linkedPillar, secondFoundation]),
     ];
+    const routes = transferRoutes(route);
 
-    const found = transfers(route);
-
-    expect(found.get("基礎数学")).toEqual({
-      pillar: "確率統計",
-      pillarSection: "確率統計",
-      station: 1,
-      semester: route[1],
+    it("transfers each foundation, before, with or after its pillar, to the pillar's first ticket", () => {
+      expect(routes.departures.get("基礎数学")).toEqual({
+        mark: "B",
+        from: {
+          name: "基礎数学",
+          section: "基礎数学",
+          station: 0,
+          semester: route[0],
+        },
+        to: {
+          name: "確率統計",
+          section: "確率統計",
+          station: 1,
+          semester: route[1],
+        },
+      });
+      expect(
+        ["基礎数学", "同時の礎", "情報処理"].map((name) => {
+          const transfer = routes.departures.get(name);
+          return [transfer?.from.station, transfer?.to.station];
+        }),
+      ).toEqual([
+        [0, 1],
+        [1, 1],
+        [2, 1],
+      ]);
+      expect(routes.departures.has("実験")).toBe(false);
+      expect(routes.departures.has("確率統計")).toBe(false);
+      expect(routes.departures.has("機械学習")).toBe(false);
     });
-    expect(
-      ["基礎数学", "同時の礎", "情報処理"].map(
-        (name) => found.get(name)?.station,
-      ),
-    ).toEqual([1, 1, 1]);
-    expect(found.has("実験")).toBe(false);
-    expect(found.has("確率統計")).toBe(false);
-    expect(found.has("機械学習")).toBe(false);
-  });
 
-  it("links a foundation to its pillar and a pillar to all its foundations", () => {
-    const pillar = placed("確率統計", "core");
-    const early = {
-      ...placed("基礎数学", "foundation"),
-      prerequisite_for: "確率統計",
-    };
-    const late = {
-      ...placed("情報処理", "foundation"),
-      prerequisite_for: "確率統計",
-    };
-    const found = transfers([
-      semester(3, "spring", [early, pillar]),
-      semester(3, "autumn", [late]),
-    ]);
+    it("marks each pillar with a letter in the order of the route", () => {
+      expect(routes.departures.get("回路理論")?.mark).toBe("A");
+      expect(
+        [...routes.arrivals].map(([name, arrivals]) => [
+          name,
+          arrivals.map((transfer) => transfer.mark),
+        ]),
+      ).toEqual([
+        ["信号処理", ["A"]],
+        ["確率統計", ["B", "B", "B"]],
+      ]);
+    });
 
-    expect([...linkedNames(found, "基礎数学")]).toEqual(["確率統計"]);
-    expect([...linkedNames(found, "確率統計")].sort()).toEqual(
-      ["基礎数学", "情報処理"].sort(),
-    );
-    expect(linkedNames(found, null).size).toBe(0);
-    expect(linkedNames(found, "関係のない授業").size).toBe(0);
+    it("marks the pillars after Z with two letters", () => {
+      const many = transferRoutes([
+        semester(
+          3,
+          "spring",
+          Array.from({ length: 28 }, (_, index) => [
+            placed(`柱${index}`, "core"),
+            {
+              ...placed(`礎${index}`, "foundation"),
+              prerequisite_for: `柱${index}`,
+            },
+          ]).flat(),
+        ),
+      ]);
+      expect(
+        ["礎0", "礎25", "礎26", "礎27"].map(
+          (name) => many.departures.get(name)?.mark,
+        ),
+      ).toEqual(["A", "Z", "AA", "AB"]);
+    });
+
+    it("lists a pillar's foundations in the order of the route", () => {
+      expect(
+        routes.arrivals.get("確率統計")?.map((transfer) => transfer.from.name),
+      ).toEqual(["基礎数学", "同時の礎", "情報処理"]);
+    });
+
+    it("leads to the pillar's first ticket when the pillar comes again", () => {
+      const again = transferRoutes([
+        semester(3, "spring", [pillar, early]),
+        semester(3, "autumn", [{ ...pillar, section_code: "後" }]),
+      ]);
+      expect(again.departures.get("基礎数学")?.to.section).toBe("確率統計");
+    });
+
+    it("links a foundation to its pillar and a pillar to all its foundations", () => {
+      expect([...linkedNames(routes, "基礎数学")]).toEqual(["確率統計"]);
+      expect([...linkedNames(routes, "確率統計")]).toEqual([
+        "基礎数学",
+        "同時の礎",
+        "情報処理",
+      ]);
+      expect(linkedNames(routes, null).size).toBe(0);
+      expect(linkedNames(routes, "関係のない授業").size).toBe(0);
+    });
   });
 });

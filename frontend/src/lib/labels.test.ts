@@ -9,7 +9,6 @@ import {
   semesterShortLabel,
   slotsLabel,
   stationLabel,
-  transferLabel,
   answeredLabel,
   routeEndContinuation,
   failedAnswerLabel,
@@ -24,6 +23,10 @@ import {
   leaveSummary,
   planTitlePrefix,
   completionNotice,
+  stationsAway,
+  hopPlace,
+  backPlace,
+  arrivalsLabel,
 } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
@@ -87,20 +90,27 @@ describe("labels", () => {
     expect(routeEndContinuation(2, 4)).toBe("続きます");
   });
 
-  it("writes a transfer to the pillar's station", () => {
-    expect(
-      transferLabel({
-        pillar: "確率統計",
-        station: 0,
-        semester: {
-          grade: 3,
-          term: "spring",
-          credits: 2,
-          courses: [],
-          continuing: [],
-        },
-      }),
-    ).toBe("乗換 → 確率統計(SH01 3 回生 春学期)");
+  it("says how far and which way the other end of a transfer is, in stations", () => {
+    expect(stationsAway(0, 2)).toBe("↓ 2 駅先");
+    expect(stationsAway(3, 1)).toBe("↑ 2 駅手前");
+    expect(stationsAway(1, 1)).toBe("同じ駅");
+  });
+
+  it("names the way back to the ticket a transfer started from", () => {
+    const hop = {
+      name: "確率統計",
+      station: 0,
+      semester: {
+        grade: 3,
+        term: "spring" as const,
+        credits: 2,
+        courses: [],
+        continuing: [],
+      },
+    };
+    expect(hopPlace(hop)).toBe("SH01 3 回生 春学期");
+    expect(backPlace(hop)).toBe("(SH01 3 回生 春学期)へ戻る");
+    expect(arrivalsLabel(2)).toBe("乗り入れ 2 本");
   });
 
   it("tells what an answer about a taken course did and names its buttons", () => {

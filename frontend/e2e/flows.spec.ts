@@ -6,15 +6,19 @@ import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
+  TRANSFER_LABEL,
   answeredLabel,
   deletePlanLabel,
   deletedPlanLabel,
+  arrivalsLabel,
+  backPlace,
+  hopPlace,
   markTakenLabel,
-  stationLabel,
-  syllabusLinkLabel,
+  stationsAway,
   unmarkTakenLabel,
 } from "@/lib/labels";
 import { POLL_INTERVAL_MS } from "@/lib/polling";
+import { semesterKey, transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 import {
@@ -387,87 +391,129 @@ test.describe("もう取ったの半券(動きを減らさない設定)", () => 
   });
 });
 
-test.describe("乗り換えの線", () => {
-  const foundation = SAMPLE_PLAN.result.semesters[0].courses.filter(
-    (course) => course.relevance === "foundation",
-  )[0];
+test.describe("乗換の欄", () => {
+  const routes = transferRoutes(SAMPLE_PLAN.result.semesters);
+  const transfer = [...routes.departures.values()].find(
+    (each) => each.to.station < each.from.station,
+  );
+  if (!transfer) {
+    throw new Error("見本の道標に、前の駅の柱へ乗り換える礎が無い");
+  }
+  const departureOf = (page: Page): Locator =>
+    ticketOf(page, transfer.from.name).getByRole("button", {
+      name: new RegExp(`^${TRANSFER_LABEL}`),
+    });
 
   function ticketOf(page: Page, name: string): Locator {
-    return page
-      .locator("article")
-      .filter({ has: page.getByRole("heading", { name, exact: true }) });
+    return page.locator("article").filter({ has: nameOf(page, name) });
+  }
+
+  function nameOf(page: Page, name: string): Locator {
+    return page.getByRole("heading", { name, exact: true });
   }
 
   for (const width of [NARROW_WIDTH, WIDE_WIDTH]) {
-    test(`幅 ${width}px で、乗り換えのある切符に触れると柱まで線を引き、横にはみ出さず、離れると消す`, async ({
+    test(`幅 ${width}px で、礎の乗換の欄を押すと柱の切符へ移って授業名にフォーカスし、戻るで乗換の欄に戻る`, async ({
       page,
       api,
     }) => {
       await page.setViewportSize({ width, height: 800 });
       api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
       await page.goto(`/plans/${SAMPLE_PLAN.id}`);
-      const lines = page.locator("svg[data-transfer-lines]");
-      await expect(lines).toHaveCSS("opacity", "0");
-      await ticketOf(page, foundation.name).hover();
-      await expect(lines.locator("path")).toHaveCount(1);
-      await expect(lines).toHaveCSS("opacity", "1");
+      const departure = departureOf(page);
+      await expect(departure).toContainText(transfer.to.name);
+      await expect(departure).toContainText(
+        `${hopPlace(transfer.to)} ${stationsAway(transfer.from.station, transfer.to.station)}`,
+      );
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth - innerWidth,
         ),
       ).toBeLessThanOrEqual(0);
-      await page.mouse.move(0, 0);
-      await expect(lines).toHaveCSS("opacity", "0");
+      await departure.click();
+      await expect(nameOf(page, transfer.to.name)).toBeFocused();
+      await expect(nameOf(page, transfer.to.name)).toBeInViewport();
+      const back = page.getByRole("button", {
+        name: `${transfer.from.name}${backPlace(transfer.from)}`,
+      });
+      await expect(back).toBeInViewport();
+      await back.click();
+      await expect(departure).toBeFocused();
+      await expect(back).toHaveCount(0);
     });
   }
 
-  test("切符の中にフォーカスがあるときも線を引く", async ({ page, api }) => {
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
-    await ticketOf(page, foundation.name)
-      .getByRole("link", { name: syllabusLinkLabel(foundation.name) })
-      .focus();
-    const lines = page.locator("svg[data-transfer-lines]");
-    await expect(lines.locator("path")).toHaveCount(1);
-    await expect(lines).toHaveCSS("opacity", "1");
-  });
-
-  test.describe("動きを減らさない設定", () => {
-    test.use({ contextOptions: { reducedMotion: "no-preference" } });
-
-    test("触れると線を引く動きを付け、離れて薄れたら線を外す", async ({
-      page,
-      api,
-    }) => {
-      api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-      await page.goto(`/plans/${SAMPLE_PLAN.id}`);
-      await ticketOf(page, foundation.name).hover();
-      const path = page.locator("svg[data-transfer-lines] path");
-      await expect(path).toHaveCSS("animation-name", "trace");
-      await page.mouse.move(0, 0);
-      await expect(path).toHaveCount(0);
-    });
-  });
-
-  test("つながる切符が画面の外なら、端に駅番号と授業名の札を出す", async ({
+  test("礎の切符に触れるかフォーカスすると、つながる柱の切符に輪を付ける", async ({
     page,
     api,
   }) => {
-    const later = SAMPLE_PLAN.result.semesters[1].courses.filter(
-      (course) =>
-        course.relevance === "foundation" && course.prerequisite_for !== null,
-    )[0];
-    await page.setViewportSize({ width: 375, height: 800 });
     api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
     await page.goto(`/plans/${SAMPLE_PLAN.id}`);
-    const ticket = ticketOf(page, later.name);
-    await ticket.evaluate((element) =>
-      element.scrollIntoView({ block: "center" }),
+    const pillar = ticketOf(page, transfer.to.name);
+    await expect(pillar).not.toHaveClass(/ring-route/);
+    await ticketOf(page, transfer.from.name).hover();
+    await expect(pillar).toHaveClass(/ring-route/);
+    await page.mouse.move(0, 0);
+    await expect(pillar).not.toHaveClass(/ring-route/);
+    await departureOf(page).focus();
+    await expect(pillar).toHaveClass(/ring-route/);
+  });
+
+  test("柱の乗り入れの欄に礎が並び、押すと礎の切符へ移る", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    const pillar = ticketOf(page, transfer.to.name);
+    await expect(pillar).toContainText(
+      arrivalsLabel(routes.arrivals.get(transfer.to.name)?.length ?? 0),
     );
-    await ticket.hover();
+    await pillar
+      .getByRole("button")
+      .filter({ hasText: transfer.from.name })
+      .click();
+    await expect(nameOf(page, transfer.from.name)).toBeFocused();
     await expect(
-      page.getByText(`↑ ${stationLabel(0)} ${later.prerequisite_for}`),
+      page.getByRole("button", {
+        name: `${transfer.to.name}${backPlace(transfer.to)}`,
+      }),
     ).toBeVisible();
+  });
+
+  test("時間割帳で、別の学期の柱へ乗り換えると、その学期に替えて柱の授業名にフォーカスする", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.goto(
+      `/plans/${SAMPLE_PLAN.id}?view=timetable&semester=${semesterKey(transfer.from.semester)}`,
+    );
+    const entries = await page.evaluate(() => history.length);
+    await departureOf(page).click();
+    await expect(nameOf(page, transfer.to.name)).toBeFocused();
+    await expect(page).toHaveURL(
+      new RegExp(`semester=${semesterKey(transfer.to.semester)}`),
+    );
+    expect(await page.evaluate(() => history.length)).toBe(entries);
+  });
+
+  test("道標が変わると、着いた切符の戻る道を外す", async ({ page, api }) => {
+    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await departureOf(page).click();
+    const back = page.getByRole("button", {
+      name: `${transfer.from.name}${backPlace(transfer.from)}`,
+    });
+    await expect(back).toBeVisible();
+    await page
+      .getByRole("button", { name: markTakenLabel(TAKEN.name) })
+      .click();
+    await expect(
+      page.getByRole("button", { name: unmarkTakenLabel(TAKEN.name) }),
+    ).toBeVisible();
+    await expect(back).toHaveCount(0);
   });
 });
 

@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 
 import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import { forgetTakenLabel } from "@/lib/labels";
+import { transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
@@ -37,6 +38,13 @@ const HAND_CHECKED_CONTRAST: Record<string, readonly string[] | undefined> = {
   nonBmp: ["→"],
   bgOverlap: ["卒業", `${RUNNING_PLAN.conditions.grade} 回生`],
   elmPartiallyObscured: [SAMPLE_PLAN.conditions.occupation],
+  shortTextContent: [
+    ...new Set(
+      [...transferRoutes(SAMPLE_PLAN.result.semesters).departures.values()].map(
+        (transfer) => transfer.mark,
+      ),
+    ),
+  ],
 };
 
 type Screen = {
