@@ -62,14 +62,21 @@ export function transferRoutes(semesters: SemesterPlan[]): TransferRoutes {
       : [];
   });
   const targets = new Set(legs.map((leg) => leg.to.name));
-  const pillars = [...stops.keys()].filter((name) => targets.has(name));
-  const departures = new Map<string, Transfer>();
-  const arrivals = new Map<string, Transfer[]>();
-  for (const leg of legs) {
-    const transfer = { mark: markOf(pillars.indexOf(leg.to.name)), ...leg };
-    departures.set(leg.from.name, transfer);
-    arrivals.set(leg.to.name, [...(arrivals.get(leg.to.name) ?? []), transfer]);
-  }
+  const arrivals = new Map(
+    [...stops.keys()]
+      .filter((name) => targets.has(name))
+      .map((name, index): [string, Transfer[]] => [
+        name,
+        legs
+          .filter((leg) => leg.to.name === name)
+          .map((leg) => ({ mark: markOf(index), ...leg })),
+      ]),
+  );
+  const departures = new Map(
+    [...arrivals.values()]
+      .flat()
+      .map((transfer) => [transfer.from.name, transfer]),
+  );
   return { departures, arrivals };
 }
 

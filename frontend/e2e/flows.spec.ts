@@ -443,6 +443,22 @@ test.describe("乗換の欄", () => {
     });
   }
 
+  test("礎の切符に触れるかフォーカスすると、つながる柱の切符に輪を付ける", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    const pillar = ticketOf(page, transfer.to.name);
+    await expect(pillar).not.toHaveClass(/ring-route/);
+    await ticketOf(page, transfer.from.name).hover();
+    await expect(pillar).toHaveClass(/ring-route/);
+    await page.mouse.move(0, 0);
+    await expect(pillar).not.toHaveClass(/ring-route/);
+    await departureOf(page).focus();
+    await expect(pillar).toHaveClass(/ring-route/);
+  });
+
   test("柱の乗り入れの欄に礎が並び、押すと礎の切符へ移る", async ({
     page,
     api,

@@ -168,8 +168,8 @@ describe("roadmap", () => {
           arrivals.map((transfer) => transfer.mark),
         ]),
       ).toEqual([
-        ["確率統計", ["B", "B", "B"]],
         ["信号処理", ["A"]],
+        ["確率統計", ["B", "B", "B"]],
       ]);
     });
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 
 import { CourseGrid } from "@/components/course-grid";
-import { QueryLink, replaceQuery } from "@/components/query-link";
+import { QueryLink } from "@/components/query-link";
 import { tabClass } from "@/components/styles";
 import {
   TransferFocusContext,
@@ -54,7 +54,11 @@ export function TimetableBook({
         return;
       }
       pending.current = focusId;
-      replaceQuery(resultViewHref(planPath, "timetable", target));
+      window.history.replaceState(
+        null,
+        "",
+        resultViewHref(planPath, "timetable", target),
+      );
     },
     [planPath],
   );

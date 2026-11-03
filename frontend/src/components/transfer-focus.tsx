@@ -9,7 +9,6 @@ import { type Hop, type TransferRoutes, linkedNames } from "@/lib/roadmap";
 export type Trip = { from: Hop; to: Hop; button: string };
 
 export type TransferFocus = {
-  routes: TransferRoutes;
   focus: string | null;
   linked: Set<string>;
   hover: (name: string | null) => void;
@@ -43,7 +42,6 @@ export function useTransferFocusValue(
 
   return useMemo(
     () => ({
-      routes,
       focus,
       linked: linkedNames(routes, focus),
       hover: setHovered,

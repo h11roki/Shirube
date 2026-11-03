@@ -51,10 +51,9 @@ export function CourseTicket({
   const focusing = useTransferFocus();
   const answering = useContext(TakenAnswersContext);
   const nameWords = useCourseWords(course.name);
-  const departs = focusing?.routes.departures.has(course.name) ?? false;
-  const role = departs ? RELEVANCE_LABELS.foundation : roleLabel(course);
+  const role = transfer ? RELEVANCE_LABELS.foundation : roleLabel(course);
   const roleShown =
-    !departs &&
+    !transfer &&
     course.relevance === "foundation" &&
     Boolean(course.prerequisite_for);
   const placed = "slots" in course;
