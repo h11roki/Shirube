@@ -1,7 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 
-import type { Plan, PlanStage } from "@/lib/api/client";
+import type { Plan } from "@/lib/api/client";
 import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
+import { STAGES } from "@/lib/progress";
 import { resultViewHref } from "@/lib/result-view";
 import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -18,8 +19,6 @@ import {
 } from "./fixtures";
 
 const NARROW_WIDTHS = [320, 375];
-
-const STAGES = Object.keys(STAGE_LABELS) as PlanStage[];
 
 const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
 
