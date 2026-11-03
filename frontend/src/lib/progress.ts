@@ -1,7 +1,7 @@
 import type { PlanStage, PlanStatus } from "@/lib/api/client";
 import { STAGE_LABELS } from "@/lib/labels";
 
-const STAGES = Object.keys(STAGE_LABELS) as PlanStage[];
+export const STAGES = Object.keys(STAGE_LABELS) as PlanStage[];
 
 export type StepState = "done" | "now" | "later";
 

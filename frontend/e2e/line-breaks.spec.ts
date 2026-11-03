@@ -1,7 +1,8 @@
 import type { Locator, Page } from "@playwright/test";
 
 import type { Plan } from "@/lib/api/client";
-import { PRIVACY_TITLE, PROGRESS_HEADING } from "@/lib/labels";
+import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
+import { STAGES } from "@/lib/progress";
 import { resultViewHref } from "@/lib/result-view";
 import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -240,6 +241,10 @@ async function chromeLevelOneHeadingNames(page: Page) {
   }
 }
 
+function stepOf(page: Page, phrases: readonly string[]): Locator {
+  return page.getByRole("listitem").filter({ hasText: phrases.join("") });
+}
+
 async function openPlan(page: Page, api: Api, plan: Plan) {
   await signIn(page);
   api.answer({ [planApi(plan)]: plan });
@@ -416,6 +421,45 @@ for (const width of NARROW_WIDTHS) {
       ).toBeLessThanOrEqual(width);
     });
   }
+
+  for (const stage of STAGES) {
+    test(`幅 ${width}px の作成中の画面で、「${STAGE_LABELS[stage].join("")}」の段にいるとき、段の言葉を句の途中で折らない`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page, api, { ...asRunning(SAMPLE_PLAN), stage });
+      for (const phrases of Object.values(STAGE_LABELS)) {
+        const step = stepOf(page, phrases);
+        await expect(step).toBeVisible();
+        const lines = await renderedLines(step);
+        expect(breaksOnlyBetween(lines, phrases), lines.join(" / ")).toBe(true);
+      }
+    });
+  }
+
+  test(`幅 ${width}px で文字を 200% にしても、作成中の段の言葉が段からはみ出さない`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, asRunning(SAMPLE_PLAN));
+    await expect(stepOf(page, STAGE_LABELS.selecting)).toBeVisible();
+    await page.addStyleTag({
+      content: "html { font-size: 200% !important; }",
+    });
+    await fontsReady(page);
+    for (const phrases of Object.values(STAGE_LABELS)) {
+      const spill = await stepOf(page, phrases).evaluate((item) => {
+        const row = item.getBoundingClientRect();
+        const range = document.createRange();
+        range.selectNodeContents(item);
+        const text = range.getBoundingClientRect();
+        return Math.max(row.top - text.top, text.bottom - row.bottom);
+      });
+      expect(spill, phrases.join("")).toBeLessThanOrEqual(1);
+    }
+  });
 }
 
 for (const width of [...NARROW_WIDTHS, 1280]) {

@@ -86,7 +86,7 @@ export function PlanProgress({
       <div className="grid gap-3">
         <div aria-live="polite">
           <p className="sr-only">
-            {current ? STAGE_LABELS[current.stage] : WAITING_LABEL}
+            {current ? STAGE_LABELS[current.stage].join("") : WAITING_LABEL}
           </p>
           {stalled}
         </div>
@@ -102,26 +102,31 @@ export function PlanProgress({
 }
 
 function StepLine({ steps }: { steps: Step[] }) {
+  const firstStation = `calc(100% / ${2 * steps.length})`;
   return (
     <div className="relative">
       <span
         aria-hidden
-        className="absolute inset-y-5.5 left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--line)_0_6px,transparent_6px_12px)] motion-safe:animate-march"
+        style={{ top: firstStation, bottom: firstStation }}
+        className="absolute left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-[repeating-linear-gradient(to_bottom,var(--line)_0_6px,transparent_6px_12px)] motion-safe:animate-march"
       />
       <span
         aria-hidden
-        style={{ height: `calc((100% - 2.75rem) * ${travelled(steps)})` }}
-        className="absolute top-5.5 left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-route transition-[height] duration-700 ease-out"
+        style={{
+          top: firstStation,
+          height: `calc((100% - 100% / ${steps.length}) * ${travelled(steps)})`,
+        }}
+        className="absolute left-[calc(0.625rem-1.5px)] w-[3px] rounded-full bg-route transition-[height] duration-700 ease-out"
       />
-      <ol className="relative grid">
+      <ol className="relative grid auto-rows-fr">
         {steps.map((step) => (
           <li
             key={step.stage}
             aria-current={step.state === "now" ? "step" : undefined}
-            className={`relative flex h-11 items-center gap-1.5 pl-9 text-sm transition-colors duration-500 ${LABEL_STYLES[step.state]}`}
+            className={`relative flex min-h-11 items-center gap-1.5 pl-9 text-sm transition-colors duration-500 ${LABEL_STYLES[step.state]}`}
           >
             <StationDot state={step.state} />
-            {STAGE_LABELS[step.stage]}
+            <Phrases parts={STAGE_LABELS[step.stage]} />
             {step.state === "now" && (
               <span aria-hidden className="flex gap-1">
                 {BLINKING_DOTS.map((dot) => (

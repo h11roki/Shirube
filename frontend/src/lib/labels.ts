@@ -23,11 +23,11 @@ export const RELEVANCE_LABELS: Record<Relevance, string> = {
   foundation: "礎",
 };
 
-export const STAGE_LABELS: Record<PlanStage, string> = {
-  analyzing: "目的地を地図に書き込んでいます",
-  searching: "道を探しています",
-  selecting: "通る授業を選んでいます",
-  placing: "道標を立てています",
+export const STAGE_LABELS: Record<PlanStage, readonly string[]> = {
+  analyzing: ["目的地を", "地図に", "書き込んでいます"],
+  searching: ["道筋を", "引いています"],
+  selecting: ["道中の", "授業を", "見繕っています"],
+  placing: ["道標を", "立てています"],
 };
 
 export const WAITING_LABEL = "順番を待っています";
