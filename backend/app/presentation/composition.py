@@ -46,7 +46,7 @@ def load_settings(**overrides: Any) -> Settings:
 
 def database_engine(settings: Settings) -> Engine:
     try:
-        return create_engine(settings.database_url)
+        return create_engine(settings.database_url, pool_pre_ping=True, hide_parameters=True)
     except ArgumentError as error:
         sys.exit(f"DATABASE_URL を読めません: {error}")
 
