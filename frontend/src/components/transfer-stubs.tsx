@@ -8,7 +8,7 @@ import { useTransferFocus } from "@/components/transfer-focus";
 import {
   TRANSFER_LABEL,
   arrivalsLabel,
-  backLabel,
+  backPlace,
   hopPlace,
   stationsAway,
 } from "@/lib/labels";
@@ -66,16 +66,20 @@ export function BackFromTrip({ section }: { section: string }) {
   if (!trip || trip.to.section !== section) {
     return null;
   }
+  return <BackButton to={trip.from} onClick={focusing.back} />;
+}
+
+function BackButton({ to, onClick }: { to: Hop; onClick: () => void }) {
   return (
     <button
       type="button"
-      onClick={focusing.back}
+      onClick={onClick}
       className="inline-flex min-h-6 items-center self-start text-left text-xs text-route underline underline-offset-4"
     >
       <span aria-hidden className="mr-1">
         ←
       </span>
-      {backLabel(trip.from)}
+      <Phrases parts={[...useCourseWords(to.name), backPlace(to)]} />
     </button>
   );
 }

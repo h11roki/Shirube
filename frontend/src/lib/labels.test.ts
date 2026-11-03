@@ -25,7 +25,7 @@ import {
   completionNotice,
   stationsAway,
   hopPlace,
-  backLabel,
+  backPlace,
   arrivalsLabel,
 } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -109,7 +109,7 @@ describe("labels", () => {
       },
     };
     expect(hopPlace(hop)).toBe("SH01 3 回生 春学期");
-    expect(backLabel(hop)).toBe("確率統計(SH01 3 回生 春学期)へ戻る");
+    expect(backPlace(hop)).toBe("(SH01 3 回生 春学期)へ戻る");
     expect(arrivalsLabel(2)).toBe("乗り入れ 2 本");
   });
 

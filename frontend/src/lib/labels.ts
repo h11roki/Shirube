@@ -153,10 +153,8 @@ export function arrivalsLabel(count: number): string {
   return `乗り入れ ${count} 本`;
 }
 
-export function backLabel(
-  hop: Pick<Hop, "name" | "station" | "semester">,
-): string {
-  return `${hop.name}(${hopPlace(hop)})へ戻る`;
+export function backPlace(hop: Pick<Hop, "station" | "semester">): string {
+  return `(${hopPlace(hop)})へ戻る`;
 }
 
 export type TakenChange = "mark" | "unmark";

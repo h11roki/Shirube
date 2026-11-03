@@ -10,7 +10,7 @@ import {
   deletePlanLabel,
   deletedPlanLabel,
   arrivalsLabel,
-  backLabel,
+  backPlace,
   hopPlace,
   markTakenLabel,
   stationsAway,
@@ -444,7 +444,7 @@ test.describe("乗換の欄", () => {
       await departure.click();
       await expect(nameOf(page, transfer.to.name)).toBeFocused();
       const back = page.getByRole("button", {
-        name: backLabel(transfer.from),
+        name: `${transfer.from.name}${backPlace(transfer.from)}`,
       });
       await expect(back).toBeInViewport();
       await back.click();
@@ -469,7 +469,9 @@ test.describe("乗換の欄", () => {
       .click();
     await expect(nameOf(page, transfer.from.name)).toBeFocused();
     await expect(
-      page.getByRole("button", { name: backLabel(transfer.to) }),
+      page.getByRole("button", {
+        name: `${transfer.to.name}${backPlace(transfer.to)}`,
+      }),
     ).toBeVisible();
   });
 
