@@ -12,7 +12,8 @@ import {
 } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
 import { TicketStamp } from "@/components/ticket-stamp";
-import { useTransferFocus } from "@/components/transfer-focus";
+import { ticketHeadingId, useTransferFocus } from "@/components/transfer-focus";
+import { Arrivals, BackFromTrip, Departure } from "@/components/transfer-stubs";
 import type { Course, PlacedCourse } from "@/lib/api/client";
 import {
   RELEVANCE_LABELS,
@@ -21,12 +22,12 @@ import {
   roleLabel,
   slotsLabel,
   syllabusLinkLabel,
-  transferLabel,
 } from "@/lib/labels";
-import { TEAR_MS } from "@/lib/motion";
+import { REDUCED_MOTION, TEAR_MS } from "@/lib/motion";
 import type { Transfer } from "@/lib/roadmap";
 
 const EMPHASIS = {
+  arrived: "ring-[3px] ring-route",
   self: "ring-2 ring-ink/20",
   linked:
     "ring-2 ring-route shadow-[0_0_0_6px_color-mix(in_srgb,var(--route)_18%,transparent)]",
@@ -44,17 +45,23 @@ export function findTicket(section: string): HTMLElement | null {
   return document.getElementById(ticketId(section));
 }
 
-export function revealTicket(section: string) {
-  findTicket(section)?.scrollIntoView({ block: "center" });
+export function revealTicket(section: string, focusId: string) {
+  findTicket(section)?.scrollIntoView({
+    block: "center",
+    behavior: matchMedia(REDUCED_MOTION).matches ? "instant" : "smooth",
+  });
+  document.getElementById(focusId)?.focus({ preventScroll: true });
 }
 
 export function CourseTicket({
   course,
   transfer,
+  arrivals,
   serial,
 }: {
   course: Course | PlacedCourse;
   transfer?: Transfer;
+  arrivals?: Transfer[];
   serial?: string;
 }) {
   const focusing = useTransferFocus();
@@ -70,11 +77,13 @@ export function CourseTicket({
   const ground = RELEVANCE_TONES[course.relevance].ground;
   const torn = tearing ? `${TORN_PART} ${ground}` : "";
   const emphasis =
-    focusing?.focus === course.name
-      ? EMPHASIS.self
-      : focusing?.linked.has(course.name)
-        ? EMPHASIS.linked
-        : "";
+    placed && focusing?.trip?.to.section === course.section_code
+      ? EMPHASIS.arrived
+      : focusing?.focus === course.name
+        ? EMPHASIS.self
+        : focusing?.linked.has(course.name)
+          ? EMPHASIS.linked
+          : "";
   return (
     <article
       id={placed ? ticketId(course.section_code) : undefined}
@@ -87,7 +96,7 @@ export function CourseTicket({
       }
       className={`relative grid min-w-0 border transition-shadow duration-300 sm:grid-cols-[minmax(0,1fr)_auto] ${tearing ? "border-transparent" : `border-line bg-note ${ground}`} ${emphasis}`}
     >
-      <div className={`grid min-w-0 content-start gap-1 px-3.5 py-3 ${torn}`}>
+      <div className={`flex min-w-0 flex-col gap-1 px-3.5 py-3 ${torn}`}>
         <p
           className={
             roleShown
@@ -97,9 +106,14 @@ export function CourseTicket({
         >
           {role}
         </p>
-        <h3 className="pr-10 leading-snug font-bold">
+        <h3
+          id={placed ? ticketHeadingId(course.section_code) : undefined}
+          tabIndex={placed ? -1 : undefined}
+          className="pr-10 leading-snug font-bold"
+        >
           <Phrases parts={nameWords} />
         </h3>
+        {placed && <BackFromTrip section={course.section_code} />}
         <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
         {course.syllabus_url && (
           <a
@@ -107,28 +121,13 @@ export function CourseTicket({
             target="_blank"
             rel="noopener noreferrer"
             aria-label={syllabusLinkLabel(course.name)}
-            className={`justify-self-start text-xs ${STANDALONE_LINK}`}
+            className={`self-start text-xs ${STANDALONE_LINK}`}
           >
             <span>
               シラバス
               <span aria-hidden> ↗</span>
             </span>
           </a>
-        )}
-        {transfer && (
-          <p className="text-xs text-route">
-            {focusing?.reachable(transfer) ? (
-              <button
-                type="button"
-                onClick={() => focusing.follow(course.name, transfer)}
-                className="min-h-6 text-left underline underline-offset-4"
-              >
-                {transferLabel(transfer)}
-              </button>
-            ) : (
-              transferLabel(transfer)
-            )}
-          </p>
         )}
         {answering?.asked.has(course.name) && (
           <button
@@ -140,10 +139,16 @@ export function CourseTicket({
               answering.answer(course.name, "mark");
             }}
             aria-label={markTakenLabel(course.name)}
-            className={`mt-1 justify-self-start bg-sheet ${SMALL_BUTTON}`}
+            className={`mt-1 self-start bg-sheet ${SMALL_BUTTON}`}
           >
             もう取った
           </button>
+        )}
+        {(transfer || arrivals) && (
+          <div className="mt-auto pt-1">
+            {transfer && <Departure transfer={transfer} />}
+            {arrivals && <Arrivals arrivals={arrivals} />}
+          </div>
         )}
       </div>
       {placed && (

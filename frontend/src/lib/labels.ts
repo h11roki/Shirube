@@ -9,7 +9,7 @@ import type {
   Weekday,
 } from "@/lib/api/client";
 import type { ResultView } from "@/lib/result-view";
-import type { Transfer } from "@/lib/roadmap";
+import type { Hop } from "@/lib/roadmap";
 
 export const STATUS_LABELS: Record<PlanStatus, string> = {
   pending: "待ち",
@@ -136,10 +136,27 @@ export function routeEndContinuation(
   return shown < total ? "続きます" : null;
 }
 
-export function transferLabel(
-  transfer: Pick<Transfer, "pillar" | "station" | "semester">,
+export const TRANSFER_LABEL = "乗換";
+
+export function hopPlace(hop: Pick<Hop, "station" | "semester">): string {
+  return `${stationLabel(hop.station)} ${semesterLabel(hop.semester.grade, hop.semester.term)}`;
+}
+
+export function stationsAway(from: number, to: number): string {
+  if (to === from) {
+    return "同じ駅";
+  }
+  return to > from ? `↓ ${to - from} 駅先` : `↑ ${from - to} 駅手前`;
+}
+
+export function arrivalsLabel(count: number): string {
+  return `乗り入れ ${count} 本`;
+}
+
+export function backLabel(
+  hop: Pick<Hop, "name" | "station" | "semester">,
 ): string {
-  return `乗換 → ${transfer.pillar}(${stationLabel(transfer.station)} ${semesterLabel(transfer.semester.grade, transfer.semester.term)})`;
+  return `${hop.name}(${hopPlace(hop)})へ戻る`;
 }
 
 export type TakenChange = "mark" | "unmark";

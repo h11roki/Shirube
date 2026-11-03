@@ -19,12 +19,12 @@ import {
   stationLabel,
 } from "@/lib/labels";
 import {
-  type Transfer,
+  type Hop,
   pickSemester,
   semesterCourses,
   semesterKey,
   ticketSerials,
-  transfers,
+  transferRoutes,
 } from "@/lib/roadmap";
 import { resultViewHref } from "@/lib/result-view";
 
@@ -41,31 +41,31 @@ export function TimetableBook({
   selected: string | null;
   planPath: string;
 }) {
-  const found = useMemo(() => transfers(semesters), [semesters]);
+  const routes = useMemo(() => transferRoutes(semesters), [semesters]);
   const serials = useMemo(() => ticketSerials(semesters), [semesters]);
   const semester = pickSemester(semesters, selected);
   const shownKey = semester ? semesterKey(semester) : null;
-  const pending = useRef<string | null>(null);
+  const pending = useRef<{ section: string; focusId: string } | null>(null);
   const shown = useRef(shownKey);
   const go = useCallback(
-    (transfer: Transfer) => {
-      const target = semesterKey(transfer.semester);
+    (hop: Hop, focusId: string) => {
+      const target = semesterKey(hop.semester);
       if (target === shown.current) {
-        revealTicket(transfer.pillarSection);
+        revealTicket(hop.section, focusId);
         return;
       }
-      pending.current = transfer.pillarSection;
+      pending.current = { section: hop.section, focusId };
       pushQuery(resultViewHref(planPath, "timetable", target));
     },
     [planPath],
   );
-  const focusing = useTransferFocusValue(found, reachableEverywhere, go);
+  const focusing = useTransferFocusValue(routes, reachableEverywhere, go);
   useEffect(() => {
     shown.current = shownKey;
-    const section = pending.current;
+    const target = pending.current;
     pending.current = null;
-    if (section) {
-      revealTicket(section);
+    if (target) {
+      revealTicket(target.section, target.focusId);
     }
   }, [shownKey]);
   if (!semester) {
@@ -102,7 +102,7 @@ export function TimetableBook({
               {semester.courses.length > 0 && (
                 <CourseGrid
                   courses={semester.courses}
-                  transfers={found}
+                  routes={routes}
                   serials={serials}
                 />
               )}
@@ -112,7 +112,7 @@ export function TimetableBook({
                 </p>
               )}
               {semester.continuing.length > 0 && (
-                <CourseGrid courses={semester.continuing} transfers={found} />
+                <CourseGrid courses={semester.continuing} routes={routes} />
               )}
             </div>
           ) : (

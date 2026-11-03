@@ -1,25 +1,20 @@
 "use client";
 
-import {
-  createContext,
-  useContext,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { createContext, useContext, useMemo, useState } from "react";
 
-import { type Transfer, linkedNames } from "@/lib/roadmap";
+import { type Hop, type TransferRoutes, linkedNames } from "@/lib/roadmap";
 
-const FOLLOW_MS = 2500;
+export type Trip = { from: Hop; to: Hop; button: string };
 
 export type TransferFocus = {
   focus: string | null;
   linked: Set<string>;
   hover: (name: string | null) => void;
   select: (name: string | null) => void;
-  reachable: (transfer: Transfer) => boolean;
-  follow: (from: string, transfer: Transfer) => void;
+  reachable: (hop: Hop) => boolean;
+  trip: Trip | null;
+  follow: (trip: Trip) => void;
+  back: () => void;
 };
 
 export const TransferFocusContext = createContext<TransferFocus | null>(null);
@@ -29,34 +24,38 @@ export function useTransferFocus(): TransferFocus | null {
 }
 
 export function useTransferFocusValue(
-  found: Map<string, Transfer>,
-  reachable: (transfer: Transfer) => boolean,
-  go: (transfer: Transfer) => void,
+  routes: TransferRoutes,
+  reachable: (hop: Hop) => boolean,
+  go: (hop: Hop, focusId: string) => void,
 ): TransferFocus {
   const [hovered, setHovered] = useState<string | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
-  const [followed, setFollowed] = useState<string | null>(null);
-  const release = useRef<ReturnType<typeof setTimeout>>(undefined);
-  const focus = followed ?? hovered ?? selected;
-
-  useEffect(() => () => clearTimeout(release.current), []);
+  const [trip, setTrip] = useState<Trip | null>(null);
+  const focus = hovered ?? selected;
 
   return useMemo(
     () => ({
       focus,
-      linked: linkedNames(found, focus),
+      linked: linkedNames(routes, focus),
       hover: setHovered,
       select: setSelected,
       reachable,
-      follow: (from, transfer) => {
-        clearTimeout(release.current);
-        setSelected(null);
-        setHovered(null);
-        setFollowed(from);
-        go(transfer);
-        release.current = setTimeout(() => setFollowed(null), FOLLOW_MS);
+      trip,
+      follow: (next) => {
+        setTrip(next);
+        go(next.to, ticketHeadingId(next.to.section));
+      },
+      back: () => {
+        if (trip) {
+          setTrip(null);
+          go(trip.from, trip.button);
+        }
       },
     }),
-    [found, focus, reachable, go],
+    [routes, focus, reachable, go, trip],
   );
+}
+
+export function ticketHeadingId(section: string): string {
+  return `ticket-${section}-name`;
 }

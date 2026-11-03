@@ -6,16 +6,25 @@ import type {
   Term,
 } from "@/lib/api/client";
 
-export type Transfer = {
-  pillar: string;
-  pillarSection: string;
+export type Hop = {
+  name: string;
+  section: string;
   station: number;
   semester: SemesterPlan;
 };
 
-export type Stop = { section: string; station: number; relevance: Relevance };
+export type Transfer = { mark: string; from: Hop; to: Hop };
 
-export function courseStops(semesters: SemesterPlan[]): Map<string, Stop> {
+export type TransferRoutes = {
+  departures: Map<string, Transfer>;
+  arrivals: Map<string, Transfer[]>;
+};
+
+type Stop = { section: string; station: number; relevance: Relevance };
+
+const MARKS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+function courseStops(semesters: SemesterPlan[]): Map<string, Stop> {
   const first = new Map<string, Stop>();
   semesters.forEach((semester, station) => {
     for (const course of semester.courses) {
@@ -31,45 +40,57 @@ export function courseStops(semesters: SemesterPlan[]): Map<string, Stop> {
   return first;
 }
 
-export function transfers(semesters: SemesterPlan[]): Map<string, Transfer> {
+export function transferRoutes(semesters: SemesterPlan[]): TransferRoutes {
   const stops = courseStops(semesters);
-  const found = new Map<string, Transfer>();
-  for (const semester of semesters) {
-    for (const course of semester.courses) {
-      const pillar =
-        course.relevance === "foundation" ? course.prerequisite_for : null;
-      const target = pillar === null ? undefined : stops.get(pillar);
-      if (pillar !== null && target?.relevance === "core") {
-        found.set(course.name, {
-          pillar,
-          pillarSection: target.section,
-          station: target.station,
-          semester: semesters[target.station],
-        });
-      }
+  const hopOf = (name: string): Hop | null => {
+    const stop = stops.get(name);
+    return stop
+      ? {
+          name,
+          section: stop.section,
+          station: stop.station,
+          semester: semesters[stop.station],
+        }
+      : null;
+  };
+  const legs: { from: Hop; to: Hop }[] = [];
+  for (const [name, stop] of stops) {
+    const course = semesters[stop.station].courses.find(
+      (each) => each.name === name,
+    );
+    const pillar =
+      course?.relevance === "foundation" ? course.prerequisite_for : null;
+    const from = hopOf(name);
+    const to = pillar === null ? null : hopOf(pillar);
+    if (from && to && stops.get(to.name)?.relevance === "core") {
+      legs.push({ from, to });
     }
   }
-  return found;
+  const pillars = [...stops.keys()].filter((name) =>
+    legs.some((leg) => leg.to.name === name),
+  );
+  const departures = new Map<string, Transfer>();
+  const arrivals = new Map<string, Transfer[]>();
+  for (const leg of legs) {
+    const transfer = { mark: MARKS[pillars.indexOf(leg.to.name)], ...leg };
+    departures.set(leg.from.name, transfer);
+    arrivals.set(leg.to.name, [...(arrivals.get(leg.to.name) ?? []), transfer]);
+  }
+  return { departures, arrivals };
 }
 
 export function linkedNames(
-  found: Map<string, Transfer>,
+  routes: TransferRoutes,
   focus: string | null,
 ): Set<string> {
-  const linked = new Set<string>();
   if (focus === null) {
-    return linked;
+    return new Set();
   }
-  const own = found.get(focus);
-  if (own) {
-    linked.add(own.pillar);
-  }
-  for (const [name, transfer] of found) {
-    if (transfer.pillar === focus) {
-      linked.add(name);
-    }
-  }
-  return linked;
+  const own = routes.departures.get(focus);
+  return new Set([
+    ...(own ? [own.to.name] : []),
+    ...(routes.arrivals.get(focus) ?? []).map((transfer) => transfer.from.name),
+  ]);
 }
 
 export function semesterKey(semester: { grade: number; term: Term }): string {
