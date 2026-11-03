@@ -86,7 +86,7 @@ export function PlanProgress({
       <div className="grid gap-3">
         <div aria-live="polite">
           <p className="sr-only">
-            {current ? STAGE_LABELS[current.stage] : WAITING_LABEL}
+            {current ? STAGE_LABELS[current.stage].join("") : WAITING_LABEL}
           </p>
           {stalled}
         </div>
@@ -121,7 +121,7 @@ function StepLine({ steps }: { steps: Step[] }) {
             className={`relative flex h-11 items-center gap-1.5 pl-9 text-sm transition-colors duration-500 ${LABEL_STYLES[step.state]}`}
           >
             <StationDot state={step.state} />
-            {STAGE_LABELS[step.stage]}
+            <Phrases parts={STAGE_LABELS[step.stage]} />
             {step.state === "now" && (
               <span aria-hidden className="flex gap-1">
                 {BLINKING_DOTS.map((dot) => (

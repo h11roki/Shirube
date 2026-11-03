@@ -1,7 +1,7 @@
 import type { Locator, Page } from "@playwright/test";
 
 import type { Plan } from "@/lib/api/client";
-import { PRIVACY_TITLE, PROGRESS_HEADING } from "@/lib/labels";
+import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
 import { resultViewHref } from "@/lib/result-view";
 import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -416,6 +416,22 @@ for (const width of NARROW_WIDTHS) {
       ).toBeLessThanOrEqual(width);
     });
   }
+
+  test(`幅 ${width}px の作成中の画面で、段の言葉を句の途中で折らない`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, asRunning(SAMPLE_PLAN));
+    for (const phrases of Object.values(STAGE_LABELS)) {
+      const step = page
+        .getByRole("listitem")
+        .filter({ hasText: phrases.join("") });
+      await expect(step).toBeVisible();
+      const lines = await renderedLines(step);
+      expect(breaksOnlyBetween(lines, phrases), lines.join(" / ")).toBe(true);
+    }
+  });
 }
 
 for (const width of [...NARROW_WIDTHS, 1280]) {
