@@ -25,8 +25,8 @@ export const RELEVANCE_LABELS: Record<Relevance, string> = {
 
 export const STAGE_LABELS: Record<PlanStage, string> = {
   analyzing: "目的地を地図に書き込んでいます",
-  searching: "道を探しています",
-  selecting: "通る授業を選んでいます",
+  searching: "道筋を引いています",
+  selecting: "道中の授業を見繕っています",
   placing: "道標を立てています",
 };
 
