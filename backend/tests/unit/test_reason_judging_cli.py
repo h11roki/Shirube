@@ -339,12 +339,17 @@ def test_check_refuses_judgments_that_drifted_from_the_run(
         main(["check", str(tmp_path / "run.json"), "--judgments", str(out)])
 
 
-def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run(
-    capsys: pytest.CaptureFixture[str],
+@pytest.mark.parametrize(
+    "judgments",
+    sorted(DEFAULT_REASON_JUDGMENTS.parent.glob("reason-judgments*.json")),
+    ids=lambda path: str(path.name),
+)
+def test_every_committed_judgments_file_matches_the_reasons_sampled_again_from_its_run(
+    judgments: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    run = RUNS / read_document(DEFAULT_REASON_JUDGMENTS)["run"]
+    run = RUNS / read_document(judgments)["run"]
 
-    main(["check", str(run)])
+    main(["check", str(run), "--judgments", str(judgments)])
 
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].endswith(f"は {run.name} の理由と合う")
