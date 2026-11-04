@@ -26,6 +26,7 @@ from app.presentation.cli.evaluation_data import (
     DATASET_LINES,
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    UNREADABLE,
     course_document,
     judged_courses,
     read_document,
@@ -37,7 +38,6 @@ from app.presentation.composition import database_engine, load_settings
 LABELS = {label: relevance for relevance, label in RELEVANCE_LABELS.items()}
 PART_FILES = ("courses-1.json", "courses-2.json")
 OCCUPATION_FILE = "occupation-names.json"
-UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
 def unjudged(dataset: Mapping[str, Any], judgments: Mapping[str, Any]) -> list[str]:

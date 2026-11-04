@@ -41,7 +41,7 @@
 - 職業の中心になる授業を「柱」、柱の前提になる授業を「礎」として分け、どの礎がどの柱につながるかを示す
 - 卒業までの残りの学期に、曜日と時限が重ならず、1 学期の単位の上限に収まるように並べる
 
-道標に並ぶのは推薦した授業だけで、必修や卒業要件の授業は入りません。前提の授業を前の学期に置く制約もかけていないので、礎が柱より後の学期に来ることがあります([ADR 0007](docs/adr/0007-greedy-timetable.md)、[0034](docs/adr/0034-taken-courses.md))。理由の文の良し悪しは、まだ測っていません。
+道標に並ぶのは推薦した授業だけで、必修や卒業要件の授業は入りません。前提の授業を前の学期に置く制約もかけていないので、礎が柱より後の学期に来ることがあります([ADR 0007](docs/adr/0007-greedy-timetable.md)、[0034](docs/adr/0034-taken-courses.md))。理由の文は、150 件を Claude の判定者 3 体で測ると、柱の理由のうち職業のどの仕事に効くかを具体的に言えていたのは 28% で、半分は「実務に直結」のようにぼんやりしていました(礎の理由で柱のどの内容の前提かを言えていたのは 82%。[ADR 0088](docs/adr/0088-reason-evaluation.md))。
 
 ## 主な機能
 
@@ -126,7 +126,7 @@ flowchart LR
 
 ## まず読んでほしい ADR
 
-設計の判断は 85 本の ADR に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
+設計の判断は 88 本の ADR に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
 
 | ADR | 読みどころ |
 |---|---|
@@ -149,7 +149,7 @@ flowchart TB
 
 - フロントは API を呼んで表示するだけで、業務ロジックを置きません。Next.js の Route Handler がログインを確かめ、Google の利用者の番号を入れた JWT を付けて backend に転送します([ADR 0027](docs/adr/0027-auth-backend.md)、[0028](docs/adr/0028-auth-frontend.md))
 - API の型は OpenAPI から生成してコミットし、backend の試験が OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
-- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-11-04 時点で 85 本)
+- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-11-04 時点で 88 本)
 
 このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。ADR の中では、作者を「高橋さん」と書いています。
 
@@ -157,7 +157,7 @@ flowchart TB
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を組み立てて起動し HTTPS とログインの戻り先を確かめる job
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-04): backend 763、Vitest 148、e2e 232
+- 試験の数(2026-11-04): backend 816、Vitest 148、e2e 232
 
 ## 本番の構成
 
@@ -192,4 +192,4 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 
 ## ライセンス
 
-コードは [MIT License](LICENSE)。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外(大学と担当教員のもの)。テストには実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使う(ADR 0043)。
+コードは [MIT License](LICENSE) です。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外です(大学と担当教員のもの)。テストには実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使います([ADR 0043](docs/adr/0043-license-and-fixtures.md))。
