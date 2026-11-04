@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Protocol
 from uuid import UUID
 
+from app.application.reason_judging import ReasonCase, ReasonVote
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
 from app.domain.occupation import OccupationProfile
@@ -69,6 +70,14 @@ class CourseSelector(Protocol):
     def select(
         self, profile: OccupationProfile, candidates: list[CandidateCourse]
     ) -> list[CourseChoice]: ...
+
+
+class ReasonJudgeError(ValueError):
+    pass
+
+
+class ReasonJudge(Protocol):
+    def judge(self, case: ReasonCase) -> ReasonVote: ...
 
 
 class ClassificationError(ValueError):

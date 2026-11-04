@@ -50,7 +50,13 @@ from app.application.evaluate_selection import (
     SelectionResult,
     UnlinkedPick,
 )
-from app.application.ports import EmbeddingError, TokenUsage
+from app.application.measure_reason_agreement import (
+    KAPPA_TO_ADOPT,
+    MeasureReasonAgreement,
+    ReasonAgreement,
+)
+from app.application.ports import EmbeddingError, ReasonJudgeError, TokenUsage
+from app.application.reason_judging import GRADES, Split
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
@@ -69,23 +75,34 @@ from app.domain.recommendation import Relevance, majority
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
+from app.infrastructure.llm.openai_reason_judge import INSTRUCTIONS as REASON_JUDGE_INSTRUCTIONS
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    UNREADABLE,
     load_dataset,
     load_judgments,
+    read_document,
     shown_reason,
     silence_heldout_logs,
 )
 from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
 from app.presentation.cli.prices import unpriced, yen
+from app.presentation.cli.reason_judging import (
+    DEFAULT_REASON_JUDGMENTS,
+    GRADE_LABELS,
+    KIND_LABELS,
+    SPLIT_LABELS,
+    verified_answers,
+)
 from app.presentation.cli.records import current_commit, digest, label, reserve
 from app.presentation.composition import (
     course_selector,
     database_engine,
     load_settings,
     occupation_analyzer,
+    reason_judge,
     search_courses,
 )
 from app.settings import Settings
@@ -977,6 +994,76 @@ def _analyze(args: argparse.Namespace) -> None:
     print(render_analysis(heading, readings, analysis, dataset))
 
 
+def reason_agreement_lines(
+    agreement: ReasonAgreement, split: Split, model: str, spent: float
+) -> list[str]:
+    def kappa_of(part: ReasonAgreement) -> str:
+        kappa = part.kappa
+        agreed = sum(1 for pair in part.pairs if pair.agrees)
+        shown = "-" if kappa is None else f"{kappa:.2f}"
+        return f"κ {shown}(一致 {agreed} / {len(part.pairs)})"
+
+    instructions = digest(REASON_JUDGE_INSTRUCTIONS.encode())
+    width = max(len(label) for label in GRADE_LABELS.values()) + 2
+    lines = [
+        f"判定器と正解の一致({SPLIT_LABELS[split]} {len(agreement.pairs)} 件、{model}、"
+        f"指示文 {instructions}、{spent:.2f} 円)",
+        f"  全体 {kappa_of(agreement)}",
+        *(
+            f"  {label} {kappa_of(agreement.of(relevance))}"
+            for relevance, label in KIND_LABELS.items()
+        ),
+        "  取り違え(行が正解、列が判定器)",
+        "    "
+        + " " * width
+        + "".join(GRADE_LABELS[grade].rjust(width) for grade in reversed(GRADES)),
+        *(
+            "    "
+            + GRADE_LABELS[answer].ljust(width)
+            + "".join(
+                str(agreement.confusion[(answer, judged)]).rjust(width)
+                for judged in reversed(GRADES)
+            )
+            for answer in reversed(GRADES)
+        ),
+    ]
+    if split is Split.CHECK:
+        verdict = "満たす" if agreement.adoptable else "満たさない"
+        return [*lines, f"  採る条件(全体の κ {KAPPA_TO_ADOPT} 以上)を{verdict}"]
+    return [
+        *lines,
+        "  食い違い",
+        *(
+            f"    {pair.reason.sample.key} {KIND_LABELS[pair.reason.sample.case.relevance]} "
+            f"{pair.reason.sample.case.interpretation} / {pair.reason.sample.case.course}: "
+            f"正解 {GRADE_LABELS[pair.reason.answer]}、判定器 {GRADE_LABELS[pair.vote.grade]}"
+            f"「{pair.vote.why}」\n      {pair.reason.sample.case.reason}"
+            for pair in agreement.pairs
+            if not pair.agrees
+        ),
+    ]
+
+
+def _reason_agreement(args: argparse.Namespace) -> None:
+    try:
+        run = RUNS / read_document(args.judgments)["run"]
+    except UNREADABLE as error:
+        sys.exit(f"理由の文の正解を読めません: {error!r}")
+    split = Split(args.split)
+    answers = [
+        reason for reason in verified_answers(run, args.judgments) if reason.sample.split is split
+    ]
+    settings = load_settings()
+    measure = MeasureReasonAgreement(reason_judge(settings))
+    with LangChainUsageMeter().meter() as usage:
+        try:
+            agreement = measure.run(answers)
+        except ReasonJudgeError as error:
+            sys.exit(f"判定器が答えられませんでした({yen(usage()):.2f} 円使った): {error}")
+        spent = yen(usage())
+    print("\n".join(reason_agreement_lines(agreement, split, settings.reason_judge_model, spent)))
+
+
 def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="推薦を通しで流して、精度・揺れ・費用・時間を測る")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1014,6 +1101,13 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     examine.add_argument("run", type=Path)
     examine.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     examine.set_defaults(handle=_analyze)
+    agreement = commands.add_parser(
+        "reason-agreement",
+        help="理由の文の判定器を、正解の整える用か確かめる用で流し、正解との一致を出す",
+    )
+    agreement.add_argument("--split", choices=[split.value for split in Split], required=True)
+    agreement.add_argument("--judgments", type=Path, default=DEFAULT_REASON_JUDGMENTS)
+    agreement.set_defaults(handle=_reason_agreement)
     args = parser.parse_args(argv)
     if args.command in ("run", "pair") and args.repeat < 1:
         parser.error("--repeat は 1 以上にしてください")

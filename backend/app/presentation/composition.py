@@ -9,7 +9,7 @@ from sqlalchemy.exc import ArgumentError
 from app.application.build_plans import BuildPlans
 from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.forget_deleted_plans import ForgetDeletedPlans
-from app.application.ports import CourseSelector, OccupationAnalyzer
+from app.application.ports import CourseSelector, OccupationAnalyzer, ReasonJudge
 from app.application.recommend_courses import RecommendCourses
 from app.application.report_plan_builds import ReportPlanBuilds
 from app.application.request_plan import RequestPlan
@@ -31,6 +31,7 @@ from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECT
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
+from app.infrastructure.llm.openai_reason_judge import OpenAIReasonJudge
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.settings import Settings
 
@@ -109,6 +110,15 @@ def course_selector(
         settings.selection_votes,
         settings.selection_kept_votes,
         settings.selection_vote_delay_seconds,
+    )
+
+
+def reason_judge(settings: Settings) -> ReasonJudge:
+    return OpenAIReasonJudge.connect(
+        settings.reason_judge_model,
+        openai_api_key(settings),
+        settings.openai_timeout_seconds,
+        settings.openai_max_retries,
     )
 
 
