@@ -17,7 +17,7 @@ FOUNDATION = ReasonCase(
 
 def verdict(why: str, grade: str) -> dict[str, Any]:
     return {
-        "content": json.dumps({"why": why, "grade": grade}, ensure_ascii=False),
+        "content": json.dumps({"quote": "", "why": why, "grade": grade}, ensure_ascii=False),
         "refusal": None,
     }
 
@@ -41,7 +41,7 @@ def test_the_verdict_becomes_a_vote_and_the_reason_is_sent_with_what_the_judges_
         "理由: 礎の理由"
     )
     schema = request["response_format"]["json_schema"]["schema"]
-    assert list(schema["properties"]) == ["why", "grade"]
+    assert list(schema["properties"]) == ["quote", "why", "grade"]
     assert schema["properties"]["grade"]["enum"] == ["specific", "vague", "absent"]
 
 
