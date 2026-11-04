@@ -4,16 +4,18 @@ from uuid import UUID
 
 from pgvector.sqlalchemy import Vector
 from sqlalchemy import (
+    BigInteger,
     CheckConstraint,
     DateTime,
     ForeignKey,
     ForeignKeyConstraint,
+    Identity,
     Index,
     Text,
     func,
     text,
 )
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import ARRAY, JSONB
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 EMBEDDING_DIMENSIONS = 1536
@@ -120,6 +122,12 @@ class GradingJson(TypedDict):
     kind: str
     percentage: str
     criteria: str
+
+
+class TokensJson(TypedDict):
+    input: int
+    cached: int
+    output: int
 
 
 class Base(DeclarativeBase):
@@ -270,3 +278,27 @@ class DeletedPlanRow(Base):
         index=True,
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+
+
+class PlanBuildRow(Base):
+    __tablename__ = "plan_builds"
+    __table_args__ = (
+        CheckConstraint(
+            "outcome IN ('succeeded', 'failed', 'discarded', 'stalled')",
+            name="ck_plan_builds_outcome",
+        ),
+        CheckConstraint(
+            "outcome <> 'failed' OR cardinality(cause_types) > 0", name="ck_plan_builds_cause"
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
+    finished_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), index=True
+    )
+    outcome: Mapped[str]
+    cause_types: Mapped[list[str]] = mapped_column(ARRAY(Text), server_default=text("'{}'"))
+    cause_code: Mapped[str | None]
+    queued_seconds: Mapped[float | None]
+    seconds: Mapped[dict[str, float]] = mapped_column(JSONB)
+    usage: Mapped[dict[str, TokensJson]] = mapped_column(JSONB)
