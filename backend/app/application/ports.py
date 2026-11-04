@@ -1,4 +1,4 @@
-from collections.abc import Callable, Mapping, Sequence, Set
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
@@ -107,6 +107,14 @@ class TokenUsage:
         return TokenUsage(
             self.input + other.input, self.cached + other.cached, self.output + other.output
         )
+
+
+def total_usage(usages: Iterable[Mapping[str, TokenUsage]]) -> dict[str, TokenUsage]:
+    total: dict[str, TokenUsage] = {}
+    for usage in usages:
+        for model, tokens in usage.items():
+            total[model] = total[model] + tokens if model in total else tokens
+    return dict(sorted(total.items()))
 
 
 class UsageMeter(Protocol):

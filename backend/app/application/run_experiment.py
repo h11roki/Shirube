@@ -27,6 +27,7 @@ from app.application.ports import (
     OccupationAnalyzer,
     TokenUsage,
     UsageMeter,
+    total_usage,
 )
 from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import SearchCourses
@@ -319,10 +320,6 @@ def summarize(
         return None
     run = scored_run([trial.scorecard for trial in trials], len(cases))
     scores = [repeat_scores(group) for group in run.repeats]
-    usage: dict[str, TokenUsage] = {}
-    for outcome in outcomes:
-        for model, tokens in outcome.usage.items():
-            usage[model] = usage[model] + tokens if model in usage else tokens
     return ExperimentSummary(
         trials=len(outcomes),
         failures=len(outcomes) - len(trials),
@@ -331,7 +328,7 @@ def summarize(
         metrics={key: _defined_spread([score[key] for score in scores]) for key in METRICS},
         overlap=mean_of_defined(overlaps(run.cards, picked).values()),
         core_overlap=mean_of_defined(overlaps(run.cards, picked_cores).values()),
-        usage=dict(sorted(usage.items())),
+        usage=total_usage(outcome.usage for outcome in outcomes),
         seconds=StageSeconds(
             mean(trial.seconds.reading for trial in trials),
             mean(trial.seconds.searching for trial in trials),
