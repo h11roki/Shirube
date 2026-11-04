@@ -126,7 +126,7 @@ flowchart LR
 
 ## まず読んでほしい ADR
 
-設計の判断は 85 本の ADR に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
+設計の判断は 88 本の ADR に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
 
 | ADR | 読みどころ |
 |---|---|
@@ -149,7 +149,7 @@ flowchart TB
 
 - フロントは API を呼んで表示するだけで、業務ロジックを置きません。Next.js の Route Handler がログインを確かめ、Google の利用者の番号を入れた JWT を付けて backend に転送します([ADR 0027](docs/adr/0027-auth-backend.md)、[0028](docs/adr/0028-auth-frontend.md))
 - API の型は OpenAPI から生成してコミットし、backend の試験が OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
-- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-11-04 時点で 85 本)
+- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-11-04 時点で 88 本)
 
 このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。ADR の中では、作者を「高橋さん」と書いています。
 
@@ -192,4 +192,4 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 
 ## ライセンス
 
-コードは [MIT License](LICENSE)。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外(大学と担当教員のもの)。テストには実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使う(ADR 0043)。
+コードは [MIT License](LICENSE) です。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外です(大学と担当教員のもの)。テストには実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使います([ADR 0043](docs/adr/0043-license-and-fixtures.md))。
