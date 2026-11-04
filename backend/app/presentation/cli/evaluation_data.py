@@ -16,6 +16,7 @@ HELDOUT_DATASET = DEFAULT_DATASET.parent / "heldout" / "occupations.json"
 HELDOUT_JUDGMENTS = HELDOUT_DATASET.with_name("judgments.json")
 HIDDEN_REASON = "確かめ用なので理由は出さない"
 DATASET_LINES = frozenset({"skills"})
+UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
 def shown_reason(reason: object, heldout: bool) -> str:

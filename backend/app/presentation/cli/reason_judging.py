@@ -1,4 +1,5 @@
 import argparse
+import json
 import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
@@ -23,7 +24,9 @@ from app.domain.recommendation import Relevance
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     HELDOUT_DATASET,
+    UNREADABLE,
     read_document,
+    reject_duplicate_keys,
     write_document,
 )
 from app.presentation.cli.records import digest
@@ -31,8 +34,8 @@ from app.presentation.cli.records import digest
 DEFAULT_REASON_JUDGMENTS = DEFAULT_DATASET.with_name("reason-judgments.json")
 MATERIAL_FILE = "reasons.json"
 PROMPT_FILE = "reason-judge-prompt.md"
-JUDGE_MODEL = "Claude Opus 5.5(Claude Code のサブエージェント)"
 REPEAT = 1
+VOTE_LINES = frozenset({"votes"})
 KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 GRADE_LABELS = {
     ReasonGrade.SPECIFIC: "具体的",
@@ -40,7 +43,6 @@ GRADE_LABELS = {
     ReasonGrade.ABSENT: "無い",
 }
 SPLIT_LABELS = {Split.TUNE: "整える用", Split.CHECK: "確かめる用"}
-UNREADABLE = (OSError, ValueError, KeyError, TypeError, AttributeError)
 
 
 def reason_cases(run: Mapping[str, Any]) -> list[ReasonCase]:
@@ -58,19 +60,6 @@ def reason_cases(run: Mapping[str, Any]) -> list[ReasonCase]:
         if "failure" not in trial and trial["repeat"] == REPEAT
         for course in trial["courses"]
     ]
-
-
-def material(sample: SampledReason) -> dict[str, Any]:
-    case = sample.case
-    return {
-        "id": sample.key,
-        "occupation": case.interpretation,
-        "assumption": case.assumption,
-        "kind": KIND_LABELS[case.relevance],
-        "course": case.course,
-        "pillar": case.pillar,
-        "reason": case.reason,
-    }
 
 
 def judge_output(document: Mapping[str, Any]) -> dict[str, ReasonVote]:
@@ -97,13 +86,15 @@ def sampled_entry(sample: SampledReason) -> dict[str, Any]:
     }
 
 
-def judged_document(run: Path, judged: Sequence[JudgedReason]) -> dict[str, Any]:
+def judged_document(
+    run: str, fingerprint: str, model: str, judged: Sequence[JudgedReason]
+) -> dict[str, Any]:
     return {
-        "run": run.name,
-        "run_fingerprint": digest(run.read_bytes()),
+        "run": run,
+        "run_fingerprint": fingerprint,
         "repeat": REPEAT,
         "seed": SEED,
-        "model": JUDGE_MODEL,
+        "model": model,
         "prompt": PROMPT_FILE,
         "reasons": [
             {
@@ -127,7 +118,9 @@ def judged_from(
     judged = []
     for entry, sample in zip(entries, samples, strict=True):
         expected = sampled_entry(sample)
-        if {key: entry[key] for key in expected} != expected:
+        if not expected.keys() <= entry.keys() or any(
+            entry[key] != value for key, value in expected.items()
+        ):
             raise ReasonJudgingError(f"{sample.key}: 結果から取り直した理由と違います")
         reason = JudgedReason(
             sample,
@@ -139,32 +132,43 @@ def judged_from(
     return judged
 
 
-def _samples(path: Path) -> list[SampledReason]:
+def _samples(path: Path) -> tuple[list[SampledReason], str]:
     try:
-        run = read_document(path)
+        data = path.read_bytes()
+        cases = reason_cases(json.loads(data, object_pairs_hook=reject_duplicate_keys))
+    except UNREADABLE as error:
+        sys.exit(f"実験の結果を読めません: {error!r}")
+    try:
         heldout = {
             occupation["name"] for occupation in read_document(HELDOUT_DATASET)["occupations"]
         }
-        cases = reason_cases(run)
     except UNREADABLE as error:
-        sys.exit(f"実験の結果を読めません: {error!r}")
+        sys.exit(f"確かめ用の評価データを読めません: {error!r}")
     if any(case.occupation in heldout for case in cases):
         sys.exit("確かめ用の職業の入った結果は、判定者に見せないので使いません(ADR 0067)")
     try:
-        return sample_reasons(cases)
+        return sample_reasons(cases), digest(data)
     except ReasonJudgingError as error:
         sys.exit(f"理由を取り出せません: {error}")
 
 
 def _sample(args: argparse.Namespace) -> None:
-    samples = _samples(args.run)
+    samples, _ = _samples(args.run)
+    materials = [
+        {
+            "id": sample.key,
+            "occupation": sample.case.interpretation,
+            "assumption": sample.case.assumption,
+            "kind": KIND_LABELS[sample.case.relevance],
+            "course": sample.case.course,
+            "pillar": sample.case.pillar,
+            "reason": sample.case.reason,
+        }
+        for sample in samples
+    ]
     try:
         args.out.mkdir(parents=True, exist_ok=True)
-        write_document(
-            args.out / MATERIAL_FILE,
-            [material(sample) for sample in samples],
-            frozenset(),
-        )
+        write_document(args.out / MATERIAL_FILE, materials, frozenset())
     except OSError as error:
         sys.exit(f"書けません: {error}")
     counts = Counter(sample.split for sample in samples)
@@ -195,7 +199,7 @@ def summary(judged: Sequence[JudgedReason]) -> list[str]:
 
 
 def _merge(args: argparse.Namespace) -> None:
-    samples = _samples(args.run)
+    samples, fingerprint = _samples(args.run)
     try:
         outputs = [judge_output(read_document(path)) for path in args.votes]
         judged = judged_reasons(samples, outputs)
@@ -203,11 +207,27 @@ def _merge(args: argparse.Namespace) -> None:
         sys.exit(f"判定者の出力が決まりに合いません: {error}")
     except UNREADABLE as error:
         sys.exit(f"判定者の出力を読めません: {error!r}")
+    document = judged_document(args.run.name, fingerprint, args.model, judged)
     try:
-        write_document(args.out, judged_document(args.run, judged), frozenset({"votes"}))
+        write_document(args.out, document, VOTE_LINES)
     except OSError as error:
         sys.exit(f"書けません: {error}")
     print("\n".join([f"{args.out} に正解をまとめた", *summary(judged)]))
+
+
+def _check(args: argparse.Namespace) -> None:
+    samples, fingerprint = _samples(args.run)
+    try:
+        document = read_document(args.judgments)
+        made_from = (document["run"], document["run_fingerprint"], document["seed"])
+        judged = judged_from(document, samples)
+    except ReasonJudgingError as error:
+        sys.exit(f"正解が結果から取り直した理由と合いません: {error}")
+    except UNREADABLE as error:
+        sys.exit(f"正解を読めません: {error!r}")
+    if made_from != (args.run.name, fingerprint, SEED):
+        sys.exit(f"正解は別の結果か乱数の種から作っています: {made_from}")
+    print("\n".join([f"{args.judgments} は {args.run.name} の理由と合う", *summary(judged)]))
 
 
 def main(argv: Sequence[str] | None = None) -> None:
@@ -222,8 +242,15 @@ def main(argv: Sequence[str] | None = None) -> None:
     merge = commands.add_parser("merge", help="判定者 3 体の出力を正解にまとめる")
     merge.add_argument("run", type=Path)
     merge.add_argument("--votes", type=Path, nargs="+", required=True)
-    merge.add_argument("--out", type=Path, default=DEFAULT_REASON_JUDGMENTS)
+    merge.add_argument("--model", required=True)
+    merge.add_argument("--out", type=Path, required=True)
     merge.set_defaults(handle=_merge)
+    check = commands.add_parser(
+        "check", help="正解が実験の結果から取り直した理由と合うかを確かめ、正解の数を出す"
+    )
+    check.add_argument("run", type=Path)
+    check.add_argument("--judgments", type=Path, default=DEFAULT_REASON_JUDGMENTS)
+    check.set_defaults(handle=_check)
     args = parser.parse_args(argv)
     args.handle(args)
 

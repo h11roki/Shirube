@@ -128,6 +128,8 @@ def test_merge_writes_the_votes_and_the_middle_answer(
             str(run),
             "--votes",
             *vote_files(tmp_path, ["specific", "absent", "vague"]),
+            "--model",
+            "判定者のモデル",
             "--out",
             str(out),
         ]
@@ -157,6 +159,8 @@ def test_merge_refuses_an_output_missing_a_reason(tmp_path: Path) -> None:
                 str(run_file(tmp_path)),
                 "--votes",
                 *vote_files(tmp_path, ["vague"] * 3, count=149),
+                "--model",
+                "判定者のモデル",
                 "--out",
                 str(out),
             ]
@@ -172,6 +176,8 @@ def test_merge_refuses_an_unknown_grade(tmp_path: Path) -> None:
                 str(run_file(tmp_path)),
                 "--votes",
                 *vote_files(tmp_path, ["vague", "vague", "great"]),
+                "--model",
+                "判定者のモデル",
                 "--out",
                 str(tmp_path / "out.json"),
             ]
@@ -181,7 +187,7 @@ def test_merge_refuses_an_unknown_grade(tmp_path: Path) -> None:
 def merged_document(tmp_path: Path) -> tuple[dict[str, Any], Path]:
     run, out = run_file(tmp_path), tmp_path / "out.json"
     votes = vote_files(tmp_path, ["specific", "vague", "vague"])
-    main(["merge", str(run), "--votes", *votes, "--out", str(out)])
+    main(["merge", str(run), "--votes", *votes, "--model", "判定者のモデル", "--out", str(out)])
     return read_document(out), run
 
 
@@ -189,8 +195,41 @@ def test_the_merged_judgments_keep_what_the_judges_saw(tmp_path: Path) -> None:
     document, _ = merged_document(tmp_path)
 
     first = document["reasons"][0]
+    assert document["model"] == "判定者のモデル"
     assert first["interpretation"] == f"{first['occupation']}の解釈"
     assert "assumption" in first
+
+
+def test_merge_needs_the_place_to_write_so_it_never_overwrites_the_committed_answers(
+    tmp_path: Path,
+) -> None:
+    votes = vote_files(tmp_path, ["vague"] * 3)
+
+    with pytest.raises(SystemExit) as stopped:
+        main(["merge", str(run_file(tmp_path)), "--votes", *votes, "--model", "判定者のモデル"])
+
+    assert stopped.value.code == 2
+
+
+def test_check_prints_the_answers_of_judgments_that_match_the_run(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    _, run = merged_document(tmp_path)
+    capsys.readouterr()
+
+    main(["check", str(run), "--judgments", str(tmp_path / "out.json")])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == f"{tmp_path / 'out.json'} は run.json の理由と合う"
+    assert lines[2] == "  整える用: 具体的 0、ぼんやり 38、無い 0"
+
+
+def test_check_refuses_judgments_made_from_another_version_of_the_run(tmp_path: Path) -> None:
+    _, run = merged_document(tmp_path)
+    run.write_text(run.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+
+    with pytest.raises(SystemExit, match="別の結果か乱数の種"):
+        main(["check", str(run), "--judgments", str(tmp_path / "out.json")])
 
 
 @pytest.mark.parametrize(
@@ -200,8 +239,9 @@ def test_the_merged_judgments_keep_what_the_judges_saw(tmp_path: Path) -> None:
         (lambda reasons: reasons.__setitem__(1, reasons[0]), "同じ順に並んでいません"),
         (lambda reasons: reasons[0].update(reason="書き換えた理由"), "取り直した理由と違います"),
         (lambda reasons: reasons[0].update(answer="specific"), "3 票の中央値ではありません"),
+        (lambda reasons: reasons[0].pop("interpretation"), "取り直した理由と違います"),
     ],
-    ids=["reordered", "repeated", "reason-edited", "answer-edited"],
+    ids=["reordered", "repeated", "reason-edited", "answer-edited", "older-format"],
 )
 def test_judgments_that_drifted_from_the_run_are_refused(
     tmp_path: Path, change: Callable[[list[dict[str, Any]]], object], message: str
@@ -213,14 +253,17 @@ def test_judgments_that_drifted_from_the_run_are_refused(
         judged_from(document, sample_reasons(reason_cases(read_document(run))))
 
 
-def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run() -> None:
-    document = read_document(DEFAULT_REASON_JUDGMENTS)
-    run = RUNS / document["run"]
+def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    run = RUNS / read_document(DEFAULT_REASON_JUDGMENTS)["run"]
 
-    samples = sample_reasons(reason_cases(read_document(run)), document["seed"])
+    main(["check", str(run)])
 
-    assert document["run_fingerprint"] == digest(run.read_bytes())
-    assert len(judged_from(document, samples)) == 150
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0].endswith(f"は {run.name} の理由と合う")
+    assert lines[1].startswith("柱 76 件")
+    assert lines[4].startswith("礎 74 件")
 
 
 def test_the_committed_judgments_are_written_back_unchanged(tmp_path: Path) -> None:
