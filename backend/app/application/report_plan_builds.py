@@ -63,11 +63,7 @@ def tally(records: Sequence[RecordedBuild]) -> BuildTally:
     builds = [recorded.build for recorded in records]
     return BuildTally(
         Counter(build.outcome for build in builds),
-        Counter(
-            build.cause
-            for build in builds
-            if build.outcome is BuildOutcome.FAILED and build.cause is not None
-        ),
+        Counter(build.cause for build in builds if build.cause is not None),
         tuple(
             recorded.queued_seconds
             for recorded in records

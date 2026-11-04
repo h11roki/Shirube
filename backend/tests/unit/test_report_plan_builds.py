@@ -92,7 +92,7 @@ def test_a_day_without_builds_is_left_out() -> None:
     assert [day for day, _ in report.days] == [date(2026, 11, 2)]
 
 
-def test_work_thrown_away_after_its_plan_stalled_adds_cost_and_time_but_not_a_plan() -> None:
+def test_work_thrown_away_after_its_plan_stalled_adds_cost_time_and_cause_but_not_a_plan() -> None:
     thrown_away = PlanBuild(
         BuildOutcome.DISCARDED,
         TIMEOUT,
@@ -108,7 +108,7 @@ def test_work_thrown_away_after_its_plan_stalled_adds_cost_and_time_but_not_a_pl
     )
 
     assert (counted.builds, counted.metered) == (1, 1)
-    assert counted.causes == Counter()
+    assert counted.causes == Counter({TIMEOUT: 1})
     assert counted.queued_seconds == (3.0,)
     assert counted.build_seconds == (1300.0,)
     assert counted.usage == {NANO: TokenUsage(100, 0, 10)}
