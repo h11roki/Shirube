@@ -4,7 +4,12 @@ from typing import Literal, Self
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
-from openai import ContentFilterFinishReasonError, LengthFinishReasonError, OpenAIError
+from openai import (
+    BadRequestError,
+    ContentFilterFinishReasonError,
+    LengthFinishReasonError,
+    OpenAIError,
+)
 from pydantic import BaseModel, Field, SecretStr
 
 from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError
@@ -15,6 +20,9 @@ from app.application.reason_judging import (
     ReasonGrade,
     ReasonVote,
 )
+from app.domain.recommendation import Relevance
+
+NO_EVIDENCE = "根拠なし"
 
 INSTRUCTIONS = f"""\
 あなたは、大学の授業を薦めるアプリが書いた「取るべき理由」の文を判定する判定者です。
@@ -120,13 +128,6 @@ class _Verdict(BaseModel):
     grade: Literal["specific", "vague", "absent"] = Field(description="理由の文の段")
 
 
-JUDGE_PROMPT = (
-    INSTRUCTIONS
-    + "\n"
-    + json.dumps(_Verdict.model_json_schema(), ensure_ascii=False, sort_keys=True)
-)
-
-
 def _request(case: ReasonCase) -> str:
     lines = [f"職業: {case.interpretation}"]
     if case.assumption is not None:
@@ -136,6 +137,19 @@ def _request(case: ReasonCase) -> str:
         lines.append(f"つながる柱: {case.pillar}")
     lines.append(f"理由: {case.reason}")
     return "\n".join(lines)
+
+
+SAMPLE_CASES = (
+    ReasonCase("職業名", "職業", "前提", Relevance.CORE, "授業", None, "理由"),
+    ReasonCase("職業名", "職業", None, Relevance.FOUNDATION, "授業", "柱の授業", "理由"),
+)
+JUDGE_PROMPT = "\n".join(
+    [
+        INSTRUCTIONS,
+        json.dumps(_Verdict.model_json_schema(), ensure_ascii=False, sort_keys=True),
+        *(_request(case) for case in SAMPLE_CASES),
+    ]
+)
 
 
 class OpenAIReasonJudge:
@@ -152,11 +166,13 @@ class OpenAIReasonJudge:
             output = self._client.invoke(messages)
             if not isinstance(output, _Verdict):
                 raise TypeError(f"答えの形が違います: {output!r}")
-            return ReasonVote(ReasonGrade(output.grade), output.why.strip()[:WHY_LENGTH])
+            why = output.why.strip()[:WHY_LENGTH] or NO_EVIDENCE
+            return ReasonVote(ReasonGrade(output.grade), why)
         except (
             OpenAIRefusalError,
             ContentFilterFinishReasonError,
             LengthFinishReasonError,
+            BadRequestError,
             ValueError,
             TypeError,
         ) as error:

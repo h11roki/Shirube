@@ -4,12 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError
+from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError, TokenUsage
 from app.application.reason_judging import ReasonCase, ReasonGrade, ReasonVote
 from app.presentation.cli import experiment as experiment_cli
 from app.presentation.cli.evaluation_data import read_document
 from app.presentation.cli.experiment import REASON_CHECKS, RUNS
 from app.presentation.cli.reason_judging import DEFAULT_REASON_JUDGMENTS
+from tests.fakes import FakeUsageMeter
 
 
 class AnsweringJudge:
@@ -20,9 +21,20 @@ class AnsweringJudge:
         return ReasonVote(self._grade_of(case), "判定器の根拠")
 
 
-class FailingJudge:
+class SometimesFailingJudge:
+    def __init__(self) -> None:
+        self.asked = 0
+
     def judge(self, case: ReasonCase) -> ReasonVote:
-        raise ReasonJudgeError(f"{case.course}: 失敗")
+        self.asked += 1
+        if self.asked % 4 == 0:
+            raise ReasonJudgeError(f"{case.course}: 使えない答え")
+        return ReasonVote(answer_of(case), "判定器の根拠")
+
+
+class UnreachableJudge:
+    def judge(self, case: ReasonCase) -> ReasonVote:
+        raise ReasonJudgeUnavailableError("OpenAI の API 呼び出しに失敗しました")
 
 
 ANSWERS = {
@@ -46,6 +58,17 @@ def judged_by(monkeypatch: pytest.MonkeyPatch) -> Callable[[object], None]:
     return use
 
 
+@pytest.fixture
+def checks(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+    path = tmp_path / "checks.json"
+    monkeypatch.setattr(experiment_cli, "REASON_CHECKS", path)
+    return path
+
+
+def check_split() -> None:
+    experiment_cli.main(["reason-agreement", "--split", "check"])
+
+
 def test_the_tune_split_shows_the_agreement_and_every_disagreement(
     judged_by: Callable[[object], None], capsys: pytest.CaptureFixture[str]
 ) -> None:
@@ -62,12 +85,11 @@ def test_the_tune_split_shows_the_agreement_and_every_disagreement(
 
 
 def test_the_check_split_shows_only_the_numbers_and_records_its_one_use(
-    judged_by: Callable[[object], None], capsys: pytest.CaptureFixture[str], tmp_path: Path
+    judged_by: Callable[[object], None], checks: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     judged_by(AnsweringJudge(answer_of))
-    checks = tmp_path / "checks.json"
 
-    experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
+    check_split()
 
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].startswith("判定器と正解の一致(確かめる用 75 件")
@@ -76,27 +98,21 @@ def test_the_check_split_shows_only_the_numbers_and_records_its_one_use(
     assert not any(line.startswith("    r") for line in lines)
     [record] = read_document(checks)["checks"]
     assert record["model"] == "gpt-5.4-nano"
-    assert (record["kappa"], record["agreed"], record["judged"], record["failed"]) == (
-        1.0,
-        75,
-        75,
-        0,
-    )
-    assert record["adopted"] is True
+    assert (record["kappa"], record["agreed"], record["judged"]) == (1.0, 75, 75)
+    assert (record["failed"], record["adopted"]) == (0, True)
 
 
 def test_the_check_split_refuses_a_second_use_by_the_same_judge(
-    judged_by: Callable[[object], None], tmp_path: Path
+    judged_by: Callable[[object], None], checks: Path
 ) -> None:
     judged_by(AnsweringJudge(answer_of))
-    checks = tmp_path / "checks.json"
-    experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
-    judged_by(FailingJudge())
+    check_split()
+    judged_by(UnreachableJudge())
 
     with pytest.raises(
         SystemExit, match="gpt-5.4-nano、指示文 [0-9a-f]{8}.で [0-9-]+ に使いました"
     ):
-        experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
+        check_split()
     assert len(read_document(checks)["checks"]) == 1
 
 
@@ -105,53 +121,34 @@ def test_the_committed_record_keeps_the_used_check_split_from_being_run_again(
 ) -> None:
     [used] = read_document(REASON_CHECKS)["checks"]
     monkeypatch.setenv("REASON_JUDGE_MODEL", used["model"])
-    judged_by(FailingJudge())
+    judged_by(UnreachableJudge())
 
     with pytest.raises(SystemExit, match=f"で {used['date']} に使いました"):
-        experiment_cli.main(["reason-agreement", "--split", "check"])
+        check_split()
 
 
-def test_a_judge_that_cannot_answer_is_counted_and_the_split_goes_on(
-    judged_by: Callable[[object], None], capsys: pytest.CaptureFixture[str], tmp_path: Path
+def test_answers_that_cannot_be_used_are_counted_and_block_adoption(
+    judged_by: Callable[[object], None], checks: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    judged_by(FailingJudge())
-    checks = tmp_path / "checks.json"
+    judged_by(SometimesFailingJudge())
 
-    experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
+    check_split()
 
     lines = capsys.readouterr().out.splitlines()
-    assert lines[1] == "  全体 κ -(一致 0 / 0)"
-    assert "  判定器が答えられなかった 75 件" in lines
+    assert lines[1] == "  全体 κ 1.00(一致 57 / 57)"
+    assert "  判定器が答えられなかった 18 件" in lines
     assert lines[-1].endswith("を満たさない")
     [record] = read_document(checks)["checks"]
-    assert (record["kappa"], record["failed"], record["adopted"]) == (None, 75, False)
-
-
-def test_the_run_can_be_given_when_it_was_moved_or_renamed(
-    judged_by: Callable[[object], None], capsys: pytest.CaptureFixture[str], tmp_path: Path
-) -> None:
-    moved = tmp_path / "renamed.json"
-    shutil.copy(RUNS / read_document(DEFAULT_REASON_JUDGMENTS)["run"], moved)
-    judged_by(AnsweringJudge(answer_of))
-
-    experiment_cli.main(["reason-agreement", "--split", "tune", "--run", str(moved)])
-
-    assert capsys.readouterr().out.splitlines()[1] == "  全体 κ 1.00(一致 75 / 75)"
-
-
-class UnreachableJudge:
-    def judge(self, case: ReasonCase) -> ReasonVote:
-        raise ReasonJudgeUnavailableError("OpenAI の API 呼び出しに失敗しました")
+    assert (record["judged"], record["failed"], record["adopted"]) == (57, 18, False)
 
 
 def test_a_judge_that_cannot_be_called_stops_without_using_up_the_check_split(
-    judged_by: Callable[[object], None], tmp_path: Path
+    judged_by: Callable[[object], None], checks: Path
 ) -> None:
     judged_by(UnreachableJudge())
-    checks = tmp_path / "checks.json"
 
     with pytest.raises(SystemExit, match="判定器を呼べませんでした.+記録は残さない"):
-        experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
+        check_split()
     assert not checks.exists()
 
 
@@ -165,12 +162,38 @@ def test_a_model_missing_from_the_price_table_is_refused_before_any_call(
         experiment_cli.main(["reason-agreement", "--split", "tune"])
 
 
-def test_a_broken_record_of_check_uses_is_refused(
-    judged_by: Callable[[object], None], tmp_path: Path
+def test_tokens_of_a_model_missing_from_the_price_table_are_reported(
+    judged_by: Callable[[object], None],
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
 ) -> None:
-    checks = tmp_path / "checks.json"
+    judged_by(AnsweringJudge(answer_of))
+    meter = FakeUsageMeter({"other-model": TokenUsage(1_000, 0, 100)})
+    monkeypatch.setattr(experiment_cli, "LangChainUsageMeter", lambda: meter)
+
+    experiment_cli.main(["reason-agreement", "--split", "tune"])
+
+    lines = capsys.readouterr().out.splitlines()
+    assert "  料金表に無いモデルの分は費用に入れていません: other-model" in lines
+
+
+def test_a_broken_record_of_check_uses_is_refused(
+    judged_by: Callable[[object], None], checks: Path
+) -> None:
     checks.write_text('{"checks": [{"model": "gpt-5.4-nano"}]}', encoding="utf-8")
     judged_by(UnreachableJudge())
 
     with pytest.raises(SystemExit, match="確かめる用を使った記録を読めません"):
-        experiment_cli.main(["reason-agreement", "--split", "check", "--checks", str(checks)])
+        check_split()
+
+
+def test_the_run_can_be_given_when_it_was_moved_or_renamed(
+    judged_by: Callable[[object], None], capsys: pytest.CaptureFixture[str], tmp_path: Path
+) -> None:
+    moved = tmp_path / "renamed.json"
+    shutil.copy(RUNS / read_document(DEFAULT_REASON_JUDGMENTS)["run"], moved)
+    judged_by(AnsweringJudge(answer_of))
+
+    experiment_cli.main(["reason-agreement", "--split", "tune", "--run", str(moved)])
+
+    assert capsys.readouterr().out.splitlines()[1] == "  全体 κ 1.00(一致 75 / 75)"

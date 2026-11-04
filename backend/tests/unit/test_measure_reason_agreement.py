@@ -142,3 +142,17 @@ def test_the_agreed_count_is_the_number_of_matching_pairs() -> None:
     grades = {"理由1": SPECIFIC, "理由2": SPECIFIC, "理由3": ABSENT, "理由4": VAGUE, "理由5": VAGUE}
 
     assert MeasureReasonAgreement(FixedJudge(grades)).run(REASONS).agreed == 3
+
+
+class AlwaysFailingJudge(FixedJudge):
+    def judge(self, case: ReasonCase) -> ReasonVote:
+        self.asked.append(case)
+        raise ReasonJudgeError("使えない答え")
+
+
+def test_answers_that_cannot_be_used_three_times_in_a_row_stop_the_measurement() -> None:
+    judge = AlwaysFailingJudge({})
+
+    with pytest.raises(ReasonJudgeUnavailableError, match="続けて 3 件の答えを使えなかった"):
+        MeasureReasonAgreement(judge).run(REASONS)
+    assert len(judge.asked) == 3

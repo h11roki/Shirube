@@ -61,10 +61,16 @@ def test_a_long_evidence_is_cut_to_the_length_the_answers_keep() -> None:
     assert judge.judge(CORE).why == "あ" * 60
 
 
+def test_an_empty_evidence_keeps_the_grade() -> None:
+    judge = OpenAIReasonJudge(chat_answering(verdict("  ", "vague")))
+
+    assert judge.judge(CORE) == ReasonVote(ReasonGrade.VAGUE, "根拠なし")
+
+
 @pytest.mark.parametrize(
     "message",
-    [verdict("  ", "vague"), verdict("根拠", "great"), {"content": "not json", "refusal": None}],
-    ids=["empty-evidence", "unknown-grade", "broken"],
+    [verdict("根拠", "great"), {"content": "not json", "refusal": None}],
+    ids=["unknown-grade", "broken"],
 )
 def test_an_unusable_answer_is_a_judge_error(message: dict[str, Any]) -> None:
     judge = OpenAIReasonJudge(chat_answering(message))
@@ -73,8 +79,15 @@ def test_an_unusable_answer_is_a_judge_error(message: dict[str, Any]) -> None:
         judge.judge(CORE)
 
 
-def test_a_failed_api_call_tells_that_the_judge_could_not_be_called() -> None:
+def test_a_request_the_api_rejects_is_an_error_of_that_reason_only() -> None:
     judge = OpenAIReasonJudge(chat_failing(400))
+
+    with pytest.raises(ReasonJudgeError, match="職業名 の 授業A: LLM の答えを使えません"):
+        judge.judge(CORE)
+
+
+def test_a_failed_api_call_tells_that_the_judge_could_not_be_called() -> None:
+    judge = OpenAIReasonJudge(chat_failing(401))
 
     with pytest.raises(ReasonJudgeUnavailableError, match="OpenAI の API 呼び出しに失敗しました"):
         judge.judge(CORE)

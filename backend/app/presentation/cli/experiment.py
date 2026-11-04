@@ -1061,9 +1061,9 @@ def _reason_agreement(args: argparse.Namespace) -> None:
         sys.exit(f"料金表に無いモデルでは流しません: {model}(cli/prices.py に足す)")
     prompt = digest(REASON_JUDGE_PROMPT.encode())
     checks: list[dict[str, Any]] = []
-    if split is Split.CHECK and args.checks.exists():
+    if split is Split.CHECK and REASON_CHECKS.exists():
         try:
-            checks = list(read_document(args.checks)["checks"])
+            checks = list(read_document(REASON_CHECKS)["checks"])
             used = [
                 check["date"]
                 for check in checks
@@ -1086,9 +1086,14 @@ def _reason_agreement(args: argparse.Namespace) -> None:
                 f"確かめる用を使った記録は残さない): {error}"
             )
         spent = yen(usage())
+        missing = unpriced(list(usage()))
     print("\n".join(reason_agreement_lines(agreement, split, model, prompt, spent)))
+    if missing:
+        print(f"  料金表に無いモデルの分は費用に入れていません: {'、'.join(missing)}")
     if split is not Split.CHECK:
         return
+    if not agreement.pairs:
+        sys.exit("1 件も判定できなかったので、確かめる用を使った記録は残しません")
     kappa = agreement.kappa
     checks.append(
         {
@@ -1104,10 +1109,10 @@ def _reason_agreement(args: argparse.Namespace) -> None:
         }
     )
     try:
-        write_document(args.checks, {"checks": checks}, frozenset())
+        write_document(REASON_CHECKS, {"checks": checks}, frozenset())
     except OSError as error:
         sys.exit(
-            f"確かめる用を使った記録を書けません(上の結果を {args.checks} に手で足す): {error}"
+            f"確かめる用を使った記録を書けません(上の結果を {REASON_CHECKS} に手で足す): {error}"
         )
 
 
@@ -1155,7 +1160,6 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     agreement.add_argument("--split", choices=[split.value for split in Split], required=True)
     agreement.add_argument("--judgments", type=Path, default=DEFAULT_REASON_JUDGMENTS)
     agreement.add_argument("--run", type=Path)
-    agreement.add_argument("--checks", type=Path, default=REASON_CHECKS)
     agreement.set_defaults(handle=_reason_agreement)
     args = parser.parse_args(argv)
     if args.command in ("run", "pair") and args.repeat < 1:
