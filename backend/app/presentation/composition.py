@@ -23,12 +23,14 @@ from app.domain.quota import PlanQuota
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
+from app.infrastructure.db.plan_builds import SqlPlanBuildLog
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
+from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.settings import Settings
 
 
@@ -150,6 +152,8 @@ def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
         SqlCourseRepository(engine),
         SqlPlanRepository(engine),
         SqlUserRepository(engine),
+        SqlPlanBuildLog(engine),
+        LangChainUsageMeter(),
     )
 
 

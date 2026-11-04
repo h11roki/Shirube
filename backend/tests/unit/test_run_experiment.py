@@ -40,6 +40,7 @@ from tests.fakes import (
     FakeCourseSelector,
     FakeEmbedder,
     FakeOccupationAnalyzer,
+    Ticks,
     courses_ranked_by,
 )
 
@@ -77,15 +78,6 @@ class CountingMeter:
         self.opened += 1
         usage = {"gpt-5.4-nano": TokenUsage(self.opened, 0, 0)}
         yield lambda: usage
-
-
-class Ticks:
-    def __init__(self) -> None:
-        self.now = -1.0
-
-    def __call__(self) -> float:
-        self.now += 1.0
-        return self.now
 
 
 class FailingOnceSelector(FakeCourseSelector):
