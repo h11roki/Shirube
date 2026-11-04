@@ -62,7 +62,7 @@ class BuildPlans:
         stalled = self._plans.fail_stalled(after, STALLED)
         for plan_id in stalled:
             logger.warning("作成中のまま止まった道標を失敗にしました: %s", plan_id)
-            self._record(plan_id, lambda: PlanBuild(BuildOutcome.STALLED))
+            self._record(plan_id, PlanBuild(BuildOutcome.STALLED))
         return stalled
 
     def build_next(self) -> Plan | None:
@@ -103,24 +103,24 @@ class BuildPlans:
                 logger.exception("道標 %s を作れませんでした", plan.id)
                 finished = plan.failed(SERVER_FAILURE)
                 cause = failure_cause(error)
-        ended = self._clock()
+        starts = list(entered.values())
+        ends = [*starts[1:], self._clock()]
+        seconds = {
+            stage: end - start for stage, start, end in zip(entered, starts, ends, strict=True)
+        }
         saved = self._plans.finish(finished)
-
-        def build() -> PlanBuild:
-            starts = list(entered.values())
-            ends = [*starts[1:], ended]
-            seconds = {
-                stage: end - start for stage, start, end in zip(entered, starts, ends, strict=True)
-            }
-            if not saved:
-                outcome = BuildOutcome.DISCARDED
-            elif finished.status is PlanStatus.SUCCEEDED:
-                outcome = BuildOutcome.SUCCEEDED
-            else:
-                outcome = BuildOutcome.FAILED
-            return PlanBuild(outcome, cause, seconds, usage())
-
-        self._record(plan.id, build)
+        if not saved:
+            outcome = BuildOutcome.DISCARDED
+        elif finished.status is PlanStatus.SUCCEEDED:
+            outcome = BuildOutcome.SUCCEEDED
+        else:
+            outcome = BuildOutcome.FAILED
+        try:
+            spent = usage()
+        except Exception:
+            logger.exception("道標 %s で使ったトークンを読めませんでした", plan.id)
+            spent = {}
+        self._record(plan.id, PlanBuild(outcome, cause, seconds, spent))
         if saved:
             return finished
         logger.warning("道標 %s は作っている間に作成中でなくなったので、結果を捨てました", plan.id)
@@ -142,23 +142,25 @@ class BuildPlans:
         except Exception:
             logger.exception("道標 %s の段 %s を書けませんでした", plan.id, stage)
 
-    def _record(self, plan_id: UUID, build: Callable[[], PlanBuild]) -> None:
+    def _record(self, plan_id: UUID, build: PlanBuild) -> None:
         try:
-            self._builds.record(plan_id, build())
+            self._builds.record(plan_id, build)
         except Exception:
             logger.exception("道標 %s を作った記録を書けませんでした", plan_id)
 
 
 def failure_cause(error: BaseException) -> FailureCause:
-    types = [type(error).__name__]
-    root = error
-    while len(types) < CAUSE_DEPTH:
-        reason = root.__cause__ or (None if root.__suppress_context__ else root.__context__)
+    chain = [error]
+    while len(chain) < CAUSE_DEPTH:
+        last = chain[-1]
+        reason = last.__cause__ or (None if last.__suppress_context__ else last.__context__)
         if reason is None:
             break
-        root = reason
-        types.append(type(root).__name__)
-    code = getattr(root, "code", None)
+        chain.append(reason)
+    codes = (getattr(link, "code", None) for link in reversed(chain))
     return FailureCause(
-        tuple(types), code if isinstance(code, str) and CAUSE_CODE.fullmatch(code) else None
+        tuple(type(link).__name__ for link in chain),
+        next(
+            (code for code in codes if isinstance(code, str) and CAUSE_CODE.fullmatch(code)), None
+        ),
     )

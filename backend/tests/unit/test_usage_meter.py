@@ -44,6 +44,8 @@ def test_an_outer_meter_also_counts_the_calls_of_an_inner_one_that_was_interrupt
 def test_metering_again_and_again_adds_no_langchain_hooks() -> None:
     chat = chat_answering({"content": "はい"})
     meter = LangChainUsageMeter()
+    with meter.meter():
+        chat.invoke([HumanMessage("質問")])
     hooks = len(langchain_context._configure_hooks)
 
     for _ in range(3):

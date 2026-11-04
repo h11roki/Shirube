@@ -1,37 +1,37 @@
 from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from contextvars import ContextVar
-from typing import Any
+from threading import Lock
 
 from langchain_core.callbacks import UsageMetadataCallbackHandler
-from langchain_core.outputs import LLMResult
 from langchain_core.tracers.context import register_configure_hook
 
 from app.application.ports import TokenUsage
 
-
-class _NestedUsage(UsageMetadataCallbackHandler):
-    def __init__(self, outer: UsageMetadataCallbackHandler | None) -> None:
-        super().__init__()
-        self._outer = outer
-
-    def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
-        super().on_llm_end(response, **kwargs)
-        if self._outer is not None:
-            self._outer.on_llm_end(response, **kwargs)
+METER_DEPTH = ContextVar("shirube_usage_depth", default=0)
+METER_LEVELS: list[ContextVar[UsageMetadataCallbackHandler | None]] = []
+METER_LEVELS_LOCK = Lock()
 
 
-CURRENT_USAGE: ContextVar[UsageMetadataCallbackHandler | None] = ContextVar(
-    "shirube_usage", default=None
-)
-register_configure_hook(CURRENT_USAGE, inheritable=True)
+def _level(depth: int) -> ContextVar[UsageMetadataCallbackHandler | None]:
+    with METER_LEVELS_LOCK:
+        while len(METER_LEVELS) <= depth:
+            level: ContextVar[UsageMetadataCallbackHandler | None] = ContextVar(
+                f"shirube_usage_{len(METER_LEVELS)}", default=None
+            )
+            register_configure_hook(level, inheritable=True)
+            METER_LEVELS.append(level)
+        return METER_LEVELS[depth]
 
 
 class LangChainUsageMeter:
     @contextmanager
     def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
-        handler = _NestedUsage(CURRENT_USAGE.get())
-        token = CURRENT_USAGE.set(handler)
+        depth = METER_DEPTH.get()
+        level = _level(depth)
+        handler = UsageMetadataCallbackHandler()
+        handler_token = level.set(handler)
+        depth_token = METER_DEPTH.set(depth + 1)
         try:
             yield lambda: {
                 model: TokenUsage(
@@ -42,4 +42,5 @@ class LangChainUsageMeter:
                 for model, usage in handler.usage_metadata.items()
             }
         finally:
-            CURRENT_USAGE.reset(token)
+            METER_DEPTH.reset(depth_token)
+            level.reset(handler_token)

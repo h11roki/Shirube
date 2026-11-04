@@ -385,6 +385,20 @@ def test_a_cause_follows_the_error_being_handled_unless_it_was_hidden() -> None:
     assert failure_cause(hidden) == FailureCause(("CourseSelectionError",), None)
 
 
+def test_a_cause_keeps_the_code_of_the_innermost_error_that_has_one() -> None:
+    class QuotaError(Exception):
+        code = "insufficient_quota"
+
+    quota = QuotaError("文")
+    quota.__context__ = ValueError("応答を読めない")
+    error = CourseSelectionError("選び直しに失敗しました")
+    error.__cause__ = quota
+
+    assert failure_cause(error) == FailureCause(
+        ("CourseSelectionError", "QuotaError", "ValueError"), "insufficient_quota"
+    )
+
+
 def test_a_cause_that_loops_back_to_itself_stops_at_the_depth_limit() -> None:
     error = RuntimeError("文")
     error.__cause__ = error
@@ -411,7 +425,7 @@ def test_a_build_that_cannot_be_recorded_still_saves_the_plan(
     assert "作った記録を書けませんでした" in caplog.text
 
 
-def test_tokens_that_cannot_be_read_do_not_keep_the_plan_from_being_saved(
+def test_tokens_that_cannot_be_read_leave_the_plan_saved_and_recorded_without_them(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     class Unreadable(FakeUsageMeter):
@@ -434,5 +448,7 @@ def test_tokens_that_cannot_be_read_do_not_keep_the_plan_from_being_saved(
     assert built is not None
     assert built.status is PlanStatus.SUCCEEDED
     assert plans.plans[plan.id] == built
-    assert builds.builds == []
-    assert "作った記録を書けませんでした" in caplog.text
+    assert [(build.outcome, build.usage) for _, build in builds.builds] == [
+        (BuildOutcome.SUCCEEDED, {})
+    ]
+    assert "トークンを読めませんでした" in caplog.text
