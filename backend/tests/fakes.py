@@ -1,5 +1,6 @@
 import json
-from collections.abc import Callable, Sequence, Set
+from collections.abc import Callable, Iterator, Sequence, Set
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -18,7 +19,14 @@ from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
 from app.application.list_plans import ListPlans
-from app.application.ports import Deletion, EmbeddingError, InvalidTokenError
+from app.application.ports import (
+    Deletion,
+    EmbeddingError,
+    InvalidTokenError,
+    PlanBuild,
+    RecordedBuild,
+    TokenUsage,
+)
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses, query_and_skills
 from app.application.syllabus_links import SyllabusLinks
@@ -143,6 +151,38 @@ class FakeCourseRepository:
             for page in self.stored_syllabi
             if page.year == year and page.code in primary_codes and page.url is not None
         }
+
+
+class Ticks:
+    def __init__(self) -> None:
+        self.now = -1.0
+
+    def __call__(self) -> float:
+        self.now += 1.0
+        return self.now
+
+
+class FakeUsageMeter:
+    def __init__(self, usage: dict[str, TokenUsage] | None = None) -> None:
+        self.usage = usage or {}
+
+    @contextmanager
+    def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
+        yield lambda: self.usage
+
+
+class FakePlanBuildLog:
+    def __init__(self, recorded: Sequence[RecordedBuild] = ()) -> None:
+        self.builds: list[tuple[UUID, PlanBuild]] = []
+        self.recorded = list(recorded)
+        self.starts: list[datetime] = []
+
+    def record(self, plan_id: UUID, build: PlanBuild) -> None:
+        self.builds.append((plan_id, build))
+
+    def since(self, start: datetime) -> list[RecordedBuild]:
+        self.starts.append(start)
+        return [recorded for recorded in self.recorded if recorded.finished_at >= start]
 
 
 class FakePlanRepository:

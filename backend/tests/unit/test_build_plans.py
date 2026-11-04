@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Callable, Iterator, Sequence, Set
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import timedelta
 from uuid import UUID, uuid4
@@ -6,17 +8,26 @@ from uuid import UUID, uuid4
 import pytest
 
 from app.application.build_plans import (
+    CAUSE_DEPTH,
     SERVER_FAILURE,
     STALLED,
     UPSTREAM_FAILURE,
     BuildPlans,
+    failure_cause,
 )
-from app.application.recommend_courses import RecommendCourses
+from app.application.ports import (
+    BuildOutcome,
+    CourseSelectionError,
+    FailureCause,
+    PlanBuild,
+    TokenUsage,
+)
+from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
-from app.domain.recommendation import CourseChoice, Relevance
+from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation, Relevance
 from app.domain.roadmap import Semester
 from tests.fakes import (
     FakeChunkSearch,
@@ -24,14 +35,18 @@ from tests.fakes import (
     FakeCourseSelector,
     FakeEmbedder,
     FakeOccupationAnalyzer,
+    FakePlanBuildLog,
     FakePlanRepository,
+    FakeUsageMeter,
     FakeUserRepository,
+    Ticks,
     courses_ranked_by,
 )
 
 PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
 START = Semester(3, Term.SPRING)
 OWNER = UUID("6f1c2a9e-3b4d-4e5f-8a7b-9c0d1e2f3a4b")
+USAGE = {"gpt-5.4-nano": TokenUsage(300, 100, 50)}
 
 
 def waiting(
@@ -48,6 +63,8 @@ def builder(
     selector: FakeCourseSelector | None = None,
     profile: OccupationProfile = PROFILE,
     users: FakeUserRepository | None = None,
+    builds: FakePlanBuildLog | None = None,
+    meter: FakeUsageMeter | None = None,
 ) -> BuildPlans:
     courses, search = courses_and_search
     recommend = RecommendCourses(
@@ -57,7 +74,15 @@ def builder(
         selector or FakeCourseSelector([]),
         30,
     )
-    return BuildPlans(recommend, courses, plans, users or FakeUserRepository())
+    return BuildPlans(
+        recommend,
+        courses,
+        plans,
+        users or FakeUserRepository(),
+        builds or FakePlanBuildLog(),
+        meter or FakeUsageMeter(USAGE),
+        Ticks(),
+    )
 
 
 def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() -> None:
@@ -192,14 +217,18 @@ def test_a_plan_that_stopped_running_while_it_was_built_keeps_its_stored_state(
 
     plans = StalledWhileBuilding()
     plan = waiting(plans)
+    builds = FakePlanBuildLog()
 
     with caplog.at_level(logging.WARNING):
-        built = builder(courses_ranked_by({"科目A": 0.9}), plans).build_next()
+        built = builder(courses_ranked_by({"科目A": 0.9}), plans, builds=builds).build_next()
 
     assert built is not None
     assert (built.status, built.failure) == (PlanStatus.FAILED, STALLED)
     assert plans.plans[plan.id] == built
     assert "作成中でなくなったので、結果を捨てました" in caplog.text
+    assert [(plan_id, build.outcome) for plan_id, build in builds.builds] == [
+        (plan.id, BuildOutcome.DISCARDED)
+    ]
 
 
 def test_plans_running_past_the_limit_fail_as_stalled(caplog: pytest.LogCaptureFixture) -> None:
@@ -207,9 +236,10 @@ def test_plans_running_past_the_limit_fail_as_stalled(caplog: pytest.LogCaptureF
     stuck = waiting(plans)
     plans.claim(stuck.id)
     untouched = waiting(plans)
+    builds = FakePlanBuildLog()
 
     with caplog.at_level(logging.WARNING):
-        stalled = builder(courses_ranked_by({"科目A": 0.9}), plans).fail_stalled(
+        stalled = builder(courses_ranked_by({"科目A": 0.9}), plans, builds=builds).fail_stalled(
             timedelta(minutes=15)
         )
 
@@ -221,6 +251,7 @@ def test_plans_running_past_the_limit_fail_as_stalled(caplog: pytest.LogCaptureF
     )
     assert plans.plans[untouched.id].status is PlanStatus.PENDING
     assert str(stuck.id) in caplog.text
+    assert builds.builds == [(stuck.id, PlanBuild(BuildOutcome.STALLED))]
 
 
 def test_a_stage_that_cannot_be_written_does_not_fail_the_plan(
@@ -272,3 +303,195 @@ def test_a_plan_whose_candidates_all_became_taken_fails_with_the_reason() -> Non
     assert built.status is PlanStatus.FAILED
     assert built.failure is not None
     assert "もう取ったと答えた授業は除いています" in built.failure
+
+
+def test_a_built_plan_is_recorded_with_the_seconds_of_each_stage_and_the_tokens_used() -> None:
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+    builds = FakePlanBuildLog()
+
+    builder(courses_ranked_by({"科目A": 0.9}), plans, builds=builds).build_next()
+
+    assert builds.builds == [
+        (
+            plan.id,
+            PlanBuild(
+                BuildOutcome.SUCCEEDED,
+                None,
+                {
+                    PlanStage.ANALYZING: 1.0,
+                    PlanStage.SEARCHING: 1.0,
+                    PlanStage.SELECTING: 1.0,
+                    PlanStage.PLACING: 1.0,
+                },
+                USAGE,
+            ),
+        )
+    ]
+
+
+def test_a_failed_plan_is_recorded_with_the_types_of_its_causes_and_the_code_of_the_last() -> None:
+    class QuotaError(Exception):
+        code = "insufficient_quota"
+
+    class OutOfCredit(FakeCourseSelector):
+        def select(
+            self, profile: OccupationProfile, candidates: list[CandidateCourse]
+        ) -> list[CourseChoice]:
+            raise CourseSelectionError("選び直しに失敗しました") from QuotaError("職業 の残高")
+
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+    builds = FakePlanBuildLog()
+
+    builder(courses_ranked_by({"科目A": 0.9}), plans, OutOfCredit([]), builds=builds).build_next()
+
+    assert builds.builds == [
+        (
+            plan.id,
+            PlanBuild(
+                BuildOutcome.FAILED,
+                FailureCause(("CourseSelectionError", "QuotaError"), "insufficient_quota"),
+                {PlanStage.ANALYZING: 1.0, PlanStage.SEARCHING: 1.0, PlanStage.SELECTING: 1.0},
+                USAGE,
+            ),
+        )
+    ]
+
+
+def test_a_cause_keeps_no_message_and_only_a_short_lowercase_code() -> None:
+    class Wordy(Exception):
+        code = "Limit reached for 職業"
+
+    error = RuntimeError("職業名を含む文")
+    error.__cause__ = Wordy("文")
+
+    assert failure_cause(error) == FailureCause(("RuntimeError", "Wordy"), None)
+
+
+def test_a_cause_follows_the_error_being_handled_unless_it_was_hidden() -> None:
+    class QuotaError(Exception):
+        code = "insufficient_quota"
+
+    chained = CourseSelectionError("選び直しに失敗しました")
+    chained.__context__ = QuotaError("文")
+    hidden = CourseSelectionError("選び直しに失敗しました")
+    hidden.__context__ = QuotaError("文")
+    hidden.__suppress_context__ = True
+
+    assert failure_cause(chained) == FailureCause(
+        ("CourseSelectionError", "QuotaError"), "insufficient_quota"
+    )
+    assert failure_cause(hidden) == FailureCause(("CourseSelectionError",), None)
+
+
+def test_a_cause_keeps_the_code_of_the_innermost_error_that_has_one() -> None:
+    class QuotaError(Exception):
+        code = "insufficient_quota"
+
+    quota = QuotaError("文")
+    quota.__context__ = ValueError("応答を読めない")
+    error = CourseSelectionError("選び直しに失敗しました")
+    error.__cause__ = quota
+
+    assert failure_cause(error) == FailureCause(
+        ("CourseSelectionError", "QuotaError", "ValueError"), "insufficient_quota"
+    )
+
+
+def test_a_cause_that_loops_back_to_itself_stops_at_the_depth_limit() -> None:
+    error = RuntimeError("文")
+    error.__cause__ = error
+
+    assert failure_cause(error).types == ("RuntimeError",) * CAUSE_DEPTH
+
+
+def test_a_build_that_cannot_be_recorded_still_saves_the_plan(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Unwritable(FakePlanBuildLog):
+        def record(self, plan_id: UUID, build: PlanBuild) -> None:
+            raise RuntimeError("接続が切れました")
+
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+
+    with caplog.at_level(logging.ERROR):
+        built = builder(courses_ranked_by({"科目A": 0.9}), plans, builds=Unwritable()).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.SUCCEEDED
+    assert plans.plans[plan.id] == built
+    assert "作った記録を書けませんでした" in caplog.text
+
+
+def test_tokens_that_cannot_be_read_leave_the_plan_saved_and_recorded_without_them(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Unreadable(FakeUsageMeter):
+        @contextmanager
+        def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
+            def broken() -> dict[str, TokenUsage]:
+                raise KeyError("input_tokens")
+
+            yield broken
+
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+    builds = FakePlanBuildLog()
+
+    with caplog.at_level(logging.ERROR):
+        built = builder(
+            courses_ranked_by({"科目A": 0.9}), plans, builds=builds, meter=Unreadable()
+        ).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.SUCCEEDED
+    assert plans.plans[plan.id] == built
+    assert [(build.outcome, build.usage) for _, build in builds.builds] == [
+        (BuildOutcome.SUCCEEDED, {})
+    ]
+    assert "トークンを読めませんでした" in caplog.text
+
+
+def test_a_stage_entered_twice_is_recorded_with_the_time_of_both_visits() -> None:
+    class Revisiting(RecommendCourses):
+        def run(
+            self,
+            occupation: str,
+            year: int,
+            department: str,
+            semesters: Sequence[Semester],
+            enter: Callable[[RecommendStep], None] = lambda step: None,
+            excluded: Set[str] = frozenset(),
+        ) -> Recommendation:
+            for step in (RecommendStep.SEARCHING, RecommendStep.SELECTING) * 2:
+                enter(step)
+            return super().run(occupation, year, department, semesters, excluded=excluded)
+
+    courses, search = courses_ranked_by({"科目A": 0.9})
+    recommend = Revisiting(
+        search, courses, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
+    )
+    plans = FakePlanRepository()
+    waiting(plans)
+    builds = FakePlanBuildLog()
+    build = BuildPlans(
+        recommend,
+        courses,
+        plans,
+        FakeUserRepository(),
+        builds,
+        FakeUsageMeter(),
+        Ticks(),
+    )
+
+    build.build_next()
+
+    [(_, recorded)] = builds.builds
+    assert recorded.seconds == {
+        PlanStage.ANALYZING: 1.0,
+        PlanStage.SEARCHING: 2.0,
+        PlanStage.SELECTING: 2.0,
+        PlanStage.PLACING: 1.0,
+    }

@@ -41,7 +41,8 @@ from app.presentation.cli.evaluation_data import (
     load_dataset,
     load_judgments,
 )
-from app.presentation.cli.records import YEN_PER_DOLLAR, current_commit, digest, label, reserve
+from app.presentation.cli.prices import YEN_PER_DOLLAR
+from app.presentation.cli.records import current_commit, digest, label, reserve
 from app.presentation.composition import database_engine, load_settings
 from app.settings import Settings
 

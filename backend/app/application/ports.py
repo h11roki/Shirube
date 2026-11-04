@@ -1,6 +1,6 @@
-from collections.abc import Callable, Sequence, Set
+from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractContextManager
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from enum import Enum
 from typing import Protocol
@@ -109,6 +109,14 @@ class TokenUsage:
         )
 
 
+def total_usage(usages: Iterable[Mapping[str, TokenUsage]]) -> dict[str, TokenUsage]:
+    total: dict[str, TokenUsage] = {}
+    for usage in usages:
+        for model, tokens in usage.items():
+            total[model] = total[model] + tokens if model in total else tokens
+    return dict(sorted(total.items()))
+
+
 class UsageMeter(Protocol):
     def meter(self) -> AbstractContextManager[Callable[[], dict[str, TokenUsage]]]: ...
 
@@ -171,6 +179,40 @@ class PlanRepository(Protocol):
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None: ...
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing: ...
+
+
+class BuildOutcome(Enum):
+    SUCCEEDED = "succeeded"
+    FAILED = "failed"
+    DISCARDED = "discarded"
+    STALLED = "stalled"
+
+
+@dataclass(frozen=True)
+class FailureCause:
+    types: tuple[str, ...]
+    code: str | None = None
+
+
+@dataclass(frozen=True)
+class PlanBuild:
+    outcome: BuildOutcome
+    cause: FailureCause | None = None
+    seconds: Mapping[PlanStage, float] = field(default_factory=dict)
+    usage: Mapping[str, TokenUsage] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class RecordedBuild:
+    finished_at: datetime
+    queued_seconds: float | None
+    build: PlanBuild
+
+
+class PlanBuildLog(Protocol):
+    def record(self, plan_id: UUID, build: PlanBuild) -> None: ...
+
+    def since(self, start: datetime) -> list[RecordedBuild]: ...
 
 
 class ChunkRepository(Protocol):
