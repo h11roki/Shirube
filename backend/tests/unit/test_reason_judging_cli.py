@@ -1,17 +1,13 @@
 import json
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from pathlib import Path
 from typing import Any
 
 import pytest
 
-from app.application.reason_judging import sample_reasons
-from app.presentation.cli.evaluation_data import (
-    DEFAULT_DATASET,
-    HELDOUT_DATASET,
-    read_document,
-    write_document,
-)
+from app.application.reason_judging import ReasonJudgingError, sample_reasons
+from app.presentation.cli.evaluation_data import HELDOUT_DATASET, read_document, write_document
+from app.presentation.cli.experiment import RUNS
 from app.presentation.cli.reason_judging import (
     DEFAULT_REASON_JUDGMENTS,
     judged_from,
@@ -19,8 +15,6 @@ from app.presentation.cli.reason_judging import (
     reason_cases,
 )
 from app.presentation.cli.records import digest
-
-RUNS = DEFAULT_DATASET.with_name("runs")
 
 
 def trial(occupation: str, repeat: int = 1) -> dict[str, Any]:
@@ -182,6 +176,41 @@ def test_merge_refuses_an_unknown_grade(tmp_path: Path) -> None:
                 str(tmp_path / "out.json"),
             ]
         )
+
+
+def merged_document(tmp_path: Path) -> tuple[dict[str, Any], Path]:
+    run, out = run_file(tmp_path), tmp_path / "out.json"
+    votes = vote_files(tmp_path, ["specific", "vague", "vague"])
+    main(["merge", str(run), "--votes", *votes, "--out", str(out)])
+    return read_document(out), run
+
+
+def test_the_merged_judgments_keep_what_the_judges_saw(tmp_path: Path) -> None:
+    document, _ = merged_document(tmp_path)
+
+    first = document["reasons"][0]
+    assert first["interpretation"] == f"{first['occupation']}の解釈"
+    assert "assumption" in first
+
+
+@pytest.mark.parametrize(
+    ("change", "message"),
+    [
+        (lambda reasons: reasons.reverse(), "同じ順に並んでいません"),
+        (lambda reasons: reasons.__setitem__(1, reasons[0]), "同じ順に並んでいません"),
+        (lambda reasons: reasons[0].update(reason="書き換えた理由"), "取り直した理由と違います"),
+        (lambda reasons: reasons[0].update(answer="specific"), "3 票の中央値ではありません"),
+    ],
+    ids=["reordered", "repeated", "reason-edited", "answer-edited"],
+)
+def test_judgments_that_drifted_from_the_run_are_refused(
+    tmp_path: Path, change: Callable[[list[dict[str, Any]]], object], message: str
+) -> None:
+    document, run = merged_document(tmp_path)
+    change(document["reasons"])
+
+    with pytest.raises(ReasonJudgingError, match=message):
+        judged_from(document, sample_reasons(reason_cases(read_document(run))))
 
 
 def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run() -> None:

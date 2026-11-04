@@ -82,6 +82,21 @@ def judge_output(document: Mapping[str, Any]) -> dict[str, ReasonVote]:
     return votes
 
 
+def sampled_entry(sample: SampledReason) -> dict[str, Any]:
+    case = sample.case
+    return {
+        "id": sample.key,
+        "split": sample.split.value,
+        "occupation": case.occupation,
+        "interpretation": case.interpretation,
+        "assumption": case.assumption,
+        "relevance": case.relevance.value,
+        "course": case.course,
+        "pillar": case.pillar,
+        "reason": case.reason,
+    }
+
+
 def judged_document(run: Path, judged: Sequence[JudgedReason]) -> dict[str, Any]:
     return {
         "run": run.name,
@@ -92,13 +107,7 @@ def judged_document(run: Path, judged: Sequence[JudgedReason]) -> dict[str, Any]
         "prompt": PROMPT_FILE,
         "reasons": [
             {
-                "id": reason.sample.key,
-                "split": reason.sample.split.value,
-                "occupation": reason.sample.case.occupation,
-                "relevance": reason.sample.case.relevance.value,
-                "course": reason.sample.case.course,
-                "pillar": reason.sample.case.pillar,
-                "reason": reason.sample.case.reason,
+                **sampled_entry(reason.sample),
                 "votes": [{"grade": vote.grade.value, "why": vote.why} for vote in reason.votes],
                 "answer": reason.answer.value,
             }
@@ -110,35 +119,23 @@ def judged_document(run: Path, judged: Sequence[JudgedReason]) -> dict[str, Any]
 def judged_from(
     document: Mapping[str, Any], samples: Sequence[SampledReason]
 ) -> list[JudgedReason]:
-    by_key = {sample.key: sample for sample in samples}
+    entries = document["reasons"]
+    if [entry["id"] for entry in entries] != [sample.key for sample in samples]:
+        raise ReasonJudgingError(
+            "理由の番号が、結果から取り直した理由の番号と同じ順に並んでいません"
+        )
     judged = []
-    for entry in document["reasons"]:
-        sample = by_key.get(entry["id"])
-        if sample is None or (
-            entry["split"],
-            entry["occupation"],
-            entry["relevance"],
-            entry["course"],
-            entry["pillar"],
-            entry["reason"],
-        ) != (
-            sample.split.value,
-            sample.case.occupation,
-            sample.case.relevance.value,
-            sample.case.course,
-            sample.case.pillar,
-            sample.case.reason,
-        ):
-            raise ReasonJudgingError(f"{entry['id']}: 結果から取り直した理由と違います")
+    for entry, sample in zip(entries, samples, strict=True):
+        expected = sampled_entry(sample)
+        if {key: entry[key] for key in expected} != expected:
+            raise ReasonJudgingError(f"{sample.key}: 結果から取り直した理由と違います")
         reason = JudgedReason(
             sample,
             tuple(ReasonVote(ReasonGrade(vote["grade"]), vote["why"]) for vote in entry["votes"]),
         )
         if reason.answer.value != entry["answer"]:
-            raise ReasonJudgingError(f"{entry['id']}: 正解が 3 票の中央値ではありません")
+            raise ReasonJudgingError(f"{sample.key}: 正解が 3 票の中央値ではありません")
         judged.append(reason)
-    if len(judged) != len(samples):
-        raise ReasonJudgingError("結果から取り直した理由が全てそろっていません")
     return judged
 
 
