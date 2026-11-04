@@ -122,3 +122,4 @@ docker compose -f compose.prod.yaml up -d
 - 1か所でしか使わない短い処理は関数に切り出さない
 - 変更は小さな単位で行う
 - 設計判断は実装より先に ADR に書く
+- README の構成図(`docs/images/architecture.png` と `architecture-dark.png`)は、ロゴと字を埋め込んだ 1 ファイルの `docs/images/architecture.html` を撮ったもの。本番の構成を変えたら、この HTML の部品と線(位置は px で書いてある)を直し、`.canvas` の要素を、明るい見た目と、`<html>` に `data-theme="dark"` を付けた暗い見た目の 2 つで、2 倍の解像度で撮り直す
