@@ -8,6 +8,7 @@ from app.domain.recommendation import Relevance
 SEED = 0
 JUDGES = 3
 PER_SPLIT = {Relevance.CORE: 38, Relevance.FOUNDATION: 37}
+KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 WHY_LENGTH = 60
 
 

@@ -7,6 +7,7 @@ from typing import Any
 
 from app.application.reason_judging import (
     GRADES,
+    KIND_LABELS,
     SEED,
     JudgedReason,
     ReasonCase,
@@ -38,7 +39,6 @@ PROMPT = DEFAULT_DATASET.with_name("reason-judge-prompt.md")
 INSTRUCTIONS_HEADING = "\n## 指示文\n"
 REPEAT = 1
 VOTE_LINES = frozenset({"votes"})
-KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 GRADE_LABELS = {
     ReasonGrade.SPECIFIC: "具体的",
     ReasonGrade.VAGUE: "ぼんやり",

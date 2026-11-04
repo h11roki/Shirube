@@ -7,8 +7,13 @@ from openai import ContentFilterFinishReasonError, LengthFinishReasonError, Open
 from pydantic import BaseModel, Field, SecretStr
 
 from app.application.ports import ReasonJudgeError
-from app.application.reason_judging import WHY_LENGTH, ReasonCase, ReasonGrade, ReasonVote
-from app.domain.recommendation import Relevance
+from app.application.reason_judging import (
+    KIND_LABELS,
+    WHY_LENGTH,
+    ReasonCase,
+    ReasonGrade,
+    ReasonVote,
+)
 
 INSTRUCTIONS = f"""\
 あなたは、大学の授業を薦めるアプリが書いた「取るべき理由」の文を判定する判定者です。
@@ -103,8 +108,6 @@ quote にそのまま写す。写すものが無ければ quote は空で、abse
 
 まず quote を写し、次に根拠を {WHY_LENGTH} 字以内で書き、そのあと段を決めます。根拠には、\
 職業の仕事の中身(柱)か柱の内容(礎)として何を挙げているか、または何が無いかを書きます。"""
-
-KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 
 
 class _Verdict(BaseModel):

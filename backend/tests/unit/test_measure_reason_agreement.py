@@ -3,6 +3,7 @@ from collections.abc import Mapping
 import pytest
 
 from app.application.measure_reason_agreement import MeasureReasonAgreement
+from app.application.ports import ReasonJudgeError
 from app.application.reason_judging import (
     JudgedReason,
     ReasonCase,
@@ -95,3 +96,33 @@ def test_a_judge_below_the_kappa_to_adopt_is_not_adoptable() -> None:
 
     assert agreement.kappa == pytest.approx(0.0)
     assert not agreement.adoptable
+
+
+class PartlyFailingJudge(FixedJudge):
+    def judge(self, case: ReasonCase) -> ReasonVote:
+        if case.reason == "理由2":
+            raise ReasonJudgeError("答えられません")
+        return super().judge(case)
+
+
+def test_a_reason_the_judge_cannot_answer_is_kept_as_a_failure_and_blocks_adoption() -> None:
+    judge = PartlyFailingJudge({reason.sample.case.reason: reason.answer for reason in REASONS})
+
+    agreement = MeasureReasonAgreement(judge).run(REASONS)
+
+    assert [failure.reason.sample.key for failure in agreement.failures] == ["2"]
+    assert agreement.failures[0].message == "答えられません"
+    assert len(agreement.pairs) == 4
+    assert agreement.kappa == pytest.approx(1.0)
+    assert not agreement.adoptable
+    assert len(agreement.of(Relevance.CORE).failures) == 1
+    assert not agreement.of(Relevance.FOUNDATION).failures
+
+
+def test_a_kind_without_judged_reasons_has_no_kappa() -> None:
+    judge = PartlyFailingJudge({reason.sample.case.reason: reason.answer for reason in REASONS})
+
+    only_failed = MeasureReasonAgreement(judge).run([REASONS[1]])
+
+    assert only_failed.of(Relevance.CORE).kappa is None
+    assert only_failed.of(Relevance.FOUNDATION).kappa is None
