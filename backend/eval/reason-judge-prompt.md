@@ -2,7 +2,7 @@
 
 ADR 0088 の正解作りで判定者に渡した指示文。`{理由の資料}` `{理由数}` `{出力先}` を置き換え、Claude Code のサブエージェント 3 体に同じ文を 1 体ずつ渡した。立場は分けない。
 
-資料作りと集計は `python -m app.presentation.cli.reason_judging` で行う。`sample <実験の結果の JSON> --out <dir>` が、結果の 1 回目の推薦の理由(道標に並ぶ柱と礎。中心につながらず外した礎は除く)から判定する理由を取り出し、`<dir>/reasons.json` に混ぜた順で書く。`merge <実験の結果の JSON> --votes <判定者の出力 3 つ> --model <判定者のモデル> --out <書く先>` が、同じ結果から同じ理由を取り直して判定者の出力と突き合わせてまとめる(残した正解を黙って上書きしないよう、書く先は毎回書く)。`check <実験の結果の JSON>` が、`reason-judgments.json` がその結果から取り直した理由と合うかを確かめ、正解の段の数と 3 体の一致を出す。確かめ用の職業(ADR 0067)の入った結果は断る。2026-11-04 の正解は `--model "Claude Opus 5.5(Claude Code のサブエージェント)" --out eval/reason-judgments.json` でまとめた。
+資料作りと集計は `python -m app.presentation.cli.reason_judging` で行う。`sample <実験の結果の JSON> --out <dir>` が、結果の 1 回目の推薦の理由(道標に並ぶ柱と礎。中心につながらず外した礎は除く)から判定する理由を取り出し、`<dir>/reasons.json` に混ぜた順で書く。`merge <実験の結果の JSON> --materials <dir> --votes <判定者の出力 3 つ> --model <判定者のモデル> --out <書く先>` が、同じ結果から同じ理由を取り直し、判定者に渡した資料がそれと同じかを確かめてから、判定者の出力と突き合わせてまとめる(残した正解を黙って上書きしないよう、書く先は毎回書く)。`check <実験の結果の JSON>` が、`reason-judgments.json` がその結果から取り直した理由と合うかを確かめ、正解の段の数と 3 体の一致を出す。確かめ用の職業(ADR 0067)の入った結果は断る。2026-11-04 の正解は `--model "Claude Opus 5.5(Claude Code のサブエージェント)" --out eval/reason-judgments.json` でまとめた。
 
 ## 取り出し方
 

@@ -9,9 +9,11 @@ from app.application.reason_judging import (
     ReasonVote,
     SampledReason,
     Split,
+    StoredJudgment,
     fleiss_kappa,
     judged_reasons,
     sample_reasons,
+    verified_judgments,
 )
 from app.domain.recommendation import Relevance
 
@@ -73,14 +75,45 @@ def test_a_vote_needs_a_short_evidence(why: str) -> None:
         ReasonVote(VAGUE, why)
 
 
+def stored(key: str, answer: ReasonGrade = VAGUE, reason: str = "理由") -> StoredJudgment:
+    sampled = SampledReason(
+        key, Split.TUNE, ReasonCase("職業", "解釈", None, Relevance.CORE, "授業", None, reason)
+    )
+    votes = (ReasonVote(SPECIFIC, "根拠"), ReasonVote(VAGUE, "根拠"), ReasonVote(ABSENT, "根拠"))
+    return StoredJudgment(JudgedReason(sampled, votes), answer)
+
+
+def test_stored_judgments_that_match_the_samples_are_returned_in_order() -> None:
+    judgments = [stored("r001"), stored("r002")]
+
+    verified = verified_judgments([judgment.reason.sample for judgment in judgments], judgments)
+
+    assert verified == [judgment.reason for judgment in judgments]
+
+
 @pytest.mark.parametrize(
-    ("relevance", "pillar"), [(Relevance.CORE, "柱の授業"), (Relevance.FOUNDATION, None)]
+    ("judgments", "message"),
+    [
+        ([stored("r002"), stored("r001")], "同じ順に並んでいません"),
+        ([stored("r001"), stored("r001")], "同じ順に並んでいません"),
+        (
+            [stored("r001", reason="書き換えた理由"), stored("r002")],
+            "r001: 結果から取り直した理由と違います",
+        ),
+        (
+            [stored("r001"), stored("r002", answer=SPECIFIC)],
+            "r002: 正解が 3 票の中央値ではありません",
+        ),
+    ],
+    ids=["reordered", "repeated", "reason-edited", "answer-edited"],
 )
-def test_only_a_foundation_names_the_pillar_it_leads_to(
-    relevance: Relevance, pillar: str | None
+def test_stored_judgments_that_drifted_from_the_samples_are_refused(
+    judgments: list[StoredJudgment], message: str
 ) -> None:
-    with pytest.raises(ReasonJudgingError, match="礎にだけ"):
-        ReasonCase("職業", "解釈", None, relevance, "授業", pillar, "理由")
+    samples = [stored("r001").reason.sample, stored("r002").reason.sample]
+
+    with pytest.raises(ReasonJudgingError, match=message):
+        verified_judgments(samples, judgments)
 
 
 def test_the_sample_splits_the_occupations_in_half_and_takes_the_same_counts_from_each() -> None:

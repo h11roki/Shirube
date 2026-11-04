@@ -39,12 +39,6 @@ class ReasonCase:
     pillar: str | None
     reason: str
 
-    def __post_init__(self) -> None:
-        if (self.relevance is Relevance.FOUNDATION) != (self.pillar is not None):
-            raise ReasonJudgingError(
-                f"{self.occupation} の {self.course}: つながる柱の授業名は礎にだけ付けます"
-            )
-
 
 @dataclass(frozen=True)
 class SampledReason:
@@ -76,6 +70,12 @@ class JudgedReason:
     def answer(self) -> ReasonGrade:
         ranked = sorted((vote.grade for vote in self.votes), key=GRADES.index)
         return ranked[len(ranked) // 2]
+
+
+@dataclass(frozen=True)
+class StoredJudgment:
+    reason: JudgedReason
+    answer: ReasonGrade
 
 
 def sample_reasons(cases: Sequence[ReasonCase], seed: int = SEED) -> list[SampledReason]:
@@ -119,6 +119,21 @@ def judged_reasons(
     return [
         JudgedReason(sample, tuple(output[sample.key] for output in outputs)) for sample in samples
     ]
+
+
+def verified_judgments(
+    samples: Sequence[SampledReason], stored: Sequence[StoredJudgment]
+) -> list[JudgedReason]:
+    if [judgment.reason.sample.key for judgment in stored] != [sample.key for sample in samples]:
+        raise ReasonJudgingError(
+            "理由の番号が、結果から取り直した理由の番号と同じ順に並んでいません"
+        )
+    for judgment, sample in zip(stored, samples, strict=True):
+        if judgment.reason.sample != sample:
+            raise ReasonJudgingError(f"{sample.key}: 結果から取り直した理由と違います")
+        if judgment.reason.answer is not judgment.answer:
+            raise ReasonJudgingError(f"{sample.key}: 正解が 3 票の中央値ではありません")
+    return [judgment.reason for judgment in stored]
 
 
 def fleiss_kappa(ratings: Sequence[Sequence[ReasonGrade]]) -> float | None:

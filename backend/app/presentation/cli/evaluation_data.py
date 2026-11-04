@@ -36,8 +36,12 @@ def reject_duplicate_keys(pairs: list[tuple[str, object]]) -> dict[str, object]:
     return dict(pairs)
 
 
+def parse_document(data: bytes) -> Any:
+    return json.loads(data.decode("utf-8"), object_pairs_hook=reject_duplicate_keys)
+
+
 def read_document(path: Path) -> Any:
-    return json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=reject_duplicate_keys)
+    return parse_document(path.read_bytes())
 
 
 def write_document(path: Path, document: Any, one_line: Set[str]) -> None:
