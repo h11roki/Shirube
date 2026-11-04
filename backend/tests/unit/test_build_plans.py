@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Sequence, Set
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import timedelta
@@ -22,12 +22,12 @@ from app.application.ports import (
     PlanBuild,
     TokenUsage,
 )
-from app.application.recommend_courses import RecommendCourses
+from app.application.recommend_courses import RecommendCourses, RecommendStep
 from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
-from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
+from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation, Relevance
 from app.domain.roadmap import Semester
 from tests.fakes import (
     FakeChunkSearch,
@@ -452,3 +452,46 @@ def test_tokens_that_cannot_be_read_leave_the_plan_saved_and_recorded_without_th
         (BuildOutcome.SUCCEEDED, {})
     ]
     assert "トークンを読めませんでした" in caplog.text
+
+
+def test_a_stage_entered_twice_is_recorded_with_the_time_of_both_visits() -> None:
+    class Revisiting(RecommendCourses):
+        def run(
+            self,
+            occupation: str,
+            year: int,
+            department: str,
+            semesters: Sequence[Semester],
+            enter: Callable[[RecommendStep], None] = lambda step: None,
+            excluded: Set[str] = frozenset(),
+        ) -> Recommendation:
+            for step in (RecommendStep.SEARCHING, RecommendStep.SELECTING) * 2:
+                enter(step)
+            return super().run(occupation, year, department, semesters, excluded=excluded)
+
+    courses, search = courses_ranked_by({"科目A": 0.9})
+    recommend = Revisiting(
+        search, courses, FakeOccupationAnalyzer({"職業": PROFILE}), FakeCourseSelector([]), 30
+    )
+    plans = FakePlanRepository()
+    waiting(plans)
+    builds = FakePlanBuildLog()
+    build = BuildPlans(
+        recommend,
+        courses,
+        plans,
+        FakeUserRepository(),
+        builds,
+        FakeUsageMeter(),
+        Ticks(),
+    )
+
+    build.build_next()
+
+    [(_, recorded)] = builds.builds
+    assert recorded.seconds == {
+        PlanStage.ANALYZING: 1.0,
+        PlanStage.SEARCHING: 2.0,
+        PlanStage.SELECTING: 2.0,
+        PlanStage.PLACING: 1.0,
+    }

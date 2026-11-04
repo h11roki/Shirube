@@ -75,7 +75,7 @@ class BuildPlans:
 
     def _build(self, plan: Plan) -> Plan | None:
         conditions = plan.conditions
-        entered = {PlanStage.ANALYZING: self._clock()}
+        entered = [(PlanStage.ANALYZING, self._clock())]
         cause: FailureCause | None = None
         with self._meter.meter() as usage:
             try:
@@ -103,11 +103,10 @@ class BuildPlans:
                 logger.exception("道標 %s を作れませんでした", plan.id)
                 finished = plan.failed(SERVER_FAILURE)
                 cause = failure_cause(error)
-        starts = list(entered.values())
-        ends = [*starts[1:], self._clock()]
-        seconds = {
-            stage: end - start for stage, start, end in zip(entered, starts, ends, strict=True)
-        }
+        ends = [mark for _, mark in entered[1:]] + [self._clock()]
+        seconds: dict[PlanStage, float] = {}
+        for (stage, start), end in zip(entered, ends, strict=True):
+            seconds[stage] = seconds.get(stage, 0.0) + end - start
         saved = self._plans.finish(finished)
         if not saved:
             outcome = BuildOutcome.DISCARDED
@@ -126,7 +125,9 @@ class BuildPlans:
         logger.warning("道標 %s は作っている間に作成中でなくなったので、結果を捨てました", plan.id)
         return self._plans.get(plan.id)
 
-    def _enter_step(self, plan: Plan, step: RecommendStep, entered: dict[PlanStage, float]) -> None:
+    def _enter_step(
+        self, plan: Plan, step: RecommendStep, entered: list[tuple[PlanStage, float]]
+    ) -> None:
         match step:
             case RecommendStep.SEARCHING:
                 self._enter(plan, PlanStage.SEARCHING, entered)
@@ -135,8 +136,8 @@ class BuildPlans:
             case _:
                 assert_never(step)
 
-    def _enter(self, plan: Plan, stage: PlanStage, entered: dict[PlanStage, float]) -> None:
-        entered[stage] = self._clock()
+    def _enter(self, plan: Plan, stage: PlanStage, entered: list[tuple[PlanStage, float]]) -> None:
+        entered.append((stage, self._clock()))
         try:
             self._plans.enter_stage(plan.id, stage)
         except Exception:

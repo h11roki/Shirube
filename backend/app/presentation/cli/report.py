@@ -7,7 +7,7 @@ from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
 from app.application.ports import BuildOutcome
 from app.application.report_plan_builds import BuildReport, BuildTally
-from app.presentation.cli.prices import unpriced, yen
+from app.presentation.cli.prices import price_of, unpriced, yen
 from app.presentation.composition import database_engine, load_settings, report_plan_builds
 
 DEFAULT_DAYS = 14
@@ -34,7 +34,8 @@ def render(report: BuildReport) -> str:
         lines.append("モデルごと")
         lines.extend(
             f"{INDENT}{model}: 入力 {tokens.input:,}(うちキャッシュ {tokens.cached:,})、"
-            f"出力 {tokens.output:,}、{yen({model: tokens}):.2f} 円"
+            f"出力 {tokens.output:,}、"
+            + (f"{yen({model: tokens}):.2f} 円" if price_of(model) else "料金表に無い")
             for model, tokens in report.total.usage.items()
         )
     if missing := unpriced(list(report.total.usage)):

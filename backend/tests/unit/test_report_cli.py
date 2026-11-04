@@ -79,6 +79,7 @@ def test_the_total_lists_cost_by_model_and_names_models_without_a_price() -> Non
 
     assert lines[1] == "2026-11-04  1 件(成功 1)、費用 30.00 円"
     assert f"{INDENT}gpt-5.4-nano: 入力 1,000,000(うちキャッシュ 0)、出力 0、30.00 円" in lines
+    assert f"{INDENT}other-model: 入力 5(うちキャッシュ 0)、出力 5、料金表に無い" in lines
     assert lines[-1] == "料金表に無いモデルは費用に入れていません: other-model"
 
 

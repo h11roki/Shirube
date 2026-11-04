@@ -13,22 +13,18 @@ METER_LEVELS: list[ContextVar[UsageMetadataCallbackHandler | None]] = []
 METER_LEVELS_LOCK = Lock()
 
 
-def _level(depth: int) -> ContextVar[UsageMetadataCallbackHandler | None]:
-    with METER_LEVELS_LOCK:
-        while len(METER_LEVELS) <= depth:
-            level: ContextVar[UsageMetadataCallbackHandler | None] = ContextVar(
-                f"shirube_usage_{len(METER_LEVELS)}", default=None
-            )
-            register_configure_hook(level, inheritable=True)
-            METER_LEVELS.append(level)
-        return METER_LEVELS[depth]
-
-
 class LangChainUsageMeter:
     @contextmanager
     def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
         depth = METER_DEPTH.get()
-        level = _level(depth)
+        with METER_LEVELS_LOCK:
+            while len(METER_LEVELS) <= depth:
+                added: ContextVar[UsageMetadataCallbackHandler | None] = ContextVar(
+                    f"shirube_usage_{len(METER_LEVELS)}", default=None
+                )
+                register_configure_hook(added, inheritable=True)
+                METER_LEVELS.append(added)
+            level = METER_LEVELS[depth]
         handler = UsageMetadataCallbackHandler()
         handler_token = level.set(handler)
         depth_token = METER_DEPTH.set(depth + 1)
