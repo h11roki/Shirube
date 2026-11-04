@@ -18,7 +18,7 @@ from app.presentation.cli.reason_judging import (
 MODEL = "判定者のモデル"
 
 
-def trial(occupation: str, repeat: int = 1) -> dict[str, Any]:
+def trial(occupation: str, repeat: int = 1, label: str = "") -> dict[str, Any]:
     return {
         "occupation": occupation,
         "repeat": repeat,
@@ -30,7 +30,7 @@ def trial(occupation: str, repeat: int = 1) -> dict[str, Any]:
                     "name": f"柱{number}",
                     "relevance": "core",
                     "judgment": "expected",
-                    "reason": f"{occupation}の柱{number}の理由",
+                    "reason": f"{occupation}の柱{number}の理由{label}",
                     "prerequisite_for": None,
                 }
                 for number in range(40)
@@ -40,7 +40,7 @@ def trial(occupation: str, repeat: int = 1) -> dict[str, Any]:
                     "name": f"礎{number}",
                     "relevance": "foundation",
                     "judgment": "foundation",
-                    "reason": f"{occupation}の礎{number}の理由",
+                    "reason": f"{occupation}の礎{number}の理由{label}",
                     "prerequisite_for": "柱0",
                 }
                 for number in range(40)
@@ -50,11 +50,14 @@ def trial(occupation: str, repeat: int = 1) -> dict[str, Any]:
 
 
 def run_file(
-    tmp_path: Path, occupations: Sequence[str] = ("職業0", "職業1"), failed: str | None = None
+    tmp_path: Path,
+    occupations: Sequence[str] = ("職業0", "職業1"),
+    failed: str | None = None,
+    label: str = "",
 ) -> Path:
     path = tmp_path / "run.json"
-    trials = [trial(occupation) for occupation in occupations]
-    trials.append(trial(occupations[0], repeat=2))
+    trials = [trial(occupation, label=label) for occupation in occupations]
+    trials.append(trial(occupations[0], repeat=2, label=label))
     trials.append({"occupation": failed or occupations[1], "repeat": 1, "failure": "失敗"})
     path.write_text(json.dumps({"trials": trials}, ensure_ascii=False), encoding="utf-8")
     return path
@@ -92,14 +95,21 @@ def merge(tmp_path: Path, run: Path, votes: Sequence[str]) -> Path:
     return out
 
 
-def sampled_run(tmp_path: Path) -> Path:
-    run = run_file(tmp_path)
+def sampled_run(
+    tmp_path: Path, occupations: Sequence[str] = ("職業0", "職業1"), label: str = ""
+) -> Path:
+    run = run_file(tmp_path, occupations, label=label)
     main(["sample", str(run), "--out", str(tmp_path / "materials")])
     return run
 
 
-def merged(tmp_path: Path, grades: Sequence[str] = ("specific", "vague", "vague")) -> Path:
-    return merge(tmp_path, sampled_run(tmp_path), vote_files(tmp_path, grades))
+def merged(
+    tmp_path: Path,
+    grades: Sequence[str] = ("specific", "vague", "vague"),
+    occupations: Sequence[str] = ("職業0", "職業1"),
+    label: str = "",
+) -> Path:
+    return merge(tmp_path, sampled_run(tmp_path, occupations, label), vote_files(tmp_path, grades))
 
 
 def test_the_reasons_come_from_the_first_repeat_without_failed_trials(tmp_path: Path) -> None:
@@ -339,12 +349,17 @@ def test_check_refuses_judgments_that_drifted_from_the_run(
         main(["check", str(tmp_path / "run.json"), "--judgments", str(out)])
 
 
-def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run(
-    capsys: pytest.CaptureFixture[str],
+@pytest.mark.parametrize(
+    "judgments",
+    sorted(DEFAULT_REASON_JUDGMENTS.parent.glob("reason-judgments*.json")),
+    ids=lambda path: str(path.name),
+)
+def test_every_committed_judgments_file_matches_the_reasons_sampled_again_from_its_run(
+    judgments: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    run = RUNS / read_document(DEFAULT_REASON_JUDGMENTS)["run"]
+    run = RUNS / read_document(judgments)["run"]
 
-    main(["check", str(run)])
+    main(["check", str(run), "--judgments", str(judgments)])
 
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].endswith(f"は {run.name} の理由と合う")
@@ -352,11 +367,114 @@ def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run(
     assert lines[2].startswith("礎 74 件")
 
 
-def test_the_committed_judgments_are_written_back_unchanged(tmp_path: Path) -> None:
-    written = tmp_path / DEFAULT_REASON_JUDGMENTS.name
+@pytest.mark.parametrize(
+    "judgments",
+    sorted(DEFAULT_REASON_JUDGMENTS.parent.glob("reason-judgments*.json")),
+    ids=lambda path: str(path.name),
+)
+def test_every_committed_judgments_file_is_written_back_unchanged(
+    judgments: Path, tmp_path: Path
+) -> None:
+    written = tmp_path / judgments.name
 
-    write_document(written, read_document(DEFAULT_REASON_JUDGMENTS), VOTE_LINES)
+    write_document(written, read_document(judgments), VOTE_LINES)
 
-    assert written.read_text(encoding="utf-8") == DEFAULT_REASON_JUDGMENTS.read_text(
-        encoding="utf-8"
+    assert written.read_text(encoding="utf-8") == judgments.read_text(encoding="utf-8")
+
+
+MANY = [f"職業{index}" for index in range(12)]
+
+
+def compare(before_dir: Path, after_dir: Path) -> None:
+    main(
+        [
+            "compare",
+            "--before",
+            str(before_dir / "run.json"),
+            str(before_dir / "out.json"),
+            "--after",
+            str(after_dir / "run.json"),
+            str(after_dir / "out.json"),
+        ]
     )
+
+
+def test_compare_puts_the_two_sides_side_by_side_with_an_interval(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    merged(before_dir, ("vague", "vague", "vague"), MANY)
+    merged(after_dir, ("specific", "specific", "vague"), MANY, label="改")
+    capsys.readouterr()
+
+    compare(before_dir, after_dir)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == f"理由の文の比べ(前 {before_dir / 'run.json'}、後 {after_dir / 'run.json'})"
+    assert lines[1] == f"  判定者: {MODEL}(前と後で同じ)"
+    assert lines[2] == "  両方の結果にそろった職業 12 で区間を出す"
+    assert lines[3] == "  柱 76 件 → 76 件"
+    assert lines[4] == (
+        "    具体的 0(0.0%) → 76(100.0%)、+100.0 ポイント(95% 区間 +100.0〜+100.0、差あり)"
+    )
+    assert lines[5] == (
+        "    ぼんやり 76(100.0%) → 0(0.0%)、-100.0 ポイント(95% 区間 -100.0〜-100.0、差あり)"
+    )
+    assert lines[7] == "  礎 74 件 → 74 件"
+    assert lines[-1] == "  80 字を超える理由(1 回目の推薦): 前 0 / 960(0.0%)、後 0 / 960(0.0%)"
+
+
+def test_compare_tells_when_the_two_sides_were_judged_by_different_judges(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    merged(before_dir, ("vague", "vague", "vague"))
+    after = merged(after_dir, ("vague", "vague", "vague"), label="改")
+    document = read_document(after)
+    document["model"] = "別の判定者"
+    write_document(after, document, VOTE_LINES)
+    capsys.readouterr()
+
+    compare(before_dir, after_dir)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[1] == f"  判定者: 前 {MODEL}、後 別の判定者(違うので、差には判定者の違いも入る)"
+    assert lines[2] == "  両方の結果にそろった職業 2 で区間を出す"
+    assert lines[4].endswith("、+0.0 ポイント(区間は出さない: そろった職業が 10 に満たない)")
+    assert "(95% 区間" not in "\n".join(lines)
+
+
+def test_compare_leaves_out_the_reasons_of_occupations_missing_on_one_side(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    merged(before_dir, ("vague", "vague", "vague"), MANY)
+    merged(after_dir, ("specific", "specific", "vague"), [*MANY, "職業12", "職業13"], label="改")
+    capsys.readouterr()
+
+    compare(before_dir, after_dir)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[2].startswith(
+        "  両方の結果にそろった職業 12 で区間を出す(そろっていない職業の理由 "
+    )
+    assert lines[2].endswith(" 件は外した)")
+    assert lines[4].startswith("    具体的 0(0.0%) → ")
+    assert lines[4].endswith("、+100.0 ポイント(95% 区間 +100.0〜+100.0、差あり)")
+
+
+def test_compare_refuses_the_same_run_content_on_both_sides(tmp_path: Path) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    merged(before_dir)
+    merged(after_dir)
+
+    with pytest.raises(SystemExit, match="同じ実験の結果"):
+        compare(before_dir, after_dir)

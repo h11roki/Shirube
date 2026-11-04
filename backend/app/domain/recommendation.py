@@ -7,6 +7,8 @@ from app.domain.occupation import OccupationProfile
 from app.domain.ranking import CourseMatch
 from app.domain.syllabus import Syllabus
 
+REASON_LIMIT = 80
+
 
 class Relevance(Enum):
     CORE = "core"

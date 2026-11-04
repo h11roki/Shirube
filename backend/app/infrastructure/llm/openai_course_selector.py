@@ -8,12 +8,11 @@ from pydantic import BaseModel, SecretStr
 
 from app.application.ports import CourseSelectionError
 from app.domain.occupation import OccupationProfile
-from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
+from app.domain.recommendation import REASON_LIMIT, CandidateCourse, CourseChoice, Relevance
 
 OVERVIEW_LIMIT = 450
 OBJECTIVES_LIMIT = 250
 SCHEDULE_LIMIT = 350
-REASON_LIMIT = 80
 
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
@@ -35,6 +34,9 @@ core か foundation か迷った授業は、\
 
 理由には、その職業を目指す学生がなぜ取るべきかを、抜粋の中身に基づいて自分の言葉で \
 {REASON_LIMIT} 字以内で書きます。\
+core の理由には、その職業の仕事のどの作業や扱う対象に、授業のどの内容を使うかを書きます。\
+授業の内容を並べて「役立つ」「直結する」「基礎になる」で終えず、\
+仕事のどこで使うかを 1 つは名指しします。\
 foundation の理由には、prerequisite_for の授業のどの内容の前提になるかを、\
 両方の授業の抜粋に基づいて書きます。\
 抜粋の文をそのまま写さず、抜粋に書いていないことは書きません。\

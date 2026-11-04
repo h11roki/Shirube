@@ -85,6 +85,14 @@ def _rows(run: ScoredRun, occupations: Sequence[str]) -> dict[str, Rows]:
     }
 
 
+def interval_of(differences: Sequence[float]) -> Interval | None:
+    if not differences:
+        return None
+    ordered = sorted(differences)
+    cut = round(len(ordered) * (1 - CONFIDENCE) / 2)
+    return Interval(ordered[cut], ordered[len(ordered) - 1 - cut])
+
+
 def _interval(old: Rows, new: Rows, samples: Sequence[Sequence[int]]) -> Interval | None:
     differences = []
     for chosen in samples:
@@ -92,11 +100,7 @@ def _interval(old: Rows, new: Rows, samples: Sequence[Sequence[int]]) -> Interva
         if before is None or after is None:
             return None
         differences.append(after - before)
-    if not differences:
-        return None
-    differences.sort()
-    cut = round(len(differences) * (1 - CONFIDENCE) / 2)
-    return Interval(differences[cut], differences[len(differences) - 1 - cut])
+    return interval_of(differences)
 
 
 def _mixed(keep: Rows, take: Rows, swap: Sequence[bool]) -> Rows:

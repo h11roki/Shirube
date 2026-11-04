@@ -2,9 +2,12 @@ import argparse
 import sys
 from collections import Counter
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.application.compare_experiments import MIN_OCCUPATIONS
+from app.application.compare_reason_judgments import compare_shares
 from app.application.reason_judging import (
     GRADES,
     KIND_LABELS,
@@ -22,7 +25,7 @@ from app.application.reason_judging import (
     sample_reasons,
     verified_judgments,
 )
-from app.domain.recommendation import Relevance
+from app.domain.recommendation import REASON_LIMIT, Relevance
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     HELDOUT_DATASET,
@@ -152,7 +155,7 @@ def stored_judgment(entry: Mapping[str, Any]) -> StoredJudgment:
     return StoredJudgment(reason, ReasonGrade(entry["answer"]))
 
 
-def _samples(path: Path) -> tuple[list[SampledReason], str]:
+def _samples(path: Path) -> tuple[list[SampledReason], list[ReasonCase], str]:
     try:
         data = path.read_bytes()
         run = parse_document(data)
@@ -169,13 +172,13 @@ def _samples(path: Path) -> tuple[list[SampledReason], str]:
     if occupations & heldout:
         sys.exit("確かめ用の職業の入った結果は、判定者に見せないので使いません(ADR 0067)")
     try:
-        return sample_reasons(cases, occupations), digest(data)
+        return sample_reasons(cases, occupations), cases, digest(data)
     except ReasonJudgingError as error:
         sys.exit(f"理由を取り出せません: {error}")
 
 
 def _sample(args: argparse.Namespace) -> None:
-    samples, _ = _samples(args.run)
+    samples, _, _ = _samples(args.run)
     try:
         args.out.mkdir(parents=True, exist_ok=True)
         write_document(args.out / MATERIAL_FILE, materials(samples), frozenset())
@@ -206,7 +209,7 @@ def summary(judged: Sequence[JudgedReason]) -> list[str]:
 
 
 def _merge(args: argparse.Namespace) -> None:
-    samples, fingerprint = _samples(args.run)
+    samples, _, fingerprint = _samples(args.run)
     try:
         shown = read_document(args.materials / MATERIAL_FILE)
     except UNREADABLE as error:
@@ -235,8 +238,17 @@ def _merge(args: argparse.Namespace) -> None:
     print("\n".join([f"{args.out} に正解をまとめた", *summary(judged)]))
 
 
-def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
-    samples, fingerprint = _samples(run)
+@dataclass(frozen=True)
+class VerifiedSide:
+    name: str
+    judged: list[JudgedReason]
+    cases: list[ReasonCase]
+    fingerprint: str
+    model: str
+
+
+def verified_side(run: Path, judgments: Path) -> VerifiedSide:
+    samples, cases, fingerprint = _samples(run)
     try:
         expected = {
             "run_fingerprint": fingerprint,
@@ -246,6 +258,7 @@ def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
         }
         document = read_document(judgments)
         differing = [key for key, value in expected.items() if document[key] != value]
+        model = str(document["model"])
         stored = [stored_judgment(entry) for entry in document["reasons"]]
     except ReasonJudgingError as error:
         sys.exit(f"正解の票が決まりに合いません: {error}")
@@ -257,9 +270,80 @@ def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
             + "、".join(differing)
         )
     try:
-        return verified_judgments(samples, stored)
+        judged = verified_judgments(samples, stored)
     except ReasonJudgingError as error:
         sys.exit(f"正解が結果から取り直した理由と合いません: {error}")
+    return VerifiedSide(str(run), judged, cases, fingerprint, model)
+
+
+def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
+    return verified_side(run, judgments).judged
+
+
+def compare_lines(before: VerifiedSide, after: VerifiedSide) -> list[str]:
+    shared = {case.occupation for case in before.cases} & {case.occupation for case in after.cases}
+    old = [reason for reason in before.judged if reason.sample.case.occupation in shared]
+    new = [reason for reason in after.judged if reason.sample.case.occupation in shared]
+    left_out = len(before.judged) - len(old) + len(after.judged) - len(new)
+    comparison = compare_shares(old, new, shared)
+    lines = [f"理由の文の比べ(前 {before.name}、後 {after.name})"]
+    if before.model == after.model:
+        lines.append(f"  判定者: {before.model}(前と後で同じ)")
+    else:
+        lines.append(
+            f"  判定者: 前 {before.model}、後 {after.model}(違うので、差には判定者の違いも入る)"
+        )
+    lines.append(
+        f"  両方の結果にそろった職業 {comparison.occupations} で区間を出す"
+        + (f"(そろっていない職業の理由 {left_out} 件は外した)" if left_out else "")
+    )
+    for relevance, label in KIND_LABELS.items():
+        old_counts = Counter(r.answer for r in old if r.sample.case.relevance is relevance)
+        new_counts = Counter(r.answer for r in new if r.sample.case.relevance is relevance)
+        lines.append(f"  {label} {old_counts.total()} 件 → {new_counts.total()} 件")
+        for grade in reversed(GRADES):
+            change = comparison.changes[relevance][grade]
+            shown = [
+                f"{count}({share:.1%})" if share is not None else f"{count}(-)"
+                for count, share in (
+                    (old_counts[grade], change.before),
+                    (new_counts[grade], change.after),
+                )
+            ]
+            line = f"    {GRADE_LABELS[grade]} {shown[0]} → {shown[1]}"
+            if change.difference is not None:
+                line += f"、{change.difference * 100:+.1f} ポイント"
+            if change.interval is not None:
+                line += (
+                    f"(95% 区間 {change.interval.low * 100:+.1f}〜"
+                    f"{change.interval.high * 100:+.1f}、"
+                    + ("差あり" if change.clear else "はっきりしない")
+                    + ")"
+                )
+            elif change.difference is not None:
+                line += (
+                    "(区間は出さない: 選び直すと片側に理由が無い組があった)"
+                    if comparison.enough
+                    else f"(区間は出さない: そろった職業が {MIN_OCCUPATIONS} に満たない)"
+                )
+            lines.append(line)
+    long_shown = []
+    for name, side in (("前", before), ("後", after)):
+        long = sum(1 for case in side.cases if len(case.reason) > REASON_LIMIT)
+        share = f"({long / len(side.cases):.1%})" if side.cases else ""
+        long_shown.append(f"{name} {long} / {len(side.cases)}{share}")
+    lines.append(f"  {REASON_LIMIT} 字を超える理由(1 回目の推薦): " + "、".join(long_shown))
+    return lines
+
+
+def _compare(args: argparse.Namespace) -> None:
+    before, after = (verified_side(run, judgments) for run, judgments in (args.before, args.after))
+    if before.fingerprint == after.fingerprint:
+        sys.exit("前と後に同じ実験の結果を渡しています")
+    try:
+        print("\n".join(compare_lines(before, after)))
+    except ReasonJudgingError as error:
+        sys.exit(f"前と後を比べられません: {error}")
 
 
 def _check(args: argparse.Namespace) -> None:
@@ -289,6 +373,14 @@ def main(argv: Sequence[str] | None = None) -> None:
     check.add_argument("run", type=Path)
     check.add_argument("--judgments", type=Path, default=DEFAULT_REASON_JUDGMENTS)
     check.set_defaults(handle=_check)
+    compare = commands.add_parser(
+        "compare", help="前と後の正解を並べ、段の割合の差を職業を選び直す区間つきで出す"
+    )
+    for side in ("--before", "--after"):
+        compare.add_argument(
+            side, type=Path, nargs=2, required=True, metavar=("実験の結果", "正解")
+        )
+    compare.set_defaults(handle=_compare)
     args = parser.parse_args(argv)
     args.handle(args)
 
