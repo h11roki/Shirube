@@ -36,7 +36,7 @@ def test_each_day_shows_its_counts_cost_per_build_times_and_failures() -> None:
     lines = render(report_of(succeeded, failed)).splitlines()
 
     assert lines[0] == "2026-11-04 〜 2026-11-04(日本時間)に作り終えた道標"
-    assert lines[1] == "11-04  2 件(成功 1、失敗 1)、費用 30.00 円(1 件 15.00 円)"
+    assert lines[1] == "11-04  2 件(成功 1、失敗 1)、費用 30.00 円(1 回 15.00 円)"
     assert lines[2] == "       待ち 中央 2.0 秒、最大 2.0 秒 / 作る 中央 22.0 秒、最大 40.0 秒"
     assert lines[3] == (
         "       失敗 1 件: CourseSelectionError ← RateLimitError(insufficient_quota: 残高切れ)"
@@ -44,7 +44,7 @@ def test_each_day_shows_its_counts_cost_per_build_times_and_failures() -> None:
     assert "残高切れで失敗した道標が 1 件あります。OpenAI の残高を確かめてください" in lines
 
 
-def test_stalled_builds_are_not_counted_in_the_cost_per_build() -> None:
+def test_stalled_builds_are_not_counted_in_the_cost_per_run() -> None:
     lines = render(
         report_of(
             PlanBuild(BuildOutcome.SUCCEEDED, None, {}, NANO_MILLION),
@@ -52,8 +52,21 @@ def test_stalled_builds_are_not_counted_in_the_cost_per_build() -> None:
         )
     ).splitlines()
 
-    assert lines[1] == "11-04  2 件(成功 1、止まった 1)、費用 30.00 円(1 件 30.00 円)"
+    assert lines[1] == "11-04  2 件(成功 1、止まった 1)、費用 30.00 円(1 回 30.00 円)"
     assert lines[2] == "       待ち 中央 2.0 秒、最大 2.0 秒 / 作る -"
+
+
+def test_work_thrown_away_after_a_stall_is_shown_apart_from_the_plans() -> None:
+    lines = render(
+        report_of(
+            PlanBuild(BuildOutcome.STALLED),
+            PlanBuild(BuildOutcome.DISCARDED, OUT_OF_CREDIT, {PlanStage.ANALYZING: 1300.0}),
+        )
+    ).splitlines()
+
+    assert lines[1] == "11-04  1 件(止まった 1)、費用 0.00 円(1 回 0.00 円)"
+    assert lines[3] == "       止まったあとに作り終えて捨てた 1 回(費用と作る時間に入れた)"
+    assert not any("失敗" in line or "残高切れ" in line for line in lines)
 
 
 def test_the_total_lists_tokens_and_cost_by_model_and_names_models_without_a_price() -> None:

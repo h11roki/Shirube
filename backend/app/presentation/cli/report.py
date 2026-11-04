@@ -15,7 +15,6 @@ OUT_OF_CREDIT = "insufficient_quota"
 OUTCOME_LABELS = {
     BuildOutcome.SUCCEEDED: "成功",
     BuildOutcome.FAILED: "失敗",
-    BuildOutcome.DISCARDED: "捨てた",
     BuildOutcome.STALLED: "止まった",
 }
 CODE_LABELS = {OUT_OF_CREDIT: "残高切れ"}
@@ -49,20 +48,25 @@ def render(report: BuildReport) -> str:
 
 def _tally_lines(heading: str, tally: BuildTally) -> list[str]:
     outcomes = "、".join(
-        f"{OUTCOME_LABELS[outcome]} {tally.outcomes[outcome]}"
-        for outcome in BuildOutcome
+        f"{label} {tally.outcomes[outcome]}"
+        for outcome, label in OUTCOME_LABELS.items()
         if tally.outcomes[outcome]
     )
     cost = yen(tally.usage)
-    per_build = f"(1 件 {cost / tally.metered:.2f} 円)" if tally.metered else ""
-    return [
-        f"{heading}  {tally.builds} 件({outcomes})、費用 {cost:.2f} 円{per_build}",
+    per_run = f"(1 回 {cost / tally.metered:.2f} 円)" if tally.metered else ""
+    lines = [
+        f"{heading}  {tally.builds} 件{f'({outcomes})' if outcomes else ''}、"
+        f"費用 {cost:.2f} 円{per_run}",
         f"{INDENT}待ち {_spread(tally.queued_seconds)} / 作る {_spread(tally.build_seconds)}",
-        *(
-            f"{INDENT}失敗 {count} 件: {_cause(cause)}"
-            for cause, count in tally.causes.most_common()
-        ),
     ]
+    if discarded := tally.outcomes[BuildOutcome.DISCARDED]:
+        lines.append(
+            f"{INDENT}止まったあとに作り終えて捨てた {discarded} 回(費用と作る時間に入れた)"
+        )
+    lines.extend(
+        f"{INDENT}失敗 {count} 件: {_cause(cause)}" for cause, count in tally.causes.most_common()
+    )
+    return lines
 
 
 def _spread(seconds: Sequence[float]) -> str:

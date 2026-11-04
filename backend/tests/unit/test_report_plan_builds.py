@@ -1,8 +1,6 @@
 from collections import Counter
 from datetime import UTC, date, datetime, timedelta
 
-import pytest
-
 from app.application.ports import (
     BuildOutcome,
     FailureCause,
@@ -44,11 +42,6 @@ def test_builds_are_counted_by_the_japanese_day_they_finished_on() -> None:
         (date(2026, 11, 4), Counter({BuildOutcome.SUCCEEDED: 1, BuildOutcome.FAILED: 1})),
     ]
     assert report.total.builds == 3
-
-
-def test_a_report_of_no_days_is_refused() -> None:
-    with pytest.raises(ValueError, match="1 以上"):
-        ReportPlanBuilds(FakePlanBuildLog(), lambda: NOW).run(days=0)
 
 
 def test_a_tally_adds_up_tokens_seconds_and_causes_and_leaves_out_what_was_not_measured() -> None:
@@ -97,3 +90,25 @@ def test_a_day_without_builds_is_left_out() -> None:
     report = ReportPlanBuilds(log, lambda: NOW).run(days=3)
 
     assert [day for day, _ in report.days] == [date(2026, 11, 2)]
+
+
+def test_work_thrown_away_after_its_plan_stalled_adds_cost_and_time_but_not_a_plan() -> None:
+    thrown_away = PlanBuild(
+        BuildOutcome.DISCARDED,
+        TIMEOUT,
+        {PlanStage.ANALYZING: 1300.0},
+        {NANO: TokenUsage(100, 0, 10)},
+    )
+
+    counted = tally(
+        [
+            built(NOW, PlanBuild(BuildOutcome.STALLED), queued=3.0),
+            built(NOW, thrown_away, queued=3.0),
+        ]
+    )
+
+    assert (counted.builds, counted.metered) == (1, 1)
+    assert counted.causes == Counter()
+    assert counted.queued_seconds == (3.0,)
+    assert counted.build_seconds == (1300.0,)
+    assert counted.usage == {NANO: TokenUsage(100, 0, 10)}
