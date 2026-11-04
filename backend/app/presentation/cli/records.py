@@ -6,7 +6,6 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-YEN_PER_DOLLAR = 150
 LABEL = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
