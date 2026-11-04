@@ -157,7 +157,7 @@ flowchart TB
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を組み立てて起動し HTTPS とログインの戻り先を確かめる job
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-04): backend 736、Vitest 156、e2e 231
+- 試験の数(2026-11-04): backend 755、Vitest 148、e2e 232
 
 ## 本番の構成
 
@@ -166,7 +166,7 @@ flowchart TB
   <img src="docs/images/architecture.png" alt="構成図。利用者は DuckDNS の名前で、HTTPS で AWS シドニーの EC2 の Caddy に届き、Caddy は Let's Encrypt から証明書を取る。EC2 の中の Docker Compose で、Caddy から Next.js、JWT を付けて FastAPI、SQL で PostgreSQL(pgvector)へつながる。Next.js は Google でログインさせる。Worker は DB の待ちの道標を取り、OpenAI の gpt-5.4-mini(職業からスキル)、text-embedding-3-large(検索の埋め込み)、gpt-5.4-nano(3 回の多数決で授業を選ぶ)を呼ぶ。cron が毎日 pg_dump で DB を残す。下の段は、GitHub Actions の CI(Ruff、mypy、pytest、Vitest、Playwright、本番の compose の確かめ)と、手元の開発機で Playwright がシラバスを取り BeautifulSoup で解析して埋め込み、本番の DB へ移す流れと、ssh で出すデプロイ">
 </picture>
 
-AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が証明書を自動で取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出さず、バックアップは毎日取って 7 日分を残します。シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移すので、本番のイメージには取り込みの依存がありません。手順は[開発と本番の手順](docs/development.md#本番)、判断は [ADR 0075](docs/adr/0075-production-setup.md)〜[0077](docs/adr/0077-auth-url.md) にあります。図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
+AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が証明書を自動で取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出さず、バックアップは毎日取って 7 日分を残します。シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移すので、本番のイメージには取り込みの依存がありません。道標を作るごとに、費用、待ちと作る時間、失敗の種類(残高切れを見分ける)を誰のものか分からない形で残し、サーバーの CLI で日ごとに見ます([ADR 0087](docs/adr/0087-build-records.md))。手順は[開発と本番の手順](docs/development.md#本番)、判断は [ADR 0075](docs/adr/0075-production-setup.md)〜[0077](docs/adr/0077-auth-url.md) にあります。図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
 
 ## 技術
 

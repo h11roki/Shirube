@@ -93,6 +93,14 @@ docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube 
 docker compose -f compose.prod.yaml up -d
 ```
 
+### 道標を作った記録
+
+worker は道標を作り終えるごとに、結果、失敗の種類、待ちと段ごとの秒、モデルごとのトークンを `plan_builds` の表に残す。利用者の番号も入力も持たず、道標を消しても退会しても残る(ADR 0087)。サーバーで次を流すと、日本時間の日ごとに、件数、費用、待ちと作る時間、失敗の種類を出す(`--days` で日数、既定 14)。費用は本番の分だけで手元の実験の分は入らないので、OpenAI の残高は OpenAI の画面で見る。「残高切れ」の失敗が出たら、残高を足す。
+
+```sh
+docker compose -f compose.prod.yaml exec backend uv run --no-sync python -m app.presentation.cli.report
+```
+
 ### バックアップ
 
 サーバーの cron で毎日 `backup.sh` を流し、DB 全体の `pg_dump` を `~/backups` に新しい 7 つだけ残す(`mkdir ~/backups` のあと `crontab -e` に書く)。7 日より古いものは、失敗が続いてもサーバーを止めていても、次に流れたときに初めに消す。ファイルは本人だけが読める権限で作り、同時には 1 つしか流れない。途中で失敗すると `.partial` のまま残り、`backup.log` に理由が出る。退会した人の情報もバックアップには最長 7 日残ることを、プライバシーポリシーに書いている。サーバーの中にだけ残るので、ディスクごと失うと消える(ADR 0075)。
