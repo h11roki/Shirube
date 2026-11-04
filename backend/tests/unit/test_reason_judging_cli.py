@@ -360,3 +360,46 @@ def test_the_committed_judgments_are_written_back_unchanged(tmp_path: Path) -> N
     assert written.read_text(encoding="utf-8") == DEFAULT_REASON_JUDGMENTS.read_text(
         encoding="utf-8"
     )
+
+
+def test_compare_puts_the_two_sides_side_by_side_with_an_interval(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    before = merged(before_dir, ("vague", "vague", "vague"))
+    after = merged(after_dir, ("specific", "specific", "vague"))
+    capsys.readouterr()
+
+    main(
+        [
+            "compare",
+            "--before",
+            str(before_dir / "run.json"),
+            str(before),
+            "--after",
+            str(after_dir / "run.json"),
+            str(after),
+        ]
+    )
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[0] == "理由の文の比べ(前 run.json、後 run.json)"
+    assert lines[1] == "  柱 76 件 → 76 件"
+    assert lines[2] == (
+        "    具体的 0(0.0%) → 76(100.0%)、+100.0 ポイント(95% 区間 +100.0〜+100.0、差あり)"
+    )
+    assert lines[3] == (
+        "    ぼんやり 76(100.0%) → 0(0.0%)、-100.0 ポイント(95% 区間 -100.0〜-100.0、差あり)"
+    )
+    assert lines[5] == "  礎 74 件 → 74 件"
+    assert lines[-1] == "  80 字を超える理由: 前 0 / 160(0.0%)、後 0 / 160(0.0%)"
+
+
+def test_compare_refuses_the_same_run_on_both_sides(tmp_path: Path) -> None:
+    out = merged(tmp_path)
+    run = str(tmp_path / "run.json")
+
+    with pytest.raises(SystemExit, match="同じ実験の結果"):
+        main(["compare", "--before", run, str(out), "--after", run, str(out)])
