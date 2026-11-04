@@ -1,0 +1,15 @@
+{
+  "checks": [
+    {
+      "date": "2026-11-04",
+      "model": "gpt-5.4-mini",
+      "prompt": "e169f49a",
+      "kappa": 0.543,
+      "agreed": 56,
+      "judged": 75,
+      "failed": 0,
+      "spent_yen": 13.01,
+      "adopted": false
+    }
+  ]
+}

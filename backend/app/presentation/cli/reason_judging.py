@@ -7,6 +7,7 @@ from typing import Any
 
 from app.application.reason_judging import (
     GRADES,
+    KIND_LABELS,
     SEED,
     JudgedReason,
     ReasonCase,
@@ -38,7 +39,6 @@ PROMPT = DEFAULT_DATASET.with_name("reason-judge-prompt.md")
 INSTRUCTIONS_HEADING = "\n## 指示文\n"
 REPEAT = 1
 VOTE_LINES = frozenset({"votes"})
-KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 GRADE_LABELS = {
     ReasonGrade.SPECIFIC: "具体的",
     ReasonGrade.VAGUE: "ぼんやり",
@@ -235,8 +235,8 @@ def _merge(args: argparse.Namespace) -> None:
     print("\n".join([f"{args.out} に正解をまとめた", *summary(judged)]))
 
 
-def _check(args: argparse.Namespace) -> None:
-    samples, fingerprint = _samples(args.run)
+def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
+    samples, fingerprint = _samples(run)
     try:
         expected = {
             "run_fingerprint": fingerprint,
@@ -244,7 +244,7 @@ def _check(args: argparse.Namespace) -> None:
             "repeat": REPEAT,
             "prompt_fingerprint": instructions_fingerprint(),
         }
-        document = read_document(args.judgments)
+        document = read_document(judgments)
         differing = [key for key, value in expected.items() if document[key] != value]
         stored = [stored_judgment(entry) for entry in document["reasons"]]
     except ReasonJudgingError as error:
@@ -257,9 +257,13 @@ def _check(args: argparse.Namespace) -> None:
             + "、".join(differing)
         )
     try:
-        judged = verified_judgments(samples, stored)
+        return verified_judgments(samples, stored)
     except ReasonJudgingError as error:
         sys.exit(f"正解が結果から取り直した理由と合いません: {error}")
+
+
+def _check(args: argparse.Namespace) -> None:
+    judged = verified_answers(args.run, args.judgments)
     print("\n".join([f"{args.judgments} は {args.run.name} の理由と合う", *summary(judged)]))
 
 

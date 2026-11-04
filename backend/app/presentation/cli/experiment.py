@@ -50,7 +50,13 @@ from app.application.evaluate_selection import (
     SelectionResult,
     UnlinkedPick,
 )
-from app.application.ports import EmbeddingError, TokenUsage
+from app.application.measure_reason_agreement import (
+    KAPPA_TO_ADOPT,
+    MeasureReasonAgreement,
+    ReasonAgreement,
+)
+from app.application.ports import EmbeddingError, ReasonJudgeUnavailableError, TokenUsage
+from app.application.reason_judging import GRADES, KIND_LABELS, Split
 from app.application.run_experiment import (
     ExperimentSummary,
     FailedTrial,
@@ -69,29 +75,41 @@ from app.domain.recommendation import Relevance, majority
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
+from app.infrastructure.llm.openai_reason_judge import JUDGE_PROMPT as REASON_JUDGE_PROMPT
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     DEFAULT_JUDGMENTS,
+    UNREADABLE,
     load_dataset,
     load_judgments,
+    read_document,
     shown_reason,
     silence_heldout_logs,
+    write_document,
 )
 from app.presentation.cli.labels import JUDGMENT_LABELS, SEARCH_MODES
 from app.presentation.cli.prices import unpriced, yen
+from app.presentation.cli.reason_judging import (
+    DEFAULT_REASON_JUDGMENTS,
+    GRADE_LABELS,
+    SPLIT_LABELS,
+    verified_answers,
+)
 from app.presentation.cli.records import current_commit, digest, label, reserve
 from app.presentation.composition import (
     course_selector,
     database_engine,
     load_settings,
     occupation_analyzer,
+    reason_judge,
     search_courses,
 )
 from app.settings import Settings
 
 RUNS = DEFAULT_DATASET.with_name("runs")
 HELDOUT_RUNS = DEFAULT_DATASET.parents[1] / "data" / "heldout-runs"
+REASON_CHECKS = DEFAULT_DATASET.with_name("reason-agreement-checks.json")
 FAILURE_STREAK_LIMIT = 3
 STOPPING_ERRORS: tuple[type[Exception], ...] = (EvaluationError, SearchError, SQLAlchemyError)
 RUN_CONTROLS = frozenset({"budget"})
@@ -977,6 +995,127 @@ def _analyze(args: argparse.Namespace) -> None:
     print(render_analysis(heading, readings, analysis, dataset))
 
 
+def reason_agreement_lines(
+    agreement: ReasonAgreement, split: Split, model: str, prompt: str, spent: float
+) -> list[str]:
+    def kappa_of(part: ReasonAgreement) -> str:
+        kappa = part.kappa
+        shown = "-" if kappa is None else f"{kappa:.2f}"
+        return f"κ {shown}(一致 {part.agreed} / {len(part.pairs)})"
+
+    confusion = agreement.confusion
+    lines = [
+        f"判定器と正解の一致({SPLIT_LABELS[split]} "
+        f"{len(agreement.pairs) + len(agreement.failures)} 件、{model}、指示文 {prompt}、"
+        f"{spent:.2f} 円)",
+        f"  全体 {kappa_of(agreement)}",
+        *(
+            f"  {label} {kappa_of(agreement.of(relevance))}"
+            for relevance, label in KIND_LABELS.items()
+        ),
+        "  取り違え(正解の段ごとの、判定器の段)",
+        *(
+            f"    正解 {GRADE_LABELS[answer]}: "
+            + "、".join(
+                f"{GRADE_LABELS[judged]} {confusion[(answer, judged)]}"
+                for judged in reversed(GRADES)
+            )
+            for answer in reversed(GRADES)
+        ),
+    ]
+    if agreement.failures:
+        lines.append(f"  判定器が答えられなかった {len(agreement.failures)} 件")
+    if split is Split.CHECK:
+        verdict = "満たす" if agreement.adoptable else "満たさない"
+        condition = f"全件を判定でき、全体の κ {KAPPA_TO_ADOPT} 以上"
+        return [*lines, f"  採る条件({condition})を{verdict}"]
+    return [
+        *lines,
+        "  食い違い",
+        *(
+            f"    {pair.reason.sample.key} {KIND_LABELS[pair.reason.sample.case.relevance]} "
+            f"{pair.reason.sample.case.interpretation} / {pair.reason.sample.case.course}: "
+            f"正解 {GRADE_LABELS[pair.reason.answer]}、判定器 {GRADE_LABELS[pair.vote.grade]}"
+            f"「{pair.vote.why}」\n      {pair.reason.sample.case.reason}"
+            for pair in agreement.pairs
+            if not pair.agrees
+        ),
+        *(f"    {failure.reason.sample.key}: {failure.message}" for failure in agreement.failures),
+    ]
+
+
+def _reason_agreement(args: argparse.Namespace) -> None:
+    run = args.run
+    if run is None:
+        try:
+            run = RUNS / read_document(args.judgments)["run"]
+        except UNREADABLE as error:
+            sys.exit(f"理由の文の正解を読めません: {error!r}")
+    split = Split(args.split)
+    answers = [
+        reason for reason in verified_answers(run, args.judgments) if reason.sample.split is split
+    ]
+    settings = load_settings()
+    model = settings.reason_judge_model
+    if unpriced([model]):
+        sys.exit(f"料金表に無いモデルでは流しません: {model}(cli/prices.py に足す)")
+    prompt = digest(REASON_JUDGE_PROMPT.encode())
+    checks: list[dict[str, Any]] = []
+    if split is Split.CHECK and REASON_CHECKS.exists():
+        try:
+            checks = list(read_document(REASON_CHECKS)["checks"])
+            used = [
+                check["date"]
+                for check in checks
+                if (check["model"], check["prompt"]) == (model, prompt)
+            ]
+        except UNREADABLE as error:
+            sys.exit(f"確かめる用を使った記録を読めません: {error!r}")
+        if used:
+            sys.exit(
+                f"確かめる用は、この判定器({model}、指示文 {prompt})で {used[0]} に使いました。"
+                "決まりかモデルを替えることと採る条件を ADR に書いてから流してください"
+            )
+    measure = MeasureReasonAgreement(reason_judge(settings))
+    with LangChainUsageMeter().meter() as usage:
+        try:
+            agreement = measure.run(answers)
+        except ReasonJudgeUnavailableError as error:
+            sys.exit(
+                f"判定器を呼べませんでした({yen(usage()):.2f} 円使った。"
+                f"確かめる用を使った記録は残さない): {error}"
+            )
+        spent = yen(usage())
+        missing = unpriced(list(usage()))
+    print("\n".join(reason_agreement_lines(agreement, split, model, prompt, spent)))
+    if missing:
+        print(f"  料金表に無いモデルの分は費用に入れていません: {'、'.join(missing)}")
+    if split is not Split.CHECK:
+        return
+    if not agreement.pairs:
+        sys.exit("1 件も判定できなかったので、確かめる用を使った記録は残しません")
+    kappa = agreement.kappa
+    checks.append(
+        {
+            "date": datetime.now(UNIVERSITY_TIME).date().isoformat(),
+            "model": model,
+            "prompt": prompt,
+            "kappa": None if kappa is None else round(kappa, 3),
+            "agreed": agreement.agreed,
+            "judged": len(agreement.pairs),
+            "failed": len(agreement.failures),
+            "spent_yen": round(spent, 2),
+            "adopted": agreement.adoptable,
+        }
+    )
+    try:
+        write_document(REASON_CHECKS, {"checks": checks}, frozenset())
+    except OSError as error:
+        sys.exit(
+            f"確かめる用を使った記録を書けません(上の結果を {REASON_CHECKS} に手で足す): {error}"
+        )
+
+
 def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="推薦を通しで流して、精度・揺れ・費用・時間を測る")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -1014,6 +1153,14 @@ def arguments(argv: Sequence[str] | None = None) -> argparse.Namespace:
     examine.add_argument("run", type=Path)
     examine.add_argument("--dataset", type=Path, default=DEFAULT_DATASET)
     examine.set_defaults(handle=_analyze)
+    agreement = commands.add_parser(
+        "reason-agreement",
+        help="理由の文の判定器を、正解の整える用か確かめる用で流し、正解との一致を出す",
+    )
+    agreement.add_argument("--split", choices=[split.value for split in Split], required=True)
+    agreement.add_argument("--judgments", type=Path, default=DEFAULT_REASON_JUDGMENTS)
+    agreement.add_argument("--run", type=Path)
+    agreement.set_defaults(handle=_reason_agreement)
     args = parser.parse_args(argv)
     if args.command in ("run", "pair") and args.repeat < 1:
         parser.error("--repeat は 1 以上にしてください")

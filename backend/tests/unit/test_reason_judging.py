@@ -10,6 +10,7 @@ from app.application.reason_judging import (
     SampledReason,
     Split,
     StoredJudgment,
+    cohen_kappa,
     fleiss_kappa,
     judged_reasons,
     sample_reasons,
@@ -233,3 +234,18 @@ def test_fleiss_kappa_needs_the_same_two_or_more_votes_for_every_reason(
 ) -> None:
     with pytest.raises(ReasonJudgingError, match="同じ数の 2 つ以上の票"):
         fleiss_kappa(ratings)
+
+
+def test_cohen_kappa_removes_the_agreement_expected_by_chance() -> None:
+    pairs = [(SPECIFIC, SPECIFIC), (SPECIFIC, VAGUE), (VAGUE, VAGUE), (ABSENT, ABSENT)]
+
+    assert cohen_kappa(pairs) == pytest.approx((0.75 - 0.3125) / (1 - 0.3125))
+
+
+def test_cohen_kappa_is_undefined_when_both_sides_always_give_the_same_grade() -> None:
+    assert cohen_kappa([(VAGUE, VAGUE), (VAGUE, VAGUE)]) is None
+
+
+def test_cohen_kappa_needs_pairs() -> None:
+    with pytest.raises(ReasonJudgingError, match="比べる段の組がありません"):
+        cohen_kappa([])

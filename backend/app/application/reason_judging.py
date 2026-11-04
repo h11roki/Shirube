@@ -8,6 +8,7 @@ from app.domain.recommendation import Relevance
 SEED = 0
 JUDGES = 3
 PER_SPLIT = {Relevance.CORE: 38, Relevance.FOUNDATION: 37}
+KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
 WHY_LENGTH = 60
 
 
@@ -156,4 +157,20 @@ def fleiss_kappa(ratings: Sequence[Sequence[ReasonGrade]]) -> float | None:
     observed = sum(
         (sum(tally**2 for tally in row) - count) / (count * (count - 1)) for row in tallies
     ) / len(tallies)
+    return (observed - chance) / (1 - chance)
+
+
+def cohen_kappa(pairs: Sequence[tuple[ReasonGrade, ReasonGrade]]) -> float | None:
+    if not pairs:
+        raise ReasonJudgingError("比べる段の組がありません")
+    total = len(pairs)
+    observed = sum(1 for left, right in pairs if left is right) / total
+    chance = sum(
+        sum(1 for left, _ in pairs if left is grade)
+        * sum(1 for _, right in pairs if right is grade)
+        / (total * total)
+        for grade in GRADES
+    )
+    if chance == 1:
+        return None
     return (observed - chance) / (1 - chance)
