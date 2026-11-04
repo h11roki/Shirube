@@ -41,6 +41,10 @@ class ReasonAgreement:
         )
 
     @property
+    def agreed(self) -> int:
+        return sum(1 for pair in self.pairs if pair.agrees)
+
+    @property
     def kappa(self) -> float | None:
         if not self.pairs:
             return None

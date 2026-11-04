@@ -3,7 +3,7 @@ from collections.abc import Mapping
 import pytest
 
 from app.application.measure_reason_agreement import MeasureReasonAgreement
-from app.application.ports import ReasonJudgeError
+from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError
 from app.application.reason_judging import (
     JudgedReason,
     ReasonCase,
@@ -126,3 +126,19 @@ def test_a_kind_without_judged_reasons_has_no_kappa() -> None:
 
     assert only_failed.of(Relevance.CORE).kappa is None
     assert only_failed.of(Relevance.FOUNDATION).kappa is None
+
+
+class UnreachableJudge(FixedJudge):
+    def judge(self, case: ReasonCase) -> ReasonVote:
+        raise ReasonJudgeUnavailableError("呼べません")
+
+
+def test_a_judge_that_cannot_be_called_stops_the_measurement() -> None:
+    with pytest.raises(ReasonJudgeUnavailableError, match="呼べません"):
+        MeasureReasonAgreement(UnreachableJudge({})).run(REASONS)
+
+
+def test_the_agreed_count_is_the_number_of_matching_pairs() -> None:
+    grades = {"理由1": SPECIFIC, "理由2": SPECIFIC, "理由3": ABSENT, "理由4": VAGUE, "理由5": VAGUE}
+
+    assert MeasureReasonAgreement(FixedJudge(grades)).run(REASONS).agreed == 3

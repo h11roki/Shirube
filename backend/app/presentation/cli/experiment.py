@@ -55,7 +55,7 @@ from app.application.measure_reason_agreement import (
     MeasureReasonAgreement,
     ReasonAgreement,
 )
-from app.application.ports import EmbeddingError, TokenUsage
+from app.application.ports import EmbeddingError, ReasonJudgeUnavailableError, TokenUsage
 from app.application.reason_judging import GRADES, KIND_LABELS, Split
 from app.application.run_experiment import (
     ExperimentSummary,
@@ -75,7 +75,7 @@ from app.domain.recommendation import Relevance, majority
 from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.llm import openai_occupation_analyzer as occupation_prompt
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
-from app.infrastructure.llm.openai_reason_judge import INSTRUCTIONS as REASON_JUDGE_INSTRUCTIONS
+from app.infrastructure.llm.openai_reason_judge import JUDGE_PROMPT as REASON_JUDGE_PROMPT
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
@@ -1000,9 +1000,8 @@ def reason_agreement_lines(
 ) -> list[str]:
     def kappa_of(part: ReasonAgreement) -> str:
         kappa = part.kappa
-        agreed = sum(1 for pair in part.pairs if pair.agrees)
         shown = "-" if kappa is None else f"{kappa:.2f}"
-        return f"κ {shown}(一致 {agreed} / {len(part.pairs)})"
+        return f"κ {shown}(一致 {part.agreed} / {len(part.pairs)})"
 
     confusion = agreement.confusion
     lines = [
@@ -1045,15 +1044,6 @@ def reason_agreement_lines(
     ]
 
 
-def _reason_checks(path: Path) -> list[dict[str, Any]]:
-    if not path.exists():
-        return []
-    try:
-        return list(read_document(path)["checks"])
-    except UNREADABLE as error:
-        sys.exit(f"確かめる用を使った記録を読めません: {error!r}")
-
-
 def _reason_agreement(args: argparse.Namespace) -> None:
     run = args.run
     if run is None:
@@ -1067,16 +1057,34 @@ def _reason_agreement(args: argparse.Namespace) -> None:
     ]
     settings = load_settings()
     model = settings.reason_judge_model
-    prompt = digest(REASON_JUDGE_INSTRUCTIONS.encode())
-    checks = _reason_checks(args.checks) if split is Split.CHECK else []
-    if used := [check for check in checks if (check["model"], check["prompt"]) == (model, prompt)]:
-        sys.exit(
-            f"確かめる用は、この判定器({model}、指示文 {prompt})で {used[0]['date']} に使いました。"
-            "決まりかモデルを替えることと採る条件を ADR に書いてから流してください"
-        )
+    if unpriced([model]):
+        sys.exit(f"料金表に無いモデルでは流しません: {model}(cli/prices.py に足す)")
+    prompt = digest(REASON_JUDGE_PROMPT.encode())
+    checks: list[dict[str, Any]] = []
+    if split is Split.CHECK and args.checks.exists():
+        try:
+            checks = list(read_document(args.checks)["checks"])
+            used = [
+                check["date"]
+                for check in checks
+                if (check["model"], check["prompt"]) == (model, prompt)
+            ]
+        except UNREADABLE as error:
+            sys.exit(f"確かめる用を使った記録を読めません: {error!r}")
+        if used:
+            sys.exit(
+                f"確かめる用は、この判定器({model}、指示文 {prompt})で {used[0]} に使いました。"
+                "決まりかモデルを替えることと採る条件を ADR に書いてから流してください"
+            )
     measure = MeasureReasonAgreement(reason_judge(settings))
     with LangChainUsageMeter().meter() as usage:
-        agreement = measure.run(answers)
+        try:
+            agreement = measure.run(answers)
+        except ReasonJudgeUnavailableError as error:
+            sys.exit(
+                f"判定器を呼べませんでした({yen(usage()):.2f} 円使った。"
+                f"確かめる用を使った記録は残さない): {error}"
+            )
         spent = yen(usage())
     print("\n".join(reason_agreement_lines(agreement, split, model, prompt, spent)))
     if split is not Split.CHECK:
@@ -1088,7 +1096,7 @@ def _reason_agreement(args: argparse.Namespace) -> None:
             "model": model,
             "prompt": prompt,
             "kappa": None if kappa is None else round(kappa, 3),
-            "agreed": sum(1 for pair in agreement.pairs if pair.agrees),
+            "agreed": agreement.agreed,
             "judged": len(agreement.pairs),
             "failed": len(agreement.failures),
             "spent_yen": round(spent, 2),

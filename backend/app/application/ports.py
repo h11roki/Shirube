@@ -76,6 +76,10 @@ class ReasonJudgeError(ValueError):
     pass
 
 
+class ReasonJudgeUnavailableError(ValueError):
+    pass
+
+
 class ReasonJudge(Protocol):
     def judge(self, case: ReasonCase) -> ReasonVote: ...
 

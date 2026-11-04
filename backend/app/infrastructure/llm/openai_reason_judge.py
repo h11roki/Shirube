@@ -1,3 +1,4 @@
+import json
 from typing import Literal, Self
 
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -6,7 +7,7 @@ from langchain_openai.chat_models.base import OpenAIRefusalError
 from openai import ContentFilterFinishReasonError, LengthFinishReasonError, OpenAIError
 from pydantic import BaseModel, Field, SecretStr
 
-from app.application.ports import ReasonJudgeError
+from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError
 from app.application.reason_judging import (
     KIND_LABELS,
     WHY_LENGTH,
@@ -119,6 +120,13 @@ class _Verdict(BaseModel):
     grade: Literal["specific", "vague", "absent"] = Field(description="理由の文の段")
 
 
+JUDGE_PROMPT = (
+    INSTRUCTIONS
+    + "\n"
+    + json.dumps(_Verdict.model_json_schema(), ensure_ascii=False, sort_keys=True)
+)
+
+
 def _request(case: ReasonCase) -> str:
     lines = [f"職業: {case.interpretation}"]
     if case.assumption is not None:
@@ -158,4 +166,4 @@ class OpenAIReasonJudge:
             message = (
                 f"{case.occupation} の {case.course}: OpenAI の API 呼び出しに失敗しました: {error}"
             )
-            raise ReasonJudgeError(message) from error
+            raise ReasonJudgeUnavailableError(message) from error

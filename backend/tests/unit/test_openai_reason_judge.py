@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from app.application.ports import ReasonJudgeError
+from app.application.ports import ReasonJudgeError, ReasonJudgeUnavailableError
 from app.application.reason_judging import ReasonCase, ReasonGrade, ReasonVote
 from app.domain.recommendation import Relevance
 from app.infrastructure.llm.openai_reason_judge import INSTRUCTIONS, OpenAIReasonJudge
@@ -73,8 +73,8 @@ def test_an_unusable_answer_is_a_judge_error(message: dict[str, Any]) -> None:
         judge.judge(CORE)
 
 
-def test_a_failed_api_call_is_a_judge_error() -> None:
+def test_a_failed_api_call_tells_that_the_judge_could_not_be_called() -> None:
     judge = OpenAIReasonJudge(chat_failing(400))
 
-    with pytest.raises(ReasonJudgeError, match="OpenAI の API 呼び出しに失敗しました"):
+    with pytest.raises(ReasonJudgeUnavailableError, match="OpenAI の API 呼び出しに失敗しました"):
         judge.judge(CORE)
