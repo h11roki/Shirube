@@ -34,7 +34,8 @@ from app.presentation.cli.records import digest
 
 DEFAULT_REASON_JUDGMENTS = DEFAULT_DATASET.with_name("reason-judgments.json")
 MATERIAL_FILE = "reasons.json"
-PROMPT_FILE = "reason-judge-prompt.md"
+PROMPT = DEFAULT_DATASET.with_name("reason-judge-prompt.md")
+INSTRUCTIONS_HEADING = "\n## 指示文\n"
 REPEAT = 1
 VOTE_LINES = frozenset({"votes"})
 KIND_LABELS = {Relevance.CORE: "柱", Relevance.FOUNDATION: "礎"}
@@ -79,10 +80,19 @@ def materials(samples: Sequence[SampledReason]) -> list[dict[str, Any]]:
 
 
 def parsed_vote(entry: Mapping[str, Any]) -> ReasonVote:
-    grade = entry["grade"]
-    if grade not in set(ReasonGrade):
+    grade, why = entry["grade"], entry["why"]
+    if not isinstance(grade, str) or grade not in set(ReasonGrade):
         raise ReasonJudgingError(f"段は {'、'.join(GRADES)} のどれかにしてください: {grade!r}")
-    return ReasonVote(ReasonGrade(grade), entry["why"])
+    if not isinstance(why, str):
+        raise ReasonJudgingError(f"根拠は文字列にしてください: {why!r}")
+    return ReasonVote(ReasonGrade(grade), why)
+
+
+def instructions_fingerprint() -> str:
+    _, heading, instructions = PROMPT.read_text(encoding="utf-8").partition(INSTRUCTIONS_HEADING)
+    if not heading:
+        raise ValueError(f"{PROMPT.name} に「指示文」の節がありません")
+    return digest(instructions.encode())
 
 
 def judge_output(document: Mapping[str, Any]) -> dict[str, ReasonVote]:
@@ -95,7 +105,7 @@ def judge_output(document: Mapping[str, Any]) -> dict[str, ReasonVote]:
 
 
 def judged_document(
-    run: str, fingerprint: str, model: str, judged: Sequence[JudgedReason]
+    run: str, fingerprint: str, model: str, prompt: str, judged: Sequence[JudgedReason]
 ) -> dict[str, Any]:
     return {
         "run": run,
@@ -103,7 +113,8 @@ def judged_document(
         "repeat": REPEAT,
         "seed": SEED,
         "model": model,
-        "prompt": PROMPT_FILE,
+        "prompt": PROMPT.name,
+        "prompt_fingerprint": prompt,
         "reasons": [
             {
                 "id": reason.sample.key,
@@ -158,7 +169,7 @@ def _samples(path: Path) -> tuple[list[SampledReason], str]:
     if occupations & heldout:
         sys.exit("確かめ用の職業の入った結果は、判定者に見せないので使いません(ADR 0067)")
     try:
-        return sample_reasons(cases), digest(data)
+        return sample_reasons(cases, occupations), digest(data)
     except ReasonJudgingError as error:
         sys.exit(f"理由を取り出せません: {error}")
 
@@ -183,17 +194,14 @@ def summary(judged: Sequence[JudgedReason]) -> list[str]:
     for relevance, label in KIND_LABELS.items():
         chosen = [reason for reason in judged if reason.sample.case.relevance is relevance]
         kappa = fleiss_kappa([[vote.grade for vote in reason.votes] for reason in chosen])
+        answers = Counter(reason.answer for reason in chosen)
         lines.append(
-            f"{label} {len(chosen)} 件(3 体の一致 Fleiss の κ "
+            f"{label} {len(chosen)} 件: "
+            + "、".join(f"{GRADE_LABELS[grade]} {answers[grade]}" for grade in reversed(GRADES))
+            + "(3 体の一致 Fleiss の κ "
             + ("-" if kappa is None else f"{kappa:.2f}")
             + ")"
         )
-        for split in Split:
-            answers = Counter(reason.answer for reason in chosen if reason.sample.split is split)
-            lines.append(
-                f"  {SPLIT_LABELS[split]}: "
-                + "、".join(f"{GRADE_LABELS[grade]} {answers[grade]}" for grade in reversed(GRADES))
-            )
     return lines
 
 
@@ -215,7 +223,11 @@ def _merge(args: argparse.Namespace) -> None:
         sys.exit(f"判定者の出力が決まりに合いません: {error}")
     except UNREADABLE as error:
         sys.exit(f"判定者の出力を読めません: {error!r}")
-    document = judged_document(args.run.name, fingerprint, args.model, judged)
+    try:
+        prompt = instructions_fingerprint()
+    except UNREADABLE as error:
+        sys.exit(f"判定者の指示文を読めません: {error!r}")
+    document = judged_document(args.run.name, fingerprint, args.model, prompt, judged)
     try:
         write_document(args.out, document, VOTE_LINES)
     except OSError as error:
@@ -226,24 +238,24 @@ def _merge(args: argparse.Namespace) -> None:
 def _check(args: argparse.Namespace) -> None:
     samples, fingerprint = _samples(args.run)
     try:
+        expected = {
+            "run_fingerprint": fingerprint,
+            "seed": SEED,
+            "repeat": REPEAT,
+            "prompt_fingerprint": instructions_fingerprint(),
+        }
         document = read_document(args.judgments)
-        made_from = {key: document[key] for key in ("run", "run_fingerprint", "seed", "repeat")}
-        prompt = document["prompt"]
+        differing = [key for key, value in expected.items() if document[key] != value]
         stored = [stored_judgment(entry) for entry in document["reasons"]]
     except ReasonJudgingError as error:
         sys.exit(f"正解の票が決まりに合いません: {error}")
     except UNREADABLE as error:
-        sys.exit(f"正解を読めません: {error!r}")
-    expected = {
-        "run": args.run.name,
-        "run_fingerprint": fingerprint,
-        "seed": SEED,
-        "repeat": REPEAT,
-    }
-    if made_from != expected:
-        sys.exit(f"正解は別の結果か取り出し方から作っています: {made_from}")
-    if prompt != PROMPT_FILE:
-        sys.exit(f"正解は別の指示文で付けています: {prompt}")
+        sys.exit(f"正解か判定者の指示文を読めません: {error!r}")
+    if differing:
+        sys.exit(
+            "正解は、今の結果、取り出し方、判定者の指示文と違うもとから作っています: "
+            + "、".join(differing)
+        )
     try:
         judged = verified_judgments(samples, stored)
     except ReasonJudgingError as error:

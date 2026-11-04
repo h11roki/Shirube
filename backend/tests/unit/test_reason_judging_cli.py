@@ -5,6 +5,7 @@ from typing import Any
 
 import pytest
 
+from app.presentation.cli import reason_judging
 from app.presentation.cli.evaluation_data import HELDOUT_DATASET, read_document, write_document
 from app.presentation.cli.experiment import RUNS
 from app.presentation.cli.reason_judging import (
@@ -174,8 +175,8 @@ def test_merge_writes_the_votes_and_the_middle_answer(
     assert first["split"] in {"tune", "check"}
     assert first["interpretation"] == f"{first['occupation']}の解釈"
     lines = capsys.readouterr().out.splitlines()
-    assert lines[1] == "柱 76 件(3 体の一致 Fleiss の κ -0.50)"
-    assert lines[2] == "  整える用: 具体的 0、ぼんやり 38、無い 0"
+    assert lines[1] == "柱 76 件: 具体的 0、ぼんやり 76、無い 0(3 体の一致 Fleiss の κ -0.50)"
+    assert lines[2] == "礎 74 件: 具体的 0、ぼんやり 74、無い 0(3 体の一致 Fleiss の κ -0.50)"
 
 
 def test_merge_refuses_votes_on_materials_sampled_from_another_run(tmp_path: Path) -> None:
@@ -199,6 +200,50 @@ def test_merge_refuses_an_output_missing_a_reason(tmp_path: Path) -> None:
 def test_merge_refuses_an_unknown_grade(tmp_path: Path) -> None:
     with pytest.raises(SystemExit, match="決まりに合いません: 段は absent、vague、specific"):
         merge(tmp_path, sampled_run(tmp_path), vote_files(tmp_path, ["vague", "vague", "great"]))
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [("grade", ["vague"], "段は absent"), ("why", ["根拠"], "根拠は文字列")],
+    ids=["grade", "why"],
+)
+def test_merge_refuses_a_vote_that_is_not_text(
+    tmp_path: Path, field: str, value: object, message: str
+) -> None:
+    run = sampled_run(tmp_path)
+    votes = vote_files(tmp_path, ["vague"] * 3)
+    broken = read_document(Path(votes[2]))
+    broken["grades"][0][field] = value
+    Path(votes[2]).write_text(json.dumps(broken, ensure_ascii=False), encoding="utf-8")
+
+    with pytest.raises(SystemExit, match=f"決まりに合いません: {message}"):
+        merge(tmp_path, run, votes)
+
+
+def test_merge_refuses_the_same_judge_output_passed_three_times(tmp_path: Path) -> None:
+    run = sampled_run(tmp_path)
+    once = vote_files(tmp_path, ["vague"])[0]
+
+    with pytest.raises(SystemExit, match="同じ判定者の出力が 2 つ以上"):
+        merge(tmp_path, run, [once] * 3)
+
+
+def test_the_instructions_fingerprint_follows_only_the_instructions_section(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    prompt = tmp_path / "prompt.md"
+    monkeypatch.setattr(reason_judging, "PROMPT", prompt)
+
+    def fingerprint(text: str) -> str:
+        prompt.write_text(text, encoding="utf-8")
+        return reason_judging.instructions_fingerprint()
+
+    base = fingerprint("# 題\n\n使い方\n\n## 指示文\n\n判定の決まり\n")
+
+    assert fingerprint("# 題\n\n直した使い方\n\n## 指示文\n\n判定の決まり\n") == base
+    assert fingerprint("# 題\n\n使い方\n\n## 指示文\n\n直した判定の決まり\n") != base
+    with pytest.raises(ValueError, match="「指示文」の節がありません"):
+        fingerprint("# 題\n\n使い方\n")
 
 
 def test_merge_needs_the_place_to_write_so_it_never_overwrites_the_committed_answers(
@@ -234,7 +279,7 @@ def test_check_prints_the_answers_of_judgments_that_match_the_run(
 
     lines = capsys.readouterr().out.splitlines()
     assert lines[0] == f"{out} は run.json の理由と合う"
-    assert lines[2] == "  整える用: 具体的 0、ぼんやり 38、無い 0"
+    assert lines[1].startswith("柱 76 件: 具体的 0、ぼんやり 76、無い 0")
 
 
 def test_check_refuses_judgments_made_from_another_version_of_the_run(tmp_path: Path) -> None:
@@ -242,15 +287,18 @@ def test_check_refuses_judgments_made_from_another_version_of_the_run(tmp_path: 
     run = tmp_path / "run.json"
     run.write_text(run.read_text(encoding="utf-8") + "\n", encoding="utf-8")
 
-    with pytest.raises(SystemExit, match="別の結果か取り出し方"):
+    with pytest.raises(SystemExit, match="違うもとから作っています: run_fingerprint"):
         main(["check", str(run), "--judgments", str(out)])
 
 
 @pytest.mark.parametrize(
     ("change", "message"),
     [
-        (lambda document: document.update(repeat=2), "別の結果か取り出し方"),
-        (lambda document: document.update(prompt="other.md"), "別の指示文"),
+        (lambda document: document.update(repeat=2), "違うもとから作っています: repeat"),
+        (
+            lambda document: document.update(prompt_fingerprint="00000000"),
+            "違うもとから作っています: prompt_fingerprint",
+        ),
         (lambda document: document["reasons"].reverse(), "同じ順に並んでいません"),
         (
             lambda document: document["reasons"][0].update(reason="書き換えた理由"),
@@ -260,7 +308,10 @@ def test_check_refuses_judgments_made_from_another_version_of_the_run(tmp_path: 
             lambda document: document["reasons"][0].update(answer="specific"),
             "3 票の中央値ではありません",
         ),
-        (lambda document: document["reasons"][0].pop("interpretation"), "正解を読めません"),
+        (
+            lambda document: document["reasons"][0].pop("interpretation"),
+            "正解か判定者の指示文を読めません",
+        ),
         (
             lambda document: document["reasons"][0]["votes"].pop(),
             "正解の票が決まりに合いません",
@@ -298,7 +349,7 @@ def test_the_committed_judgments_match_the_reasons_sampled_again_from_the_run(
     lines = capsys.readouterr().out.splitlines()
     assert lines[0].endswith(f"は {run.name} の理由と合う")
     assert lines[1].startswith("柱 76 件")
-    assert lines[4].startswith("礎 74 件")
+    assert lines[2].startswith("礎 74 件")
 
 
 def test_the_committed_judgments_are_written_back_unchanged(tmp_path: Path) -> None:

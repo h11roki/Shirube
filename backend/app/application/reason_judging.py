@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from enum import StrEnum
 from random import Random
@@ -78,11 +78,15 @@ class StoredJudgment:
     answer: ReasonGrade
 
 
-def sample_reasons(cases: Sequence[ReasonCase], seed: int = SEED) -> list[SampledReason]:
-    occupations = sorted({case.occupation for case in cases})
-    Random(seed).shuffle(occupations)
-    half = len(occupations) // 2
-    splits = {Split.TUNE: set(occupations[:half]), Split.CHECK: set(occupations[half:])}
+def sample_reasons(
+    cases: Sequence[ReasonCase], occupations: Collection[str], seed: int = SEED
+) -> list[SampledReason]:
+    if unknown := sorted({case.occupation for case in cases} - set(occupations)):
+        raise ReasonJudgingError(f"分ける職業に無い職業の理由があります: {'、'.join(unknown)}")
+    shuffled = sorted(occupations)
+    Random(seed).shuffle(shuffled)
+    half = len(shuffled) // 2
+    splits = {Split.TUNE: set(shuffled[:half]), Split.CHECK: set(shuffled[half:])}
     picker = Random(f"{seed} reasons")
     picked: list[tuple[Split, ReasonCase]] = []
     for split, members in splits.items():
@@ -107,6 +111,8 @@ def judged_reasons(
 ) -> list[JudgedReason]:
     if len(outputs) != JUDGES:
         raise ReasonJudgingError(f"判定者の出力を {JUDGES} つ渡してください: {len(outputs)} つ")
+    if len({frozenset(output.items()) for output in outputs}) != len(outputs):
+        raise ReasonJudgingError("同じ判定者の出力が 2 つ以上あります(別々の判定者の出力を渡す)")
     keys = {sample.key for sample in samples}
     for number, output in enumerate(outputs, 1):
         if output.keys() != keys:

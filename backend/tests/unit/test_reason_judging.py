@@ -32,10 +32,14 @@ def case(occupation: str, relevance: Relevance, number: int) -> ReasonCase:
     )
 
 
+def names(occupations: int) -> list[str]:
+    return [f"職業{index}" for index in range(occupations)]
+
+
 def cases(occupations: int, each: int = 40) -> list[ReasonCase]:
     return [
-        case(f"職業{index}", relevance, number)
-        for index in range(occupations)
+        case(name, relevance, number)
+        for name in names(occupations)
         for relevance in Relevance
         for number in range(each)
     ]
@@ -117,7 +121,7 @@ def test_stored_judgments_that_drifted_from_the_samples_are_refused(
 
 
 def test_the_sample_splits_the_occupations_in_half_and_takes_the_same_counts_from_each() -> None:
-    sampled = sample_reasons(cases(6))
+    sampled = sample_reasons(cases(6), names(6))
 
     occupations = {
         split: {reason.case.occupation for reason in sampled if reason.split is split}
@@ -140,20 +144,20 @@ def test_the_sample_splits_the_occupations_in_half_and_takes_the_same_counts_fro
 
 
 def test_the_sample_mixes_the_splits_and_kinds_in_its_order() -> None:
-    first_half = sample_reasons(cases(6))[:75]
+    first_half = sample_reasons(cases(6), names(6))[:75]
 
     assert {reason.split for reason in first_half} == set(Split)
     assert {reason.case.relevance for reason in first_half} == set(Relevance)
 
 
 def test_the_same_reasons_and_seed_give_the_same_sample() -> None:
-    assert sample_reasons(cases(6)) == sample_reasons(cases(6))
-    assert sample_reasons(cases(6), seed=1) != sample_reasons(cases(6))
+    assert sample_reasons(cases(6), names(6)) == sample_reasons(cases(6), names(6))
+    assert sample_reasons(cases(6), names(6), seed=1) != sample_reasons(cases(6), names(6))
 
 
 def test_the_sample_refuses_a_half_without_enough_reasons() -> None:
     with pytest.raises(ReasonJudgingError, match="38 件に足りません: 20 件"):
-        sample_reasons(cases(2, each=20))
+        sample_reasons(cases(2, each=20), names(2))
 
 
 def test_votes_are_paired_with_the_sampled_reasons_in_judge_order() -> None:
@@ -176,11 +180,37 @@ def test_votes_from_other_than_three_judges_are_refused() -> None:
 
 
 def test_an_output_missing_or_adding_a_reason_is_refused() -> None:
-    complete = {"r001": ReasonVote(VAGUE, "根拠")}
+    first, second = {"r001": ReasonVote(VAGUE, "根拠1")}, {"r001": ReasonVote(VAGUE, "根拠2")}
     wrong = {"r002": ReasonVote(VAGUE, "根拠")}
 
     with pytest.raises(ReasonJudgingError, match="3 つ目.*足りない: r001、多い: r002"):
-        judged_reasons([sample()], [complete, complete, wrong])
+        judged_reasons([sample()], [first, second, wrong])
+
+
+def test_the_same_output_passed_twice_is_refused() -> None:
+    output = {"r001": ReasonVote(VAGUE, "根拠")}
+    other = {"r001": ReasonVote(VAGUE, "別の根拠")}
+
+    with pytest.raises(ReasonJudgingError, match="同じ判定者の出力が 2 つ以上"):
+        judged_reasons([sample()], [output, other, dict(output)])
+
+
+def test_an_occupation_without_reasons_keeps_the_others_in_the_same_half() -> None:
+    def halves(sampled: list[SampledReason]) -> dict[str, Split]:
+        return {reason.case.occupation: reason.split for reason in sampled}
+
+    everyone = halves(sample_reasons(cases(8), names(8)))
+    failed = [reason for reason in cases(8) if reason.occupation != "職業3"]
+
+    without = halves(sample_reasons(failed, names(8)))
+
+    assert "職業3" not in without
+    assert without == {name: split for name, split in everyone.items() if name in without}
+
+
+def test_a_reason_of_an_occupation_outside_the_split_is_refused() -> None:
+    with pytest.raises(ReasonJudgingError, match="分ける職業に無い職業の理由があります: 職業5"):
+        sample_reasons(cases(6), names(5))
 
 
 def test_fleiss_kappa_is_one_when_the_judges_always_agree() -> None:

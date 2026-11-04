@@ -5,6 +5,7 @@
   "seed": 0,
   "model": "Claude Opus 5.5(Claude Code のサブエージェント)",
   "prompt": "reason-judge-prompt.md",
+  "prompt_fingerprint": "797cacd6",
   "reasons": [
     {
       "id": "r001",
