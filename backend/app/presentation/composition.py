@@ -11,6 +11,7 @@ from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import CourseSelector, OccupationAnalyzer
 from app.application.recommend_courses import RecommendCourses
+from app.application.report_plan_builds import ReportPlanBuilds
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import (
     SearchCourses,
@@ -159,6 +160,10 @@ def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
 
 def forget_deleted_plans(engine: Engine) -> ForgetDeletedPlans:
     return ForgetDeletedPlans(SqlPlanRepository(engine), now)
+
+
+def report_plan_builds(engine: Engine) -> ReportPlanBuilds:
+    return ReportPlanBuilds(SqlPlanBuildLog(engine), now)
 
 
 def now() -> datetime:
