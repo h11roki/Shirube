@@ -1,4 +1,6 @@
 import logging
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from dataclasses import replace
 from datetime import timedelta
 from uuid import UUID, uuid4
@@ -62,6 +64,7 @@ def builder(
     profile: OccupationProfile = PROFILE,
     users: FakeUserRepository | None = None,
     builds: FakePlanBuildLog | None = None,
+    meter: FakeUsageMeter | None = None,
 ) -> BuildPlans:
     courses, search = courses_and_search
     recommend = RecommendCourses(
@@ -77,7 +80,7 @@ def builder(
         plans,
         users or FakeUserRepository(),
         builds or FakePlanBuildLog(),
-        FakeUsageMeter(USAGE),
+        meter or FakeUsageMeter(USAGE),
         Ticks(),
     )
 
@@ -366,6 +369,22 @@ def test_a_cause_keeps_no_message_and_only_a_short_lowercase_code() -> None:
     assert failure_cause(error) == FailureCause(("RuntimeError", "Wordy"), None)
 
 
+def test_a_cause_follows_the_error_being_handled_unless_it_was_hidden() -> None:
+    class QuotaError(Exception):
+        code = "insufficient_quota"
+
+    chained = CourseSelectionError("選び直しに失敗しました")
+    chained.__context__ = QuotaError("文")
+    hidden = CourseSelectionError("選び直しに失敗しました")
+    hidden.__context__ = QuotaError("文")
+    hidden.__suppress_context__ = True
+
+    assert failure_cause(chained) == FailureCause(
+        ("CourseSelectionError", "QuotaError"), "insufficient_quota"
+    )
+    assert failure_cause(hidden) == FailureCause(("CourseSelectionError",), None)
+
+
 def test_a_cause_that_loops_back_to_itself_stops_at_the_depth_limit() -> None:
     error = RuntimeError("文")
     error.__cause__ = error
@@ -389,4 +408,31 @@ def test_a_build_that_cannot_be_recorded_still_saves_the_plan(
     assert built is not None
     assert built.status is PlanStatus.SUCCEEDED
     assert plans.plans[plan.id] == built
+    assert "作った記録を書けませんでした" in caplog.text
+
+
+def test_tokens_that_cannot_be_read_do_not_keep_the_plan_from_being_saved(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    class Unreadable(FakeUsageMeter):
+        @contextmanager
+        def meter(self) -> Iterator[Callable[[], dict[str, TokenUsage]]]:
+            def broken() -> dict[str, TokenUsage]:
+                raise KeyError("input_tokens")
+
+            yield broken
+
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+    builds = FakePlanBuildLog()
+
+    with caplog.at_level(logging.ERROR):
+        built = builder(
+            courses_ranked_by({"科目A": 0.9}), plans, builds=builds, meter=Unreadable()
+        ).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.SUCCEEDED
+    assert plans.plans[plan.id] == built
+    assert builds.builds == []
     assert "作った記録を書けませんでした" in caplog.text
