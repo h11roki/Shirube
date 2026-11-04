@@ -5,6 +5,7 @@ from app.application.reason_judging import (
     JudgedReason,
     ReasonCase,
     ReasonGrade,
+    ReasonJudgingError,
     ReasonVote,
     SampledReason,
     Split,
@@ -33,7 +34,7 @@ def test_the_shares_and_their_differences_come_from_all_reasons_of_each_side() -
     before = side({"甲": [SPECIFIC, VAGUE], "乙": [VAGUE, ABSENT]})
     after = side({"甲": [SPECIFIC, SPECIFIC], "乙": [SPECIFIC, VAGUE]})
 
-    changes = share_changes(before, after, resamples=200)
+    changes = share_changes(before, after, ["甲", "乙"], resamples=200)
 
     assert changes[SPECIFIC].before == pytest.approx(0.25)
     assert changes[SPECIFIC].after == pytest.approx(0.75)
@@ -46,7 +47,7 @@ def test_a_difference_present_in_every_occupation_has_an_interval_away_from_zero
     before = side({name: [VAGUE] * 3 for name in MANY})
     after = side({name: [SPECIFIC] * 3 for name in MANY})
 
-    change = share_changes(before, after, resamples=200)[SPECIFIC]
+    change = share_changes(before, after, MANY, resamples=200)[SPECIFIC]
 
     assert change.interval is not None
     assert change.interval.low == pytest.approx(1.0)
@@ -58,7 +59,7 @@ def test_identical_sides_have_an_interval_around_zero_and_no_clear_change() -> N
         {name: [SPECIFIC, VAGUE] if index % 2 else [VAGUE] for index, name in enumerate(MANY)}
     )
 
-    change = share_changes(reasons, reasons, resamples=200)[SPECIFIC]
+    change = share_changes(reasons, reasons, MANY, resamples=200)[SPECIFIC]
 
     assert change.interval is not None
     assert change.interval.low <= 0 <= change.interval.high
@@ -69,7 +70,7 @@ def test_fewer_occupations_than_the_minimum_give_no_interval() -> None:
     before = side({name: [VAGUE] * 3 for name in MANY[:9]})
     after = side({name: [SPECIFIC] * 3 for name in MANY[:9]})
 
-    change = share_changes(before, after, resamples=200)[SPECIFIC]
+    change = share_changes(before, after, MANY[:9], resamples=200)[SPECIFIC]
 
     assert change.difference == pytest.approx(1.0)
     assert change.interval is None
@@ -87,18 +88,33 @@ def test_the_same_seed_gives_the_same_intervals() -> None:
         }
     )
 
-    assert share_changes(before, after, resamples=300) == share_changes(
-        before, after, resamples=300
+    assert share_changes(before, after, MANY, resamples=300) == share_changes(
+        before, after, MANY, resamples=300
     )
-    assert share_changes(before, after, resamples=300, seed=1) != share_changes(
-        before, after, resamples=300
+    assert share_changes(before, after, MANY, resamples=300, seed=1) != share_changes(
+        before, after, MANY, resamples=300
     )
 
 
 def test_a_side_without_reasons_has_no_share_and_no_interval() -> None:
-    change = share_changes([], side({"甲": [SPECIFIC]}), resamples=10)[SPECIFIC]
+    change = share_changes([], side({"甲": [SPECIFIC]}), ["甲"], resamples=10)[SPECIFIC]
 
     assert change.before is None
     assert change.after == pytest.approx(1.0)
     assert change.interval is None
     assert change.difference is None
+
+
+def test_a_reason_of_an_occupation_outside_the_shared_ones_is_refused() -> None:
+    with pytest.raises(ReasonJudgingError, match="選び直す職業に無い職業の理由があります: 乙"):
+        share_changes(side({"甲": [VAGUE]}), side({"乙": [SPECIFIC]}), ["甲"], resamples=10)
+
+
+def test_occupations_without_sampled_reasons_still_take_part_in_the_resampling() -> None:
+    before = side({name: [VAGUE] * 2 for name in MANY[:6]})
+    after = side({name: [SPECIFIC] * 2 for name in MANY[6:]})
+
+    change = share_changes(before, after, MANY, resamples=200)[SPECIFIC]
+
+    assert change.difference == pytest.approx(1.0)
+    assert change.interval is not None

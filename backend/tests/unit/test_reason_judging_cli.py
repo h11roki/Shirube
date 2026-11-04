@@ -367,14 +367,19 @@ def test_every_committed_judgments_file_matches_the_reasons_sampled_again_from_i
     assert lines[2].startswith("礎 74 件")
 
 
-def test_the_committed_judgments_are_written_back_unchanged(tmp_path: Path) -> None:
-    written = tmp_path / DEFAULT_REASON_JUDGMENTS.name
+@pytest.mark.parametrize(
+    "judgments",
+    sorted(DEFAULT_REASON_JUDGMENTS.parent.glob("reason-judgments*.json")),
+    ids=lambda path: str(path.name),
+)
+def test_every_committed_judgments_file_is_written_back_unchanged(
+    judgments: Path, tmp_path: Path
+) -> None:
+    written = tmp_path / judgments.name
 
-    write_document(written, read_document(DEFAULT_REASON_JUDGMENTS), VOTE_LINES)
+    write_document(written, read_document(judgments), VOTE_LINES)
 
-    assert written.read_text(encoding="utf-8") == DEFAULT_REASON_JUDGMENTS.read_text(
-        encoding="utf-8"
-    )
+    assert written.read_text(encoding="utf-8") == judgments.read_text(encoding="utf-8")
 
 
 MANY = [f"職業{index}" for index in range(12)]
@@ -409,14 +414,15 @@ def test_compare_puts_the_two_sides_side_by_side_with_an_interval(
     lines = capsys.readouterr().out.splitlines()
     assert lines[0] == "理由の文の比べ(前 run.json、後 run.json)"
     assert lines[1] == f"  判定者: {MODEL}(前と後で同じ)"
-    assert lines[2] == "  柱 76 件 → 76 件"
-    assert lines[3] == (
+    assert lines[2] == "  両方の結果にそろった職業 12 で区間を出す"
+    assert lines[3] == "  柱 76 件 → 76 件"
+    assert lines[4] == (
         "    具体的 0(0.0%) → 76(100.0%)、+100.0 ポイント(95% 区間 +100.0〜+100.0、差あり)"
     )
-    assert lines[4] == (
+    assert lines[5] == (
         "    ぼんやり 76(100.0%) → 0(0.0%)、-100.0 ポイント(95% 区間 -100.0〜-100.0、差あり)"
     )
-    assert lines[6] == "  礎 74 件 → 74 件"
+    assert lines[7] == "  礎 74 件 → 74 件"
     assert lines[-1] == "  80 字を超える理由(1 回目の推薦): 前 0 / 960(0.0%)、後 0 / 960(0.0%)"
 
 
@@ -437,6 +443,8 @@ def test_compare_tells_when_the_two_sides_were_judged_by_different_judges(
 
     lines = capsys.readouterr().out.splitlines()
     assert lines[1] == f"  判定者: 前 {MODEL}、後 別の判定者(違うので、差には判定者の違いも入る)"
+    assert lines[2] == "  両方の結果にそろった職業 2 で区間を出す"
+    assert lines[4].endswith("、+0.0 ポイント(区間は出さない: そろった職業が 10 に満たない)")
     assert "(95% 区間" not in "\n".join(lines)
 
 

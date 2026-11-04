@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from app.application.compare_experiments import MIN_OCCUPATIONS
 from app.application.compare_reason_judgments import share_changes
 from app.application.reason_judging import (
     GRADES,
@@ -24,8 +25,7 @@ from app.application.reason_judging import (
     sample_reasons,
     verified_judgments,
 )
-from app.domain.recommendation import Relevance
-from app.infrastructure.llm.openai_course_selector import REASON_LIMIT
+from app.domain.recommendation import REASON_LIMIT, Relevance
 from app.presentation.cli.evaluation_data import (
     DEFAULT_DATASET,
     HELDOUT_DATASET,
@@ -294,6 +294,11 @@ def compare_lines(before: Side, after: Side) -> list[str]:
             f"  判定者: 前 {before.verified.model}、後 {after.verified.model}"
             "(違うので、差には判定者の違いも入る)"
         )
+    shared = sorted(
+        {case.occupation for case in before.verified.cases}
+        & {case.occupation for case in after.verified.cases}
+    )
+    lines.append(f"  両方の結果にそろった職業 {len(shared)} で区間を出す")
     for relevance, label in KIND_LABELS.items():
         old = [
             reason for reason in before.verified.judged if reason.sample.case.relevance is relevance
@@ -301,17 +306,17 @@ def compare_lines(before: Side, after: Side) -> list[str]:
         new = [
             reason for reason in after.verified.judged if reason.sample.case.relevance is relevance
         ]
+        old_counts, new_counts = Counter(r.answer for r in old), Counter(r.answer for r in new)
         lines.append(f"  {label} {len(old)} 件 → {len(new)} 件")
-        changes = share_changes(old, new)
+        changes = share_changes(old, new, shared)
         for grade in reversed(GRADES):
             change = changes[grade]
-            counts = (
-                sum(1 for reason in old if reason.answer is grade),
-                sum(1 for reason in new if reason.answer is grade),
-            )
             shown = [
                 f"{count}({share:.1%})" if share is not None else f"{count}(-)"
-                for count, share in zip(counts, (change.before, change.after), strict=True)
+                for count, share in (
+                    (old_counts[grade], change.before),
+                    (new_counts[grade], change.after),
+                )
             ]
             line = f"    {GRADE_LABELS[grade]} {shown[0]} → {shown[1]}"
             if change.difference is not None:
@@ -323,14 +328,20 @@ def compare_lines(before: Side, after: Side) -> list[str]:
                     + ("差あり" if change.clear else "はっきりしない")
                     + ")"
                 )
+            elif change.difference is not None:
+                line += (
+                    f"(区間は出さない: そろった職業が {MIN_OCCUPATIONS} に満たない)"
+                    if len(shared) < MIN_OCCUPATIONS
+                    else "(区間は出さない: 選び直すと片側に理由が無い組があった)"
+                )
             lines.append(line)
-    shown = []
+    long_shown = []
     for name, side in (("前", before), ("後", after)):
         cases = side.verified.cases
         long = sum(1 for case in cases if len(case.reason) > REASON_LIMIT)
         share = f"({long / len(cases):.1%})" if cases else ""
-        shown.append(f"{name} {long} / {len(cases)}{share}")
-    lines.append(f"  {REASON_LIMIT} 字を超える理由(1 回目の推薦): " + "、".join(shown))
+        long_shown.append(f"{name} {long} / {len(cases)}{share}")
+    lines.append(f"  {REASON_LIMIT} 字を超える理由(1 回目の推薦): " + "、".join(long_shown))
     return lines
 
 

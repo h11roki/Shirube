@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
 from dataclasses import dataclass
 from random import Random
 
@@ -9,7 +9,13 @@ from app.application.compare_experiments import (
     Interval,
     interval_of,
 )
-from app.application.reason_judging import GRADES, SEED, JudgedReason, ReasonGrade
+from app.application.reason_judging import (
+    GRADES,
+    SEED,
+    JudgedReason,
+    ReasonGrade,
+    ReasonJudgingError,
+)
 
 Tallies = Mapping[str, Counter[ReasonGrade]]
 
@@ -53,11 +59,14 @@ def _share(tallies: Tallies, grade: ReasonGrade, weights: Counter[str]) -> float
 def share_changes(
     before: Sequence[JudgedReason],
     after: Sequence[JudgedReason],
+    occupations: Collection[str],
     resamples: int = RESAMPLES,
     seed: int = SEED,
 ) -> dict[ReasonGrade, ShareChange]:
     old, new = _tallies(before), _tallies(after)
-    occupations = sorted(old.keys() | new.keys())
+    if outside := sorted((old.keys() | new.keys()) - set(occupations)):
+        raise ReasonJudgingError(f"選び直す職業に無い職業の理由があります: {'、'.join(outside)}")
+    occupations = sorted(occupations)
     everyone = Counter(occupations)
     picker = Random(seed)
     samples = (

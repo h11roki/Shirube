@@ -8,12 +8,11 @@ from pydantic import BaseModel, SecretStr
 
 from app.application.ports import CourseSelectionError
 from app.domain.occupation import OccupationProfile
-from app.domain.recommendation import CandidateCourse, CourseChoice, Relevance
+from app.domain.recommendation import REASON_LIMIT, CandidateCourse, CourseChoice, Relevance
 
 OVERVIEW_LIMIT = 450
 OBJECTIVES_LIMIT = 250
 SCHEDULE_LIMIT = 350
-REASON_LIMIT = 80
 
 INSTRUCTIONS = f"""\
 あなたは大学の理工系学部の学生に、なりたい職業に向けた履修を助ける進路アドバイザーです。
