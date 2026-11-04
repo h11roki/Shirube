@@ -412,7 +412,7 @@ def test_compare_puts_the_two_sides_side_by_side_with_an_interval(
     compare(before_dir, after_dir)
 
     lines = capsys.readouterr().out.splitlines()
-    assert lines[0] == "理由の文の比べ(前 run.json、後 run.json)"
+    assert lines[0] == f"理由の文の比べ(前 {before_dir / 'run.json'}、後 {after_dir / 'run.json'})"
     assert lines[1] == f"  判定者: {MODEL}(前と後で同じ)"
     assert lines[2] == "  両方の結果にそろった職業 12 で区間を出す"
     assert lines[3] == "  柱 76 件 → 76 件"
@@ -446,6 +446,27 @@ def test_compare_tells_when_the_two_sides_were_judged_by_different_judges(
     assert lines[2] == "  両方の結果にそろった職業 2 で区間を出す"
     assert lines[4].endswith("、+0.0 ポイント(区間は出さない: そろった職業が 10 に満たない)")
     assert "(95% 区間" not in "\n".join(lines)
+
+
+def test_compare_leaves_out_the_reasons_of_occupations_missing_on_one_side(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    before_dir, after_dir = tmp_path / "before", tmp_path / "after"
+    before_dir.mkdir()
+    after_dir.mkdir()
+    merged(before_dir, ("vague", "vague", "vague"), MANY)
+    merged(after_dir, ("specific", "specific", "vague"), [*MANY, "職業12", "職業13"], label="改")
+    capsys.readouterr()
+
+    compare(before_dir, after_dir)
+
+    lines = capsys.readouterr().out.splitlines()
+    assert lines[2].startswith(
+        "  両方の結果にそろった職業 12 で区間を出す(そろっていない職業の理由 "
+    )
+    assert lines[2].endswith(" 件は外した)")
+    assert lines[4].startswith("    具体的 0(0.0%) → ")
+    assert lines[4].endswith("、+100.0 ポイント(95% 区間 +100.0〜+100.0、差あり)")
 
 
 def test_compare_refuses_the_same_run_content_on_both_sides(tmp_path: Path) -> None:

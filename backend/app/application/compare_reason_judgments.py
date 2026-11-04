@@ -1,12 +1,12 @@
 from collections import Counter, defaultdict
-from collections.abc import Collection, Mapping, Sequence
+from collections.abc import Collection, Iterable, Mapping
 from dataclasses import dataclass
 from random import Random
 
 from app.application.compare_experiments import (
     MIN_OCCUPATIONS,
     RESAMPLES,
-    Interval,
+    Change,
     interval_of,
 )
 from app.application.reason_judging import (
@@ -16,28 +16,29 @@ from app.application.reason_judging import (
     ReasonGrade,
     ReasonJudgingError,
 )
+from app.domain.recommendation import Relevance
 
 Tallies = Mapping[str, Counter[ReasonGrade]]
 
 
 @dataclass(frozen=True)
-class ShareChange:
-    before: float | None
-    after: float | None
-    interval: Interval | None
-
-    @property
-    def difference(self) -> float | None:
-        if self.before is None or self.after is None:
-            return None
-        return self.after - self.before
-
+class ShareChange(Change):
     @property
     def clear(self) -> bool:
         return self.interval is not None and (self.interval.low > 0 or self.interval.high < 0)
 
 
-def _tallies(reasons: Sequence[JudgedReason]) -> Tallies:
+@dataclass(frozen=True)
+class ShareComparison:
+    occupations: int
+    changes: Mapping[Relevance, Mapping[ReasonGrade, ShareChange]]
+
+    @property
+    def enough(self) -> bool:
+        return self.occupations >= MIN_OCCUPATIONS
+
+
+def _tallies(reasons: Iterable[JudgedReason]) -> Tallies:
     tallies: defaultdict[str, Counter[ReasonGrade]] = defaultdict(Counter)
     for reason in reasons:
         tallies[reason.sample.case.occupation][reason.answer] += 1
@@ -56,36 +57,49 @@ def _share(tallies: Tallies, grade: ReasonGrade, weights: Counter[str]) -> float
     return graded / total
 
 
-def share_changes(
-    before: Sequence[JudgedReason],
-    after: Sequence[JudgedReason],
+def _change(
+    old: Tallies,
+    new: Tallies,
+    grade: ReasonGrade,
+    everyone: Counter[str],
+    samples: list[Counter[str]],
+) -> ShareChange:
+    before, after = _share(old, grade, everyone), _share(new, grade, everyone)
+    if before is None or after is None:
+        return ShareChange(before, after, None, None)
+    differences: list[float] = []
+    for chosen in samples:
+        resampled_old, resampled_new = _share(old, grade, chosen), _share(new, grade, chosen)
+        if resampled_old is None or resampled_new is None:
+            differences = []
+            break
+        differences.append(resampled_new - resampled_old)
+    return ShareChange(before, after, interval_of(differences), None)
+
+
+def compare_shares(
+    before: Collection[JudgedReason],
+    after: Collection[JudgedReason],
     occupations: Collection[str],
     resamples: int = RESAMPLES,
     seed: int = SEED,
-) -> dict[ReasonGrade, ShareChange]:
-    old, new = _tallies(before), _tallies(after)
-    if outside := sorted((old.keys() | new.keys()) - set(occupations)):
+) -> ShareComparison:
+    names = sorted(occupations)
+    outside = sorted({reason.sample.case.occupation for reason in (*before, *after)} - set(names))
+    if outside:
         raise ReasonJudgingError(f"選び直す職業に無い職業の理由があります: {'、'.join(outside)}")
-    occupations = sorted(occupations)
-    everyone = Counter(occupations)
+    everyone = Counter(names)
     picker = Random(seed)
     samples = (
-        [Counter(picker.choices(occupations, k=len(occupations))) for _ in range(resamples)]
-        if len(occupations) >= MIN_OCCUPATIONS
+        [Counter(picker.choices(names, k=len(names))) for _ in range(resamples)]
+        if len(names) >= MIN_OCCUPATIONS
         else []
     )
     changes = {}
-    for grade in GRADES:
-        before_share, after_share = _share(old, grade, everyone), _share(new, grade, everyone)
-        if before_share is None or after_share is None:
-            changes[grade] = ShareChange(before_share, after_share, None)
-            continue
-        differences: list[float] = []
-        for chosen in samples:
-            resampled_old, resampled_new = _share(old, grade, chosen), _share(new, grade, chosen)
-            if resampled_old is None or resampled_new is None:
-                differences = []
-                break
-            differences.append(resampled_new - resampled_old)
-        changes[grade] = ShareChange(before_share, after_share, interval_of(differences))
-    return changes
+    for relevance in Relevance:
+        old = _tallies(reason for reason in before if reason.sample.case.relevance is relevance)
+        new = _tallies(reason for reason in after if reason.sample.case.relevance is relevance)
+        changes[relevance] = {
+            grade: _change(old, new, grade, everyone, samples) for grade in GRADES
+        }
+    return ShareComparison(len(names), changes)

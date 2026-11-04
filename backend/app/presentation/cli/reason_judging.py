@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from app.application.compare_experiments import MIN_OCCUPATIONS
-from app.application.compare_reason_judgments import share_changes
+from app.application.compare_reason_judgments import compare_shares
 from app.application.reason_judging import (
     GRADES,
     KIND_LABELS,
@@ -240,6 +240,7 @@ def _merge(args: argparse.Namespace) -> None:
 
 @dataclass(frozen=True)
 class VerifiedSide:
+    name: str
     judged: list[JudgedReason]
     cases: list[ReasonCase]
     fingerprint: str
@@ -272,45 +273,36 @@ def verified_side(run: Path, judgments: Path) -> VerifiedSide:
         judged = verified_judgments(samples, stored)
     except ReasonJudgingError as error:
         sys.exit(f"正解が結果から取り直した理由と合いません: {error}")
-    return VerifiedSide(judged, cases, fingerprint, model)
+    return VerifiedSide(str(run), judged, cases, fingerprint, model)
 
 
 def verified_answers(run: Path, judgments: Path) -> list[JudgedReason]:
     return verified_side(run, judgments).judged
 
 
-@dataclass(frozen=True)
-class Side:
-    name: str
-    verified: VerifiedSide
-
-
-def compare_lines(before: Side, after: Side) -> list[str]:
+def compare_lines(before: VerifiedSide, after: VerifiedSide) -> list[str]:
+    shared = {case.occupation for case in before.cases} & {case.occupation for case in after.cases}
+    old = [reason for reason in before.judged if reason.sample.case.occupation in shared]
+    new = [reason for reason in after.judged if reason.sample.case.occupation in shared]
+    left_out = len(before.judged) - len(old) + len(after.judged) - len(new)
+    comparison = compare_shares(old, new, shared)
     lines = [f"理由の文の比べ(前 {before.name}、後 {after.name})"]
-    if before.verified.model == after.verified.model:
-        lines.append(f"  判定者: {before.verified.model}(前と後で同じ)")
+    if before.model == after.model:
+        lines.append(f"  判定者: {before.model}(前と後で同じ)")
     else:
         lines.append(
-            f"  判定者: 前 {before.verified.model}、後 {after.verified.model}"
-            "(違うので、差には判定者の違いも入る)"
+            f"  判定者: 前 {before.model}、後 {after.model}(違うので、差には判定者の違いも入る)"
         )
-    shared = sorted(
-        {case.occupation for case in before.verified.cases}
-        & {case.occupation for case in after.verified.cases}
+    lines.append(
+        f"  両方の結果にそろった職業 {comparison.occupations} で区間を出す"
+        + (f"(そろっていない職業の理由 {left_out} 件は外した)" if left_out else "")
     )
-    lines.append(f"  両方の結果にそろった職業 {len(shared)} で区間を出す")
     for relevance, label in KIND_LABELS.items():
-        old = [
-            reason for reason in before.verified.judged if reason.sample.case.relevance is relevance
-        ]
-        new = [
-            reason for reason in after.verified.judged if reason.sample.case.relevance is relevance
-        ]
-        old_counts, new_counts = Counter(r.answer for r in old), Counter(r.answer for r in new)
-        lines.append(f"  {label} {len(old)} 件 → {len(new)} 件")
-        changes = share_changes(old, new, shared)
+        old_counts = Counter(r.answer for r in old if r.sample.case.relevance is relevance)
+        new_counts = Counter(r.answer for r in new if r.sample.case.relevance is relevance)
+        lines.append(f"  {label} {old_counts.total()} 件 → {new_counts.total()} 件")
         for grade in reversed(GRADES):
-            change = changes[grade]
+            change = comparison.changes[relevance][grade]
             shown = [
                 f"{count}({share:.1%})" if share is not None else f"{count}(-)"
                 for count, share in (
@@ -330,29 +322,28 @@ def compare_lines(before: Side, after: Side) -> list[str]:
                 )
             elif change.difference is not None:
                 line += (
-                    f"(区間は出さない: そろった職業が {MIN_OCCUPATIONS} に満たない)"
-                    if len(shared) < MIN_OCCUPATIONS
-                    else "(区間は出さない: 選び直すと片側に理由が無い組があった)"
+                    "(区間は出さない: 選び直すと片側に理由が無い組があった)"
+                    if comparison.enough
+                    else f"(区間は出さない: そろった職業が {MIN_OCCUPATIONS} に満たない)"
                 )
             lines.append(line)
     long_shown = []
     for name, side in (("前", before), ("後", after)):
-        cases = side.verified.cases
-        long = sum(1 for case in cases if len(case.reason) > REASON_LIMIT)
-        share = f"({long / len(cases):.1%})" if cases else ""
-        long_shown.append(f"{name} {long} / {len(cases)}{share}")
+        long = sum(1 for case in side.cases if len(case.reason) > REASON_LIMIT)
+        share = f"({long / len(side.cases):.1%})" if side.cases else ""
+        long_shown.append(f"{name} {long} / {len(side.cases)}{share}")
     lines.append(f"  {REASON_LIMIT} 字を超える理由(1 回目の推薦): " + "、".join(long_shown))
     return lines
 
 
 def _compare(args: argparse.Namespace) -> None:
-    before, after = (
-        Side(run.name, verified_side(run, judgments))
-        for run, judgments in (args.before, args.after)
-    )
-    if before.verified.fingerprint == after.verified.fingerprint:
+    before, after = (verified_side(run, judgments) for run, judgments in (args.before, args.after))
+    if before.fingerprint == after.fingerprint:
         sys.exit("前と後に同じ実験の結果を渡しています")
-    print("\n".join(compare_lines(before, after)))
+    try:
+        print("\n".join(compare_lines(before, after)))
+    except ReasonJudgingError as error:
+        sys.exit(f"前と後を比べられません: {error}")
 
 
 def _check(args: argparse.Namespace) -> None:
