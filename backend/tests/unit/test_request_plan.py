@@ -9,7 +9,7 @@ from app.application.search_courses import NoCandidatesError
 from app.domain.course import Term, TimeSlot, Weekday
 from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
 from app.domain.quota import DailyLimitError, PlanInProgressError, PlanQuota
-from app.domain.roadmap import RoadmapError, Semester
+from app.domain.roadmap import FixedCourseError, RoadmapError, Semester
 from tests.builders import sample_conditions, sample_plan
 from tests.fakes import (
     FIRST_CREATED_AT,
@@ -77,7 +77,7 @@ def test_a_request_whose_candidates_are_all_taken_is_refused_without_saving() ->
     users.add_taken(OWNER, "科目A")
     users.add_taken(OWNER, "科目B")
 
-    with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
+    with pytest.raises(NoCandidatesError, match="先に入れる授業は除いています"):
         RequestPlan(search, repository, plans, users, 16, QUOTA, lambda: NOW).run(
             OWNER, "職業", "情", 2026, START, {}
         )
@@ -171,3 +171,32 @@ def test_a_deleted_failed_plan_counts_only_against_the_total() -> None:
     assert accepted.status is PlanStatus.PENDING
     with pytest.raises(DailyLimitError, match="全体で作れる 3 件"):
         request_with(with_a_deleted_failure(), PlanQuota(per_user=9, total=3))
+
+
+def test_fixed_courses_are_kept_sorted_in_the_conditions_and_left_out_of_the_candidates() -> None:
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7, "科目D": 0.6})
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    users.add_taken(OWNER, "科目C")
+    request = RequestPlan(search, repository, plans, users, 16, QUOTA, lambda: NOW)
+
+    plan = request.run(OWNER, "職業", "情", 2026, START, {}, ["科目B", "科目A"])
+
+    assert plan.conditions.fixed_courses == ("科目A", "科目B")
+    with pytest.raises(NoCandidatesError, match="先に入れる授業は除いています"):
+        request.run(OTHER, "職業", "情", 2026, START, {}, ["科目B", "科目A", "科目C", "科目D"])
+
+
+def test_a_fixed_course_that_is_not_offered_is_refused_without_saving() -> None:
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    users.add_taken(OWNER, "科目B")
+
+    with pytest.raises(
+        FixedCourseError, match="残りの学期に開講される授業にありません: 科目B、科目X"
+    ):
+        RequestPlan(search, repository, plans, users, 16, QUOTA, lambda: NOW).run(
+            OWNER, "職業", "情", 2026, START, {}, ["科目A", "科目X", "科目B"]
+        )
+    assert plans.plans == {}

@@ -586,6 +586,92 @@
         }
       }
     },
+    "/api/v1/offered-courses": {
+      "get": {
+        "summary": "Show",
+        "operationId": "show_api_v1_offered_courses_get",
+        "security": [
+          {
+            "HTTPBearer": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "department",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100,
+              "title": "Department"
+            }
+          },
+          {
+            "name": "grade",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 4,
+              "minimum": 1,
+              "title": "Grade"
+            }
+          },
+          {
+            "name": "term",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "$ref": "#/components/schemas/Term",
+              "default": "spring"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferedCoursesOut"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "ログインしていない",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "サーバー側の問題",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "リクエストを直せば通る誤り",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorOut"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/taken-courses": {
       "get": {
         "summary": "Index",
@@ -816,6 +902,13 @@
           "credit_limit": {
             "type": "integer",
             "title": "Credit Limit"
+          },
+          "fixed_courses": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fixed Courses"
           }
         },
         "type": "object",
@@ -826,7 +919,8 @@
           "grade",
           "term",
           "chosen_classes",
-          "credit_limit"
+          "credit_limit",
+          "fixed_courses"
         ],
         "title": "ConditionsOut"
       },
@@ -837,7 +931,13 @@
             "title": "Name"
           },
           "relevance": {
-            "$ref": "#/components/schemas/Relevance"
+            "type": "string",
+            "enum": [
+              "core",
+              "foundation",
+              "fixed"
+            ],
+            "title": "Relevance"
           },
           "reason": {
             "type": "string",
@@ -855,7 +955,14 @@
             "title": "Prerequisite For"
           },
           "syllabus_code": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Syllabus Code"
           },
           "syllabus_url": {
@@ -894,6 +1001,52 @@
         ],
         "title": "ErrorOut"
       },
+      "OfferedCourseOut": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "credits": {
+            "type": "integer",
+            "title": "Credits"
+          },
+          "semesters": {
+            "items": {
+              "$ref": "#/components/schemas/SemesterOut"
+            },
+            "type": "array",
+            "title": "Semesters"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "credits",
+          "semesters"
+        ],
+        "title": "OfferedCourseOut"
+      },
+      "OfferedCoursesOut": {
+        "properties": {
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          },
+          "courses": {
+            "items": {
+              "$ref": "#/components/schemas/OfferedCourseOut"
+            },
+            "type": "array",
+            "title": "Courses"
+          }
+        },
+        "type": "object",
+        "required": [
+          "term",
+          "courses"
+        ],
+        "title": "OfferedCoursesOut"
+      },
       "PlacedCourseOut": {
         "properties": {
           "name": {
@@ -901,7 +1054,13 @@
             "title": "Name"
           },
           "relevance": {
-            "$ref": "#/components/schemas/Relevance"
+            "type": "string",
+            "enum": [
+              "core",
+              "foundation",
+              "fixed"
+            ],
+            "title": "Relevance"
           },
           "reason": {
             "type": "string",
@@ -919,7 +1078,14 @@
             "title": "Prerequisite For"
           },
           "syllabus_code": {
-            "type": "string",
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Syllabus Code"
           },
           "syllabus_url": {
@@ -1020,6 +1186,16 @@
             "type": "object",
             "maxProperties": 50,
             "title": "Chosen Classes"
+          },
+          "fixed_courses": {
+            "items": {
+              "type": "string",
+              "maxLength": 100,
+              "minLength": 1
+            },
+            "type": "array",
+            "maxItems": 30,
+            "title": "Fixed Courses"
           }
         },
         "additionalProperties": false,
@@ -1204,14 +1380,6 @@
         ],
         "title": "ProfileOut"
       },
-      "Relevance": {
-        "type": "string",
-        "enum": [
-          "core",
-          "foundation"
-        ],
-        "title": "Relevance"
-      },
       "ResultOut": {
         "properties": {
           "profile": {
@@ -1263,6 +1431,23 @@
           "unlinked"
         ],
         "title": "ResultOut"
+      },
+      "SemesterOut": {
+        "properties": {
+          "grade": {
+            "type": "integer",
+            "title": "Grade"
+          },
+          "term": {
+            "$ref": "#/components/schemas/Term"
+          }
+        },
+        "type": "object",
+        "required": [
+          "grade",
+          "term"
+        ],
+        "title": "SemesterOut"
       },
       "SemesterPlanOut": {
         "properties": {

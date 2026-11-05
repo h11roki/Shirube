@@ -27,8 +27,14 @@ from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import Audience, Term, TimeSlot, Weekday
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanConditions, PlanStage, PlanStatus
-from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation, Relevance
-from app.domain.roadmap import Semester
+from app.domain.recommendation import (
+    CandidateCourse,
+    CourseChoice,
+    Recommendation,
+    RecommendedCourse,
+    Relevance,
+)
+from app.domain.roadmap import FixedCourse, Semester
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
@@ -302,7 +308,7 @@ def test_a_plan_whose_candidates_all_became_taken_fails_with_the_reason() -> Non
     assert built is not None
     assert built.status is PlanStatus.FAILED
     assert built.failure is not None
-    assert "もう取ったと答えた授業は除いています" in built.failure
+    assert "もう取ったと答えた授業と先に入れる授業は除いています" in built.failure
 
 
 def test_a_built_plan_is_recorded_with_the_seconds_of_each_stage_and_the_tokens_used() -> None:
@@ -495,3 +501,38 @@ def test_a_stage_entered_twice_is_recorded_with_the_time_of_both_visits() -> Non
         PlanStage.SELECTING: 2.0,
         PlanStage.PLACING: 1.0,
     }
+
+
+def test_fixed_courses_are_placed_first_and_left_out_of_the_candidates() -> None:
+    repository, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7})
+    a, b, c = repository.stored_sections
+    repository.stored_sections = [a, b, replace(c, slots=(TimeSlot(Weekday.TUE, 1),))]
+    selector = FakeCourseSelector(
+        [
+            CourseChoice("科目A", Relevance.CORE, "理由A"),
+            CourseChoice("科目C", Relevance.CORE, "理由C"),
+        ]
+    )
+    plans = FakePlanRepository()
+    plan = Plan(uuid4(), OWNER, PlanConditions("職業", "情", 2026, START, (), 4, ("科目B",)))
+    plans.store(plan)
+
+    built = builder((repository, search), plans, selector).build_next()
+
+    assert built is not None
+    assert built.result is not None
+    [(_, candidates)] = selector.calls
+    assert [candidate.name for candidate in candidates] == ["科目A", "科目C"]
+    placed = [
+        (semester_plan.semester, placed.course)
+        for semester_plan in built.result.roadmap.semesters
+        for placed in semester_plan.courses
+    ]
+    assert placed == [
+        (START, FixedCourse("科目B", "10001")),
+        (START, RecommendedCourse("科目C", "10002", Relevance.CORE, "理由C")),
+        (
+            Semester(4, Term.SPRING),
+            RecommendedCourse("科目A", "10000", Relevance.CORE, "理由A"),
+        ),
+    ]

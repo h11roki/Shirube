@@ -60,6 +60,12 @@ class ConditionsJson(TypedDict):
     start: SemesterJson
     chosen_classes: dict[str, str]
     credit_limit: int
+    fixed_courses: list[str]
+
+
+class FixedJson(TypedDict):
+    name: str
+    syllabus_code: str | None
 
 
 class ProfileJson(TypedDict):
@@ -104,6 +110,7 @@ class RoadmapJson(TypedDict):
     unplaced: list[str]
     taken: list[str]
     offered_earlier: list[str]
+    fixed: list[FixedJson]
 
 
 class ResultJson(TypedDict):

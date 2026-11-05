@@ -12,7 +12,13 @@ from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import TimeSlot, Weekday
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
-from tests.builders import sample_conditions, sample_plan, sample_plan_asking, sample_sections
+from tests.builders import (
+    sample_conditions,
+    sample_plan,
+    sample_plan_asking,
+    sample_plan_with_fixed,
+    sample_sections,
+)
 from tests.fakes import (
     FakeChunkSearch,
     FakeCourseRepository,
@@ -71,6 +77,7 @@ def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_lo
             "term": "spring",
             "chosen_classes": {},
             "credit_limit": 16,
+            "fixed_courses": [],
         },
         "result": None,
         "failure": None,
@@ -461,3 +468,53 @@ def test_leaving_deletes_the_user_unless_a_plan_is_being_built() -> None:
     assert (left.status_code, left.content) == (204, b"")
     assert users.taken(user_id) == frozenset()
     assert "google-a" not in users.users
+
+
+def test_fixed_courses_are_accepted_sorted_and_checked_against_the_offered_courses() -> None:
+    plans = FakePlanRepository()
+    api = client(courses_ranked_by({"科目A": 0.9, "科目B": 0.8, "科目C": 0.7}), plans=plans)
+
+    accepted = api.post("/api/v1/plans", json=body(fixed_courses=[" 科目B ", "科目A"]))
+    unknown = api.post("/api/v1/plans", json=body(fixed_courses=["科目X"]))
+    twice = api.post("/api/v1/plans", json=body(fixed_courses=["科目A", "科目A"]))
+
+    assert accepted.status_code == 202
+    assert accepted.json()["conditions"]["fixed_courses"] == ["科目A", "科目B"]
+    assert (unknown.status_code, unknown.json()) == (
+        422,
+        {"detail": "残りの学期に開講される授業にありません: 科目X"},
+    )
+    assert twice.status_code == 422
+    assert "先に入れる授業に同じ科目が 2 回あります" in twice.json()["detail"]
+    assert len(plans.plans) == 1
+
+
+def test_a_succeeded_plan_shows_its_fixed_courses_as_planned_without_a_reason() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = sample_plan_with_fixed(uuid4(), users.id_of("google-a"))
+    plans.store(plan)
+
+    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+
+    assert shown["conditions"]["fixed_courses"] == ["必修X", "必修Y"]
+    result = shown["result"]
+    assert result["semesters"][1]["courses"] == [
+        {
+            "name": "必修X",
+            "relevance": "fixed",
+            "reason": "",
+            "prerequisite_for": None,
+            "syllabus_code": "10010",
+            "syllabus_url": None,
+            "section_code": "10010",
+            "class_code": "6T",
+            "slots": [{"weekday": "tue", "period": 1}],
+            "credits": 2,
+            "class_confirmed": True,
+        }
+    ]
+    assert [
+        (course["name"], course["relevance"], course["syllabus_code"])
+        for course in result["unplaced"]
+    ] == [("科目D", "foundation", "10003"), ("必修Y", "fixed", None)]

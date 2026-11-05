@@ -22,13 +22,21 @@ from app.domain.plan import (
 )
 from app.domain.quota import PlanCounts
 from app.domain.recommendation import CourseChoice, Recommendation, RecommendedCourse, Relevance
-from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
+from app.domain.roadmap import (
+    FixedCourse,
+    PlacedCourse,
+    PlannedCourse,
+    Roadmap,
+    Semester,
+    SemesterPlan,
+)
 from app.infrastructure.db.courses import section_from_json, section_json
 from app.infrastructure.db.deletion import ADMISSION_LOCK, COUNTED_OWNER, keep_deleted_times
 from app.infrastructure.db.models import (
     ChoiceJson,
     ConditionsJson,
     DeletedPlanRow,
+    FixedJson,
     PlacedJson,
     PlanRow,
     ProfileJson,
@@ -40,7 +48,7 @@ from app.infrastructure.db.models import (
     SemesterPlanJson,
 )
 
-RESULT_JSON_VERSION = 3
+RESULT_JSON_VERSION = 4
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
@@ -289,7 +297,7 @@ def _placed_json(placed: PlacedCourse) -> PlacedJson:
     )
 
 
-def _placed(data: PlacedJson, courses: Mapping[str, RecommendedCourse]) -> PlacedCourse:
+def _placed(data: PlacedJson, courses: Mapping[str, PlannedCourse]) -> PlacedCourse:
     return PlacedCourse(
         courses[data["course"]], section_from_json(data["section"]), data["class_confirmed"]
     )
@@ -303,6 +311,7 @@ def conditions_json(conditions: PlanConditions) -> ConditionsJson:
         start=_semester_json(conditions.start),
         chosen_classes=dict(conditions.chosen_classes),
         credit_limit=conditions.credit_limit,
+        fixed_courses=list(conditions.fixed_courses),
     )
 
 
@@ -314,6 +323,7 @@ def conditions_from_json(data: ConditionsJson) -> PlanConditions:
         _semester(data["start"]),
         tuple(sorted(data["chosen_classes"].items())),
         data["credit_limit"],
+        tuple(data["fixed_courses"]),
     )
 
 
@@ -397,18 +407,38 @@ def result_json(result: PlanResult) -> ResultJson:
             unplaced=[course.name for course in result.roadmap.unplaced],
             taken=[course.name for course in result.roadmap.taken],
             offered_earlier=sorted(result.roadmap.offered_earlier),
+            fixed=[
+                FixedJson(name=course.name, syllabus_code=course.syllabus_code)
+                for course in _fixed_of(result.roadmap)
+            ],
         ),
     )
+
+
+def _fixed_of(roadmap: Roadmap) -> list[FixedCourse]:
+    planned = [
+        *(placed.course for plan in roadmap.semesters for placed in plan.courses),
+        *roadmap.unplaced,
+    ]
+    fixed = {course.name: course for course in planned if isinstance(course, FixedCourse)}
+    return [fixed[name] for name in sorted(fixed)]
 
 
 def result_from_json(data: ResultJson) -> PlanResult:
     recommendation = recommendation_from_json(data["recommendation"])
     courses = {course.name: course for course in recommendation.courses}
+    planned: dict[str, PlannedCourse] = {
+        **courses,
+        **{
+            item["name"]: FixedCourse(item["name"], item["syllabus_code"])
+            for item in data["roadmap"]["fixed"]
+        },
+    }
     placed_by_grade: dict[tuple[int, str], PlacedCourse] = {}
     semester_plans = []
     for stored_plan in data["roadmap"]["semesters"]:
         semester = _semester(stored_plan["semester"])
-        placed = tuple(_placed(item, courses) for item in stored_plan["courses"])
+        placed = tuple(_placed(item, planned) for item in stored_plan["courses"])
         placed_by_grade.update(((semester.grade, item.course.name), item) for item in placed)
         continuing = tuple(
             placed_by_grade[(semester.grade, name)] for name in stored_plan["continuing"]
@@ -417,7 +447,7 @@ def result_from_json(data: ResultJson) -> PlanResult:
     stored_roadmap = data["roadmap"]
     roadmap = Roadmap(
         tuple(semester_plans),
-        tuple(courses[name] for name in stored_roadmap["unplaced"]),
+        tuple(planned[name] for name in stored_roadmap["unplaced"]),
         tuple(courses[name] for name in stored_roadmap["taken"]),
         frozenset(stored_roadmap["offered_earlier"]),
     )

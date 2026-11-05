@@ -71,6 +71,7 @@ def plans_router(
             curriculum_year,
             Semester(body.grade, body.term or DEFAULT_START_TERM),
             body.chosen_classes,
+            body.fixed_courses,
         )
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))
         return plan_out(plan, {})

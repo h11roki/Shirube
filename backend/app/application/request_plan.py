@@ -1,4 +1,4 @@
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from datetime import datetime
 from uuid import UUID, uuid4
 
@@ -6,7 +6,12 @@ from app.application.ports import CourseRepository, PlanRepository, UserReposito
 from app.application.search_courses import SearchCourses
 from app.domain.plan import Plan, PlanConditions
 from app.domain.quota import PlanQuota, day_start
-from app.domain.roadmap import Semester, remaining_semesters, require_class_choices
+from app.domain.roadmap import (
+    Semester,
+    remaining_semesters,
+    require_class_choices,
+    require_offered,
+)
 
 
 class RequestPlan:
@@ -36,11 +41,17 @@ class RequestPlan:
         year: int,
         start: Semester,
         chosen_classes: Mapping[str, str],
+        fixed_courses: Iterable[str] = (),
     ) -> Plan:
         semesters = remaining_semesters(start)
         sections = self._courses.sections(year)
+        fixed = tuple(sorted(set(fixed_courses)))
+        taken = self._users.taken(owner_id)
         require_class_choices(sections, department, year, semesters, chosen_classes)
-        self._search.candidates(year, department, semesters, self._users.taken(owner_id))
+        require_offered(
+            sections, self._courses.syllabus_codes(year), department, year, semesters, taken, fixed
+        )
+        self._search.candidates(year, department, semesters, taken | set(fixed))
         conditions = PlanConditions(
             occupation,
             department,
@@ -48,6 +59,7 @@ class RequestPlan:
             start,
             tuple(sorted(chosen_classes.items())),
             self._credit_limit,
+            fixed,
         )
         plan = Plan(uuid4(), owner_id, conditions)
         now = self._now()

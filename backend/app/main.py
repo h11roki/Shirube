@@ -6,6 +6,7 @@ from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
+from app.application.list_offered_courses import ListOfferedCourses
 from app.application.list_plans import ListPlans
 from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
@@ -37,6 +38,7 @@ app = create_app(
     get_plan=GetPlan(plans),
     list_plans=ListPlans(plans),
     list_class_choices=ListClassChoices(courses, users),
+    list_offered_courses=ListOfferedCourses(courses, users),
     answer_taken_courses=AnswerTakenCourses(plans, users, courses),
     delete_plan=DeletePlan(plans, now),
     syllabus_links=SyllabusLinks(courses),

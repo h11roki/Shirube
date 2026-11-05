@@ -65,6 +65,7 @@ class AnswerTakenCourses:
                 plan.result.recommendation,
                 self._courses.sections(conditions.year),
                 change(frozenset(course.name for course in roadmap.taken)),
+                self._courses.syllabus_codes(conditions.year),
             )
         except ClassChoiceError as error:
             raise PlanOutdatedError(OUTDATED) from error

@@ -182,7 +182,7 @@ def test_a_taken_name_leaves_the_candidates_with_every_name_of_its_joint_page() 
     search = SearchCourses(joint, FakeChunkSearch([]), FakeEmbedder(), query_and_skills)
 
     assert search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目甲"}).names == {"論理回路"}
-    with pytest.raises(NoCandidatesError, match="もう取ったと答えた授業は除いています"):
+    with pytest.raises(NoCandidatesError, match="先に入れる授業は除いています"):
         search.candidates(2026, "情", ALL_SEMESTERS, {"合併の科目乙", "論理回路"})
 
 

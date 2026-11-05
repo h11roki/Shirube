@@ -20,12 +20,18 @@ from app.domain.quota import PlanCounts
 from app.infrastructure.db.models import DeletedPlanRow, PlanRow, TakenCourseRow, UserRow
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
-from tests.builders import sample_conditions, sample_plan, sample_plan_with_taken
+from tests.builders import (
+    sample_conditions,
+    sample_plan,
+    sample_plan_with_fixed,
+    sample_plan_with_taken,
+)
 
 FIXTURES = Path(__file__).parents[1] / "fixtures"
 VERSION_1 = FIXTURES / "plan_v1.json"
 VERSION_2 = FIXTURES / "plan_v2.json"
 VERSION_3 = FIXTURES / "plan_v3.json"
+VERSION_4 = FIXTURES / "plan_v4.json"
 STALL_LIMIT = timedelta(minutes=15)
 ANY_DAY = datetime(2000, 1, 1, tzinfo=UTC)
 
@@ -65,6 +71,11 @@ def stored_version_3() -> dict[str, Any]:
     return stored
 
 
+def stored_version_4() -> dict[str, Any]:
+    stored: dict[str, Any] = json.loads(VERSION_4.read_text(encoding="utf-8"))
+    return stored
+
+
 def test_a_saved_plan_comes_back_unchanged_with_its_owner(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
@@ -84,11 +95,11 @@ def test_an_unknown_plan_is_none(repository: SqlPlanRepository) -> None:
 @pytest.mark.parametrize(
     ("result", "message"),
     [
-        ({"version": 4}, "読めない版の道標の結果です: 4"),
+        ({"version": 5}, "読めない版の道標の結果です: 5"),
         ({"version": 2}, "読めない版の道標の結果です: 2"),
         ({"recommendation": {}}, "読めない版の道標の結果です: None"),
         (["配列"], "読めない版の道標の結果です: None"),
-        ({"version": 3, "recommendation": {}}, "保存した道標を読めません"),
+        ({"version": 4, "recommendation": {}}, "保存した道標を読めません"),
     ],
     ids=["newer-version", "older-version", "no-version", "not-an-object", "broken-result"],
 )
@@ -102,7 +113,7 @@ def test_a_result_stored_in_an_unknown_shape_is_a_format_error(
                 id=plan_id,
                 user_id=owner,
                 status="succeeded",
-                conditions=stored_version_3()["conditions"],
+                conditions=stored_version_4()["conditions"],
                 result=result,
             )
         )
@@ -114,9 +125,9 @@ def test_a_result_stored_in_an_unknown_shape_is_a_format_error(
 def test_values_of_the_wrong_type_are_a_format_error(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
-    stored = stored_version_3()
+    stored = stored_version_4()
     stored["result"]["roadmap"]["semesters"][0]["courses"][0]["section"]["credits"] = "2"
-    broken_conditions = {**stored_version_3()["conditions"], "year": "2026"}
+    broken_conditions = {**stored_version_4()["conditions"], "year": "2026"}
     rows = [
         {"status": "succeeded", "conditions": stored["conditions"], "result": stored["result"]},
         {"status": "pending", "conditions": broken_conditions, "result": None},
@@ -141,8 +152,8 @@ def test_another_owners_plan_is_none_even_when_it_cannot_be_read(
                 id=plan_id,
                 user_id=owner,
                 status="succeeded",
-                conditions=stored_version_3()["conditions"],
-                result={"version": 4},
+                conditions=stored_version_4()["conditions"],
+                result={"version": 5},
             )
         )
     other = SqlUserRepository(engine).id_of("google-b")
@@ -408,7 +419,7 @@ def test_the_table_refuses_a_status_that_does_not_match_its_result_failure_and_s
     with pytest.raises(IntegrityError), engine.begin() as connection:
         connection.execute(
             insert(PlanRow).values(
-                id=uuid4(), user_id=owner, conditions=stored_version_3()["conditions"], **row
+                id=uuid4(), user_id=owner, conditions=stored_version_4()["conditions"], **row
             )
         )
 
@@ -451,6 +462,55 @@ def test_a_version_2_plan_becomes_a_version_3_plan_without_taken_courses(
         command.upgrade(alembic_config, "head")
 
     assert repository.get(plan_id) == sample_plan(plan_id, owner)
+
+
+def test_a_version_3_plan_becomes_a_version_4_plan_without_fixed_courses(
+    engine: Engine, alembic_config: Config, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan_id = uuid4()
+    stored = stored_version_3()
+    command.downgrade(alembic_config, "0011")
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                insert(PlanRow).values(
+                    id=plan_id,
+                    user_id=owner,
+                    status="succeeded",
+                    conditions=stored["conditions"],
+                    result=stored["result"],
+                )
+            )
+    finally:
+        command.upgrade(alembic_config, "head")
+
+    assert repository.get(plan_id) == sample_plan(plan_id, owner)
+
+
+def test_going_back_to_version_3_leaves_the_fixed_courses_out_of_the_roadmap(
+    engine: Engine, alembic_config: Config, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    plan = sample_plan_with_fixed(uuid4(), owner)
+    repository.add(plan, ANY_DAY, allow)
+    command.downgrade(alembic_config, "0011")
+    try:
+        with engine.connect() as connection:
+            conditions, stored = connection.execute(
+                select(PlanRow.conditions, PlanRow.result).where(PlanRow.id == plan.id)
+            ).one()
+    finally:
+        command.upgrade(alembic_config, "head")
+
+    assert "fixed_courses" not in conditions
+    assert stored["version"] == 3
+    assert "fixed" not in stored["roadmap"]
+    assert [
+        [placed["course"] for placed in semester["courses"]]
+        for semester in stored["roadmap"]["semesters"]
+    ] == [["科目A", "科目B", "科目C"], [], [], []]
+    assert stored["roadmap"]["semesters"][1]["continuing"] == ["科目B"]
+    assert stored["roadmap"]["unplaced"] == ["科目D"]
+    assert repository.get(plan.id) == sample_plan(plan.id, owner)
 
 
 def test_going_back_to_version_2_moves_the_taken_courses_to_the_unplaced_ones(

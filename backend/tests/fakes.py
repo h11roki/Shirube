@@ -18,6 +18,7 @@ from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
+from app.application.list_offered_courses import ListOfferedCourses
 from app.application.list_plans import ListPlans
 from app.application.ports import (
     Deletion,
@@ -488,6 +489,7 @@ def plan_app(
         GetPlan(stored),
         ListPlans(stored),
         ListClassChoices(courses, known),
+        ListOfferedCourses(courses, known),
         AnswerTakenCourses(stored, known, courses),
         DeletePlan(stored, lambda: FIRST_CREATED_AT),
         SyllabusLinks(courses),
