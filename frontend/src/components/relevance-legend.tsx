@@ -16,7 +16,7 @@ export function RelevanceLegend({ className = "" }: { className?: string }) {
             <span className="font-bold text-ink">
               {RELEVANCE_LABELS[relevance]}
             </span>
-            <span className="sr-only">:</span>{" "}
+            <span className="sr-only">、</span>{" "}
             {RELEVANCE_DESCRIPTIONS[relevance]}
           </span>
         </span>

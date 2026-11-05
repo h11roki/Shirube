@@ -437,7 +437,7 @@ test.describe("乗換の欄", () => {
       await expect(departure).toHaveAccessibleDescription(TRANSFER_HINT);
       await expect(
         page.getByText(
-          `${RELEVANCE_LABELS.foundation}: ${RELEVANCE_DESCRIPTIONS.foundation}`,
+          `${RELEVANCE_LABELS.foundation}、${RELEVANCE_DESCRIPTIONS.foundation}`,
           { exact: true },
         ),
       ).toBeVisible();
@@ -453,6 +453,19 @@ test.describe("乗換の欄", () => {
       await expect(back).toHaveCount(0);
     });
   }
+
+  test("ログイン前のトップの見本の道標にも、柱と礎の凡例と乗換の欄の一言が出る", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    await expect(
+      page.getByText(
+        `${RELEVANCE_LABELS.core}、${RELEVANCE_DESCRIPTIONS.core}`,
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(page.getByText(TRANSFER_HINT).first()).toBeVisible();
+  });
 
   test("礎の切符に触れるかフォーカスすると、つながる柱の切符に輪を付ける", async ({
     page,

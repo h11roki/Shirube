@@ -24,7 +24,7 @@ export function Departure({ transfer }: { transfer: Transfer }) {
   const hint = `${button}-hint`;
   return (
     <div className={`grid gap-1 ${PERFORATED}`}>
-      <p id={hint} aria-hidden className="text-label text-sub">
+      <p id={hint} className="text-label text-sub">
         {TRANSFER_HINT}
       </p>
       <HopLink
@@ -53,7 +53,7 @@ export function Arrivals({ arrivals }: { arrivals: Transfer[] }) {
         <TransferMark mark={mark} />
         {arrivalsLabel(arrivals.length)}
       </p>
-      <p id={hint} aria-hidden className="text-label text-sub">
+      <p id={hint} className="text-label text-sub">
         {ARRIVALS_HINT}
       </p>
       <ul className="grid gap-1.5">
