@@ -1,3 +1,4 @@
+import hashlib
 from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
@@ -13,7 +14,8 @@ from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanListing, PlanResult, PlanStage
 from app.domain.quota import PlanCounts
 from app.domain.ranking import ChunkHit
-from app.domain.recommendation import CandidateCourse, CourseChoice
+from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation
+from app.domain.roadmap import Semester
 from app.domain.syllabus import Syllabus
 
 
@@ -192,6 +194,38 @@ class PlanRepository(Protocol):
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None: ...
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing: ...
+
+
+@dataclass(frozen=True)
+class RecommendationKey:
+    occupation: str
+    department: str
+    year: int
+    semesters: tuple[Semester, ...]
+    excluded: tuple[str, ...]
+    fingerprint: str
+
+    @property
+    def digest(self) -> str:
+        parts = (
+            self.occupation,
+            self.department,
+            str(self.year),
+            ",".join(f"{semester.grade}-{semester.term.value}" for semester in self.semesters),
+            "\n".join(self.excluded),
+            self.fingerprint,
+        )
+        return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
+
+
+class RecommendationStore(Protocol):
+    def recall(self, key: RecommendationKey, now: datetime) -> Recommendation | None: ...
+
+    def remember(
+        self, key: RecommendationKey, recommendation: Recommendation, until: datetime
+    ) -> None: ...
+
+    def forget_expired(self, now: datetime) -> int: ...
 
 
 class BuildOutcome(Enum):

@@ -24,9 +24,11 @@ from app.application.ports import (
     EmbeddingError,
     InvalidTokenError,
     PlanBuild,
+    RecommendationKey,
     RecordedBuild,
     TokenUsage,
 )
+from app.application.recommend_courses import RecommendStep
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import SearchCourses, query_and_skills
 from app.application.syllabus_links import SyllabusLinks
@@ -45,7 +47,8 @@ from app.domain.plan import (
 )
 from app.domain.quota import PlanCounts, PlanQuota
 from app.domain.ranking import ChunkHit
-from app.domain.recommendation import CandidateCourse, CourseChoice
+from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation
+from app.domain.roadmap import Semester
 from app.domain.syllabus import Syllabus
 from app.presentation.api.app import create_app
 from tests.builders import course_section, syllabus
@@ -183,6 +186,58 @@ class FakePlanBuildLog:
     def since(self, start: datetime) -> list[RecordedBuild]:
         self.starts.append(start)
         return [recorded for recorded in self.recorded if recorded.finished_at >= start]
+
+
+class FakeRecommendationStore:
+    def __init__(self, failing: bool = False) -> None:
+        self.remembered: dict[str, tuple[RecommendationKey, Recommendation, datetime]] = {}
+        self.forgets: list[datetime] = []
+        self._failing = failing
+
+    def recall(self, key: RecommendationKey, now: datetime) -> Recommendation | None:
+        if self._failing:
+            raise ConnectionError("DB に届きません")
+        entry = self.remembered.get(key.digest)
+        if entry is None:
+            return None
+        _, recommendation, until = entry
+        return recommendation if until > now else None
+
+    def remember(
+        self, key: RecommendationKey, recommendation: Recommendation, until: datetime
+    ) -> None:
+        if self._failing:
+            raise ConnectionError("DB に届きません")
+        self.remembered[key.digest] = (key, recommendation, until)
+
+    def forget_expired(self, now: datetime) -> int:
+        if self._failing:
+            raise ConnectionError("DB に届きません")
+        self.forgets.append(now)
+        expired = [digest for digest, (_, _, until) in self.remembered.items() if until <= now]
+        for digest in expired:
+            del self.remembered[digest]
+        return len(expired)
+
+
+class FakeRecommender:
+    def __init__(self, recommendation: Recommendation) -> None:
+        self._recommendation = recommendation
+        self.calls: list[tuple[str, int, str, tuple[Semester, ...], frozenset[str]]] = []
+
+    def run(
+        self,
+        occupation: str,
+        year: int,
+        department: str,
+        semesters: Sequence[Semester],
+        enter: Callable[[RecommendStep], None] = lambda step: None,
+        excluded: Set[str] = frozenset(),
+    ) -> Recommendation:
+        self.calls.append((occupation, year, department, tuple(semesters), frozenset(excluded)))
+        enter(RecommendStep.SEARCHING)
+        enter(RecommendStep.SELECTING)
+        return self._recommendation
 
 
 class FakePlanRepository:
