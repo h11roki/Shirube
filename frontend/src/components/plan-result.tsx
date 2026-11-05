@@ -202,15 +202,18 @@ export function PlanResultView({
             </nav>
             <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-sub">
               {RELEVANCES.map((relevance) => (
-                <span key={relevance} className="flex items-center gap-1.5">
+                <span key={relevance} className="flex items-start gap-1.5">
                   <span
                     aria-hidden
-                    className={`size-3 ${RELEVANCE_TONES[relevance].mark}`}
+                    className={`mt-[0.2em] size-3 ${RELEVANCE_TONES[relevance].mark}`}
                   />
-                  <span className="font-bold text-ink">
-                    {RELEVANCE_LABELS[relevance]}
+                  <span>
+                    <span className="font-bold text-ink">
+                      {RELEVANCE_LABELS[relevance]}
+                    </span>
+                    <span className="sr-only">:</span>{" "}
+                    {RELEVANCE_DESCRIPTIONS[relevance]}
                   </span>
-                  {RELEVANCE_DESCRIPTIONS[relevance]}
                 </span>
               ))}
             </p>
