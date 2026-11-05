@@ -457,6 +457,7 @@ test.describe("乗換の欄", () => {
   test("ログイン前のトップの見本の道標にも、柱と礎の凡例と乗換の欄の一言が出る", async ({
     page,
   }) => {
+    await page.context().clearCookies();
     await page.goto("/");
     await expect(
       page.getByText(
