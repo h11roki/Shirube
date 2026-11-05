@@ -1,5 +1,5 @@
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence, Set
+from collections.abc import Iterable, Mapping, Sequence, Set
 from dataclasses import dataclass
 
 from app.domain.course import ALL_GRADES, CourseSection, Term, left_out_codes
@@ -15,6 +15,10 @@ class RoadmapError(ValueError):
 
 
 class ClassChoiceError(RoadmapError):
+    pass
+
+
+class FixedCourseError(RoadmapError):
     pass
 
 
@@ -72,8 +76,72 @@ def removed_codes(
 
 
 @dataclass(frozen=True)
+class FixedCourse:
+    name: str
+    syllabus_code: str | None
+
+
+PlannedCourse = RecommendedCourse | FixedCourse
+
+
+def fixed_courses(
+    names: Iterable[str], sections: Sequence[CourseSection], page_of: Mapping[str, str]
+) -> tuple[FixedCourse, ...]:
+    pages: dict[str, str] = {}
+    for section in sections:
+        if section.code in page_of:
+            pages.setdefault(section.name, page_of[section.code])
+    return tuple(FixedCourse(name, pages.get(name)) for name in sorted(set(names)))
+
+
+@dataclass(frozen=True)
+class OfferedCourse:
+    name: str
+    credits: int
+    semesters: tuple[Semester, ...]
+
+
+def offered_courses(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    left_out: Set[str] = frozenset(),
+) -> list[OfferedCourse]:
+    found: dict[str, tuple[int, set[Semester]]] = {}
+    for section in sections:
+        if section.code in left_out:
+            continue
+        opened = {s for s in semesters if opens_in(section, department, year, s)}
+        if not opened:
+            continue
+        _, known = found.setdefault(section.name, (section.credits, set()))
+        known.update(opened)
+    return [
+        OfferedCourse(name, credits, tuple(s for s in semesters if s in opened))
+        for name, (credits, opened) in sorted(found.items())
+    ]
+
+
+def require_offered(
+    sections: Sequence[CourseSection],
+    page_of: Mapping[str, str],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    taken: Set[str],
+    names: Iterable[str],
+) -> None:
+    left_out = left_out_codes(sections, page_of, department, taken)
+    offered = offered_courses(sections, department, year, semesters, left_out)
+    unknown = sorted(set(names) - {course.name for course in offered})
+    if unknown:
+        raise FixedCourseError(f"残りの学期に開講される授業にありません: {'、'.join(unknown)}")
+
+
+@dataclass(frozen=True)
 class PlacedCourse:
-    course: RecommendedCourse
+    course: PlannedCourse
     section: CourseSection
     class_confirmed: bool
 
@@ -101,7 +169,7 @@ class SemesterPlan:
 @dataclass(frozen=True)
 class Roadmap:
     semesters: tuple[SemesterPlan, ...]
-    unplaced: tuple[RecommendedCourse, ...]
+    unplaced: tuple[PlannedCourse, ...]
     taken: tuple[RecommendedCourse, ...] = ()
     offered_earlier: frozenset[str] = frozenset()
 
@@ -240,10 +308,12 @@ def place(
     credit_limit: int,
     chosen_classes: Mapping[str, str],
     taken: Set[str] = frozenset(),
+    fixed: Sequence[FixedCourse] = (),
 ) -> Roadmap:
     if credit_limit <= 0:
         raise RoadmapError(f"単位の上限は 1 以上にしてください: {credit_limit}")
-    names = {course.name for course in recommendation.courses}
+    planned: tuple[PlannedCourse, ...] = (*fixed, *recommendation.courses)
+    names = {course.name for course in planned}
     by_name: dict[str, list[CourseSection]] = {name: [] for name in names}
     for section in sections:
         if section.name in by_name:
@@ -255,7 +325,7 @@ def place(
     earlier = ALL_SEMESTERS[: ALL_SEMESTERS.index(semesters[0])] if semesters else ()
     offered_earlier = frozenset(
         name
-        for name in names
+        for name in (course.name for course in recommendation.courses)
         if any(
             opens_in(section, department, year, semester)
             for section in by_name[name]
@@ -271,7 +341,7 @@ def place(
         courses: list[PlacedCourse] = []
         credits = 0
         occupied = {slot for carried in continuing for slot in carried.section.slots}
-        for course in recommendation.courses:
+        for course in planned:
             if course.name in placed or course.name in skipped:
                 continue
             classes, confirmed = options[course.name]
@@ -296,9 +366,7 @@ def place(
                 year_long[semester.grade].append(placed_course)
         plans.append(SemesterPlan(semester, tuple(courses), continuing))
     unplaced = tuple(
-        course
-        for course in recommendation.courses
-        if course.name not in placed and course.name not in skipped
+        course for course in planned if course.name not in placed and course.name not in skipped
     )
     left_out = tuple(course for course in recommendation.courses if course.name in skipped)
     return Roadmap(tuple(plans), unplaced, left_out, offered_earlier)

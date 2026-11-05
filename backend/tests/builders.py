@@ -10,7 +10,7 @@ from app.domain.recommendation import (
     RecommendedCourse,
     Relevance,
 )
-from app.domain.roadmap import PlacedCourse, Roadmap, Semester, SemesterPlan
+from app.domain.roadmap import FixedCourse, PlacedCourse, Roadmap, Semester, SemesterPlan
 from app.domain.syllabus import CourseName, GradingItem, Session, Syllabus
 
 
@@ -141,6 +141,33 @@ def sample_sections() -> tuple[CourseSection, ...]:
     )
 
 
+def sample_plan_with_fixed(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
+    plan = sample_plan(plan_id, owner_id)
+    assert plan.result is not None
+    roadmap = plan.result.roadmap
+    spring, autumn, *rest = roadmap.semesters
+    fixed = PlacedCourse(
+        FixedCourse("必修X", "10010"),
+        replace(
+            course_section("10010", term=Term.AUTUMN, slots=(TimeSlot(Weekday.TUE, 1),)),
+            name="必修X",
+        ),
+        True,
+    )
+    return replace(
+        plan,
+        conditions=replace(plan.conditions, fixed_courses=("必修X", "必修Y")),
+        result=replace(
+            plan.result,
+            roadmap=replace(
+                roadmap,
+                semesters=(spring, replace(autumn, courses=(fixed,)), *rest),
+                unplaced=(*roadmap.unplaced, FixedCourse("必修Y", None)),
+            ),
+        ),
+    )
+
+
 def sample_plan_asking(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     plan = sample_plan(plan_id, owner_id)
     assert plan.result is not None
@@ -157,7 +184,9 @@ def sample_plan_with_taken(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan
         replace(
             roadmap,
             unplaced=(),
-            taken=roadmap.unplaced,
+            taken=tuple(
+                course for course in roadmap.unplaced if isinstance(course, RecommendedCourse)
+            ),
             offered_earlier=frozenset({"科目A", "科目D"}),
         )
     )

@@ -1,4 +1,4 @@
-from collections.abc import Sequence, Set
+from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass, replace
 from datetime import datetime
 from enum import StrEnum
@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.domain.course import CourseSection
 from app.domain.recommendation import Recommendation
-from app.domain.roadmap import Roadmap, Semester, place, remaining_semesters
+from app.domain.roadmap import Roadmap, Semester, fixed_courses, place, remaining_semesters
 
 
 class PlanError(ValueError):
@@ -39,11 +39,14 @@ class PlanConditions:
     start: Semester
     chosen_classes: tuple[tuple[str, str], ...]
     credit_limit: int
+    fixed_courses: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         names = [name for name, _ in self.chosen_classes]
         if names != sorted(set(names)):
             raise PlanError("クラスの選択は科目名の順に、科目ごとに 1 つにしてください")
+        if list(self.fixed_courses) != sorted(set(self.fixed_courses)):
+            raise PlanError("先に入れる授業は科目名の順に 1 つずつにしてください")
 
     @property
     def semesters(self) -> tuple[Semester, ...]:
@@ -54,6 +57,7 @@ class PlanConditions:
         recommendation: Recommendation,
         sections: Sequence[CourseSection],
         taken: Set[str] = frozenset(),
+        page_of: Mapping[str, str] | None = None,
     ) -> Roadmap:
         return place(
             recommendation,
@@ -64,6 +68,7 @@ class PlanConditions:
             self.credit_limit,
             dict(self.chosen_classes),
             taken,
+            fixed_courses(self.fixed_courses, sections, page_of or {}),
         )
 
 
@@ -105,10 +110,14 @@ class Plan:
             *(course.name for course in roadmap.unplaced),
             *(course.name for course in roadmap.taken),
         ]
-        if sorted(planned) != sorted(course.name for course in recommendation.courses):
+        expected = [
+            *(course.name for course in recommendation.courses),
+            *self.conditions.fixed_courses,
+        ]
+        if sorted(planned) != sorted(expected):
             raise PlanError(
-                "推薦の科目が、置いた科目、置けなかった科目、もう取った科目のどれかに"
-                " 1 回ずつ入っていません"
+                "推薦の科目と先に入れる授業が、置いた科目、置けなかった科目、"
+                "もう取った科目のどれかに 1 回ずつ入っていません"
             )
         over = [
             str(plan.semester)
