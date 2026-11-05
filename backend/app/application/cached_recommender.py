@@ -4,9 +4,8 @@ from datetime import datetime, timedelta
 
 from app.application.ports import CourseRepository, RecommendationKey, RecommendationStore
 from app.application.recommend_courses import Recommender, RecommendStep
-from app.domain.course import left_out_codes
 from app.domain.recommendation import Recommendation
-from app.domain.roadmap import Semester, opens_in_any
+from app.domain.roadmap import Semester, removed_codes
 
 logger = logging.getLogger(__name__)
 
@@ -73,13 +72,6 @@ class CachedRecommender:
             return ()
         sections = self._courses.sections(year)
         page_of = self._courses.syllabus_codes(year)
-        left_out = left_out_codes(sections, page_of, department, excluded)
         return tuple(
-            sorted(
-                section.code
-                for section in sections
-                if section.code in left_out
-                and section.code in page_of
-                and opens_in_any(section, department, year, semesters)
-            )
+            sorted(removed_codes(sections, page_of, department, year, semesters, excluded))
         )

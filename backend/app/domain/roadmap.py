@@ -2,7 +2,7 @@ from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence, Set
 from dataclasses import dataclass
 
-from app.domain.course import ALL_GRADES, CourseSection, Term
+from app.domain.course import ALL_GRADES, CourseSection, Term, left_out_codes
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 NO_CLASS_CODE = ""
@@ -51,6 +51,24 @@ def opens_in_any(
     section: CourseSection, department: str, year: int, semesters: Sequence[Semester]
 ) -> bool:
     return any(opens_in(section, department, year, semester) for semester in semesters)
+
+
+def removed_codes(
+    sections: Sequence[CourseSection],
+    page_of: Mapping[str, str],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    taken: Set[str],
+) -> frozenset[str]:
+    left_out = left_out_codes(sections, page_of, department, taken)
+    return frozenset(
+        section.code
+        for section in sections
+        if section.code in left_out
+        and section.code in page_of
+        and opens_in_any(section, department, year, semesters)
+    )
 
 
 @dataclass(frozen=True)

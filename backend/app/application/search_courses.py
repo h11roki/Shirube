@@ -3,9 +3,8 @@ from collections.abc import Callable, Mapping, Sequence, Set
 from typing import Protocol
 
 from app.application.ports import ChunkSearch, CourseRepository, Embedder, EmbeddingError
-from app.domain.course import left_out_codes
 from app.domain.ranking import CourseMatch, rank_courses, take_turns
-from app.domain.roadmap import Semester, opens_in_any
+from app.domain.roadmap import Semester, opens_in_any, removed_codes
 
 EXCLUDED_NOTE = "(もう取ったと答えた授業は除いています)"
 
@@ -98,15 +97,11 @@ class SearchCourses:
         sections = self._courses.sections(year)
         if not page_of or not sections:
             raise SearchError(f"{year} 年度の時間割かシラバスが DB にありません")
-        left_out = left_out_codes(sections, page_of, department, excluded)
+        removed = removed_codes(sections, page_of, department, year, semesters, excluded)
         names_of_page: dict[str, set[str]] = defaultdict(set)
-        removed = False
         for section in sections:
             offered = opens_in_any(section, department, year, semesters)
-            if not offered or section.code not in page_of:
-                continue
-            if section.code in left_out:
-                removed = True
+            if not offered or section.code not in page_of or section.code in removed:
                 continue
             names_of_page[page_of[section.code]].add(section.name)
         if not names_of_page:

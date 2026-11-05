@@ -273,11 +273,11 @@ def _conditions(plan_id: UUID, stored: object) -> PlanConditions:
         raise PlanFormatError(f"{plan_id}: 保存した道標を読めません: {error!r}") from error
 
 
-def semester_json(semester: Semester) -> SemesterJson:
+def _semester_json(semester: Semester) -> SemesterJson:
     return SemesterJson(grade=semester.grade, term=semester.term.value)
 
 
-def semester_from_json(data: SemesterJson) -> Semester:
+def _semester(data: SemesterJson) -> Semester:
     return Semester(data["grade"], Term(data["term"]))
 
 
@@ -300,7 +300,7 @@ def conditions_json(conditions: PlanConditions) -> ConditionsJson:
         occupation=conditions.occupation,
         department=conditions.department,
         year=conditions.year,
-        start=semester_json(conditions.start),
+        start=_semester_json(conditions.start),
         chosen_classes=dict(conditions.chosen_classes),
         credit_limit=conditions.credit_limit,
     )
@@ -311,7 +311,7 @@ def conditions_from_json(data: ConditionsJson) -> PlanConditions:
         data["occupation"],
         data["department"],
         data["year"],
-        semester_from_json(data["start"]),
+        _semester(data["start"]),
         tuple(sorted(data["chosen_classes"].items())),
         data["credit_limit"],
     )
@@ -388,7 +388,7 @@ def result_json(result: PlanResult) -> ResultJson:
         roadmap=RoadmapJson(
             semesters=[
                 SemesterPlanJson(
-                    semester=semester_json(semester_plan.semester),
+                    semester=_semester_json(semester_plan.semester),
                     courses=[_placed_json(placed) for placed in semester_plan.courses],
                     continuing=[placed.course.name for placed in semester_plan.continuing],
                 )
@@ -407,7 +407,7 @@ def result_from_json(data: ResultJson) -> PlanResult:
     placed_by_grade: dict[tuple[int, str], PlacedCourse] = {}
     semester_plans = []
     for stored_plan in data["roadmap"]["semesters"]:
-        semester = semester_from_json(stored_plan["semester"])
+        semester = _semester(stored_plan["semester"])
         placed = tuple(_placed(item, courses) for item in stored_plan["courses"])
         placed_by_grade.update(((semester.grade, item.course.name), item) for item in placed)
         continuing = tuple(

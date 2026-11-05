@@ -1,4 +1,3 @@
-import importlib
 import sys
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -150,24 +149,15 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
     )
 
 
-RECOMMENDING_MODULES = (
-    "app.domain.occupation",
-    "app.domain.ranking",
-    "app.domain.recommendation",
-    "app.domain.excerpts",
-    "app.application.search_courses",
-    "app.application.recommend_courses",
-    "app.application.voting_course_selector",
-    "app.infrastructure.llm.openai_embedder",
-    "app.infrastructure.llm.openai_occupation_analyzer",
-    "app.infrastructure.llm.openai_course_selector",
-)
+RECOMMENDING_PACKAGES = ("domain", "application", "infrastructure")
 
 
 def recommendation_fingerprint(settings: Settings) -> str:
+    package = Path(__file__).resolve().parents[1]
     sources = [
-        Path(str(importlib.import_module(name).__file__)).read_text(encoding="utf-8")
-        for name in RECOMMENDING_MODULES
+        path.read_text(encoding="utf-8")
+        for name in RECOMMENDING_PACKAGES
+        for path in sorted((package / name).rglob("*.py"))
     ]
     parts = (
         settings.chat_model,
