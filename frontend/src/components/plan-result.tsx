@@ -11,7 +11,8 @@ import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
-import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
+import { RelevanceLegend } from "@/components/relevance-legend";
+import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
 import { SMALL_BUTTON, STANDALONE_LINK, tabClass } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
@@ -199,17 +200,7 @@ export function PlanResultView({
                 </QueryLink>
               ))}
             </nav>
-            <p className="flex gap-4 text-xs text-sub">
-              {RELEVANCES.map((relevance) => (
-                <span key={relevance} className="flex items-center gap-1.5">
-                  <span
-                    aria-hidden
-                    className={`size-3 ${RELEVANCE_TONES[relevance].mark}`}
-                  />
-                  {RELEVANCE_LABELS[relevance]}の授業
-                </span>
-              ))}
-            </p>
+            <RelevanceLegend />
           </div>
 
           {view === "route" ? (

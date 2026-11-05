@@ -3,6 +3,7 @@ import { CourseWordsProvider } from "@/components/course-words";
 import { DestinationPlate } from "@/components/destination-plate";
 import { JourneySummary } from "@/components/journey-summary";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
+import { RelevanceLegend } from "@/components/relevance-legend";
 import { RouteMap } from "@/components/route-map";
 import { RELEVANCE_LABELS } from "@/lib/labels";
 import { STAGGER_MS } from "@/lib/motion";
@@ -81,6 +82,7 @@ export function Introduction() {
           conditions={conditions}
           skills={result.profile.skills}
         />
+        <RelevanceLegend className="justify-self-end" />
         <CourseWordsProvider words={SAMPLE_COURSE_WORDS}>
           <RouteMap
             semesters={result.semesters}

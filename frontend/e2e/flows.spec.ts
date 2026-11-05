@@ -2,16 +2,20 @@ import type { Locator, Page } from "@playwright/test";
 
 import type { PlacedCourse, Plan, Relevance, Weekday } from "@/lib/api/client";
 import {
+  ARRIVALS_HINT,
   CANCEL_LABEL,
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
+  RELEVANCE_DESCRIPTIONS,
+  RELEVANCE_LABELS,
+  TRANSFER_HINT,
   TRANSFER_LABEL,
   answeredLabel,
-  deletePlanLabel,
-  deletedPlanLabel,
   arrivalsLabel,
   backPlace,
+  deletePlanLabel,
+  deletedPlanLabel,
   hopPlace,
   markTakenLabel,
   stationsAway,
@@ -430,6 +434,13 @@ test.describe("乗換の欄", () => {
           () => document.documentElement.scrollWidth - innerWidth,
         ),
       ).toBeLessThanOrEqual(0);
+      await expect(departure).toHaveAccessibleDescription(TRANSFER_HINT);
+      await expect(
+        page.getByText(
+          `${RELEVANCE_LABELS.foundation}、${RELEVANCE_DESCRIPTIONS.foundation}`,
+          { exact: true },
+        ),
+      ).toBeVisible();
       await departure.click();
       await expect(nameOf(page, transfer.to.name)).toBeFocused();
       await expect(nameOf(page, transfer.to.name)).toBeInViewport();
@@ -442,6 +453,20 @@ test.describe("乗換の欄", () => {
       await expect(back).toHaveCount(0);
     });
   }
+
+  test("ログイン前のトップの見本の道標にも、柱と礎の凡例と乗換の欄の一言が出る", async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await page.goto("/");
+    await expect(
+      page.getByText(
+        `${RELEVANCE_LABELS.core}、${RELEVANCE_DESCRIPTIONS.core}`,
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(page.getByText(TRANSFER_HINT).first()).toBeVisible();
+  });
 
   test("礎の切符に触れるかフォーカスすると、つながる柱の切符に輪を付ける", async ({
     page,
@@ -469,10 +494,11 @@ test.describe("乗換の欄", () => {
     await expect(pillar).toContainText(
       arrivalsLabel(routes.arrivals.get(transfer.to.name)?.length ?? 0),
     );
-    await pillar
+    const arrival = pillar
       .getByRole("button")
-      .filter({ hasText: transfer.from.name })
-      .click();
+      .filter({ hasText: transfer.from.name });
+    await expect(arrival).toHaveAccessibleDescription(ARRIVALS_HINT);
+    await arrival.click();
     await expect(nameOf(page, transfer.from.name)).toBeFocused();
     await expect(
       page.getByRole("button", {
