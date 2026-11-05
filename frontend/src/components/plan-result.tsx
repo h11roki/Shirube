@@ -23,6 +23,7 @@ import {
   requestJson,
 } from "@/lib/api/client";
 import {
+  RELEVANCE_DESCRIPTIONS,
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
   type TakenChange,
@@ -199,14 +200,17 @@ export function PlanResultView({
                 </QueryLink>
               ))}
             </nav>
-            <p className="flex gap-4 text-xs text-sub">
+            <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-sub">
               {RELEVANCES.map((relevance) => (
                 <span key={relevance} className="flex items-center gap-1.5">
                   <span
                     aria-hidden
                     className={`size-3 ${RELEVANCE_TONES[relevance].mark}`}
                   />
-                  {RELEVANCE_LABELS[relevance]}の授業
+                  <span className="font-bold text-ink">
+                    {RELEVANCE_LABELS[relevance]}
+                  </span>
+                  {RELEVANCE_DESCRIPTIONS[relevance]}
                 </span>
               ))}
             </p>

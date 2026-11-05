@@ -6,6 +6,8 @@ import { useCourseWords } from "@/components/course-words";
 import { Phrases } from "@/components/phrases";
 import { useTransferFocus } from "@/components/transfer-focus";
 import {
+  ARRIVALS_HINT,
+  TRANSFER_HINT,
   TRANSFER_LABEL,
   arrivalsLabel,
   backPlace,
@@ -20,7 +22,8 @@ const HOP_BUTTON = "grid min-h-6 w-full gap-0.5 text-left text-route";
 export function Departure({ transfer }: { transfer: Transfer }) {
   const button = `transfer-${transfer.from.section}`;
   return (
-    <div className={PERFORATED}>
+    <div className={`grid gap-1 ${PERFORATED}`}>
+      <p className="text-label text-sub">{TRANSFER_HINT}</p>
       <HopLink
         from={transfer.from}
         to={transfer.to}
@@ -44,6 +47,7 @@ export function Arrivals({ arrivals }: { arrivals: Transfer[] }) {
         <TransferMark mark={arrivals[0].mark} />
         {arrivalsLabel(arrivals.length)}
       </p>
+      <p className="text-label text-sub">{ARRIVALS_HINT}</p>
       <ul className="grid gap-1.5">
         {arrivals.map((transfer) => (
           <li key={transfer.from.section}>

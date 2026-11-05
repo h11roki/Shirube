@@ -23,6 +23,11 @@ export const RELEVANCE_LABELS: Record<Relevance, string> = {
   foundation: "礎",
 };
 
+export const RELEVANCE_DESCRIPTIONS: Record<Relevance, string> = {
+  core: "職業に直結する授業",
+  foundation: "柱の前提になる授業",
+};
+
 export const STAGE_LABELS: Record<PlanStage, readonly string[]> = {
   analyzing: ["目的地を", "地図に", "書き込んでいます"],
   searching: ["道筋を", "引いています"],
@@ -137,6 +142,8 @@ export function routeEndContinuation(
 }
 
 export const TRANSFER_LABEL = "乗換";
+export const TRANSFER_HINT = "前提になる柱へ";
+export const ARRIVALS_HINT = "この柱を前提にする礎";
 
 export function hopPlace(hop: Pick<Hop, "station" | "semester">): string {
   return `${stationLabel(hop.station)} ${semesterLabel(hop.semester.grade, hop.semester.term)}`;
