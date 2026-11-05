@@ -24,6 +24,7 @@ class Settings(CurriculumSettings):
     search_by_skill: bool = True
     chat_model: str = "gpt-5.4-mini"
     occupation_reading_cache_size: Annotated[int, Field(ge=0, le=10_000)] = 500
+    recommendation_cache_days: Annotated[int, Field(ge=0, le=365)] = 7
     selection_model: str = "gpt-5.4-nano"
     selection_candidate_limit: Annotated[int, Field(gt=0, le=100)] = 20
     selection_votes: Annotated[int, Field(ge=1, le=5)] = 3

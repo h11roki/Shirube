@@ -5,13 +5,13 @@ from datetime import timedelta
 from types import FrameType
 
 from app.application.build_plans import BuildPlans
-from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import PlanFormatError
+from app.application.tidy_daily import TidyDaily
 from app.presentation.composition import (
     build_plans,
     database_engine,
-    forget_deleted_plans,
     load_settings,
+    tidy_daily,
 )
 
 logger = logging.getLogger(__name__)
@@ -19,16 +19,16 @@ logger = logging.getLogger(__name__)
 
 def work(
     builder: BuildPlans,
-    forgetting: ForgetDeletedPlans,
+    tidying: TidyDaily,
     stall_limit: timedelta,
     poll_seconds: float,
     stop: threading.Event,
 ) -> None:
     while not stop.is_set():
         try:
-            forgetting.run()
+            tidying.run()
         except Exception:
-            logger.exception("消した道標の日時を消せませんでした。しばらくしてやり直します")
+            logger.exception("日ごとの片付けに失敗しました。しばらくしてやり直します")
         try:
             builder.fail_stalled(stall_limit)
             built = None if stop.is_set() else builder.build_next()
@@ -60,7 +60,7 @@ def main() -> None:
     try:
         work(
             build_plans(settings, engine),
-            forget_deleted_plans(engine),
+            tidy_daily(engine),
             timedelta(minutes=settings.plan_stall_minutes),
             settings.worker_poll_seconds,
             stop,
