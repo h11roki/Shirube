@@ -1,4 +1,3 @@
-import hashlib
 import sys
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -10,8 +9,13 @@ from sqlalchemy.exc import ArgumentError
 from app.application.build_plans import BuildPlans
 from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.cached_recommender import CachedRecommender
+from app.application.fingerprint import fingerprint_of
 from app.application.ports import CourseSelector, OccupationAnalyzer, ReasonJudge
-from app.application.recommend_courses import RecommendCourses, Recommender
+from app.application.recommend_courses import (
+    RECOMMENDATION_VERSION,
+    RecommendCourses,
+    Recommender,
+)
 from app.application.report_plan_builds import ReportPlanBuilds
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import (
@@ -151,6 +155,7 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
 
 def recommendation_fingerprint(settings: Settings) -> str:
     parts = (
+        str(RECOMMENDATION_VERSION),
         settings.chat_model,
         settings.selection_model,
         settings.embedding_model,
@@ -162,7 +167,7 @@ def recommendation_fingerprint(settings: Settings) -> str:
         READING_INSTRUCTIONS,
         SELECTION_INSTRUCTIONS,
     )
-    return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()[:16]
+    return fingerprint_of(parts)[:16]
 
 
 def recommender(settings: Settings, engine: Engine) -> Recommender:
@@ -172,6 +177,7 @@ def recommender(settings: Settings, engine: Engine) -> Recommender:
     return CachedRecommender(
         recommend,
         SqlRecommendationStore(engine),
+        SqlCourseRepository(engine),
         recommendation_fingerprint(settings),
         timedelta(days=settings.recommendation_cache_days),
         now,

@@ -58,9 +58,14 @@ class SqlRecommendationStore:
 
     def forget_expired(self, now: datetime) -> int:
         with DbSession(self._engine) as db, db.begin():
-            forgotten = db.scalars(
-                delete(RememberedRecommendationRow)
-                .where(RememberedRecommendationRow.expires_at <= now)
-                .returning(RememberedRecommendationRow.key)
-            ).all()
-        return len(forgotten)
+            forgotten = db.connection().execute(
+                delete(RememberedRecommendationRow).where(
+                    RememberedRecommendationRow.expires_at <= now
+                )
+            )
+            return forgotten.rowcount
+
+    def forget_all(self) -> int:
+        with DbSession(self._engine) as db, db.begin():
+            forgotten = db.connection().execute(delete(RememberedRecommendationRow))
+            return forgotten.rowcount

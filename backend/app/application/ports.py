@@ -1,4 +1,3 @@
-import hashlib
 from collections.abc import Callable, Iterable, Mapping, Sequence, Set
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
@@ -7,6 +6,7 @@ from enum import Enum
 from typing import Protocol
 from uuid import UUID
 
+from app.application.fingerprint import fingerprint_of
 from app.application.reason_judging import ReasonCase, ReasonVote
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
@@ -215,7 +215,7 @@ class RecommendationKey:
             "\n".join(self.excluded),
             self.fingerprint,
         )
-        return hashlib.sha256("\x1f".join(parts).encode("utf-8")).hexdigest()
+        return fingerprint_of(parts)
 
 
 class RecommendationStore(Protocol):
@@ -226,6 +226,8 @@ class RecommendationStore(Protocol):
     ) -> None: ...
 
     def forget_expired(self, now: datetime) -> int: ...
+
+    def forget_all(self) -> int: ...
 
 
 class BuildOutcome(Enum):

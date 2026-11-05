@@ -219,6 +219,11 @@ class FakeRecommendationStore:
             del self.remembered[digest]
         return len(expired)
 
+    def forget_all(self) -> int:
+        forgotten = len(self.remembered)
+        self.remembered.clear()
+        return forgotten
+
 
 class FakeRecommender:
     def __init__(self, recommendation: Recommendation) -> None:

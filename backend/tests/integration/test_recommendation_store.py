@@ -73,3 +73,13 @@ def test_forgetting_removes_only_what_has_expired(store: SqlRecommendationStore)
     assert store.recall(KEY, NOON) is None
     assert store.recall(fresh, NOON) == recommendation()
     assert store.forget_expired(NOON + timedelta(hours=1)) == 0
+
+
+def test_forgetting_everything_empties_the_store_for_replaced_course_data(
+    store: SqlRecommendationStore,
+) -> None:
+    store.remember(KEY, recommendation(), NOON + timedelta(days=7))
+
+    assert store.forget_all() == 1
+    assert store.recall(KEY, NOON) is None
+    assert store.forget_all() == 0

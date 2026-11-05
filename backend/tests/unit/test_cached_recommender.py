@@ -10,7 +10,7 @@ from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation, RecommendedCourse, Relevance
 from app.domain.roadmap import Semester
-from tests.fakes import FakeRecommendationStore, FakeRecommender
+from tests.fakes import FakeRecommendationStore, FakeRecommender, courses_ranked_by
 
 PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙", "丙"))
 RECOMMENDATION = Recommendation(
@@ -28,17 +28,18 @@ def cached(
 ) -> tuple[CachedRecommender, FakeRecommender, FakeRecommendationStore]:
     inner = FakeRecommender(RECOMMENDATION)
     kept = store or FakeRecommendationStore()
-    return CachedRecommender(inner, kept, fingerprint, WEEK, lambda: now), inner, kept
+    courses, _ = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    return CachedRecommender(inner, kept, courses, fingerprint, WEEK, lambda: now), inner, kept
 
 
 def test_a_recommendation_not_remembered_is_made_and_kept_for_the_lifetime() -> None:
     recommender, inner, store = cached()
     steps: list[RecommendStep] = []
 
-    made = recommender.run("職業", 2026, "情", SEMESTERS, steps.append, {"科目B"})
+    made = recommender.run("職業", 2026, "情", SEMESTERS, steps.append, {"科目B", "開講の無い科目"})
 
     assert made == RECOMMENDATION
-    assert inner.calls == [("職業", 2026, "情", SEMESTERS, frozenset({"科目B"}))]
+    assert inner.calls == [("職業", 2026, "情", SEMESTERS, frozenset({"科目B", "開講の無い科目"}))]
     assert steps == [RecommendStep.SEARCHING, RecommendStep.SELECTING]
     [(key, kept, until)] = store.remembered.values()
     assert key == RecommendationKey("職業", "情", 2026, SEMESTERS, ("科目B",), "f1")
@@ -63,15 +64,31 @@ def test_a_remembered_recommendation_is_used_without_the_recommender_or_its_step
     assert "残した推薦を使います" in caplog.text
 
 
-def test_an_expired_recommendation_is_made_again() -> None:
+def test_an_expired_recommendation_is_made_again(caplog: pytest.LogCaptureFixture) -> None:
     store = FakeRecommendationStore()
     first, _, _ = cached(store)
     first.run("職業", 2026, "情", SEMESTERS)
     recommender, inner, _ = cached(store, now=NOON + WEEK)
 
-    recommender.run("職業", 2026, "情", SEMESTERS)
+    with caplog.at_level(logging.INFO):
+        recommender.run("職業", 2026, "情", SEMESTERS)
 
     assert len(inner.calls) == 1
+    assert "残した推薦が無いので作ります" in caplog.text
+
+
+def test_taken_courses_not_offered_to_the_department_do_not_tell_keys_apart() -> None:
+    store = FakeRecommendationStore()
+    first, _, _ = cached(store)
+    first.run("職業", 2026, "情", SEMESTERS, excluded={"開講の無い科目"})
+    recommender, inner, _ = cached(store)
+
+    recommender.run("職業", 2026, "情", SEMESTERS)
+    recommender.run("職業", 2026, "情", SEMESTERS, excluded={"科目B"})
+
+    assert len(inner.calls) == 1
+    [(key, _, _)] = [entry for entry in store.remembered.values() if entry[0].excluded]
+    assert key.excluded == ("科目B",)
 
 
 @pytest.mark.parametrize(
@@ -119,6 +136,7 @@ def test_a_lifetime_that_is_not_positive_is_refused() -> None:
         CachedRecommender(
             FakeRecommender(RECOMMENDATION),
             FakeRecommendationStore(),
+            courses_ranked_by({"科目A": 0.9})[0],
             "f1",
             timedelta(0),
             lambda: NOON,
