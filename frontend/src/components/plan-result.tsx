@@ -11,7 +11,8 @@ import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
-import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
+import { RelevanceLegend } from "@/components/relevance-legend";
+import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
 import { SMALL_BUTTON, STANDALONE_LINK, tabClass } from "@/components/styles";
 import { TakenAnswersContext } from "@/components/taken-answers";
@@ -23,7 +24,6 @@ import {
   requestJson,
 } from "@/lib/api/client";
 import {
-  RELEVANCE_DESCRIPTIONS,
   RELEVANCE_LABELS,
   RESULT_VIEW_LABELS,
   type TakenChange,
@@ -200,23 +200,7 @@ export function PlanResultView({
                 </QueryLink>
               ))}
             </nav>
-            <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-sub">
-              {RELEVANCES.map((relevance) => (
-                <span key={relevance} className="flex items-start gap-1.5">
-                  <span
-                    aria-hidden
-                    className={`mt-[0.2em] size-3 ${RELEVANCE_TONES[relevance].mark}`}
-                  />
-                  <span>
-                    <span className="font-bold text-ink">
-                      {RELEVANCE_LABELS[relevance]}
-                    </span>
-                    <span className="sr-only">:</span>{" "}
-                    {RELEVANCE_DESCRIPTIONS[relevance]}
-                  </span>
-                </span>
-              ))}
-            </p>
+            <RelevanceLegend />
           </div>
 
           {view === "route" ? (

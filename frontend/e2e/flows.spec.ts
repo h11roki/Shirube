@@ -2,16 +2,20 @@ import type { Locator, Page } from "@playwright/test";
 
 import type { PlacedCourse, Plan, Relevance, Weekday } from "@/lib/api/client";
 import {
+  ARRIVALS_HINT,
   CANCEL_LABEL,
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
+  RELEVANCE_DESCRIPTIONS,
+  RELEVANCE_LABELS,
+  TRANSFER_HINT,
   TRANSFER_LABEL,
   answeredLabel,
-  deletePlanLabel,
-  deletedPlanLabel,
   arrivalsLabel,
   backPlace,
+  deletePlanLabel,
+  deletedPlanLabel,
   hopPlace,
   markTakenLabel,
   stationsAway,
@@ -430,6 +434,13 @@ test.describe("乗換の欄", () => {
           () => document.documentElement.scrollWidth - innerWidth,
         ),
       ).toBeLessThanOrEqual(0);
+      await expect(departure).toHaveAccessibleDescription(TRANSFER_HINT);
+      await expect(
+        page.getByText(
+          `${RELEVANCE_LABELS.foundation}: ${RELEVANCE_DESCRIPTIONS.foundation}`,
+          { exact: true },
+        ),
+      ).toBeVisible();
       await departure.click();
       await expect(nameOf(page, transfer.to.name)).toBeFocused();
       await expect(nameOf(page, transfer.to.name)).toBeInViewport();
@@ -469,10 +480,11 @@ test.describe("乗換の欄", () => {
     await expect(pillar).toContainText(
       arrivalsLabel(routes.arrivals.get(transfer.to.name)?.length ?? 0),
     );
-    await pillar
+    const arrival = pillar
       .getByRole("button")
-      .filter({ hasText: transfer.from.name })
-      .click();
+      .filter({ hasText: transfer.from.name });
+    await expect(arrival).toHaveAccessibleDescription(ARRIVALS_HINT);
+    await arrival.click();
     await expect(nameOf(page, transfer.from.name)).toBeFocused();
     await expect(
       page.getByRole("button", {
