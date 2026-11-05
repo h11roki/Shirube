@@ -98,7 +98,9 @@ export function CourseTicket({
           <Phrases parts={nameWords} />
         </h3>
         {boarding && <BackFromTrip section={course.section_code} />}
-        <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
+        {course.reason && (
+          <p className="text-fine leading-relaxed text-sub">{course.reason}</p>
+        )}
         {course.syllabus_url && (
           <a
             href={course.syllabus_url}

@@ -13,6 +13,7 @@ import {
   routeTotals,
   semesterCourses,
   semesterKey,
+  shownRelevances,
   ticketSerials,
   transferRoutes,
 } from "@/lib/roadmap";
@@ -92,7 +93,19 @@ describe("roadmap", () => {
       credits: 8,
       core: 2,
       foundation: 1,
+      fixed: 0,
     });
+  });
+
+  it("adds the planned courses to the legend only when the route has some", () => {
+    const withFixed = [
+      ...semesters,
+      semester(4, "spring", [placed("必修の授業", "fixed")]),
+    ];
+
+    expect(shownRelevances(semesters)).toEqual(["core", "foundation"]);
+    expect(routeTotals(withFixed).fixed).toBe(1);
+    expect(shownRelevances(withFixed)).toEqual(["core", "foundation", "fixed"]);
   });
 
   describe("transfers", () => {

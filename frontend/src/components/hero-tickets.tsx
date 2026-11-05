@@ -4,18 +4,21 @@ import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { TICKET_NOTCH } from "@/components/styles";
 import { TicketStamp } from "@/components/ticket-stamp";
 import { Tilt } from "@/components/tilt";
-import type { Relevance } from "@/lib/api/client";
 import { sampleLabel } from "@/lib/labels";
+import type { RecommendedRelevance } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { wordsOf } from "@/lib/words";
 
-const PLACES: Record<Relevance, string> = {
+const PLACES: Record<RecommendedRelevance, string> = {
   foundation:
     "max-w-full rotate-[4deg] motion-safe:animate-deal-back motion-safe:group-hover:-translate-x-2 motion-safe:group-hover:-translate-y-2 motion-safe:group-hover:rotate-[7deg]",
   core: "mt-0.5 ml-6 max-w-[calc(100%-1.5rem)] rotate-[-3deg] motion-safe:animate-deal-front motion-safe:group-hover:translate-x-2.5 motion-safe:group-hover:translate-y-1 motion-safe:group-hover:rotate-[-6deg] md:ml-9 md:max-w-[calc(100%-2.25rem)]",
 };
-const DEAL_DELAY_MS: Record<Relevance, number> = { foundation: 100, core: 280 };
+const DEAL_DELAY_MS: Record<RecommendedRelevance, number> = {
+  foundation: 100,
+  core: 280,
+};
 const STAMP_DELAY_MS = 1000;
 const THUD_DELAY_MS = STAMP_DELAY_MS + 60;
 

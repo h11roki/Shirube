@@ -141,5 +141,19 @@ export function routeTotals(
     core: courses.filter((course) => course.relevance === "core").length,
     foundation: courses.filter((course) => course.relevance === "foundation")
       .length,
+    fixed: courses.filter((course) => course.relevance === "fixed").length,
   };
+}
+
+export type RecommendedRelevance = Exclude<Relevance, "fixed">;
+
+export const RECOMMENDED_RELEVANCES: RecommendedRelevance[] = [
+  "core",
+  "foundation",
+];
+
+export function shownRelevances(semesters: SemesterPlan[]): Relevance[] {
+  return routeTotals(semesters).fixed > 0
+    ? [...RECOMMENDED_RELEVANCES, "fixed"]
+    : RECOMMENDED_RELEVANCES;
 }

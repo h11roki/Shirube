@@ -33,7 +33,7 @@ import {
   semesterLabel,
 } from "@/lib/labels";
 import { REDUCED_MOTION, TEAR_MS } from "@/lib/motion";
-import { courseNames } from "@/lib/roadmap";
+import { courseNames, shownRelevances } from "@/lib/roadmap";
 import {
   type ResultView,
   VIEWS_ANCHOR,
@@ -200,7 +200,7 @@ export function PlanResultView({
                 </QueryLink>
               ))}
             </nav>
-            <RelevanceLegend />
+            <RelevanceLegend relevances={shownRelevances(result.semesters)} />
           </div>
 
           {view === "route" ? (

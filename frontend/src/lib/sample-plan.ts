@@ -14,6 +14,7 @@ export const SAMPLE_PLAN = {
       確率統計: "6B",
     },
     credit_limit: 16,
+    fixed_courses: [],
   },
   result: {
     profile: {
