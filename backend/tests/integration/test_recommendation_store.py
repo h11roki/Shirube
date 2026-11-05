@@ -15,7 +15,7 @@ from tests.builders import sample_plan
 
 NOON = datetime(2026, 11, 5, 12, tzinfo=UTC)
 KEY = RecommendationKey(
-    "職業", "情", 2026, (Semester(3, Term.SPRING), Semester(3, Term.AUTUMN)), ("科目B",), "f1"
+    "職業", "情", 2026, (Semester(3, Term.SPRING), Semester(3, Term.AUTUMN)), ("10001",), "f1"
 )
 
 
@@ -41,10 +41,7 @@ def test_a_remembered_recommendation_comes_back_for_the_same_key_until_it_expire
     assert store.recall(KEY, NOON + timedelta(days=7)) is None
     with engine.connect() as connection:
         row = connection.execute(select(RememberedRecommendationRow)).one()
-    assert (row.key, row.occupation, row.department, row.year) == (KEY.digest, "職業", "情", 2026)
-    assert row.semesters == [{"grade": 3, "term": "spring"}, {"grade": 3, "term": "autumn"}]
-    assert row.excluded == ["科目B"]
-    assert (row.fingerprint, row.recommendation["version"]) == ("f1", REMEMBERED_JSON_VERSION)
+    assert (row.key, row.recommendation["version"]) == (KEY.digest, REMEMBERED_JSON_VERSION)
 
 
 def test_another_key_does_not_match(store: SqlRecommendationStore) -> None:

@@ -313,12 +313,6 @@ class RememberedRecommendationRow(Base):
     __tablename__ = "remembered_recommendations"
 
     key: Mapped[str] = mapped_column(primary_key=True)
-    occupation: Mapped[str]
-    department: Mapped[str]
-    year: Mapped[int]
-    semesters: Mapped[list[SemesterJson]] = mapped_column(JSONB)
-    excluded: Mapped[list[str]] = mapped_column(JSONB)
-    fingerprint: Mapped[str]
     recommendation: Mapped[RememberedJson] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)

@@ -84,11 +84,11 @@ docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic up
 docker compose -f compose.prod.yaml up -d
 ```
 
-手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。
+手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。残した推薦(`remembered_recommendations`)は前の科目データで作ったものなので、科目の表と一緒に空にする(ADR 0092)。
 
 ```sh
 docker compose -f compose.prod.yaml stop backend worker
-docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings"
+docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings, remembered_recommendations"
 docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --data-only --single-transaction < ~/courses.dump
 docker compose -f compose.prod.yaml up -d
 ```

@@ -14,12 +14,6 @@ def upgrade() -> None:
     op.create_table(
         "remembered_recommendations",
         sa.Column("key", sa.Text(), nullable=False),
-        sa.Column("occupation", sa.Text(), nullable=False),
-        sa.Column("department", sa.Text(), nullable=False),
-        sa.Column("year", sa.Integer(), nullable=False),
-        sa.Column("semesters", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("excluded", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
-        sa.Column("fingerprint", sa.Text(), nullable=False),
         sa.Column("recommendation", postgresql.JSONB(astext_type=sa.Text()), nullable=False),
         sa.Column(
             "created_at",

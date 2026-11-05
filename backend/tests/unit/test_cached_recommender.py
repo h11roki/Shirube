@@ -21,6 +21,12 @@ NOON = datetime(2026, 11, 5, 12, tzinfo=UTC)
 WEEK = timedelta(days=7)
 
 
+def code_of(name: str) -> str:
+    courses, _ = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    [section] = [section for section in courses.stored_sections if section.name == name]
+    return section.code
+
+
 def cached(
     store: FakeRecommendationStore | None = None,
     fingerprint: str = "f1",
@@ -42,7 +48,7 @@ def test_a_recommendation_not_remembered_is_made_and_kept_for_the_lifetime() -> 
     assert inner.calls == [("職業", 2026, "情", SEMESTERS, frozenset({"科目B", "開講の無い科目"}))]
     assert steps == [RecommendStep.SEARCHING, RecommendStep.SELECTING]
     [(key, kept, until)] = store.remembered.values()
-    assert key == RecommendationKey("職業", "情", 2026, SEMESTERS, ("科目B",), "f1")
+    assert key == RecommendationKey("職業", "情", 2026, SEMESTERS, (code_of("科目B"),), "f1")
     assert (kept, until) == (RECOMMENDATION, NOON + WEEK)
 
 
@@ -87,8 +93,8 @@ def test_taken_courses_not_offered_to_the_department_do_not_tell_keys_apart() ->
     recommender.run("職業", 2026, "情", SEMESTERS, excluded={"科目B"})
 
     assert len(inner.calls) == 1
-    [(key, _, _)] = [entry for entry in store.remembered.values() if entry[0].excluded]
-    assert key.excluded == ("科目B",)
+    [(key, _, _)] = [entry for entry in store.remembered.values() if entry[0].left_out]
+    assert key.left_out == (code_of("科目B"),)
 
 
 @pytest.mark.parametrize(

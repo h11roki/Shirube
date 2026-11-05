@@ -202,7 +202,7 @@ class RecommendationKey:
     department: str
     year: int
     semesters: tuple[Semester, ...]
-    excluded: tuple[str, ...]
+    left_out: tuple[str, ...]
     fingerprint: str
 
     @property
@@ -212,7 +212,7 @@ class RecommendationKey:
             self.department,
             str(self.year),
             ",".join(f"{semester.grade}-{semester.term.value}" for semester in self.semesters),
-            "\n".join(self.excluded),
+            "\n".join(self.left_out),
             self.fingerprint,
         )
         return fingerprint_of(parts)

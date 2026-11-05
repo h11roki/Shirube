@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session as DbSession
 from app.application.ports import RecommendationKey
 from app.domain.recommendation import Recommendation
 from app.infrastructure.db.models import RememberedJson, RememberedRecommendationRow
-from app.infrastructure.db.plans import recommendation_from_json, recommendation_json, semester_json
+from app.infrastructure.db.plans import recommendation_from_json, recommendation_json
 
 REMEMBERED_JSON_VERSION = 1
 
@@ -34,15 +34,7 @@ class SqlRecommendationStore:
             version=REMEMBERED_JSON_VERSION, recommendation=recommendation_json(recommendation)
         )
         statement = insert(RememberedRecommendationRow).values(
-            key=key.digest,
-            occupation=key.occupation,
-            department=key.department,
-            year=key.year,
-            semesters=[semester_json(semester) for semester in key.semesters],
-            excluded=list(key.excluded),
-            fingerprint=key.fingerprint,
-            recommendation=stored,
-            expires_at=until,
+            key=key.digest, recommendation=stored, expires_at=until
         )
         with DbSession(self._engine) as db, db.begin():
             db.execute(

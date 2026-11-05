@@ -220,6 +220,8 @@ class FakeRecommendationStore:
         return len(expired)
 
     def forget_all(self) -> int:
+        if self._failing:
+            raise ConnectionError("DB に届きません")
         forgotten = len(self.remembered)
         self.remembered.clear()
         return forgotten

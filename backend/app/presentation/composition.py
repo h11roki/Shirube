@@ -1,5 +1,7 @@
+import importlib
 import sys
 from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from pydantic import SecretStr, ValidationError
@@ -11,11 +13,7 @@ from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.cached_recommender import CachedRecommender
 from app.application.fingerprint import fingerprint_of
 from app.application.ports import CourseSelector, OccupationAnalyzer, ReasonJudge
-from app.application.recommend_courses import (
-    RECOMMENDATION_VERSION,
-    RecommendCourses,
-    Recommender,
-)
+from app.application.recommend_courses import RecommendCourses, Recommender
 from app.application.report_plan_builds import ReportPlanBuilds
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import (
@@ -37,7 +35,6 @@ from app.infrastructure.db.users import SqlUserRepository
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
-from app.infrastructure.llm.openai_occupation_analyzer import INSTRUCTIONS as READING_INSTRUCTIONS
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.infrastructure.llm.openai_reason_judge import OpenAIReasonJudge
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
@@ -153,9 +150,26 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
     )
 
 
+RECOMMENDING_MODULES = (
+    "app.domain.occupation",
+    "app.domain.ranking",
+    "app.domain.recommendation",
+    "app.domain.excerpts",
+    "app.application.search_courses",
+    "app.application.recommend_courses",
+    "app.application.voting_course_selector",
+    "app.infrastructure.llm.openai_embedder",
+    "app.infrastructure.llm.openai_occupation_analyzer",
+    "app.infrastructure.llm.openai_course_selector",
+)
+
+
 def recommendation_fingerprint(settings: Settings) -> str:
+    sources = [
+        Path(str(importlib.import_module(name).__file__)).read_text(encoding="utf-8")
+        for name in RECOMMENDING_MODULES
+    ]
     parts = (
-        str(RECOMMENDATION_VERSION),
         settings.chat_model,
         settings.selection_model,
         settings.embedding_model,
@@ -164,8 +178,7 @@ def recommendation_fingerprint(settings: Settings) -> str:
         str(settings.selection_candidate_limit),
         str(settings.selection_votes),
         str(settings.selection_kept_votes),
-        READING_INSTRUCTIONS,
-        SELECTION_INSTRUCTIONS,
+        *sources,
     )
     return fingerprint_of(parts)[:16]
 

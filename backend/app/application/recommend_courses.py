@@ -11,8 +11,6 @@ from app.domain.recommendation import (
 )
 from app.domain.roadmap import Semester
 
-RECOMMENDATION_VERSION = 1
-
 
 class RecommendStep(Enum):
     SEARCHING = auto()
