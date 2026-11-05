@@ -1,5 +1,6 @@
 from collections.abc import Callable, Sequence, Set
 from enum import Enum, auto
+from typing import Protocol
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses, SearchError
@@ -14,6 +15,18 @@ from app.domain.roadmap import Semester
 class RecommendStep(Enum):
     SEARCHING = auto()
     SELECTING = auto()
+
+
+class Recommender(Protocol):
+    def run(
+        self,
+        occupation: str,
+        year: int,
+        department: str,
+        semesters: Sequence[Semester],
+        enter: Callable[[RecommendStep], None] = lambda step: None,
+        excluded: Set[str] = frozenset(),
+    ) -> Recommendation: ...
 
 
 class RecommendCourses:

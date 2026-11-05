@@ -46,7 +46,7 @@ git clone https://github.com/h11roki/Shirube.git && cd Shirube
 cp .env.example .env && chmod 600 .env
 ```
 
-`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_MIN_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
+`.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_MIN_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`、`RECOMMENDATION_CACHE_DAYS`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
 
 ### 初めてのデプロイ
 
@@ -84,11 +84,11 @@ docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic up
 docker compose -f compose.prod.yaml up -d
 ```
 
-手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。
+手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。残した推薦(`remembered_recommendations`)は前の科目データで作ったものなので、科目の表と一緒に空にする(ADR 0092)。
 
 ```sh
 docker compose -f compose.prod.yaml stop backend worker
-docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings"
+docker compose -f compose.prod.yaml exec -T db psql -U shirube -d shirube -c "TRUNCATE course_sections, syllabi, syllabus_codes, syllabus_chunks, embeddings, remembered_recommendations"
 docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --data-only --single-transaction < ~/courses.dump
 docker compose -f compose.prod.yaml up -d
 ```

@@ -19,7 +19,7 @@ from app.application.ports import (
     UsageMeter,
     UserRepository,
 )
-from app.application.recommend_courses import RecommendCourses, RecommendStep
+from app.application.recommend_courses import Recommender, RecommendStep
 from app.application.search_courses import NoCandidatesError
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
 from app.domain.recommendation import RecommendationError
@@ -42,7 +42,7 @@ logger = logging.getLogger(__name__)
 class BuildPlans:
     def __init__(
         self,
-        recommend: RecommendCourses,
+        recommend: Recommender,
         courses: CourseRepository,
         plans: PlanRepository,
         users: UserRepository,

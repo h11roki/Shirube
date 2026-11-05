@@ -10,6 +10,7 @@ from app.infrastructure.curriculum.ritsumeikan.timetable_pdf import (
     TimetableFormatError,
 )
 from app.infrastructure.db.courses import SqlCourseRepository
+from app.infrastructure.db.recommendations import SqlRecommendationStore
 from app.infrastructure.scrapers.ritsumeikan.detail import SyllabusFormatError
 from app.infrastructure.scrapers.ritsumeikan.listing import ListingFormatError
 from app.infrastructure.scrapers.ritsumeikan.store import RawStore
@@ -30,10 +31,12 @@ def main() -> None:
 
     engine = database_engine(load_settings())
     repository = SqlCourseRepository(engine)
+    remembered = SqlRecommendationStore(engine)
     try:
         if args.command == "timetable":
             sources = [RitsumeikanTimetablePdf(pdf) for pdf in args.pdfs]
             print(f"時間割表 {IngestTimetable(sources, repository).run(args.year)} 行")
+            print(f"残した推薦の削除 {remembered.forget_all()} 件")
             return
         source = StoredSyllabi(RawStore(args.root, args.year))
         report = IngestSyllabi(source, repository).run(args.year)
@@ -45,6 +48,7 @@ def main() -> None:
             f"原ページの URL が無いページ {len(report.pages_without_url)} 件: "
             f"{' '.join(report.pages_without_url)}"
         )
+        print(f"残した推薦の削除 {remembered.forget_all()} 件")
     except (
         IngestError,
         TimetableFormatError,

@@ -7,6 +7,7 @@ from app.application.embed_syllabi import EmbedError, EmbedSyllabi, PruneRefused
 from app.application.ports import EmbeddingError
 from app.infrastructure.db.chunks import SqlChunkRepository
 from app.infrastructure.db.courses import SqlCourseRepository
+from app.infrastructure.db.recommendations import SqlRecommendationStore
 from app.presentation.cli.options import add_year_option
 from app.presentation.composition import database_engine, load_settings, openai_embedder
 
@@ -31,6 +32,8 @@ def main() -> None:
             f"チャンク {report.chunks} 件、本文 {report.texts} 種類のうち"
             f"新しく埋め込み {report.embedded} 件、再利用 {report.reused} 件"
         )
+        if report.embedded:
+            print(f"残した推薦の削除 {SqlRecommendationStore(engine).forget_all()} 件")
         if args.prune:
             print(f"使われなくなった埋め込みの削除 {embed.prune()} 件")
     except EmbedError as error:

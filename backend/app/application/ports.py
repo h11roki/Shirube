@@ -6,6 +6,7 @@ from enum import Enum
 from typing import Protocol
 from uuid import UUID
 
+from app.application.fingerprint import fingerprint_of
 from app.application.reason_judging import ReasonCase, ReasonVote
 from app.domain.chunk import SyllabusChunk
 from app.domain.course import CourseSection
@@ -13,7 +14,8 @@ from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanListing, PlanResult, PlanStage
 from app.domain.quota import PlanCounts
 from app.domain.ranking import ChunkHit
-from app.domain.recommendation import CandidateCourse, CourseChoice
+from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendation
+from app.domain.roadmap import Semester
 from app.domain.syllabus import Syllabus
 
 
@@ -192,6 +194,40 @@ class PlanRepository(Protocol):
     def get_owned_by(self, plan_id: UUID, owner_id: UUID) -> Plan | None: ...
 
     def list_owned_by(self, owner_id: UUID, limit: int) -> PlanListing: ...
+
+
+@dataclass(frozen=True)
+class RecommendationKey:
+    occupation: str
+    department: str
+    year: int
+    semesters: tuple[Semester, ...]
+    left_out: tuple[str, ...]
+    fingerprint: str
+
+    @property
+    def digest(self) -> str:
+        parts = (
+            self.occupation,
+            self.department,
+            str(self.year),
+            ",".join(f"{semester.grade}-{semester.term.value}" for semester in self.semesters),
+            "\n".join(self.left_out),
+            self.fingerprint,
+        )
+        return fingerprint_of(parts)
+
+
+class RecommendationStore(Protocol):
+    def recall(self, key: RecommendationKey, now: datetime) -> Recommendation | None: ...
+
+    def remember(
+        self, key: RecommendationKey, recommendation: Recommendation, until: datetime
+    ) -> None: ...
+
+    def forget_expired(self, now: datetime) -> int: ...
+
+    def forget_all(self) -> int: ...
 
 
 class BuildOutcome(Enum):

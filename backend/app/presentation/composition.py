@@ -1,5 +1,6 @@
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 from typing import Any
 
 from pydantic import SecretStr, ValidationError
@@ -8,9 +9,10 @@ from sqlalchemy.exc import ArgumentError
 
 from app.application.build_plans import BuildPlans
 from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
-from app.application.forget_deleted_plans import ForgetDeletedPlans
+from app.application.cached_recommender import CachedRecommender
+from app.application.fingerprint import fingerprint_of
 from app.application.ports import CourseSelector, OccupationAnalyzer, ReasonJudge
-from app.application.recommend_courses import RecommendCourses
+from app.application.recommend_courses import RecommendCourses, Recommender
 from app.application.report_plan_builds import ReportPlanBuilds
 from app.application.request_plan import RequestPlan
 from app.application.search_courses import (
@@ -19,6 +21,7 @@ from app.application.search_courses import (
     query_and_skills,
     whole_query,
 )
+from app.application.tidy_daily import TidyDaily
 from app.application.voting_course_selector import VotingCourseSelector
 from app.domain.quota import PlanQuota
 from app.infrastructure.db.chunks import SqlChunkRepository
@@ -26,6 +29,7 @@ from app.infrastructure.db.courses import SqlCourseRepository
 from app.infrastructure.db.models import EMBEDDING_DIMENSIONS
 from app.infrastructure.db.plan_builds import SqlPlanBuildLog
 from app.infrastructure.db.plans import SqlPlanRepository
+from app.infrastructure.db.recommendations import SqlRecommendationStore
 from app.infrastructure.db.users import SqlUserRepository
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
@@ -145,6 +149,44 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
     )
 
 
+RECOMMENDING_PACKAGES = ("domain", "application", "infrastructure")
+
+
+def recommendation_fingerprint(settings: Settings) -> str:
+    package = Path(__file__).resolve().parents[1]
+    sources = [
+        path.read_text(encoding="utf-8")
+        for name in RECOMMENDING_PACKAGES
+        for path in sorted((package / name).rglob("*.py"))
+    ]
+    parts = (
+        settings.chat_model,
+        settings.selection_model,
+        settings.embedding_model,
+        str(settings.embedding_dimensions),
+        str(settings.search_by_skill),
+        str(settings.selection_candidate_limit),
+        str(settings.selection_votes),
+        str(settings.selection_kept_votes),
+        *sources,
+    )
+    return fingerprint_of(parts)[:16]
+
+
+def recommender(settings: Settings, engine: Engine) -> Recommender:
+    recommend = recommend_courses(settings, engine)
+    if settings.recommendation_cache_days == 0:
+        return recommend
+    return CachedRecommender(
+        recommend,
+        SqlRecommendationStore(engine),
+        SqlCourseRepository(engine),
+        recommendation_fingerprint(settings),
+        timedelta(days=settings.recommendation_cache_days),
+        now,
+    )
+
+
 def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
     return RequestPlan(
         search_courses(settings, engine),
@@ -159,7 +201,7 @@ def request_plan(settings: Settings, engine: Engine) -> RequestPlan:
 
 def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
     return BuildPlans(
-        recommend_courses(settings, engine),
+        recommender(settings, engine),
         SqlCourseRepository(engine),
         SqlPlanRepository(engine),
         SqlUserRepository(engine),
@@ -168,8 +210,8 @@ def build_plans(settings: Settings, engine: Engine) -> BuildPlans:
     )
 
 
-def forget_deleted_plans(engine: Engine) -> ForgetDeletedPlans:
-    return ForgetDeletedPlans(SqlPlanRepository(engine), now)
+def tidy_daily(engine: Engine) -> TidyDaily:
+    return TidyDaily(SqlPlanRepository(engine), SqlRecommendationStore(engine), now)
 
 
 def report_plan_builds(engine: Engine) -> ReportPlanBuilds:

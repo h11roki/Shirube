@@ -7,9 +7,9 @@ import pytest
 from sqlalchemy.exc import OperationalError
 
 from app.application.build_plans import BuildPlans
-from app.application.forget_deleted_plans import ForgetDeletedPlans
 from app.application.ports import PlanFormatError
 from app.application.recommend_courses import RecommendCourses
+from app.application.tidy_daily import TidyDaily
 from app.domain.course import Term
 from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanConditions, PlanStatus
@@ -21,6 +21,7 @@ from tests.fakes import (
     FakeOccupationAnalyzer,
     FakePlanBuildLog,
     FakePlanRepository,
+    FakeRecommendationStore,
     FakeUsageMeter,
     FakeUserRepository,
     courses_ranked_by,
@@ -30,8 +31,8 @@ PROFILE = OccupationProfile("職業", "解釈した職業", None, ("甲", "乙",
 STALL_LIMIT = timedelta(minutes=15)
 
 
-def forgetting(plans: FakePlanRepository) -> ForgetDeletedPlans:
-    return ForgetDeletedPlans(plans, lambda: FIRST_CREATED_AT)
+def tidying(plans: FakePlanRepository) -> TidyDaily:
+    return TidyDaily(plans, FakeRecommendationStore(), lambda: FIRST_CREATED_AT)
 
 
 class StopWhenIdle(FakePlanRepository):
@@ -81,7 +82,7 @@ def test_the_worker_builds_every_waiting_plan_until_it_is_told_to_stop() -> None
     plans = StopWhenIdle(stop)
     first, second = waiting(plans), waiting(plans)
 
-    work(builder(plans), forgetting(plans), STALL_LIMIT, 0.01, stop)
+    work(builder(plans), tidying(plans), STALL_LIMIT, 0.01, stop)
 
     assert [plans.plans[plan.id].status for plan in (first, second)] == [
         PlanStatus.SUCCEEDED,
@@ -98,7 +99,7 @@ def test_the_worker_logs_a_failed_round_and_tries_again(
     plan = waiting(plans)
 
     with caplog.at_level(logging.ERROR):
-        work(builder(plans), forgetting(plans), STALL_LIMIT, 0.01, stop)
+        work(builder(plans), tidying(plans), STALL_LIMIT, 0.01, stop)
 
     assert plans.plans[plan.id].status is PlanStatus.SUCCEEDED
     assert "道標の worker の繰り返しに失敗しました" in caplog.text
@@ -110,7 +111,7 @@ def test_the_worker_does_not_start_once_it_is_told_to_stop() -> None:
     plans = StopWhenIdle(stop)
     plan = waiting(plans)
 
-    work(builder(plans), forgetting(plans), STALL_LIMIT, 0.01, stop)
+    work(builder(plans), tidying(plans), STALL_LIMIT, 0.01, stop)
 
     assert plans.plans[plan.id].status is PlanStatus.PENDING
 
@@ -123,7 +124,7 @@ def test_the_worker_logs_a_plan_it_cannot_read_and_goes_on(
     plan = waiting(plans)
 
     with caplog.at_level(logging.ERROR):
-        work(builder(plans), forgetting(plans), STALL_LIMIT, 0.01, stop)
+        work(builder(plans), tidying(plans), STALL_LIMIT, 0.01, stop)
 
     assert plans.plans[plan.id].status is PlanStatus.SUCCEEDED
     assert "取った道標を読めない" in caplog.text
@@ -140,6 +141,6 @@ def test_the_worker_takes_no_new_plan_once_told_to_stop_while_failing_stalled_pl
     plans = StopWhileFailingStalled(stop)
     plan = waiting(plans)
 
-    work(builder(plans), forgetting(plans), STALL_LIMIT, 0.01, stop)
+    work(builder(plans), tidying(plans), STALL_LIMIT, 0.01, stop)
 
     assert plans.plans[plan.id].status is PlanStatus.PENDING

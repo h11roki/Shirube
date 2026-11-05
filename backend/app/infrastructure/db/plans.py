@@ -317,59 +317,41 @@ def conditions_from_json(data: ConditionsJson) -> PlanConditions:
     )
 
 
-def result_json(result: PlanResult) -> ResultJson:
-    recommendation = result.recommendation
+def recommendation_json(recommendation: Recommendation) -> RecommendationJson:
     profile = recommendation.profile
-    return ResultJson(
-        version=RESULT_JSON_VERSION,
-        recommendation=RecommendationJson(
-            profile=ProfileJson(
-                occupation=profile.occupation,
-                interpretation=profile.interpretation,
-                assumption=profile.assumption,
-                skills=list(profile.skills),
-            ),
-            courses=[
-                RecommendedJson(
-                    name=course.name,
-                    syllabus_code=course.syllabus_code,
-                    relevance=course.relevance.value,
-                    reason=course.reason,
-                    prerequisite_for=course.prerequisite_for,
-                )
-                for course in recommendation.courses
-            ],
-            candidates=list(recommendation.candidates),
-            unlinked=[
-                ChoiceJson(
-                    name=choice.name,
-                    relevance=choice.relevance.value,
-                    reason=choice.reason,
-                    prerequisite_for=choice.prerequisite_for,
-                )
-                for choice in recommendation.unlinked
-            ],
+    return RecommendationJson(
+        profile=ProfileJson(
+            occupation=profile.occupation,
+            interpretation=profile.interpretation,
+            assumption=profile.assumption,
+            skills=list(profile.skills),
         ),
-        roadmap=RoadmapJson(
-            semesters=[
-                SemesterPlanJson(
-                    semester=_semester_json(semester_plan.semester),
-                    courses=[_placed_json(placed) for placed in semester_plan.courses],
-                    continuing=[placed.course.name for placed in semester_plan.continuing],
-                )
-                for semester_plan in result.roadmap.semesters
-            ],
-            unplaced=[course.name for course in result.roadmap.unplaced],
-            taken=[course.name for course in result.roadmap.taken],
-            offered_earlier=sorted(result.roadmap.offered_earlier),
-        ),
+        courses=[
+            RecommendedJson(
+                name=course.name,
+                syllabus_code=course.syllabus_code,
+                relevance=course.relevance.value,
+                reason=course.reason,
+                prerequisite_for=course.prerequisite_for,
+            )
+            for course in recommendation.courses
+        ],
+        candidates=list(recommendation.candidates),
+        unlinked=[
+            ChoiceJson(
+                name=choice.name,
+                relevance=choice.relevance.value,
+                reason=choice.reason,
+                prerequisite_for=choice.prerequisite_for,
+            )
+            for choice in recommendation.unlinked
+        ],
     )
 
 
-def result_from_json(data: ResultJson) -> PlanResult:
-    stored = data["recommendation"]
+def recommendation_from_json(stored: RecommendationJson) -> Recommendation:
     profile = stored["profile"]
-    recommendation = Recommendation(
+    return Recommendation(
         OccupationProfile(
             profile["occupation"],
             profile["interpretation"],
@@ -397,6 +379,30 @@ def result_from_json(data: ResultJson) -> PlanResult:
             for choice in stored["unlinked"]
         ),
     )
+
+
+def result_json(result: PlanResult) -> ResultJson:
+    return ResultJson(
+        version=RESULT_JSON_VERSION,
+        recommendation=recommendation_json(result.recommendation),
+        roadmap=RoadmapJson(
+            semesters=[
+                SemesterPlanJson(
+                    semester=_semester_json(semester_plan.semester),
+                    courses=[_placed_json(placed) for placed in semester_plan.courses],
+                    continuing=[placed.course.name for placed in semester_plan.continuing],
+                )
+                for semester_plan in result.roadmap.semesters
+            ],
+            unplaced=[course.name for course in result.roadmap.unplaced],
+            taken=[course.name for course in result.roadmap.taken],
+            offered_earlier=sorted(result.roadmap.offered_earlier),
+        ),
+    )
+
+
+def result_from_json(data: ResultJson) -> PlanResult:
+    recommendation = recommendation_from_json(data["recommendation"])
     courses = {course.name: course for course in recommendation.courses}
     placed_by_grade: dict[tuple[int, str], PlacedCourse] = {}
     semester_plans = []
