@@ -65,8 +65,8 @@ jobs:
       - id: playwright
         run: |
           version=$(pnpm exec playwright --version | awk '{print $2}')
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-          echo "key=playwright-$ImageOS-$RUNNER_ARCH-$version" >> "$GITHUB_OUTPUT"
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*$ ]]
+          echo "key=playwright-${ImageOS:?}-${RUNNER_ARCH:?}-$version" >> "$GITHUB_OUTPUT"
       - id: browsers
         uses: actions/cache/restore@v6
         with:
@@ -98,6 +98,7 @@ jobs:
         with:
           name: playwright-results
           path: frontend/test-results
+          if-no-files-found: ignore
           retention-days: 7
 
   scripts:
