@@ -308,7 +308,7 @@ def test_a_plan_whose_candidates_all_became_taken_fails_with_the_reason() -> Non
     assert built is not None
     assert built.status is PlanStatus.FAILED
     assert built.failure is not None
-    assert "もう取ったと答えた授業と先に入れる授業は除いています" in built.failure
+    assert "先に入れる授業は除いています" in built.failure
 
 
 def test_a_built_plan_is_recorded_with_the_seconds_of_each_stage_and_the_tokens_used() -> None:

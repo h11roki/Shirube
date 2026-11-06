@@ -477,6 +477,53 @@ def test_fixed_courses_are_placed_before_the_recommended_ones_with_the_page_of_t
     assert roadmap.offered_earlier == frozenset({"推薦の科目"})
 
 
+def test_a_fixed_autumn_course_keeps_its_slot_from_a_recommended_year_long_course() -> None:
+    sections = [
+        section("10000", "秋だけの必修", term=Term.AUTUMN, slots=TUE_1),
+        section("10001", "通年の推薦", term=None, slots=TUE_1),
+    ]
+
+    roadmap = place(
+        recommend("通年の推薦"),
+        sections,
+        "情",
+        2026,
+        remaining_semesters(Semester(3, Term.SPRING)),
+        16,
+        {},
+        frozenset(),
+        ["秋だけの必修"],
+    )
+
+    assert [placed_names(plan) for plan in roadmap.semesters] == [
+        [],
+        [("秋だけの必修", "6T")],
+        [("通年の推薦", "6T")],
+        [],
+    ]
+    assert [placed.course.name for placed in roadmap.semesters[3].continuing] == ["通年の推薦"]
+
+
+def test_offered_courses_follow_the_classes_the_placement_would_use() -> None:
+    sections = [
+        section("10000", "学科のクラスがある科目", departments=None),
+        section(
+            "10001",
+            "学科のクラスがある科目",
+            term=Term.AUTUMN,
+            class_code="6U",
+            departments=frozenset({"情"}),
+        ),
+        section("10002", "全学科の科目", departments=None),
+    ]
+    later = remaining_semesters(Semester(4, Term.SPRING))
+
+    assert offered_courses(sections, "情", 2026, later) == [
+        OfferedCourse("全学科の科目", 2, (Semester(4, Term.SPRING),)),
+        OfferedCourse("学科のクラスがある科目", 2, (Semester(4, Term.AUTUMN),)),
+    ]
+
+
 def test_offered_courses_list_each_name_once_with_its_credits_and_semesters() -> None:
     own = frozenset({"情"})
     sections = [
@@ -493,7 +540,7 @@ def test_offered_courses_list_each_name_once_with_its_credits_and_semesters() ->
 
     assert offered_courses(sections, "情", 2026, later, frozenset({"10004"})) == [
         OfferedCourse("単位の違う科目", 1, (Semester(4, Term.SPRING),)),
-        OfferedCourse("情報処理", 2, (Semester(4, Term.SPRING), Semester(4, Term.AUTUMN))),
+        OfferedCourse("情報処理", 2, (Semester(4, Term.SPRING),)),
         OfferedCourse("秋の科目", 2, (Semester(4, Term.AUTUMN),)),
     ]
 
@@ -503,9 +550,7 @@ def test_a_fixed_course_must_be_offered_in_the_remaining_semesters() -> None:
     later = remaining_semesters(Semester(3, Term.SPRING))
 
     require_offered(sections, {}, "情", 2026, later, frozenset(), ["情報処理"])
-    with pytest.raises(
-        FixedCourseError, match="もう取ったと答えた授業は先に入れられません: もう取った科目"
-    ):
+    with pytest.raises(FixedCourseError, match="は先に入れられません: もう取った科目"):
         require_offered(
             sections,
             {},
@@ -514,6 +559,16 @@ def test_a_fixed_course_must_be_offered_in_the_remaining_semesters() -> None:
             later,
             frozenset({"もう取った科目"}),
             ["情報処理", "無い科目", "もう取った科目"],
+        )
+    with pytest.raises(FixedCourseError, match="は先に入れられません: 合併の科目"):
+        require_offered(
+            [*sections, section("10002", "合併の科目", slots=TUE_1)],
+            {"10001": "合併のページ", "10002": "合併のページ"},
+            "情",
+            2026,
+            later,
+            frozenset({"もう取った科目"}),
+            ["合併の科目"],
         )
     with pytest.raises(FixedCourseError, match="残りの学期に開講される授業にありません: 無い科目"):
         require_offered(sections, {}, "情", 2026, later, frozenset(), ["情報処理", "無い科目"])

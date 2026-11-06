@@ -61,13 +61,14 @@ class AnswerTakenCourses:
             raise UnaskedCourseError(f"この道標でもう取ったかを聞いていない授業です: {name}")
         conditions = plan.conditions
         sections = self._courses.sections(conditions.year)
+        codes = {section.code for section in sections}
         fixed_classes = [
-            placed.section
+            placed.section.code
             for plan_of_semester in roadmap.semesters
             for placed in plan_of_semester.courses
             if isinstance(placed.course, FixedCourse)
         ]
-        if any(section not in sections for section in fixed_classes):
+        if any(code not in codes for code in fixed_classes):
             raise PlanOutdatedError(OUTDATED)
         try:
             again = conditions.roadmap(

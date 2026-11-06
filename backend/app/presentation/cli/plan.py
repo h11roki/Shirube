@@ -112,6 +112,13 @@ def _chosen_class(text: str) -> tuple[str, str]:
     return name, class_code
 
 
+def _course_name(text: str) -> str:
+    name = text.strip()
+    if not name:
+        raise argparse.ArgumentTypeError("科目名が空です")
+    return name
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="道標を作って保存する、保存した道標を表示する")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -138,6 +145,7 @@ def main() -> None:
     create.add_argument(
         "--fixed",
         dest="fixed",
+        type=_course_name,
         action="append",
         default=[],
         metavar="科目名",

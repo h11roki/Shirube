@@ -195,7 +195,7 @@ def test_a_fixed_course_that_is_not_offered_is_refused_without_saving() -> None:
 
     request = RequestPlan(search, repository, plans, users, 16, QUOTA, lambda: NOW)
 
-    with pytest.raises(FixedCourseError, match="もう取ったと答えた授業は先に入れられません: 科目B"):
+    with pytest.raises(FixedCourseError, match="は先に入れられません: 科目B"):
         request.run(OWNER, "職業", "情", 2026, START, {}, ["科目A", "科目X", "科目B"])
     with pytest.raises(FixedCourseError, match="残りの学期に開講される授業にありません: 科目X"):
         request.run(OWNER, "職業", "情", 2026, START, {}, ["科目A", "科目X"])
