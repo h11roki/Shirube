@@ -136,3 +136,4 @@
 | [0095](0095-health-monitor.md) | 本番の様子は health の API にまとめ、GitHub Actions の定期実行が 15 分ごとに外から確かめて、落ちたら GitHub のメールで知らせる | 承認 |
 | [0096](0096-supply-chain.md) | 依存と CI の部品は、既知の脆弱性を CI で止め、Dependabot が 1 週間置いてから上げ、CodeQL でコードを調べる | 承認 |
 | [0097](0097-restore-drill.md) | バックアップは毎週、使い捨てのコンテナに戻して、本番のスキーマと科目の表と合うかを確かめる | 承認 |
+| [0098](0098-coverage.md) | 試験のカバレッジは、backend は行と分岐、frontend は表示の決まりを CI で測り、今の値より下がったら落とす | 承認 |
