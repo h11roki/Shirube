@@ -12,7 +12,7 @@
 ## 30 秒で
 
 - **作ったもの**: 職業名からシラバスを RAG で引き、LLM が授業を選んで理由を書き、卒業までの時間割に並べる Web アプリ。AWS で公開しています
-- **規模**(2026-11-06 時点): 個人開発、2026-10-14 から 3 週間あまりで、980 を超えるコミット、100 を超える PR、ADR 93 本、試験 1,300 件ほど([品質](#品質))
+- **規模**(2026-11-06 時点): 個人開発、2026-10-14 から 3 週間あまりで、980 を超えるコミット、100 を超える PR、90 を超える ADR、試験 1,300 件ほど([品質](#品質))
 - **作り方**: Claude Code と作り、設計の選択肢から選ぶのと改善を採るかを決めるのは作者です([作り方](#作り方))
 - **見どころ**: LLM の出力を数字で直す評価の仕組みです(下の[技術の見どころ](#技術の見どころ))
 
@@ -168,7 +168,7 @@ flowchart TB
 
 1. 選択肢が 2 つ以上ある判断は、Claude Code が選択肢と良し悪しを並べ、作者が選ぶ。決めたことは実装より先に ADR に書く
 2. 変更は git の worktree の上でブランチを切って作り、PR にする
-3. PR ごとに、書いたのとは別の Claude Code のレビューを数周回して指摘を直し、CI を通してからマージする。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
+3. PR ごとに、Claude Code にレビューを数周させて指摘を直し、CI を通してからマージする。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
 
 Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くこと、コメントを書かず経緯はコミットメッセージに書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。
 
@@ -176,7 +176,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を組み立てて起動し HTTPS とログインの戻り先を確かめる job
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-06): backend 904、Vitest 159、e2e 236
+- 試験の数(2026-11-06): backend 904、Vitest 160、e2e 236
 
 ## 安全性
 
@@ -223,7 +223,7 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 
 shirube ("signpost") helps university students choose courses backwards from the job they want. Given a target occupation and the student's current year, it retrieves related courses from the university syllabi (RAG with pgvector), has an LLM pick the courses and explain why each one matters for that job, and lays them out into a clash-free timetable for every remaining semester until graduation. It currently covers the Department of Electronic and Computer Engineering at Ritsumeikan University, and is live at https://shirube.duckdns.org (sign-in is limited to test users; the landing page shows a real sample plan).
 
-- **Evaluation-driven LLM development**: a development set of 50 occupations and a held-out set of 20, with expected courses labelled by majority vote of three LLM judges with different viewpoints; two configurations are run interleaved, and changes are accepted by bootstrap confidence intervals and permutation tests. Acceptance criteria are written down before measuring, and rejected changes are documented as well. Current numbers (dev / held-out): 16.4% / 17.5% of chosen courses judged irrelevant and 67.5% / 89.7% of expected courses chosen as core (the held-out 89.7% is a single run that jumped from 69.0% for the previous settings measured at the same time, so read it with care), at about 1 JPY per recommendation
+- **Evaluation-driven LLM development**: a development set of 50 occupations and a held-out set of 20, with expected courses labelled by majority vote of three LLM judges with different viewpoints; two configurations are run interleaved, and changes are accepted by bootstrap confidence intervals and permutation tests. Acceptance criteria are written down before measuring, and rejected changes are documented as well. Last measured on both sets (dev / held-out): 16.4% / 17.5% of chosen courses judged irrelevant and 67.5% / 89.7% of expected courses chosen as core. The held-out 89.7% is a single run that jumped from 69.0% for the previous settings measured at the same time, so read it with care. After the latest prompt change (ADR 0090), one dev run gave 15.1% and 63.6%; the held-out set has not been re-run. A recommendation costs about 1 JPY
 - **A staged pipeline, not an agent**: occupation reading with structured output, retrieval, selection by a 3-vote majority, and greedy timetable placement. Each stage is measured on its own, so a missed course can be traced to the stage that dropped it. LLM output is only matched against candidate course names and shown to its owner; it never drives tool calls or queries
 - **Running in production**: FastAPI (clean architecture, mypy strict) and Next.js on a single AWS EC2 instance with Docker Compose and Caddy, a PostgreSQL-backed job queue with a worker, daily quotas and prepaid billing as cost limits, a 7-day recommendation cache, and per-build records of cost, latency and failure type
 - **Quality**: CI runs pytest (with database integration tests), Vitest, and Playwright end-to-end tests that check every screen against WCAG 2.2 AA with axe at two widths in light and dark themes, at 320px, and at 200% text size
