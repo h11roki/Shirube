@@ -176,6 +176,10 @@ path.aws { stroke: var(--color-ink); stroke-width:1.6; fill:none; }
       <div class="g-label"><img class="plate" src="data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjY3LjAgLSBJU0MgLS0+CjxzdmcKICBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1sYXB0b3AiCiAgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIgogIHdpZHRoPSIyNCIKICBoZWlnaHQ9IjI0IgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHN0cm9rZT0iIzNkNDY2MCIKICBzdHJva2Utd2lkdGg9IjEuNyIKICBzdHJva2UtbGluZWNhcD0icm91bmQiCiAgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIKPgogIDxwYXRoIGQ9Ik0xOCA1YTIgMiAwIDAgMSAyIDJ2OC41MjZhMiAyIDAgMCAwIC4yMTIuODk3bDEuMDY4IDIuMTI3YTEgMSAwIDAgMS0uOSAxLjQ1SDMuNjJhMSAxIDAgMCAxLS45LTEuNDVsMS4wNjgtMi4xMjdBMiAyIDAgMCAwIDQgMTUuNTI2VjdhMiAyIDAgMCAxIDItMnoiIC8+CiAgPHBhdGggZD0iTTIwLjA1NCAxNS45ODdIMy45NDYiIC8+Cjwvc3ZnPgo=" alt="">dev machine · offline</div>
     </div>
 
+    <div class="group gb" data-id="registry" style="left:880px; top:706px; width:260px; height:210px;">
+      <div class="g-label"><img class="plate" src="data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjY3LjAgLSBJU0MgLS0+CjxzdmcKICBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1wYWNrYWdlIgogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiMzZDQ2NjAiCiAgc3Ryb2tlLXdpZHRoPSIxLjciCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTEgMjEuNzNhMiAyIDAgMCAwIDIgMGw3LTRBMiAyIDAgMCAwIDIxIDE2VjhhMiAyIDAgMCAwLTEtMS43M2wtNy00YTIgMiAwIDAgMC0yIDBsLTcgNEEyIDIgMCAwIDAgMyA4djhhMiAyIDAgMCAwIDEgMS43M3oiIC8+CiAgPHBhdGggZD0iTTEyIDIyVjEyIiAvPgogIDxwYXRoIGQ9Im0zLjMgNyA3LjcwMyA0LjczNGEyIDIgMCAwIDAgMS45OTQgMEwyMC43IDciIC8+CiAgPHBhdGggZD0ibTcuNSA0LjI3IDkgNS4xNiIgLz4KPC9zdmc+Cg==" alt="">GitHub Container Registry</div>
+    </div>
+
     <!-- EDGES ============================================================= -->
     <svg class="edges" viewBox="0 0 1346 1080" aria-hidden="true">
       <defs>
@@ -215,8 +219,10 @@ path.aws { stroke: var(--color-ink); stroke-width:1.6; fill:none; }
       <text class="el" x="687" y="788" text-anchor="middle">HTML</text>
       <path class="n dash" d="M758 760 V574" marker-end="url(#ar)"/>
       <text class="el" x="768" y="690">copy</text>
-      <path class="n dash" d="M640 704 V624" marker-end="url(#ar)"/>
-      <text class="el" x="650" y="690">ssh deploy</text>
+      <path class="n dash" d="M484 1000 H1010 V920" marker-end="url(#ar)"/>
+      <text class="el" x="700" y="992" text-anchor="middle">push images</text>
+      <path class="n dash" d="M980 704 V624" marker-end="url(#ar)"/>
+      <text class="el" x="990" y="690">pull · cron</text>
     </svg>
 
     <!-- NODES ============================================================= -->
@@ -307,6 +313,11 @@ path.aws { stroke: var(--color-ink); stroke-width:1.6; fill:none; }
     <div class="node" data-group="dev" style="left:692px;top:766px">
       <div class="tile"><img src="data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjY3LjAgLSBJU0MgLS0+CjxzdmcKICBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jb2RlLXhtbCIKICB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiAgd2lkdGg9IjI0IgogIGhlaWdodD0iMjQiCiAgdmlld0JveD0iMCAwIDI0IDI0IgogIGZpbGw9Im5vbmUiCiAgc3Ryb2tlPSIjM2Q0NjYwIgogIHN0cm9rZS13aWR0aD0iMS43IgogIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIKICBzdHJva2UtbGluZWpvaW49InJvdW5kIgo+CiAgPHBhdGggZD0ibTE4IDE2IDQtNC00LTQiIC8+CiAgPHBhdGggZD0ibTYgOC00IDQgNCA0IiAvPgogIDxwYXRoIGQ9Im0xNC41IDQtNSAxNiIgLz4KPC9zdmc+Cg==" alt=""></div>
       <div class="name"><span>BeautifulSoup</span></div><div class="role"><span>parse · then embed</span></div>
+    </div>
+
+    <div class="node" data-group="registry" style="left:944px;top:766px">
+      <div class="tile"><img src="data:image/svg+xml;base64,PCEtLSBAbGljZW5zZSBsdWNpZGUtc3RhdGljIHYxLjY3LjAgLSBJU0MgLS0+CjxzdmcKICBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1wYWNrYWdlIgogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKICB3aWR0aD0iMjQiCiAgaGVpZ2h0PSIyNCIKICB2aWV3Qm94PSIwIDAgMjQgMjQiCiAgZmlsbD0ibm9uZSIKICBzdHJva2U9IiMzZDQ2NjAiCiAgc3Ryb2tlLXdpZHRoPSIxLjciCiAgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIgogIHN0cm9rZS1saW5lam9pbj0icm91bmQiCj4KICA8cGF0aCBkPSJNMTEgMjEuNzNhMiAyIDAgMCAwIDIgMGw3LTRBMiAyIDAgMCAwIDIxIDE2VjhhMiAyIDAgMCAwLTEtMS43M2wtNy00YTIgMiAwIDAgMC0yIDBsLTcgNEEyIDIgMCAwIDAgMyA4djhhMiAyIDAgMCAwIDEgMS43M3oiIC8+CiAgPHBhdGggZD0iTTEyIDIyVjEyIiAvPgogIDxwYXRoIGQ9Im0zLjMgNyA3LjcwMyA0LjczNGEyIDIgMCAwIDAgMS45OTQgMEwyMC43IDciIC8+CiAgPHBhdGggZD0ibTcuNSA0LjI3IDkgNS4xNiIgLz4KPC9zdmc+Cg==" alt=""></div>
+      <div class="name"><span>GHCR</span></div><div class="role"><span>arm64 images</span></div>
     </div>
 
   </div>
