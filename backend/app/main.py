@@ -26,7 +26,7 @@ from app.presentation.composition import (
 )
 
 QUEUE_STALL_AFTER = timedelta(hours=1)
-CREDIT_WINDOW = timedelta(days=1)
+CREDIT_WINDOW = timedelta(days=7)
 
 settings = load_settings()
 if settings.auth_jwt_secret is None:

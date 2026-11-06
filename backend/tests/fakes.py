@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
+from sqlalchemy.exc import OperationalError
 
 from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.check_health import CheckHealth
@@ -488,12 +489,12 @@ def chat_failing(status: int) -> ChatOpenAI:
     )
 
 
-QUEUE_STALL_AFTER = timedelta(hours=1)
+STALL_AFTER = timedelta(hours=1)
 
 
 class UnreachablePlans(FakePlanRepository):
     def oldest_waiting(self) -> datetime | None:
-        raise ConnectionError("DB に繋がらない")
+        raise OperationalError("SELECT min(created_at)", {}, ConnectionError("DB に繋がらない"))
 
 
 def queued(waited: timedelta, status: PlanStatus = PlanStatus.PENDING) -> FakePlanRepository:
@@ -507,9 +508,7 @@ def queued(waited: timedelta, status: PlanStatus = PlanStatus.PENDING) -> FakePl
 def health_of(
     plans: PlanRepository, builds: Sequence[RecordedBuild] = (), now: datetime = FIRST_CREATED_AT
 ) -> CheckHealth:
-    return CheckHealth(
-        plans, FakePlanBuildLog(builds), lambda: now, QUEUE_STALL_AFTER, timedelta(days=1)
-    )
+    return CheckHealth(plans, FakePlanBuildLog(builds), lambda: now, STALL_AFTER, timedelta(days=7))
 
 
 def plan_app(

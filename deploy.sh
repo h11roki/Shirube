@@ -106,11 +106,14 @@ main() {
 
 	[ -e "$deployed_file" ] || git rev-parse HEAD > "$deployed_file"
 	deployed=$(cat "$deployed_file")
-	if ! git fetch --quiet origin main 2> /dev/null; then
+	if [ -n "${DEPLOY_TARGET:-}" ]; then
+		target=$DEPLOY_TARGET
+	elif git fetch --quiet origin main 2> /dev/null; then
+		target=$(git rev-parse origin/main)
+	else
 		log "origin の main を取れなかった"
 		exit 1
 	fi
-	target=$(git rev-parse origin/main)
 	[ "$deployed" = "$target" ] && exit 0
 	[ "$(cat "$failed_file" 2> /dev/null)" = "$target" ] && exit 0
 	published "$target" || exit 0
@@ -119,9 +122,9 @@ main() {
 	trap 'log "$target の入れ替えが途中で止まった(終了コード $?)"' ERR
 	prepare_images
 	git merge --ff-only --quiet "$target" || fail "git を $target に進められなかった"
-	if [ -z "${DEPLOY_RESTARTED:-}" ] && ! git diff --quiet "$deployed" "$target" -- deploy.sh; then
-		log "deploy.sh が変わったので、新しい deploy.sh で初めからやり直す"
-		DEPLOY_RESTARTED=1 exec "$0"
+	if [ -z "${DEPLOY_TARGET:-}" ] && ! git diff --quiet "$deployed" "$target" -- deploy.sh; then
+		log "deploy.sh が変わったので、新しい deploy.sh で $target を初めからやり直す"
+		DEPLOY_TARGET=$target exec "$0"
 	fi
 	switch_to "$target"
 

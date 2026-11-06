@@ -6,7 +6,7 @@ case "$url" in
 */api/plans) printf 401 ;;
 */robots.txt) printf 'User-Agent: *\nSitemap: https://%s/sitemap.xml\n' "${ROBOTS_SITE:-shirube.example}" ;;
 */api/health)
-	version=$(sed -n 's/^APP_VERSION=//p' .env.version 2> /dev/null)
+	version=${HEALTH_VERSION:-$(sed -n 's/^APP_VERSION=//p' .env.version 2> /dev/null)}
 	printf '{"status":"ok","version":"%s","database":"%s","queue":"ok","openai":"ok"}' \
 		"${version:-unknown}" "${HEALTH_DATABASE:-ok}"
 	;;

@@ -123,6 +123,10 @@ echo "N backend が DB を読めないので戻す"
 setup; push_change backend/app.py api2; HEALTH_DATABASE=down deploy
 check "終了 1 で戻し、backend に前の版を渡す" 'exited 1 && head_is $old && [ "$(cat $HOME/Shirube/.env.version)" = APP_VERSION=$old ]'
 
+echo "P backend が前の版のまま応えるので戻す"
+setup; push_change backend/app.py api2; HEALTH_VERSION=$old deploy
+check "終了 1 で戻す" 'exited 1 && head_is $old && [ "$(cat $HOME/deploy.failed)" = $new ]'
+
 echo "K サーバーで手で直したファイルがあり、git を進められない"
 setup; echo local > "$HOME/Shirube/Caddyfile"; push_change Caddyfile v2; deploy
 check "終了 1 で失敗した版を覚え、何も入れ替えない" 'exited 1 && grep -q "進められなかった" $HOME/log && [ "$(cat $HOME/deploy.failed)" = $new ] && head_is $old && [ "$(latest backend)" = id-local ]'

@@ -1,23 +1,27 @@
-import logging
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-from app.application.ports import OUT_OF_CREDIT, PlanBuildLog, PlanRepository, RecordedBuild
-
-logger = logging.getLogger(__name__)
+from app.application.ports import (
+    OUT_OF_CREDIT,
+    BuildOutcome,
+    PlanBuildLog,
+    PlanRepository,
+    RecordedBuild,
+)
 
 
 @dataclass(frozen=True)
 class Health:
-    database_reachable: bool
-    queue_stalled: bool | None = None
-    out_of_credit: bool | None = None
+    queue_stalled: bool
+    out_of_credit: bool
 
 
-def _ran_out_of_credit(recorded: RecordedBuild) -> bool:
-    cause = recorded.build.cause
-    return cause is not None and cause.code == OUT_OF_CREDIT
+def _reached_openai(recorded: RecordedBuild) -> bool:
+    build = recorded.build
+    return build.outcome is BuildOutcome.FAILED or (
+        build.outcome is BuildOutcome.SUCCEEDED and bool(build.usage)
+    )
 
 
 class CheckHealth:
@@ -37,18 +41,16 @@ class CheckHealth:
 
     def run(self) -> Health:
         moment = self._now()
-        try:
-            waiting_since = self._plans.oldest_waiting()
-            recent = self._builds.since(moment - self._credit_window)
-        except Exception:
-            logger.exception("health: DB を読めませんでした")
-            return Health(database_reachable=False)
-        called_openai = [
-            recorded for recorded in recent if recorded.build.usage or _ran_out_of_credit(recorded)
+        waiting_since = self._plans.oldest_waiting()
+        reached = [
+            recorded
+            for recorded in self._builds.since(moment - self._credit_window)
+            if _reached_openai(recorded)
         ]
-        last = max(called_openai, key=lambda recorded: recorded.finished_at, default=None)
+        last = max(reached, key=lambda recorded: recorded.finished_at, default=None)
         return Health(
-            database_reachable=True,
             queue_stalled=waiting_since is not None and moment - waiting_since > self._stall_after,
-            out_of_credit=last is not None and _ran_out_of_credit(last),
+            out_of_credit=last is not None
+            and last.build.cause is not None
+            and last.build.cause.code == OUT_OF_CREDIT,
         )

@@ -1,4 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
+
+import pytest
 
 from app.application.ports import (
     OUT_OF_CREDIT,
@@ -10,12 +12,18 @@ from app.application.ports import (
 from tests.fakes import (
     API_VERSION,
     FIRST_CREATED_AT,
-    QUEUE_STALL_AFTER,
+    STALL_AFTER,
+    FakePlanRepository,
     UnreachablePlans,
     health_of,
     plan_api,
     queued,
 )
+
+
+class BrokenPlans(FakePlanRepository):
+    def oldest_waiting(self) -> datetime | None:
+        raise ValueError("読めない値")
 
 
 def test_health_reports_every_check_and_the_version_without_a_login() -> None:
@@ -37,7 +45,7 @@ def test_a_stalled_queue_and_no_credit_degrade_the_service_but_it_still_answers(
         1.0,
         PlanBuild(BuildOutcome.FAILED, FailureCause(("RateLimitError",), OUT_OF_CREDIT)),
     )
-    stalled = queued(QUEUE_STALL_AFTER + timedelta(minutes=1))
+    stalled = queued(STALL_AFTER + timedelta(minutes=1))
 
     response = plan_api(token=None, health=health_of(stalled, [out_of_credit])).get(
         "/api/v1/health"
@@ -53,7 +61,9 @@ def test_a_stalled_queue_and_no_credit_degrade_the_service_but_it_still_answers(
     }
 
 
-def test_an_unreachable_database_is_a_503_with_the_other_checks_unknown() -> None:
+def test_an_unreachable_database_is_a_logged_503_with_the_other_checks_unknown(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
     response = plan_api(token=None, health=health_of(UnreachablePlans())).get("/api/v1/health")
 
     assert response.status_code == 503
@@ -64,3 +74,11 @@ def test_an_unreachable_database_is_a_503_with_the_other_checks_unknown() -> Non
         "queue": "unknown",
         "openai": "unknown",
     }
+    assert "health: DB に繋がりませんでした" in caplog.text
+    assert "DB に繋がらない" in caplog.text
+
+
+def test_other_errors_are_a_server_failure_rather_than_an_unreachable_database() -> None:
+    response = plan_api(token=None, health=health_of(BrokenPlans())).get("/api/v1/health")
+
+    assert response.status_code == 500

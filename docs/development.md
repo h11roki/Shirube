@@ -120,7 +120,7 @@ docker compose -f compose.prod.yaml up -d
 
 ### 監視
 
-`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が 1 時間より長く滞っていないか、直近 1 日に OpenAI を呼んだ最後の道標が残高切れで失敗していないかを返す。DB に届かなければ 503(ADR 0095)。
+`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が 1 時間より長く滞っていないか、直近 7 日に OpenAI の答えまで届いた最後の道標が残高切れで失敗していないかを返す。DB に繋がらなければ 503(ADR 0095)。
 
 GitHub Actions の `Monitor`(`.github/workflows/monitor.yml`)が 15 分ごとに、トップ、ログインなしの API、health の `status`、証明書の残り(14 日以上)、本番の版が main の先頭か(main の先頭の commit から 45 分までは待つ)を確かめる。落ちると GitHub が定期実行の失敗をメールで知らせる(cron を最後に書き換えた人に届く。GitHub の通知の設定で Actions のメールを切っていないこと)。知らせが来たら、job の出力で、どの確かめが落ちたかと health の中身を見る。
 

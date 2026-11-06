@@ -21,13 +21,15 @@ jobs:
       - name: トップとログインなしの API
         run: |
           curl -fsS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o /dev/null "https://$SITE/"
-          test "$(curl -sS --max-time 20 -o /dev/null -w '%{http_code}' "https://$SITE/api/plans")" = 401
+          test "$(curl -sS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o /dev/null -w '%{http_code}' "https://$SITE/api/plans")" = 401
       - name: health
+        if: ${{ !cancelled() }}
         run: |
           curl -sS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o "$RUNNER_TEMP/health.json" "https://$SITE/api/health"
           jq . "$RUNNER_TEMP/health.json"
           jq -e '.status == "ok"' "$RUNNER_TEMP/health.json" > /dev/null
       - name: 証明書の残り
+        if: ${{ !cancelled() }}
         run: |
           expiry=$(timeout 20 openssl s_client -servername "$SITE" -connect "$SITE:443" < /dev/null 2> /dev/null | openssl x509 -noout -enddate | cut -d= -f2)
           days=$(( ($(date -d "$expiry" +%s) - $(date +%s)) / 86400 ))

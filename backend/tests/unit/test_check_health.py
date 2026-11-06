@@ -12,14 +12,7 @@ from app.application.ports import (
     TokenUsage,
 )
 from app.domain.plan import PlanStatus
-from tests.fakes import (
-    FIRST_CREATED_AT,
-    QUEUE_STALL_AFTER,
-    FakePlanRepository,
-    UnreachablePlans,
-    health_of,
-    queued,
-)
+from tests.fakes import FIRST_CREATED_AT, STALL_AFTER, FakePlanRepository, health_of, queued
 
 NO_CREDIT = FailureCause(("OccupationAnalysisError", "RateLimitError"), OUT_OF_CREDIT)
 TIMEOUT = FailureCause(("CourseSelectionError", "APITimeoutError"))
@@ -27,25 +20,25 @@ CALLED = {"gpt-5.4-nano": TokenUsage(100, 0, 10)}
 
 
 def finished(
-    hours_ago: float,
+    days_ago: float,
     outcome: BuildOutcome,
     cause: FailureCause | None = None,
     usage: dict[str, TokenUsage] | None = None,
 ) -> RecordedBuild:
     return RecordedBuild(
-        FIRST_CREATED_AT - timedelta(hours=hours_ago),
+        FIRST_CREATED_AT - timedelta(days=days_ago),
         1.0,
-        PlanBuild(outcome, cause, usage=usage if usage is not None else CALLED),
+        PlanBuild(outcome, cause, usage=CALLED if usage is None else usage),
     )
 
 
 def test_a_quiet_service_is_healthy() -> None:
-    assert health_of(FakePlanRepository()).run() == Health(True, False, False)
+    assert health_of(FakePlanRepository()).run() == Health(queue_stalled=False, out_of_credit=False)
 
 
 @pytest.mark.parametrize(
     ("waited", "stalled"),
-    [(QUEUE_STALL_AFTER, False), (QUEUE_STALL_AFTER + timedelta(seconds=1), True)],
+    [(STALL_AFTER, False), (STALL_AFTER + timedelta(seconds=1), True)],
     ids=["within-the-limit", "past-the-limit"],
 )
 def test_the_queue_stalls_when_a_plan_waits_past_the_limit(
@@ -66,32 +59,33 @@ def test_plans_being_built_do_not_count_as_waiting() -> None:
             [finished(3, BuildOutcome.FAILED, NO_CREDIT, {}), finished(1, BuildOutcome.SUCCEEDED)],
             False,
         ),
-        ([finished(1, BuildOutcome.FAILED, TIMEOUT)], False),
-        ([finished(25, BuildOutcome.FAILED, NO_CREDIT, {})], False),
+        (
+            [
+                finished(3, BuildOutcome.FAILED, NO_CREDIT, {}),
+                finished(1, BuildOutcome.FAILED, TIMEOUT, {}),
+            ],
+            False,
+        ),
+        ([finished(8, BuildOutcome.FAILED, NO_CREDIT, {})], False),
         (
             [
                 finished(3, BuildOutcome.FAILED, NO_CREDIT, {}),
                 finished(2, BuildOutcome.SUCCEEDED, usage={}),
                 finished(1, BuildOutcome.STALLED, usage={}),
+                finished(0.5, BuildOutcome.DISCARDED),
             ],
             True,
         ),
     ],
     ids=[
-        "last-call-out-of-credit",
+        "last-answer-out-of-credit",
         "succeeded-after-topping-up",
-        "other-failure",
-        "a-day-ago",
-        "builds-without-openai-calls-do-not-clear-it",
+        "another-failure-after-it",
+        "older-than-the-window",
+        "cache-hits-and-stalls-do-not-clear-it",
     ],
 )
-def test_credit_is_out_when_the_last_build_that_called_openai_failed_for_it(
+def test_credit_is_out_when_the_last_build_that_reached_openai_failed_for_it(
     builds: list[RecordedBuild], out_of_credit: bool
 ) -> None:
     assert health_of(FakePlanRepository(), builds).run().out_of_credit is out_of_credit
-
-
-def test_an_unreachable_database_is_reported_and_logged(caplog: pytest.LogCaptureFixture) -> None:
-    assert health_of(UnreachablePlans()).run() == Health(database_reachable=False)
-    assert "health: DB を読めませんでした" in caplog.text
-    assert "DB に繋がらない" in caplog.text
