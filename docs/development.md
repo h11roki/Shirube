@@ -34,8 +34,9 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 3. DuckDNS: https://www.duckdns.org でサブドメインを作り、Elastic IP を向ける
 4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面のテストの利用者に自分を足す(誰でも使えるように公開できるかは、そのときの Google の条件で確かめる)
 5. OpenAI: 前払いにして自動の補充を切る(ADR 0038)
+6. GitHub: リポジトリの変数(Settings → Secrets and variables → Actions → Variables)の `SITE_DOMAIN` にサブドメインを書く。CI が frontend のイメージを作るときに `SITE_URL` に入れる(ADR 0094)
 
-サーバーでは、スワップを足し(`next build` のメモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れて今の利用者を docker のグループに足し(sudo なしで `docker compose` と cron のバックアップを動かすため。足したら入り直す)、リポジトリを置いて `.env` を書く。
+サーバーでは、スワップを足し(初めてのデプロイや GHCR が使えないときにサーバーで `next build` するときの、メモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れて今の利用者を docker のグループに足し(sudo なしで `docker compose` と cron のバックアップを動かすため。足したら入り直す)、リポジトリを置いて `.env` を書く。
 
 ```sh
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
@@ -74,7 +75,15 @@ docker compose -f compose.prod.yaml up -d
 
 ### 更新するとき
 
-先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流して入れ替える(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
+main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、イメージを取り、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待って、Caddy を通してトップとログインなしの API を確かめる。応えなければ前の版のコードとイメージ(`previous` の札)に戻し(マイグレーションを流した版は戻さずに止める)、失敗した版は次の版が来るまで試さない。cron には次を書く(`crontab -e`)。
+
+```
+*/5 * * * * ~/Shirube/deploy.sh >> ~/deploy.log 2>&1
+```
+
+`~/deploy.log` には、入れ替えたときと失敗したときだけ書く。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を消す。
+
+GHCR が使えないときは、今までどおりサーバーで作って入れ替える。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
 
 ```sh
 git pull
