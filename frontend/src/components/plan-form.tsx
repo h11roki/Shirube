@@ -1,13 +1,16 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type FormEvent, useEffect, useState, useTransition } from "react";
+import { type FormEvent, useState, useTransition } from "react";
 
+import { useApiAnswer } from "@/components/api-answer";
 import { FailureNotice } from "@/components/failure-notice";
-import { PRIMARY_BUTTON } from "@/components/styles";
+import { FixedCoursePicker } from "@/components/fixed-course-picker";
+import { FIELD, PRIMARY_BUTTON } from "@/components/styles";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
   type ClassChoices,
+  type OfferedCourses,
   type Plan,
   type PlanRequest,
   type Term,
@@ -15,6 +18,7 @@ import {
   requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
+import { chosenCourses } from "@/lib/fixed-courses";
 import { DEPARTMENT_NAME, TERM_LABELS, classLabel } from "@/lib/labels";
 
 const DEPARTMENT = "情";
@@ -22,23 +26,15 @@ const GRADES = [1, 2, 3, 4];
 const TERMS: Term[] = ["spring", "autumn"];
 const MAX_OCCUPATION_LENGTH = 100;
 
-const fieldClass = "w-full border border-edge bg-paper px-3 py-2 text-ink";
-
 export function PlanForm() {
   const router = useRouter();
   const [occupation, setOccupation] = useState("");
   const [grade, setGrade] = useState(GRADES[0]);
   const [chosenTerm, setChosenTerm] = useState<Term>();
-  const [loaded, setLoaded] = useState<{
-    query: string;
-    answer: ClassChoices;
-  }>();
   const [chosenClasses, setChosenClasses] = useState<Record<string, string>>(
     {},
   );
-  const [failed, setFailed] = useState<{ query: string; message: string }>();
-  const [reloads, setReloads] = useState(0);
-  const [reloadingChoices, setReloadingChoices] = useState(false);
+  const [chosenFixed, setChosenFixed] = useState<string[]>([]);
   const [submitError, setSubmitError] = useState<string>();
   const [submitting, setSubmitting] = useState(false);
   const [navigating, startNavigation] = useTransition();
@@ -49,35 +45,21 @@ export function PlanForm() {
     grade: String(grade),
     ...(chosenTerm ? { term: chosenTerm } : {}),
   }).toString();
-  const choices = loaded?.query === query ? loaded.answer : undefined;
-  const loadError = failed?.query === query ? failed.message : undefined;
-  const loading = !choices && !loadError;
-  const term = chosenTerm ?? loaded?.answer.term;
+  const classChoices = useApiAnswer<ClassChoices>("/api/class-choices", query);
+  const offered = useApiAnswer<OfferedCourses>("/api/offered-courses", query);
+  const choices = classChoices.answer;
+  const fixedCourses = chosenCourses(offered.answer, chosenFixed);
+  const loading =
+    (!choices && !classChoices.failure) ||
+    (!offered.answer && !offered.failure);
+  const term = chosenTerm ?? classChoices.lastAnswer?.term;
 
-  useEffect(() => {
-    let active = true;
-    requestJson<ClassChoices>(`/api/class-choices?${query}`)
-      .then((answer) => {
-        if (active) {
-          setLoaded({ query, answer });
-          setFailed(undefined);
-          setReloadingChoices(false);
-        }
-      })
-      .catch((error: unknown) => {
-        if (active) {
-          setFailed({ query, message: messageOf(error) });
-          setReloadingChoices(false);
-        }
-      });
-    return () => {
-      active = false;
-    };
-  }, [query, reloads]);
-
-  function reloadChoices() {
-    setReloadingChoices(true);
-    setReloads((current) => current + 1);
+  function toggleFixed(name: string) {
+    setChosenFixed((current) =>
+      current.includes(name)
+        ? current.filter((each) => each !== name)
+        : [...current, name],
+    );
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -94,6 +76,7 @@ export function PlanForm() {
       term,
       department: DEPARTMENT,
       chosen_classes: offeredClasses(choices, chosenClasses),
+      fixed_courses: fixedCourses.map((course) => course.name),
     };
     try {
       const plan = await requestJson<Plan>("/api/plans", {
@@ -110,6 +93,7 @@ export function PlanForm() {
       setSubmitError(messageOf(error));
       setSubmitting(false);
       setTakenRefresh((current) => current + 1);
+      offered.reload();
     }
   }
 
@@ -124,7 +108,7 @@ export function PlanForm() {
         </label>
         <input
           id="occupation"
-          className={fieldClass}
+          className={FIELD}
           value={occupation}
           onChange={(event) => setOccupation(event.target.value)}
           required
@@ -140,7 +124,7 @@ export function PlanForm() {
           </label>
           <select
             id="grade"
-            className={fieldClass}
+            className={FIELD}
             value={grade}
             onChange={(event) => setGrade(Number(event.target.value))}
           >
@@ -157,7 +141,7 @@ export function PlanForm() {
           </label>
           <select
             id="term"
-            className={fieldClass}
+            className={FIELD}
             value={term ?? ""}
             onChange={(event) =>
               setChosenTerm(TERMS.find((value) => value === event.target.value))
@@ -179,12 +163,29 @@ export function PlanForm() {
         </div>
       </div>
 
-      {loadError && (
+      {offered.failure && (
+        <FailureNotice
+          lead="先に入れる授業の一覧を読み込めませんでした(このまま送ると先に入れる授業なしで作ります): "
+          message={offered.failure}
+          onRetry={offered.reload}
+          busy={offered.reloading}
+        />
+      )}
+
+      {offered.answer && offered.answer.courses.length > 0 && (
+        <FixedCoursePicker
+          courses={offered.answer.courses}
+          chosen={fixedCourses}
+          onToggle={toggleFixed}
+        />
+      )}
+
+      {classChoices.failure && (
         <FailureNotice
           lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
-          message={loadError}
-          onRetry={reloadChoices}
-          busy={reloadingChoices}
+          message={classChoices.failure}
+          onRetry={classChoices.reload}
+          busy={classChoices.reloading}
         />
       )}
 
@@ -206,7 +207,7 @@ export function PlanForm() {
                 <label key={course.name} className="space-y-1 text-sm">
                   <span className="block text-sub">{course.name}</span>
                   <select
-                    className={fieldClass}
+                    className={FIELD}
                     value={index < 0 ? "" : String(index)}
                     onChange={(event) => {
                       const value = event.target.value;
@@ -239,7 +240,8 @@ export function PlanForm() {
         refresh={takenRefresh}
         onForget={() => {
           setSubmitError(undefined);
-          reloadChoices();
+          classChoices.reload();
+          offered.reload();
         }}
       />
 

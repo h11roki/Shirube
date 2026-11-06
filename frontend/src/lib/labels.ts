@@ -1,5 +1,6 @@
 import type {
   Course,
+  OfferedCourse,
   PlacedCourse,
   Plan,
   PlanStage,
@@ -196,6 +197,27 @@ export function forgetTakenLabel(name: string): string {
 
 export function unmarkTakenLabel(name: string): string {
   return `${name}を道標に戻す`;
+}
+
+export function fixedCoursesSummary(count: number): string {
+  return `先に入れる授業(選んだ ${count} 科目、任意)`;
+}
+
+export function offeredCourseNote(course: OfferedCourse): string {
+  const semesters = course.semesters
+    .map((semester) => semesterShortLabel(semester.grade, semester.term))
+    .join("、");
+  return `${course.credits} 単位 ・ ${semesters}`;
+}
+
+export function matchCountLabel(count: number): string {
+  return count > 0
+    ? `当てはまる授業 ${count} 科目`
+    : "当てはまる授業はありません";
+}
+
+export function dropFixedLabel(name: string): string {
+  return `${name}を外す`;
 }
 
 export function roleLabel(

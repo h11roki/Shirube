@@ -2,7 +2,11 @@ import AxeBuilder from "@axe-core/playwright";
 import type { Page } from "@playwright/test";
 
 import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
-import { forgetTakenLabel } from "@/lib/labels";
+import {
+  dropFixedLabel,
+  fixedCoursesSummary,
+  forgetTakenLabel,
+} from "@/lib/labels";
 import { transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
@@ -11,6 +15,7 @@ import {
   type Api,
   CLASS_CHOICES,
   FAILED_PLAN,
+  OFFERED_COURSES,
   PLAN_LIST,
   RUNNING_PLAN,
   TAKEN_COURSES,
@@ -98,12 +103,22 @@ const SCREENS: Screen[] = [
     signedIn: true,
     answers: {
       "/api/class-choices": CLASS_CHOICES,
+      "/api/offered-courses": OFFERED_COURSES,
       "/api/taken-courses": TAKEN_COURSES,
     },
     ready: async (page) => {
       await expect(
         page.getByRole("button", { name: "道標を作る" }),
       ).toBeEnabled();
+      await page.getByText(fixedCoursesSummary(0)).click();
+      await page
+        .getByRole("checkbox", { name: OFFERED_COURSES.courses[1].name })
+        .check();
+      await expect(
+        page.getByRole("button", {
+          name: dropFixedLabel(OFFERED_COURSES.courses[1].name),
+        }),
+      ).toBeVisible();
       await page
         .getByText(
           `学科でクラスが分かれている科目(${CLASS_CHOICES.courses.length}科目、任意)`,
@@ -113,7 +128,7 @@ const SCREENS: Screen[] = [
         .getByText(`もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`)
         .click();
       await expect(
-        page.getByLabel(CLASS_CHOICES.courses[0].name),
+        page.getByRole("combobox", { name: CLASS_CHOICES.courses[0].name }),
       ).toBeVisible();
       await expect(
         page.getByRole("button", {

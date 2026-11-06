@@ -27,6 +27,10 @@ import {
   hopPlace,
   backPlace,
   arrivalsLabel,
+  fixedCoursesSummary,
+  offeredCourseNote,
+  matchCountLabel,
+  dropFixedLabel,
 } from "@/lib/labels";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
@@ -127,6 +131,23 @@ describe("labels", () => {
     expect(markTakenLabel("情報処理")).toBe("情報処理はもう取った");
     expect(unmarkTakenLabel("情報処理")).toBe("情報処理を道標に戻す");
     expect(forgetTakenLabel("情報処理")).toBe("情報処理を取り消す");
+  });
+
+  it("describes the courses to place first", () => {
+    expect(fixedCoursesSummary(2)).toBe("先に入れる授業(選んだ 2 科目、任意)");
+    expect(
+      offeredCourseNote({
+        name: "電子回路Ⅰ",
+        credits: 2,
+        semesters: [
+          { grade: 2, term: "spring" },
+          { grade: 3, term: "spring" },
+        ],
+      }),
+    ).toBe("2 単位 ・ 2回生 春、3回生 春");
+    expect(matchCountLabel(12)).toBe("当てはまる授業 12 科目");
+    expect(matchCountLabel(0)).toBe("当てはまる授業はありません");
+    expect(dropFixedLabel("電子回路Ⅰ")).toBe("電子回路Ⅰを外す");
   });
 
   it("names a class without a code", () => {
