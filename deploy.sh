@@ -48,6 +48,7 @@ switch_to() {
 	for service in "${services[@]}"; do
 		docker tag "shirube-prod-$service:$1" "shirube-prod-$service:latest"
 	done
+	echo "APP_VERSION=$1" > .env.version
 }
 
 keep_images() {
@@ -72,12 +73,14 @@ bring_up() {
 }
 
 answering() {
-	local site resolve
+	local site resolve health
 	site=$(compose config caddy | sed -n 's/^ *SITE_DOMAIN: *//p')
 	resolve=(--resolve "$site:443:127.0.0.1")
 	curl "${resolve[@]}" -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null "https://$site/" &&
 		test "$(curl "${resolve[@]}" -sS -o /dev/null -w '%{http_code}' "https://$site/api/plans")" = 401 &&
-		curl "${resolve[@]}" -fsS "https://$site/robots.txt" | grep -qF "Sitemap: https://$site/sitemap.xml"
+		curl "${resolve[@]}" -fsS "https://$site/robots.txt" | grep -qF "Sitemap: https://$site/sitemap.xml" &&
+		health=$(curl "${resolve[@]}" -fsS "https://$site/api/health") &&
+		[[ "$health" == *"\"version\":\"$target\""* && "$health" == *'"database":"ok"'* ]]
 }
 
 fail() {

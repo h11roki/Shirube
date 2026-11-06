@@ -107,12 +107,13 @@ jobs:
       - run: docker compose -f compose.prod.yaml up -d --wait db
       - run: docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
       - run: docker compose -f compose.prod.yaml up -d --wait --wait-timeout 180
-      - name: HTTPS のトップ、HSTS、ログインなしの API、ログインの戻り先、HTTP からの転送
+      - name: HTTPS のトップ、HSTS、ログインなしの API、health、ログインの戻り先、HTTP からの転送
         run: |
           resolve=(--resolve "$SITE:443:127.0.0.1" --resolve "$SITE:80:127.0.0.1")
           curl "${resolve[@]}" -fsSk --retry 30 --retry-all-errors --retry-delay 2 -o /dev/null "https://$SITE/"
           curl "${resolve[@]}" -fsSk -D - -o /dev/null "https://$SITE/" | grep -i '^strict-transport-security: max-age=31536000'
           test "$(curl "${resolve[@]}" -sk -o /dev/null -w '%{http_code}' "https://$SITE/api/plans")" = 401
+          curl "${resolve[@]}" -fsSk "https://$SITE/api/health" | jq -e '.status == "ok" and .database == "ok" and .version == "unknown"'
           curl "${resolve[@]}" -fsSk "https://$SITE/api/auth/providers" | grep -F "\"callbackUrl\":\"https://$SITE/api/auth/callback/google\""
           test "$(curl "${resolve[@]}" -s -o /dev/null -w '%{http_code}' "http://$SITE/")" = 308
       - name: バックアップ

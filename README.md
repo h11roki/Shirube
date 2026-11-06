@@ -20,7 +20,7 @@
 
 - **LLM を数字で直す**: 開発用 50 職業と確かめ用 20 職業の評価データ(正解は LLM-as-a-Judge で、立場の違う判定者 3 体の多数決)、2 つの設定を交互に流す実験の道具、並べ替え検定で、指示文や検索の作りの変更を採るかを決めます。採る条件は測る前に ADR に書き、採らなかった改善も残しています([評価と改善のサイクル](#評価と改善のサイクル))
 - **段ごとに測れる LLM ワークフロー**: 職業の読み取り(プロンプト設計と構造化出力)→ シラバスの RAG(pgvector)→ LLM が候補から授業を選ぶ段に分け、期待する科目をどの段で落としたかまで数えます。エージェントが道具を呼ぶ形にせず、段の決まった流れにしているのは、段ごとに測って直すためです([推薦の仕組み](#推薦の仕組み))
-- **本番で動かす**: AWS EC2 と Docker Compose で公開し、main にマージすると CI が通った版のイメージをサーバーが取りに行って入れ替えます([ADR 0094](docs/adr/0094-pull-deploy.md))。1 件約 1 円、1 日の上限、前払いで費用を抑え、同じ職業と条件の推薦は 7 日使い回して LLM を呼ばずに作り([ADR 0092](docs/adr/0092-recommendation-cache.md))、道標を作るごとに費用、時間、失敗の種類を記録して日ごとに見ています。バックエンドはクリーンアーキテクチャで作り、型の厳しい検査と画面の通しの試験(axe で WCAG 2.2 AA)を CI で回しています([設計](#設計)、[品質](#品質)、[安全性](#安全性))
+- **本番で動かす**: AWS EC2 と Docker Compose で公開し、main にマージすると CI が通った版のイメージをサーバーが取りに行って入れ替え([ADR 0094](docs/adr/0094-pull-deploy.md))、GitHub Actions が 15 分ごとに外から health(DB、待ちの滞り、OpenAI の残高切れ、動いている版)と証明書を確かめます([ADR 0095](docs/adr/0095-health-monitor.md))。1 件約 1 円、1 日の上限、前払いで費用を抑え、同じ職業と条件の推薦は 7 日使い回して LLM を呼ばずに作り([ADR 0092](docs/adr/0092-recommendation-cache.md))、道標を作るごとに費用、時間、失敗の種類を記録して日ごとに見ています。バックエンドはクリーンアーキテクチャで作り、型の厳しい検査と画面の通しの試験(axe で WCAG 2.2 AA)を CI で回しています([設計](#設計)、[品質](#品質)、[安全性](#安全性))
 
 ## 今の精度と費用
 
@@ -176,7 +176,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)。main では全て通った版だけイメージを作って置く
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-06): backend 904、Vitest 160、e2e 236
+- 試験の数(2026-11-07): backend 916、Vitest 160、e2e 236、デプロイのスクリプトの場面 14
 
 ## 安全性
 
@@ -192,10 +192,10 @@ LLM を使う部分の守りは、入口を狭くし、出口を限ることに�
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/architecture-dark.png">
-  <img src="docs/images/architecture.png" alt="構成図。利用者は DuckDNS の名前で、HTTPS で AWS シドニーの EC2 の Caddy に届き、Caddy は Let's Encrypt から証明書を取る。EC2 の中の Docker Compose で、Caddy から Next.js、JWT を付けて FastAPI、SQL で PostgreSQL(pgvector)へつながる。Next.js は Google でログインさせる。Worker は DB の待ちの道標を取り、OpenAI の gpt-5.4-mini(職業からスキル)、text-embedding-3-large(検索の埋め込み)、gpt-5.4-nano(3 回の多数決で授業を選ぶ)を呼ぶ。cron が毎日 pg_dump で DB を残す。下の段は、GitHub Actions の CI(Ruff、mypy、pytest、Vitest、Playwright、本番の compose の確かめ)が通った版のイメージを GHCR に置き、EC2 がそれを取りに行くデプロイと、手元の開発機で Playwright がシラバスを取り BeautifulSoup で解析して埋め込み、本番の DB へ移す流れ">
+  <img src="docs/images/architecture.png" alt="構成図。利用者は DuckDNS の名前で、HTTPS で AWS シドニーの EC2 の Caddy に届き、Caddy は Let's Encrypt から証明書を取る。EC2 の中の Docker Compose で、Caddy から Next.js、JWT を付けて FastAPI、SQL で PostgreSQL(pgvector)へつながる。Next.js は Google でログインさせる。Worker は DB の待ちの道標を取り、OpenAI の gpt-5.4-mini(職業からスキル)、text-embedding-3-large(検索の埋め込み)、gpt-5.4-nano(3 回の多数決で授業を選ぶ)を呼ぶ。cron が毎日 pg_dump で DB を残す。下の段は、GitHub Actions の CI(Ruff、mypy、pytest、Vitest、Playwright、本番の compose の確かめ)が通った版のイメージを GHCR に置き、EC2 がそれを取りに行くデプロイと、Actions の 15 分ごとの外からの監視と、手元の開発機で Playwright がシラバスを取り BeautifulSoup で解析して埋め込み、本番の DB へ移す流れ">
 </picture>
 
-AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が証明書を自動で取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出さず、バックアップは毎日取って 7 日分を残します。main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR に置き、サーバーの cron が 5 分おきに新しい版を見つけて取りに行き、マイグレーション、入れ替え、ヘルスチェックまでを行い、応えなければ前の版に戻します。サーバーへ入る口と鍵を CI に持たせず、AWS の機能にも頼らないので、別のサーバーへ移ってもそのまま使えます([ADR 0094](docs/adr/0094-pull-deploy.md))。シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移すので、本番のイメージには取り込みの依存がありません。道標を作るごとに、費用、待ちと作る時間、失敗の種類(残高切れを見分ける)を、利用者の番号も入力も持たない形で残し、サーバーの CLI で日ごとに見ます([ADR 0087](docs/adr/0087-build-records.md))。手順は[開発と本番の手順](docs/development.md#本番)、判断は [ADR 0075](docs/adr/0075-production-setup.md)〜[0077](docs/adr/0077-auth-url.md) と [0094](docs/adr/0094-pull-deploy.md) にあります。図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
+AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が証明書を自動で取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出さず、バックアップは毎日取って 7 日分を残します。main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR に置き、サーバーの cron が 5 分おきに新しい版を見つけて取りに行き、マイグレーション、入れ替え、ヘルスチェックまでを行い、応えなければ前の版に戻します。サーバーへ入る口と鍵を CI に持たせず、AWS の機能にも頼らないので、別のサーバーへ移ってもそのまま使えます([ADR 0094](docs/adr/0094-pull-deploy.md))。GitHub Actions の定期実行が 15 分ごとに、トップ、ログインなしの API、health の API(DB に届くか、待ちの道標が滞っていないか、OpenAI の残高切れ、動いている版)、証明書の残り、本番が main に追いついているかを外から確かめ、落ちたら GitHub のメールで知らせます。お金も新しいアカウントも要らず、外へ送るのは公開しているページと health の結果だけです([ADR 0095](docs/adr/0095-health-monitor.md))。シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移すので、本番のイメージには取り込みの依存がありません。道標を作るごとに、費用、待ちと作る時間、失敗の種類(残高切れを見分ける)を、利用者の番号も入力も持たない形で残し、サーバーの CLI で日ごとに見ます([ADR 0087](docs/adr/0087-build-records.md))。手順は[開発と本番の手順](docs/development.md#本番)、判断は [ADR 0075](docs/adr/0075-production-setup.md)〜[0077](docs/adr/0077-auth-url.md) と [0094](docs/adr/0094-pull-deploy.md)、[0095](docs/adr/0095-health-monitor.md) にあります。図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
 
 ## 技術
 
@@ -209,7 +209,7 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 | シラバスの取り込み | Playwright、BeautifulSoup |
 | 開発環境 | Docker Compose |
 | 本番 | AWS EC2、Docker Compose、Caddy、DuckDNS |
-| CI / CD | GitHub Actions、GHCR、サーバーの cron が取りに行くデプロイ |
+| CI / CD / 監視 | GitHub Actions、GHCR、サーバーの cron が取りに行くデプロイ、Actions の定期実行による外からの監視 |
 
 ## 開発者向け
 
@@ -225,7 +225,7 @@ shirube ("signpost") helps university students choose courses backwards from the
 
 - **Evaluation-driven LLM development**: a development set of 50 occupations and a held-out set of 20, with expected courses labelled by majority vote of three Claude judges with different viewpoints (a different model family from the OpenAI models the app uses, so the app is not graded by itself); two configurations are run interleaved, and changes are accepted by bootstrap confidence intervals and permutation tests. Acceptance criteria are written down before measuring, and rejected changes are documented as well. Last measured on both sets (dev / held-out): 16.4% / 17.5% of chosen courses judged irrelevant and 67.5% / 89.7% of expected courses chosen as core. The held-out 89.7% is a single run that jumped from 69.0% for the previous settings measured at the same time, so read it with care. After the latest prompt change (ADR 0090), one dev run gave 15.1% and 63.6%; the held-out set has not been re-run. A recommendation costs about 1 JPY
 - **A staged pipeline, not an agent**: occupation reading with structured output, retrieval, selection by a 3-vote majority, and greedy timetable placement. Each stage is measured on its own, so a missed course can be traced to the stage that dropped it. LLM output is only matched against candidate course names and shown to its owner; it never drives tool calls or queries
-- **Running in production**: FastAPI (clean architecture, mypy strict) and Next.js on a single AWS EC2 instance with Docker Compose and Caddy, pull-based continuous deployment (CI pushes arm64 images to GHCR only when every check passes; the server picks up the new version, migrates, health-checks and rolls back on failure), a PostgreSQL-backed job queue with a worker, daily quotas and prepaid billing as cost limits, a 7-day recommendation cache, and per-build records of cost, latency and failure type
+- **Running in production**: FastAPI (clean architecture, mypy strict) and Next.js on a single AWS EC2 instance with Docker Compose and Caddy, pull-based continuous deployment (CI pushes arm64 images to GHCR only when every check passes; the server picks up the new version, migrates, health-checks and rolls back on failure), external monitoring every 15 minutes from GitHub Actions against a health endpoint (database, stalled queue, OpenAI credit, running version) and the TLS certificate, a PostgreSQL-backed job queue with a worker, daily quotas and prepaid billing as cost limits, a 7-day recommendation cache, and per-build records of cost, latency and failure type
 - **Quality**: CI runs pytest (with database integration tests), Vitest, and Playwright end-to-end tests that check every screen against WCAG 2.2 AA with axe at two widths in light and dark themes, and check that nothing overflows at 320px or is clipped at 200% text size
 - **Decisions on record**: more than 90 ADRs list the options, the decision, the trade-offs accepted and when to revisit. The code was written with Claude Code; the author made the product and design decisions recorded in the ADRs
 

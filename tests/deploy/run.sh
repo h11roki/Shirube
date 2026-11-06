@@ -54,6 +54,7 @@ echo "A 初回: backend だけ変わった版を入れ替える"
 setup; push_change backend/app.py api2; deploy
 check "終了 0" 'exited 0'
 check "HEAD と deploy.version が新しい版" 'head_is $new && deployed_is $new'
+check "backend に新しい版を渡す" '[ "$(cat $HOME/Shirube/.env.version)" = APP_VERSION=$new ]'
 check "backend は取ったイメージ" '[ "$(latest backend)" = id-$new ]'
 check "変わっていない frontend は取らずに前のイメージを使う" '[ "$(latest frontend)" = id-local ] && ! grep -q "pull --quiet ghcr.io/h11roki/shirube-frontend" $HOME/calls'
 check "前の版の札を残す" 'grep -q "shirube-prod-backend:$old id-local" $HOME/images'
@@ -117,6 +118,10 @@ check "入れ替える" 'exited 0 && deployed_is $new'
 echo "J トップが応えないので戻す"
 setup; push_change backend/app.py api2; CURL_FAIL=1 deploy
 check "終了 1 で戻す" 'exited 1 && head_is $old && [ "$(latest backend)" = id-local ]'
+
+echo "N backend が DB を読めないので戻す"
+setup; push_change backend/app.py api2; HEALTH_DATABASE=down deploy
+check "終了 1 で戻し、backend に前の版を渡す" 'exited 1 && head_is $old && [ "$(cat $HOME/Shirube/.env.version)" = APP_VERSION=$old ]'
 
 echo "K サーバーで手で直したファイルがあり、git を進められない"
 setup; echo local > "$HOME/Shirube/Caddyfile"; push_change Caddyfile v2; deploy
