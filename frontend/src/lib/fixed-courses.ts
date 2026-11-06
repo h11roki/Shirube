@@ -10,6 +10,16 @@ export function chosenCourses(
   return (offered?.courses ?? []).filter((course) => names.has(course.name));
 }
 
+export function toggledCourses(
+  chosen: readonly OfferedCourse[],
+  name: string,
+): string[] {
+  const names = chosen.map((course) => course.name);
+  return names.includes(name)
+    ? names.filter((each) => each !== name)
+    : [...names, name];
+}
+
 function searchable(text: string): string {
   return text.normalize("NFKC").toLowerCase();
 }

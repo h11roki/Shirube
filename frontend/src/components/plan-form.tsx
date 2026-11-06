@@ -9,16 +9,18 @@ import { FixedCoursePicker } from "@/components/fixed-course-picker";
 import { FIELD, PRIMARY_BUTTON } from "@/components/styles";
 import { TakenCourseList } from "@/components/taken-course-list";
 import {
+  ApiError,
   type ClassChoices,
   type OfferedCourses,
   type Plan,
   type PlanRequest,
   type Term,
+  UNPROCESSABLE,
   messageOf,
   requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
-import { chosenCourses } from "@/lib/fixed-courses";
+import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
 import { DEPARTMENT_NAME, TERM_LABELS, classLabel } from "@/lib/labels";
 
 const DEPARTMENT = "情";
@@ -52,15 +54,6 @@ export function PlanForm() {
   const loading = classChoices.loading || offered.loading;
   const term = chosenTerm ?? classChoices.answer?.term;
 
-  function toggleFixed(name: string) {
-    const offeredNames = fixedCourses.map((course) => course.name);
-    setChosenFixed(
-      offeredNames.includes(name)
-        ? offeredNames.filter((each) => each !== name)
-        : [...offeredNames, name],
-    );
-  }
-
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!occupation.trim()) {
@@ -92,7 +85,10 @@ export function PlanForm() {
       setSubmitError(messageOf(error));
       setSubmitting(false);
       setTakenRefresh((current) => current + 1);
-      offered.reload();
+      if (error instanceof ApiError && error.status === UNPROCESSABLE) {
+        classChoices.reload();
+        offered.reload();
+      }
     }
   }
 
@@ -179,7 +175,9 @@ export function PlanForm() {
         <FixedCoursePicker
           courses={offered.answer.courses}
           chosen={fixedCourses}
-          onToggle={toggleFixed}
+          onToggle={(name) =>
+            setChosenFixed(toggledCourses(fixedCourses, name))
+          }
         />
       )}
 

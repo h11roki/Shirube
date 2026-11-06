@@ -121,7 +121,7 @@ export function FixedCoursePicker({
                     onChange={() => onToggle(course.name)}
                     aria-labelledby={`${row}-name`}
                     aria-describedby={`${row}-note`}
-                    className="mt-0.5 size-4 shrink-0 accent-route"
+                    className="size-6 shrink-0 accent-route"
                   />
                   <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span id={`${row}-name`} className="block">

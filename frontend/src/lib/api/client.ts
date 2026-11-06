@@ -22,6 +22,7 @@ export type Weekday = Schemas["Weekday"];
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
 const UNAUTHORIZED = 401;
 export const NOT_FOUND = 404;
+export const UNPROCESSABLE = 422;
 
 const signedOutListeners = new Set<() => void>();
 
