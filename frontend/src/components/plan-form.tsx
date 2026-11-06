@@ -197,8 +197,7 @@ export function PlanForm() {
       {choices && choices.courses.length > 0 && (
         <details className="border border-line bg-paper p-4">
           <summary className="cursor-pointer py-1 text-sm font-medium">
-            学科でクラスが分かれている科目({choices.courses.length}
-            科目、任意)
+            学科でクラスが分かれている科目({choices.courses.length} 科目、任意)
           </summary>
           <p className="mt-3 text-sm text-sub">
             自分のクラスが分かっている科目だけ選んでください。選ばない科目が道標に入ったときは、学科向けのクラスに置き「クラス未確定」と出します。

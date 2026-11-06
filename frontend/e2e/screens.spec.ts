@@ -121,7 +121,7 @@ const SCREENS: Screen[] = [
       ).toBeVisible();
       await page
         .getByText(
-          `学科でクラスが分かれている科目(${CLASS_CHOICES.courses.length}科目、任意)`,
+          `学科でクラスが分かれている科目(${CLASS_CHOICES.courses.length} 科目、任意)`,
         )
         .click();
       await page
