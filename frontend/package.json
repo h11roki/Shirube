@@ -15,11 +15,11 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "jose": "6.2.12",
-    "next": "16.4.2",
+    "jose": "6.2.14",
+    "next": "16.4.3",
     "next-auth": "5.0.0-beta.32",
-    "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.14.0",
@@ -29,7 +29,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
-    "eslint-config-next": "16.4.2",
+    "eslint-config-next": "16.4.3",
     "eslint-config-prettier": "^10.1.8",
     "openapi-typescript": "7.13.0",
     "prettier": "^3.9.10",
