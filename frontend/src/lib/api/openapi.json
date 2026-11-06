@@ -15,11 +15,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "type": "object",
-                  "title": "Response Health Api V1 Health Get"
+                  "$ref": "#/components/schemas/HealthOut"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthOut"
                 }
               }
             }
@@ -1000,6 +1006,58 @@
           "detail"
         ],
         "title": "ErrorOut"
+      },
+      "HealthOut": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "degraded",
+              "down"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "database": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "down"
+            ],
+            "title": "Database"
+          },
+          "queue": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "stalled",
+              "unknown"
+            ],
+            "title": "Queue"
+          },
+          "openai": {
+            "type": "string",
+            "enum": [
+              "ok",
+              "out_of_credit",
+              "unknown"
+            ],
+            "title": "Openai"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "version",
+          "database",
+          "queue",
+          "openai"
+        ],
+        "title": "HealthOut"
       },
       "OfferedCourseOut": {
         "properties": {

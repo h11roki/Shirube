@@ -14,7 +14,8 @@ def test_the_app_is_composed_from_the_environment(monkeypatch: pytest.MonkeyPatc
 
     main = importlib.import_module("app.main")
 
-    assert TestClient(main.app).get("/api/v1/health").json() == {"status": "ok"}
+    health = TestClient(main.app).get("/api/v1/health")
+    assert (health.status_code, health.json()["database"]) == (503, "down")
     assert set(main.app.openapi()["paths"]) >= {"/api/v1/plans", "/api/v1/plans/{plan_id}"}
     assert main.settings.curriculum_year == 2031
 

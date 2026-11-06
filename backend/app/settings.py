@@ -38,6 +38,7 @@ class Settings(CurriculumSettings):
     plan_stall_minutes: Annotated[int, Field(gt=0)] = 20
     daily_plan_limit_per_user: Annotated[int, Field(gt=0)] = 3
     daily_plan_limit_total: Annotated[int, Field(gt=0)] = 30
+    app_version: str = "unknown"
 
     @property
     def selection_kept_votes(self) -> int:

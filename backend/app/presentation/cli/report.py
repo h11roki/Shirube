@@ -5,14 +5,13 @@ from statistics import median
 
 from sqlalchemy.exc import OperationalError, SQLAlchemyError
 
-from app.application.ports import BuildOutcome
+from app.application.ports import OUT_OF_CREDIT, BuildOutcome
 from app.application.report_plan_builds import BuildReport, BuildTally
 from app.presentation.cli.prices import price_of, unpriced, yen
 from app.presentation.composition import database_engine, load_settings, report_plan_builds
 
 DEFAULT_DAYS = 14
 MAX_DAYS = 3650
-OUT_OF_CREDIT = "insufficient_quota"
 OUTCOME_LABELS = {
     BuildOutcome.SUCCEEDED: "成功",
     BuildOutcome.FAILED: "失敗",

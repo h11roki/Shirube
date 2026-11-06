@@ -16,6 +16,7 @@ from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.api.app import create_app
 from app.presentation.composition import (
+    check_health,
     database_engine,
     load_settings,
     now,
@@ -45,5 +46,7 @@ app = create_app(
     taken_courses=TakenCourses(users),
     delete_account=DeleteAccount(users, now),
     identify=IdentifyUser(verifier, users),
+    check_health=check_health(settings, engine),
     curriculum_year=settings.curriculum_year,
+    version=settings.app_version,
 )

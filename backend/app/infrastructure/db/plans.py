@@ -107,6 +107,12 @@ class SqlPlanRepository:
         )
         return self._claim(PlanRow.id == oldest)
 
+    def oldest_waiting(self) -> datetime | None:
+        with DbSession(self._engine) as db:
+            return db.scalar(
+                select(func.min(PlanRow.created_at)).where(PlanRow.status == PlanStatus.PENDING)
+            )
+
     def claim(self, plan_id: UUID) -> Plan | None:
         return self._claim(PlanRow.id == plan_id)
 

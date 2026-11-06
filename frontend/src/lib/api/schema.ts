@@ -220,6 +220,31 @@ export interface components {
             /** Detail */
             detail: string;
         };
+        /** HealthOut */
+        HealthOut: {
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "degraded" | "down";
+            /** Version */
+            version: string;
+            /**
+             * Database
+             * @enum {string}
+             */
+            database: "ok" | "down";
+            /**
+             * Queue
+             * @enum {string}
+             */
+            queue: "ok" | "stalled" | "unknown";
+            /**
+             * Openai
+             * @enum {string}
+             */
+            openai: "ok" | "out_of_credit" | "unknown";
+        };
         /** OfferedCourseOut */
         OfferedCourseOut: {
             /** Name */
@@ -426,9 +451,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["HealthOut"];
+                };
+            };
+            /** @description Service Unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HealthOut"];
                 };
             };
         };

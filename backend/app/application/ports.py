@@ -175,6 +175,8 @@ class PlanRepository(Protocol):
 
     def claim_next(self) -> Plan | None: ...
 
+    def oldest_waiting(self) -> datetime | None: ...
+
     def claim(self, plan_id: UUID) -> Plan | None: ...
 
     def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None: ...
@@ -235,6 +237,9 @@ class BuildOutcome(Enum):
     FAILED = "failed"
     DISCARDED = "discarded"
     STALLED = "stalled"
+
+
+OUT_OF_CREDIT = "insufficient_quota"
 
 
 @dataclass(frozen=True)
