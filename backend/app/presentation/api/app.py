@@ -13,6 +13,7 @@ from app.application.answer_taken_courses import (
     UnaskedCourseError,
 )
 from app.application.build_plans import SERVER_FAILURE
+from app.application.check_health import CheckHealth
 from app.application.delete_account import DeleteAccount
 from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
@@ -27,9 +28,9 @@ from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.domain.quota import DailyLimitError, PlanInProgressError
 from app.domain.roadmap import ClassChoiceError, FixedCourseError
-from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.class_choices import class_choices_router
+from app.presentation.api.health import health_router
 from app.presentation.api.me import me_router
 from app.presentation.api.offered_courses import offered_courses_router
 from app.presentation.api.plans import plans_router
@@ -98,11 +99,13 @@ def create_app(
     taken_courses: TakenCourses,
     delete_account: DeleteAccount,
     identify: IdentifyUser,
+    check_health: CheckHealth,
     curriculum_year: int,
+    version: str,
 ) -> FastAPI:
     user = current_user(identify)
     app = FastAPI(title="shirube")
-    app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(health_router(check_health, version), prefix=API_PREFIX)
     app.include_router(
         plans_router(
             request_plan,

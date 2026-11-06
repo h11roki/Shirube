@@ -3,16 +3,15 @@ import sys
 from collections.abc import Sequence
 from statistics import median
 
-from sqlalchemy.exc import OperationalError, SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError
 
-from app.application.ports import BuildOutcome
+from app.application.ports import OUT_OF_CREDIT, BuildOutcome, StorageUnavailableError
 from app.application.report_plan_builds import BuildReport, BuildTally
 from app.presentation.cli.prices import price_of, unpriced, yen
 from app.presentation.composition import database_engine, load_settings, report_plan_builds
 
 DEFAULT_DAYS = 14
 MAX_DAYS = 3650
-OUT_OF_CREDIT = "insufficient_quota"
 OUTCOME_LABELS = {
     BuildOutcome.SUCCEEDED: "成功",
     BuildOutcome.FAILED: "失敗",
@@ -100,8 +99,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     engine = database_engine(load_settings())
     try:
         print(render(report_plan_builds(engine).run(args.days)))
-    except OperationalError as error:
-        sys.exit(f"DB に接続できません: {error.orig}")
+    except StorageUnavailableError as error:
+        sys.exit(f"DB に接続できません: {error}")
     except SQLAlchemyError as error:
         sys.exit(f"DB の操作に失敗しました: {error}")
     finally:

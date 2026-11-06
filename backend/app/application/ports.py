@@ -170,10 +170,16 @@ class PlanFormatError(ValueError):
     pass
 
 
+class StorageUnavailableError(RuntimeError):
+    pass
+
+
 class PlanRepository(Protocol):
     def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None: ...
 
     def claim_next(self) -> Plan | None: ...
+
+    def oldest_waiting(self) -> datetime | None: ...
 
     def claim(self, plan_id: UUID) -> Plan | None: ...
 
@@ -235,6 +241,9 @@ class BuildOutcome(Enum):
     FAILED = "failed"
     DISCARDED = "discarded"
     STALLED = "stalled"
+
+
+OUT_OF_CREDIT = "insufficient_quota"
 
 
 @dataclass(frozen=True)

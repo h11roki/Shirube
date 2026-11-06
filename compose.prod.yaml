@@ -51,6 +51,9 @@ services:
     environment:
       <<: *backend-environment
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET を .env に書いてください}
+    env_file:
+      - path: .env.version
+        required: false
     healthcheck:
       test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
       <<: *healthcheck-timing

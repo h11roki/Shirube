@@ -13,6 +13,7 @@ from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.check_health import CheckHealth
 from app.application.delete_account import DeleteAccount
 from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
@@ -25,8 +26,10 @@ from app.application.ports import (
     EmbeddingError,
     InvalidTokenError,
     PlanBuild,
+    PlanRepository,
     RecommendationKey,
     RecordedBuild,
+    StorageUnavailableError,
     TokenUsage,
 )
 from app.application.recommend_courses import RecommendStep
@@ -52,10 +55,11 @@ from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendat
 from app.domain.roadmap import Semester
 from app.domain.syllabus import Syllabus
 from app.presentation.api.app import create_app
-from tests.builders import course_section, syllabus
+from tests.builders import course_section, sample_conditions, syllabus
 
 FAKE_MODEL = "fake-embedding"
 FIRST_CREATED_AT = datetime(2026, 10, 19, 9, 0, tzinfo=UTC)
+API_VERSION = "0123abc"
 QUOTA = PlanQuota(3, 30)
 
 
@@ -322,6 +326,16 @@ class FakePlanRepository:
         pending = [plan for plan in self.plans.values() if plan.status is PlanStatus.PENDING]
         return self.claim(pending[0].id) if pending else None
 
+    def oldest_waiting(self) -> datetime | None:
+        return min(
+            (
+                self.created_at[plan.id]
+                for plan in self.plans.values()
+                if plan.status is PlanStatus.PENDING
+            ),
+            default=None,
+        )
+
     def claim(self, plan_id: UUID) -> Plan | None:
         plan = self.plans.get(plan_id)
         if plan is None or plan.status is not PlanStatus.PENDING:
@@ -475,10 +489,33 @@ def chat_failing(status: int) -> ChatOpenAI:
     )
 
 
+STALL_AFTER = timedelta(hours=1)
+
+
+class UnreachablePlans(FakePlanRepository):
+    def oldest_waiting(self) -> datetime | None:
+        raise StorageUnavailableError("DB に繋がらない")
+
+
+def queued(waited: timedelta, status: PlanStatus = PlanStatus.PENDING) -> FakePlanRepository:
+    plans = FakePlanRepository()
+    plan = replace(Plan(uuid4(), uuid4(), sample_conditions()), status=status)
+    plans.store(plan)
+    plans.created_at[plan.id] = FIRST_CREATED_AT - waited
+    return plans
+
+
+def health_of(
+    plans: PlanRepository, builds: Sequence[RecordedBuild] = (), now: datetime = FIRST_CREATED_AT
+) -> CheckHealth:
+    return CheckHealth(plans, FakePlanBuildLog(builds), lambda: now, STALL_AFTER, timedelta(days=7))
+
+
 def plan_app(
     courses_and_search: tuple[FakeCourseRepository, SearchCourses] | None = None,
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
+    health: CheckHealth | None = None,
 ) -> FastAPI:
     courses, search = courses_and_search or courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
     stored = plans or FakePlanRepository()
@@ -496,7 +533,9 @@ def plan_app(
         TakenCourses(known),
         DeleteAccount(known, lambda: FIRST_CREATED_AT),
         identify,
+        health or health_of(stored),
         2026,
+        API_VERSION,
     )
 
 
@@ -505,10 +544,11 @@ def plan_api(
     plans: FakePlanRepository | None = None,
     users: FakeUserRepository | None = None,
     token: str | None = "token-a",
+    health: CheckHealth | None = None,
 ) -> TestClient:
     headers = {"Authorization": f"Bearer {token}"} if token is not None else {}
     return TestClient(
-        plan_app(courses_and_search, plans, users),
+        plan_app(courses_and_search, plans, users, health),
         raise_server_exceptions=False,
         headers=headers,
     )

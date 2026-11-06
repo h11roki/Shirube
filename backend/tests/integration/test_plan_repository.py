@@ -220,6 +220,27 @@ def test_the_oldest_waiting_plan_is_claimed_once_as_running(
         assert all(claimed_at is not None for claimed_at in claimed)
 
 
+def test_the_oldest_waiting_time_leaves_out_plans_already_claimed(
+    engine: Engine, repository: SqlPlanRepository, owner: UUID
+) -> None:
+    assert repository.oldest_waiting() is None
+    oldest = waiting(repository, owner)
+    newer = waiting(repository, owner)
+    queued = {
+        oldest.id: datetime(2026, 11, 1, 9, tzinfo=UTC),
+        newer.id: datetime(2026, 11, 1, 10, tzinfo=UTC),
+    }
+    with engine.begin() as connection:
+        for plan_id, created_at in queued.items():
+            connection.execute(
+                update(PlanRow).where(PlanRow.id == plan_id).values(created_at=created_at)
+            )
+
+    assert repository.oldest_waiting() == queued[oldest.id]
+    repository.claim_next()
+    assert repository.oldest_waiting() == queued[newer.id]
+
+
 def test_a_waiting_plan_locked_by_another_worker_is_skipped(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:

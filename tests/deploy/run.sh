@@ -54,6 +54,7 @@ echo "A 初回: backend だけ変わった版を入れ替える"
 setup; push_change backend/app.py api2; deploy
 check "終了 0" 'exited 0'
 check "HEAD と deploy.version が新しい版" 'head_is $new && deployed_is $new'
+check "backend に新しい版を渡す" '[ "$(cat $HOME/Shirube/.env.version)" = APP_VERSION=$new ]'
 check "backend は取ったイメージ" '[ "$(latest backend)" = id-$new ]'
 check "変わっていない frontend は取らずに前のイメージを使う" '[ "$(latest frontend)" = id-local ] && ! grep -q "pull --quiet ghcr.io/h11roki/shirube-frontend" $HOME/calls'
 check "前の版の札を残す" 'grep -q "shirube-prod-backend:$old id-local" $HOME/images'
@@ -118,6 +119,14 @@ echo "J トップが応えないので戻す"
 setup; push_change backend/app.py api2; CURL_FAIL=1 deploy
 check "終了 1 で戻す" 'exited 1 && head_is $old && [ "$(latest backend)" = id-local ]'
 
+echo "N backend が DB を読めないので戻す"
+setup; push_change backend/app.py api2; HEALTH_DATABASE=down deploy
+check "終了 1 で戻し、backend に前の版を渡す" 'exited 1 && head_is $old && [ "$(cat $HOME/Shirube/.env.version)" = APP_VERSION=$old ]'
+
+echo "P backend が前の版のまま応えるので戻す"
+setup; push_change backend/app.py api2; HEALTH_VERSION=$old deploy
+check "終了 1 で戻す" 'exited 1 && head_is $old && [ "$(cat $HOME/deploy.failed)" = $new ]'
+
 echo "K サーバーで手で直したファイルがあり、git を進められない"
 setup; echo local > "$HOME/Shirube/Caddyfile"; push_change Caddyfile v2; deploy
 check "終了 1 で失敗した版を覚え、何も入れ替えない" 'exited 1 && grep -q "進められなかった" $HOME/log && [ "$(cat $HOME/deploy.failed)" = $new ] && head_is $old && [ "$(latest backend)" = id-local ]'
@@ -133,6 +142,14 @@ setup; push_change backend/app.py api2; PULL_FAIL=1 deploy
 check "終了 1 で途中で止まったと書き、失敗した版にはしない" 'exited 1 && grep -q "途中で止まった" $HOME/log && [ ! -e $HOME/deploy.failed ] && deployed_is $old'
 deploy
 check "次の回に入れ替える" 'exited 0 && deployed_is $new'
+
+echo "O deploy.sh が変わった版は、新しい deploy.sh で初めからやり直す"
+setup; cd "$HOME/work" || exit 1
+sed -i 's/^main() {$/main() {\n\techo "$$" >> "$HOME\/runs"/' deploy.sh
+git commit -qam "deploy.sh を変える" && git push -q origin main && new=$(git rev-parse HEAD) && echo "$new" >> "$HOME/published"
+cd "$HOME" || exit 1; Shirube/deploy.sh >> "$HOME/log" 2>&1; status=$?; cd "$HOME/Shirube" || exit 1
+check "相対の道で流しても、終了 0 で入れ替え、やり直したと書く" 'exited 0 && deployed_is $new && grep -q "初めからやり直す" $HOME/log'
+check "新しい deploy.sh が 1 回だけ流れる" '[ "$(wc -l < $HOME/runs)" = 1 ]'
 
 echo
 echo "failures: $failures"

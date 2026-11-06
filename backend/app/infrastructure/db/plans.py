@@ -47,6 +47,7 @@ from app.infrastructure.db.models import (
     SemesterJson,
     SemesterPlanJson,
 )
+from app.infrastructure.db.unavailable import unavailable_as_storage_error
 
 RESULT_JSON_VERSION = 4
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
@@ -106,6 +107,12 @@ class SqlPlanRepository:
             .scalar_subquery()
         )
         return self._claim(PlanRow.id == oldest)
+
+    def oldest_waiting(self) -> datetime | None:
+        with unavailable_as_storage_error(), DbSession(self._engine) as db:
+            return db.scalar(
+                select(func.min(PlanRow.created_at)).where(PlanRow.status == PlanStatus.PENDING)
+            )
 
     def claim(self, plan_id: UUID) -> Plan | None:
         return self._claim(PlanRow.id == plan_id)

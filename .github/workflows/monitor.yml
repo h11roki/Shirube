@@ -1,0 +1,51 @@
+name: Monitor
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  production:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      SITE: ${{ vars.SITE_DOMAIN }}
+      GH_TOKEN: ${{ github.token }}
+      CERT_MIN_DAYS: 14
+      DEPLOY_GRACE_MINUTES: 45
+    steps:
+      - name: トップとログインなしの API
+        run: |
+          curl -fsS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o /dev/null "https://$SITE/"
+          test "$(curl -sS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o /dev/null -w '%{http_code}' "https://$SITE/api/plans")" = 401
+      - name: health
+        if: ${{ !cancelled() }}
+        run: |
+          curl -sS --max-time 20 --retry 3 --retry-all-errors --retry-delay 20 -o "$RUNNER_TEMP/health.json" "https://$SITE/api/health"
+          jq . "$RUNNER_TEMP/health.json"
+          jq -e '.status == "ok"' "$RUNNER_TEMP/health.json" > /dev/null
+      - name: 証明書の残り
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          expiry=$(timeout 20 openssl s_client -servername "$SITE" -connect "$SITE:443" < /dev/null 2> /dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          test -n "$expiry"
+          days=$(( ($(date -d "$expiry" +%s) - $(date +%s)) / 86400 ))
+          echo "証明書の残り $days 日"
+          test "$days" -ge "$CERT_MIN_DAYS"
+      - name: 本番が main に追いついているか
+        if: ${{ !cancelled() }}
+        run: |
+          if ! deployed=$(jq -er '.version' "$RUNNER_TEMP/health.json" 2> /dev/null); then
+            echo "health を読めなかったので、版は確かめない"
+            exit 0
+          fi
+          main=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq '.sha + " " + .commit.committer.date')
+          read -r head committed <<< "$main"
+          behind=$(( ($(date +%s) - $(date -d "$committed" +%s)) / 60 ))
+          echo "本番 $deployed、main $head($behind 分前)"
+          test "$deployed" = "$head" || test "$behind" -lt "$DEPLOY_GRACE_MINUTES"
