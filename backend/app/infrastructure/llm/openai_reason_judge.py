@@ -1,6 +1,7 @@
 import json
 from typing import Literal, Self
 
+from langchain_core.exceptions import ModelRefusalError
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
@@ -169,6 +170,7 @@ class OpenAIReasonJudge:
             why = output.why.strip()[:WHY_LENGTH] or NO_EVIDENCE
             return ReasonVote(ReasonGrade(output.grade), why)
         except (
+            ModelRefusalError,
             OpenAIRefusalError,
             ContentFilterFinishReasonError,
             LengthFinishReasonError,
