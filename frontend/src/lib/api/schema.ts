@@ -92,6 +92,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/offered-courses": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Show */
+        get: operations["show_api_v1_offered_courses_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/taken-courses": {
         parameters: {
             query?: never;
@@ -177,18 +194,24 @@ export interface components {
             };
             /** Credit Limit */
             credit_limit: number;
+            /** Fixed Courses */
+            fixed_courses: string[];
         };
         /** CourseOut */
         CourseOut: {
             /** Name */
             name: string;
-            relevance: components["schemas"]["Relevance"];
+            /**
+             * Relevance
+             * @enum {string}
+             */
+            relevance: "core" | "foundation" | "fixed";
             /** Reason */
             reason: string;
             /** Prerequisite For */
             prerequisite_for: string | null;
             /** Syllabus Code */
-            syllabus_code: string;
+            syllabus_code: string | null;
             /** Syllabus Url */
             syllabus_url: string | null;
         };
@@ -197,17 +220,36 @@ export interface components {
             /** Detail */
             detail: string;
         };
+        /** OfferedCourseOut */
+        OfferedCourseOut: {
+            /** Name */
+            name: string;
+            /** Credits */
+            credits: number;
+            /** Semesters */
+            semesters: components["schemas"]["SemesterOut"][];
+        };
+        /** OfferedCoursesOut */
+        OfferedCoursesOut: {
+            term: components["schemas"]["Term"];
+            /** Courses */
+            courses: components["schemas"]["OfferedCourseOut"][];
+        };
         /** PlacedCourseOut */
         PlacedCourseOut: {
             /** Name */
             name: string;
-            relevance: components["schemas"]["Relevance"];
+            /**
+             * Relevance
+             * @enum {string}
+             */
+            relevance: "core" | "foundation" | "fixed";
             /** Reason */
             reason: string;
             /** Prerequisite For */
             prerequisite_for: string | null;
             /** Syllabus Code */
-            syllabus_code: string;
+            syllabus_code: string | null;
             /** Syllabus Url */
             syllabus_url: string | null;
             /** Section Code */
@@ -234,6 +276,8 @@ export interface components {
             chosen_classes?: {
                 [key: string]: string;
             };
+            /** Fixed Courses */
+            fixed_courses?: string[];
         };
         /** PlanListOut */
         PlanListOut: {
@@ -296,11 +340,6 @@ export interface components {
             /** Skills */
             skills: string[];
         };
-        /**
-         * Relevance
-         * @enum {string}
-         */
-        Relevance: "core" | "foundation";
         /** ResultOut */
         ResultOut: {
             profile: components["schemas"]["ProfileOut"];
@@ -314,6 +353,12 @@ export interface components {
             offered_earlier: string[];
             /** Unlinked */
             unlinked: components["schemas"]["UnlinkedOut"][];
+        };
+        /** SemesterOut */
+        SemesterOut: {
+            /** Grade */
+            grade: number;
+            term: components["schemas"]["Term"];
         };
         /** SemesterPlanOut */
         SemesterPlanOut: {
@@ -776,6 +821,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClassChoicesOut"];
+                };
+            };
+            /** @description ログインしていない */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description リクエストを直せば通る誤り */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+            /** @description サーバー側の問題 */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorOut"];
+                };
+            };
+        };
+    };
+    show_api_v1_offered_courses_get: {
+        parameters: {
+            query: {
+                department: string;
+                grade: number;
+                term?: components["schemas"]["Term"];
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferedCoursesOut"];
                 };
             };
             /** @description ログインしていない */

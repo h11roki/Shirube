@@ -1,12 +1,20 @@
-import { RELEVANCES, RELEVANCE_TONES } from "@/components/relevance-tones";
+import { RELEVANCE_TONES } from "@/components/relevance-tones";
+import type { Relevance } from "@/lib/api/client";
 import { RELEVANCE_DESCRIPTIONS, RELEVANCE_LABELS } from "@/lib/labels";
+import { RECOMMENDED_RELEVANCES } from "@/lib/roadmap";
 
-export function RelevanceLegend({ className = "" }: { className?: string }) {
+export function RelevanceLegend({
+  className = "",
+  relevances = RECOMMENDED_RELEVANCES,
+}: {
+  className?: string;
+  relevances?: Relevance[];
+}) {
   return (
     <p
       className={`flex flex-wrap gap-x-4 gap-y-1 text-xs text-sub ${className}`}
     >
-      {RELEVANCES.map((relevance) => (
+      {relevances.map((relevance) => (
         <span key={relevance} className="flex items-start gap-1.5">
           <span
             aria-hidden

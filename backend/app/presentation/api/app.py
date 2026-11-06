@@ -18,6 +18,7 @@ from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.identify_user import IdentifyUser
 from app.application.list_class_choices import ListClassChoices
+from app.application.list_offered_courses import ListOfferedCourses
 from app.application.list_plans import ListPlans
 from app.application.ports import InvalidTokenError, PlanRunningError
 from app.application.request_plan import RequestPlan
@@ -25,11 +26,12 @@ from app.application.search_courses import NoCandidatesError
 from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.domain.quota import DailyLimitError, PlanInProgressError
-from app.domain.roadmap import ClassChoiceError
+from app.domain.roadmap import ClassChoiceError, FixedCourseError
 from app.presentation.api import health
 from app.presentation.api.auth import MissingTokenError, current_user
 from app.presentation.api.class_choices import class_choices_router
 from app.presentation.api.me import me_router
+from app.presentation.api.offered_courses import offered_courses_router
 from app.presentation.api.plans import plans_router
 from app.presentation.api.taken_courses import taken_courses_router
 from app.presentation.schemas.errors import ERROR_RESPONSES
@@ -38,6 +40,7 @@ API_PREFIX = "/api/v1"
 LOGIN_REQUIRED = "ログインしてください"
 INPUT_ERRORS: tuple[type[Exception], ...] = (
     ClassChoiceError,
+    FixedCourseError,
     NoCandidatesError,
     UnaskedCourseError,
 )
@@ -88,6 +91,7 @@ def create_app(
     get_plan: GetPlan,
     list_plans: ListPlans,
     list_class_choices: ListClassChoices,
+    list_offered_courses: ListOfferedCourses,
     answer_taken_courses: AnswerTakenCourses,
     delete_plan: DeletePlan,
     syllabus_links: SyllabusLinks,
@@ -115,6 +119,11 @@ def create_app(
     )
     app.include_router(
         class_choices_router(list_class_choices, user, curriculum_year),
+        prefix=API_PREFIX,
+        responses=ERROR_RESPONSES,
+    )
+    app.include_router(
+        offered_courses_router(list_offered_courses, user, curriculum_year),
         prefix=API_PREFIX,
         responses=ERROR_RESPONSES,
     )

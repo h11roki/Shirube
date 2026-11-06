@@ -10,10 +10,11 @@ from app.application.search_courses import SearchError
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.plan import Plan, PlanError, PlanStatus
 from app.domain.quota import PlanRefusedError
-from app.domain.roadmap import DEFAULT_START_TERM, PlacedCourse, RoadmapError, Semester
+from app.domain.roadmap import DEFAULT_START_TERM, FixedCourse, PlacedCourse, RoadmapError, Semester
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.cli.labels import (
+    FIXED_LABEL,
     RELEVANCE_LABELS,
     profile_lines,
     unlinked_lines,
@@ -49,17 +50,22 @@ STATUS_LABELS = {
 }
 
 
-def _placed(label: str, placed: PlacedCourse) -> str:
+def _placed(placed: PlacedCourse, label: str | None = None) -> str:
     course = placed.course
     section = placed.section
+    if isinstance(course, FixedCourse):
+        label, reason, name = label or FIXED_LABEL, "", course.name
+    else:
+        label = label or RELEVANCE_LABELS[course.relevance]
+        reason = course.reason
+        name = with_prerequisite(course.name, course.prerequisite_for)
     where = [
         "・".join(f"{WEEKDAY_LABELS[slot.weekday]}{slot.period}" for slot in section.slots)
         or "コマなし",
         *([section.class_code] if section.class_code else []),
         *([] if placed.class_confirmed else ["クラス未確定"]),
     ]
-    name = with_prerequisite(course.name, course.prerequisite_for)
-    return f"  {label} {name}({'、'.join(where)}): {course.reason}"
+    return f"  {label} {name}({'、'.join(where)})" + (f": {reason}" if reason else "")
 
 
 def render(plan: Plan) -> str:
@@ -77,16 +83,18 @@ def render(plan: Plan) -> str:
         f"条件: {conditions.department}、{conditions.year} 年度の時間割、"
         f"{conditions.start}から、1 学期 {conditions.credit_limit} 単位まで",
         *([f"クラスの選択: {chosen}"] if chosen else []),
+        *(
+            [f"先に入れる授業: {'、'.join(conditions.fixed_courses)}"]
+            if conditions.fixed_courses
+            else []
+        ),
     ]
     if result is None:
         return "\n".join(lines)
     for semester_plan in result.roadmap.semesters:
         lines.append(f"{semester_plan.semester} {semester_plan.credits} 単位")
-        lines += [
-            _placed(RELEVANCE_LABELS[placed.course.relevance], placed)
-            for placed in semester_plan.courses
-        ]
-        lines += [_placed("続き", placed) for placed in semester_plan.continuing]
+        lines += [_placed(placed) for placed in semester_plan.courses]
+        lines += [_placed(placed, "続き") for placed in semester_plan.continuing]
     if result.roadmap.unplaced:
         names = "、".join(course.name for course in result.roadmap.unplaced)
         lines.append(f"置けなかった科目: {names}")
@@ -102,6 +110,13 @@ def _chosen_class(text: str) -> tuple[str, str]:
     if not separator or not name:
         raise argparse.ArgumentTypeError(f"科目名=クラス記号 の形にしてください: {text}")
     return name, class_code
+
+
+def _course_name(text: str) -> str:
+    name = text.strip()
+    if not name:
+        raise argparse.ArgumentTypeError("科目名が空です")
+    return name
 
 
 def main() -> None:
@@ -126,6 +141,15 @@ def main() -> None:
         default=[],
         help="学科で分かれたクラスの選択。科目名=クラス記号 の形で、科目ごとに繰り返す。"
         "記号の無いクラスは 科目名= と書く",
+    )
+    create.add_argument(
+        "--fixed",
+        dest="fixed",
+        type=_course_name,
+        action="append",
+        default=[],
+        metavar="科目名",
+        help="必修など先に入れる授業。科目ごとに繰り返す",
     )
     show = commands.add_parser("show", help="保存した道標を表示する")
     show.add_argument("plan_id", type=UUID)
@@ -154,6 +178,7 @@ def main() -> None:
                 args.year,
                 Semester(args.grade, Term(args.term)),
                 dict(args.classes),
+                args.fixed,
             )
             plan = builder.build(requested.id)
             if plan is None:

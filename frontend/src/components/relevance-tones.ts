@@ -6,6 +6,7 @@ const STAMP_RING =
 const STAMP_OUTLINES: Record<Relevance, string> = {
   core: `${STAMP_RING} rounded-full border-pillar [--ring:var(--pillar)]`,
   foundation: `${STAMP_RING} border-route [--ring:var(--route)]`,
+  fixed: `${STAMP_RING} border-ink [--ring:var(--ink)]`,
 };
 const TICKET_STAMP =
   "absolute grid place-items-center border-[1.5px] bg-note font-serif font-extrabold [--ring-gap:var(--note)]";
@@ -35,6 +36,11 @@ export const RELEVANCE_TONES: Record<
     mark: `${LEGEND_MARK} ${STAMP_OUTLINES.foundation} bg-route-soft`,
     ground: `${TICKET_GROUND} [--ground:color-mix(in_srgb,var(--route)_8%,transparent)]`,
   },
+  fixed: {
+    text: "text-ink",
+    sticky: "rotate-[0.2deg] bg-note",
+    stamp: `${TICKET_STAMP} ${STAMP_OUTLINES.fixed} text-ink text-[0.875rem] leading-none [writing-mode:vertical-rl]`,
+    mark: `${LEGEND_MARK} ${STAMP_OUTLINES.fixed} bg-note`,
+    ground: `${TICKET_GROUND} [--ground:color-mix(in_srgb,var(--ink)_6%,transparent)]`,
+  },
 };
-
-export const RELEVANCES = Object.keys(RELEVANCE_TONES) as Relevance[];

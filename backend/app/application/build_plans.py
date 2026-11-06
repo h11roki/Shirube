@@ -86,10 +86,18 @@ class BuildPlans:
                     conditions.department,
                     conditions.semesters,
                     lambda step: self._enter_step(plan, step, entered),
-                    excluded=self._users.taken(plan.owner_id),
+                    excluded=self._users.taken(plan.owner_id) | set(conditions.fixed_courses),
                 )
                 self._enter(plan, PlanStage.PLACING, entered)
-                roadmap = conditions.roadmap(recommendation, sections)
+                roadmap = conditions.roadmap(
+                    recommendation,
+                    sections,
+                    page_of=(
+                        self._courses.syllabus_codes(conditions.year)
+                        if conditions.fixed_courses
+                        else {}
+                    ),
+                )
                 finished = plan.succeeded(PlanResult(recommendation, roadmap))
             except UPSTREAM_ERRORS as error:
                 logger.exception("道標 %s の推薦で外部のサービスの呼び出しに失敗しました", plan.id)

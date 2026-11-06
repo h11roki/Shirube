@@ -3,7 +3,7 @@ from uuid import uuid4
 
 from app.application.syllabus_links import SyllabusLinks
 from app.domain.plan import Plan
-from tests.builders import sample_conditions, sample_plan, syllabus
+from tests.builders import sample_conditions, sample_plan, sample_plan_with_fixed, syllabus
 from tests.fakes import FakeCourseRepository
 
 
@@ -20,6 +20,22 @@ def test_links_are_the_urls_of_the_courses_in_the_result() -> None:
     links = SyllabusLinks(courses).of(sample_plan(uuid4()))
 
     assert links == {"10000": "https://syllabus.test/10000"}
+
+
+def test_the_pages_of_the_fixed_courses_are_linked_too() -> None:
+    courses = FakeCourseRepository(
+        syllabi=(
+            replace(syllabus("10000"), url="https://syllabus.test/10000"),
+            replace(syllabus("10010"), url="https://syllabus.test/10010"),
+        )
+    )
+
+    links = SyllabusLinks(courses).of(sample_plan_with_fixed(uuid4()))
+
+    assert links == {
+        "10000": "https://syllabus.test/10000",
+        "10010": "https://syllabus.test/10010",
+    }
 
 
 def test_a_plan_without_a_result_has_no_links() -> None:

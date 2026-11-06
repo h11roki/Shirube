@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Annotated
+from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
@@ -8,11 +8,13 @@ from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_vali
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import is_single_line
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
-from app.domain.recommendation import RecommendedCourse, Relevance
-from app.domain.roadmap import PlacedCourse
+from app.domain.roadmap import FixedCourse, PlacedCourse, PlannedCourse
 
 MAX_CHOSEN_CLASSES = 50
+MAX_FIXED_COURSES = 30
 MAX_NAME_LENGTH = 100
+FIXED = "fixed"
+RelevanceOut = Literal["core", "foundation", "fixed"]
 
 DepartmentName = Annotated[
     str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH)
@@ -30,6 +32,11 @@ class PlanIn(BaseModel):
         Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
         Annotated[str, StringConstraints(max_length=MAX_NAME_LENGTH)],
     ] = Field(default_factory=dict, max_length=MAX_CHOSEN_CLASSES)
+    fixed_courses: list[
+        Annotated[
+            str, StringConstraints(strip_whitespace=True, min_length=1, max_length=MAX_NAME_LENGTH)
+        ]
+    ] = Field(default_factory=list, max_length=MAX_FIXED_COURSES)
 
     @field_validator("occupation")
     @classmethod
@@ -37,6 +44,13 @@ class PlanIn(BaseModel):
         if not is_single_line(occupation):
             raise ValueError("職業名は空でない 1 行にしてください")
         return occupation
+
+    @field_validator("fixed_courses")
+    @classmethod
+    def fixed_courses_are_distinct(cls, names: list[str]) -> list[str]:
+        if len(set(names)) != len(names):
+            raise ValueError("先に入れる授業に同じ科目が 2 回あります")
+        return names
 
 
 class SlotOut(BaseModel):
@@ -46,10 +60,10 @@ class SlotOut(BaseModel):
 
 class CourseOut(BaseModel):
     name: str
-    relevance: Relevance
+    relevance: RelevanceOut
     reason: str
     prerequisite_for: str | None
-    syllabus_code: str
+    syllabus_code: str | None
     syllabus_url: str | None
 
 
@@ -90,6 +104,7 @@ class ConditionsOut(BaseModel):
     term: Term
     chosen_classes: dict[str, str]
     credit_limit: int
+    fixed_courses: list[str]
 
 
 class ResultOut(BaseModel):
@@ -124,10 +139,19 @@ class PlanListOut(BaseModel):
     total: int
 
 
-def _course_out(course: RecommendedCourse, links: Mapping[str, str]) -> CourseOut:
+def _course_out(course: PlannedCourse, links: Mapping[str, str]) -> CourseOut:
+    if isinstance(course, FixedCourse):
+        return CourseOut(
+            name=course.name,
+            relevance=FIXED,
+            reason="",
+            prerequisite_for=None,
+            syllabus_code=course.syllabus_code,
+            syllabus_url=None if course.syllabus_code is None else links.get(course.syllabus_code),
+        )
     return CourseOut(
         name=course.name,
-        relevance=course.relevance,
+        relevance=course.relevance.value,
         reason=course.reason,
         prerequisite_for=course.prerequisite_for,
         syllabus_code=course.syllabus_code,
@@ -136,15 +160,9 @@ def _course_out(course: RecommendedCourse, links: Mapping[str, str]) -> CourseOu
 
 
 def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseOut:
-    course = placed.course
     section = placed.section
     return PlacedCourseOut(
-        name=course.name,
-        relevance=course.relevance,
-        reason=course.reason,
-        prerequisite_for=course.prerequisite_for,
-        syllabus_code=course.syllabus_code,
-        syllabus_url=links.get(course.syllabus_code),
+        **_course_out(placed.course, links).model_dump(),
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
@@ -167,6 +185,7 @@ def plan_out(plan: Plan, links: Mapping[str, str]) -> PlanOut:
             term=conditions.start.term,
             chosen_classes=dict(conditions.chosen_classes),
             credit_limit=conditions.credit_limit,
+            fixed_courses=list(conditions.fixed_courses),
         ),
         result=None if plan.result is None else _result_out(plan.result, links),
         failure=plan.failure,

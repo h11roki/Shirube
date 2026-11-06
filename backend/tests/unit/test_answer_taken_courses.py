@@ -12,7 +12,12 @@ from app.application.answer_taken_courses import (
 )
 from app.domain.course import Audience
 from app.domain.plan import Plan, PlanResult
-from tests.builders import sample_conditions, sample_plan_asking, sample_sections
+from tests.builders import (
+    sample_conditions,
+    sample_plan_asking,
+    sample_plan_with_fixed,
+    sample_sections,
+)
 from tests.fakes import FakeCourseRepository, FakePlanRepository, FakeUserRepository
 
 COURSES = FakeCourseRepository(sample_sections())
@@ -130,6 +135,35 @@ def test_a_plan_whose_timetable_changed_since_it_was_made_is_refused() -> None:
         )
     assert plans.get(plan.id) == plan
     assert users.remembered == {}
+
+
+def test_a_plan_whose_fixed_class_is_gone_is_refused_and_otherwise_keeps_it() -> None:
+    owner = uuid4()
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = sample_plan_with_fixed(uuid4(), owner)
+    assert plan.result is not None
+    fixed_class = plan.result.roadmap.semesters[1].courses[0].section
+    plan = plan.placed_again(
+        replace(plan.result.roadmap, offered_earlier=frozenset({"科目A", "科目D"}))
+    )
+    plans.store(plan)
+    kept = FakeCourseRepository((*sample_sections(), fixed_class))
+
+    with pytest.raises(PlanOutdatedError, match="時間割表が変わった"):
+        AnswerTakenCourses(plans, users, COURSES).mark(
+            owner_id=owner, plan_id=plan.id, name="科目A"
+        )
+    marked = AnswerTakenCourses(plans, users, kept).mark(
+        owner_id=owner, plan_id=plan.id, name="科目A"
+    )
+
+    assert marked is not None
+    assert marked.result is not None
+    assert [placed.course.name for placed in marked.result.roadmap.semesters[1].courses] == [
+        "必修X"
+    ]
+    assert [course.name for course in marked.result.roadmap.unplaced] == ["必修Y"]
 
 
 def test_an_answer_that_lost_to_another_screen_is_refused_without_remembering_it() -> None:

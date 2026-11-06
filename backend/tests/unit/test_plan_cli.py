@@ -2,7 +2,13 @@ from uuid import UUID
 
 from app.domain.plan import Plan, PlanStatus
 from app.presentation.cli.plan import render
-from tests.builders import SAMPLE_OWNER, sample_conditions, sample_plan, sample_plan_with_taken
+from tests.builders import (
+    SAMPLE_OWNER,
+    sample_conditions,
+    sample_plan,
+    sample_plan_with_fixed,
+    sample_plan_with_taken,
+)
 
 PLAN_ID = UUID("8888666a-9ab0-48db-ba61-cf526a15dc0d")
 
@@ -47,3 +53,11 @@ def test_render_shows_the_conditions_of_a_plan_without_a_result() -> None:
 
     assert render(waiting) == f"Plan {PLAN_ID}\n状態: 待ち\n{conditions}"
     assert render(failed) == f"Plan {PLAN_ID}\n状態: 失敗(失敗の文)\n{conditions}"
+
+
+def test_render_marks_the_fixed_courses_as_planned_without_a_reason() -> None:
+    lines = render(sample_plan_with_fixed(PLAN_ID)).splitlines()
+
+    assert "先に入れる授業: 必修X、必修Y" in lines
+    assert "  予定 必修X(火1、6T)" in lines
+    assert "置けなかった科目: 科目D、必修Y" in lines

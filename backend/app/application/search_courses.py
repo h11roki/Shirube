@@ -6,7 +6,7 @@ from app.application.ports import ChunkSearch, CourseRepository, Embedder, Embed
 from app.domain.ranking import CourseMatch, rank_courses, take_turns
 from app.domain.roadmap import Semester, opens_in_any, removed_codes
 
-EXCLUDED_NOTE = "(もう取ったと答えた授業は除いています)"
+EXCLUDED_NOTE = "(もう取ったと答えた授業や先に入れる授業は除いています)"
 
 
 class SearchError(ValueError):

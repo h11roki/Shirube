@@ -17,6 +17,9 @@ export function JourneySummary({
     ["計", `${totals.credits} 単位`],
     [RELEVANCE_LABELS.core, `${totals.core} 科目`],
     [RELEVANCE_LABELS.foundation, `${totals.foundation} 科目`],
+    ...(totals.fixed > 0
+      ? [[RELEVANCE_LABELS.fixed, `${totals.fixed} 科目`]]
+      : []),
   ];
   return (
     <div className="max-w-2xl border-t-2 border-b border-t-ink border-b-line dark:border-t-ink/60">

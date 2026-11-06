@@ -21,7 +21,7 @@ from app.domain.roadmap import (
     SemesterPlan,
     remaining_semesters,
 )
-from tests.builders import course_section
+from tests.builders import course_section, sample_plan_with_fixed
 
 PROFILE = OccupationProfile("職業", "職業", None, ("甲", "乙", "丙"))
 START = Semester(3, Term.SPRING)
@@ -83,7 +83,7 @@ def test_plan_needs_every_recommended_course_placed_or_unplaced_once() -> None:
     course = RecommendedCourse("科目A", "10000", Relevance.CORE, "理由")
     recommendation = Recommendation(PROFILE, (course,), ("科目A",))
 
-    with pytest.raises(PlanError, match="推薦の科目が、置いた科目、置けなかった科目、もう取った"):
+    with pytest.raises(PlanError, match="推薦の科目と先に入れる授業が、置いた科目、置けなかった"):
         succeeded(recommendation, roadmap_from(START))
 
 
@@ -186,3 +186,17 @@ def test_only_a_running_plan_has_a_stage_and_finishing_clears_it() -> None:
     assert running.failed("文").stage is None
     with pytest.raises(PlanError, match="段を持つのは作成中の道標だけです: pending"):
         Plan(uuid4(), uuid4(), CONDITIONS, stage=PlanStage.ANALYZING)
+
+
+def test_plan_needs_each_fixed_course_placed_or_unplaced_once_too() -> None:
+    plan = sample_plan_with_fixed(uuid4())
+
+    with pytest.raises(PlanError, match="推薦の科目と先に入れる授業が"):
+        replace(plan, conditions=replace(plan.conditions, fixed_courses=("必修X",)))
+
+
+def test_fixed_courses_are_sorted_by_name_and_listed_once() -> None:
+    with pytest.raises(PlanError, match="先に入れる授業は科目名の順に 1 つずつ"):
+        PlanConditions("職業", "情", 2026, START, (), 16, ("科目B", "科目A"))
+    with pytest.raises(PlanError, match="先に入れる授業は科目名の順に 1 つずつ"):
+        PlanConditions("職業", "情", 2026, START, (), 16, ("科目A", "科目A"))

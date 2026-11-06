@@ -1,8 +1,8 @@
 from collections import Counter, defaultdict
-from collections.abc import Mapping, Sequence, Set
-from dataclasses import dataclass
+from collections.abc import Iterable, Mapping, Sequence, Set
+from dataclasses import dataclass, field
 
-from app.domain.course import ALL_GRADES, CourseSection, Term, left_out_codes
+from app.domain.course import ALL_GRADES, CourseSection, Term, TimeSlot, left_out_codes
 from app.domain.recommendation import Recommendation, RecommendedCourse
 
 NO_CLASS_CODE = ""
@@ -15,6 +15,10 @@ class RoadmapError(ValueError):
 
 
 class ClassChoiceError(RoadmapError):
+    pass
+
+
+class FixedCourseError(RoadmapError):
     pass
 
 
@@ -72,10 +76,104 @@ def removed_codes(
 
 
 @dataclass(frozen=True)
+class FixedCourse:
+    name: str
+    syllabus_code: str | None
+
+
+PlannedCourse = RecommendedCourse | FixedCourse
+
+
+@dataclass(frozen=True)
+class OfferedCourse:
+    name: str
+    credits: int
+    semesters: tuple[Semester, ...]
+
+
+def offered_courses(
+    sections: Sequence[CourseSection],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    left_out: Set[str] = frozenset(),
+) -> list[OfferedCourse]:
+    by_name: dict[str, list[CourseSection]] = defaultdict(list)
+    for section in sections:
+        if section.code not in left_out:
+            by_name[section.name].append(section)
+    offered = []
+    for name in sorted(by_name):
+        classes, _ = _classes(name, by_name[name], department, year, semesters, {})
+        opening = [
+            (index, section)
+            for section in classes
+            for index, semester in enumerate(semesters)
+            if opens_in(section, department, year, semester)
+        ]
+        if not opening:
+            continue
+        _, first = min(opening, key=lambda pair: (pair[0], pair[1].code))
+        indexes = sorted({index for index, _ in opening})
+        offered.append(
+            OfferedCourse(name, first.credits, tuple(semesters[index] for index in indexes))
+        )
+    return offered
+
+
+def require_offered(
+    sections: Sequence[CourseSection],
+    page_of: Mapping[str, str],
+    department: str,
+    year: int,
+    semesters: Sequence[Semester],
+    taken: Set[str],
+    names: Iterable[str],
+) -> None:
+    left_out = left_out_codes(sections, page_of, department, taken)
+    already = sorted(
+        set(names) & {section.name for section in sections if section.code in left_out}
+    )
+    if already:
+        raise FixedCourseError(
+            "もう取ったと答えた授業(と同じシラバスの授業)は先に入れられません: "
+            + "、".join(already)
+        )
+    offered = offered_courses(sections, department, year, semesters, left_out)
+    unknown = sorted(set(names) - {course.name for course in offered})
+    if unknown:
+        raise FixedCourseError(f"残りの学期に開講される授業にありません: {'、'.join(unknown)}")
+
+
+@dataclass(frozen=True)
 class PlacedCourse:
-    course: RecommendedCourse
+    course: PlannedCourse
     section: CourseSection
     class_confirmed: bool
+
+
+def _continues_into_autumn(section: CourseSection) -> bool:
+    return section.term is None and bool(section.slots)
+
+
+@dataclass
+class _Draft:
+    semester: Semester
+    courses: list[PlacedCourse] = field(default_factory=list)
+    continuing: list[PlacedCourse] = field(default_factory=list)
+    occupied: set[TimeSlot] = field(default_factory=set)
+
+    def fits(self, section: CourseSection, credit_limit: int) -> bool:
+        credits = sum(placed.section.credits for placed in self.courses)
+        return credits + section.credits <= credit_limit and self.occupied.isdisjoint(section.slots)
+
+    def add(self, placed: PlacedCourse) -> None:
+        self.courses.append(placed)
+        self.occupied.update(placed.section.slots)
+
+    def carry(self, placed: PlacedCourse) -> None:
+        self.continuing.append(placed)
+        self.occupied.update(placed.section.slots)
 
 
 @dataclass(frozen=True)
@@ -101,9 +199,18 @@ class SemesterPlan:
 @dataclass(frozen=True)
 class Roadmap:
     semesters: tuple[SemesterPlan, ...]
-    unplaced: tuple[RecommendedCourse, ...]
+    unplaced: tuple[PlannedCourse, ...]
     taken: tuple[RecommendedCourse, ...] = ()
     offered_earlier: frozenset[str] = frozenset()
+
+    @property
+    def fixed(self) -> tuple[FixedCourse, ...]:
+        planned = [
+            *(placed.course for plan in self.semesters for placed in plan.courses),
+            *self.unplaced,
+        ]
+        fixed = [course for course in planned if isinstance(course, FixedCourse)]
+        return tuple(sorted(fixed, key=lambda course: course.name))
 
     def __post_init__(self) -> None:
         positions = [ALL_SEMESTERS.index(plan.semester) for plan in self.semesters]
@@ -240,10 +347,14 @@ def place(
     credit_limit: int,
     chosen_classes: Mapping[str, str],
     taken: Set[str] = frozenset(),
+    fixed: Iterable[str] = (),
+    page_of: Mapping[str, str] | None = None,
 ) -> Roadmap:
     if credit_limit <= 0:
         raise RoadmapError(f"単位の上限は 1 以上にしてください: {credit_limit}")
-    names = {course.name for course in recommendation.courses}
+    fixed_first = tuple(FixedCourse(name, None) for name in sorted(set(fixed)))
+    planned: tuple[PlannedCourse, ...] = (*fixed_first, *recommendation.courses)
+    names = {course.name for course in planned}
     by_name: dict[str, list[CourseSection]] = {name: [] for name in names}
     for section in sections:
         if section.name in by_name:
@@ -255,7 +366,7 @@ def place(
     earlier = ALL_SEMESTERS[: ALL_SEMESTERS.index(semesters[0])] if semesters else ()
     offered_earlier = frozenset(
         name
-        for name in names
+        for name in (course.name for course in recommendation.courses)
         if any(
             opens_in(section, department, year, semester)
             for section in by_name[name]
@@ -263,42 +374,50 @@ def place(
         )
     )
     skipped = offered_earlier & taken
-    year_long: dict[int, list[PlacedCourse]] = defaultdict(list)
+    pages = page_of or {}
+    drafts = [_Draft(semester) for semester in semesters]
+    autumn_of = {
+        draft.semester.grade: draft for draft in drafts if draft.semester.term is Term.AUTUMN
+    }
     placed: set[str] = set()
-    plans = []
-    for semester in semesters:
-        continuing = tuple(year_long[semester.grade]) if semester.term is Term.AUTUMN else ()
-        courses: list[PlacedCourse] = []
-        credits = 0
-        occupied = {slot for carried in continuing for slot in carried.section.slots}
-        for course in recommendation.courses:
-            if course.name in placed or course.name in skipped:
-                continue
-            classes, confirmed = options[course.name]
-            fitting = next(
-                (
-                    section
-                    for section in classes
-                    if opens_in(section, department, year, semester)
-                    and credits + section.credits <= credit_limit
-                    and occupied.isdisjoint(section.slots)
-                ),
-                None,
+    for wave in (fixed_first, recommendation.courses):
+        for draft in drafts:
+            autumn = (
+                autumn_of.get(draft.semester.grade) if draft.semester.term is Term.SPRING else None
             )
-            if fitting is None:
-                continue
-            placed_course = PlacedCourse(course, fitting, confirmed)
-            courses.append(placed_course)
-            placed.add(course.name)
-            credits += fitting.credits
-            occupied.update(fitting.slots)
-            if fitting.term is None and fitting.slots:
-                year_long[semester.grade].append(placed_course)
-        plans.append(SemesterPlan(semester, tuple(courses), continuing))
+            for course in wave:
+                if course.name in placed or course.name in skipped:
+                    continue
+                classes, confirmed = options[course.name]
+                fitting = next(
+                    (
+                        section
+                        for section in classes
+                        if opens_in(section, department, year, draft.semester)
+                        and draft.fits(section, credit_limit)
+                        and (
+                            autumn is None
+                            or not _continues_into_autumn(section)
+                            or autumn.occupied.isdisjoint(section.slots)
+                        )
+                    ),
+                    None,
+                )
+                if fitting is None:
+                    continue
+                if isinstance(course, FixedCourse):
+                    course = FixedCourse(course.name, pages.get(fitting.code))
+                placed_course = PlacedCourse(course, fitting, confirmed)
+                draft.add(placed_course)
+                placed.add(course.name)
+                if autumn is not None and _continues_into_autumn(fitting):
+                    autumn.carry(placed_course)
+    plans = [
+        SemesterPlan(draft.semester, tuple(draft.courses), tuple(draft.continuing))
+        for draft in drafts
+    ]
     unplaced = tuple(
-        course
-        for course in recommendation.courses
-        if course.name not in placed and course.name not in skipped
+        course for course in planned if course.name not in placed and course.name not in skipped
     )
     left_out = tuple(course for course in recommendation.courses if course.name in skipped)
     return Roadmap(tuple(plans), unplaced, left_out, offered_earlier)
