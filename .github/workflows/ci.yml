@@ -37,7 +37,10 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run ruff check --line-length 100 ../frontend/brand/make.py
       - run: uv run mypy
-      - run: uv run pytest
+      - run: uv run pytest --cov --cov-fail-under=88
+      - name: カバレッジを job の要約に書く
+        if: ${{ !cancelled() && hashFiles('backend/.coverage') != '' }}
+        run: uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
 
   frontend:
     runs-on: ubuntu-24.04
@@ -60,7 +63,11 @@ jobs:
       - run: git add --intent-to-add src/lib/api && git diff --exit-code -- src/lib/api
       - run: pnpm lint
       - run: pnpm typecheck
-      - run: pnpm test
+      - run: pnpm test --coverage
+      - name: カバレッジを job の要約に書く
+        if: ${{ !cancelled() && hashFiles('frontend/coverage/coverage-summary.json') != '' }}
+        run: |
+          jq -r '.total | "| | % | 数 |\n|---|---|---|\n" + ([("statements", "branches", "functions", "lines") as $metric | "| \($metric) | \(.[$metric].pct) | \(.[$metric].covered)/\(.[$metric].total) |"] | join("\n"))' coverage/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm format:check
       - id: playwright
         run: |
