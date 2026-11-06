@@ -1,6 +1,13 @@
 import type { Locator, Page } from "@playwright/test";
 
-import type { PlacedCourse, Plan, Relevance, Weekday } from "@/lib/api/client";
+import type {
+  OfferedCourse,
+  PlacedCourse,
+  Plan,
+  Relevance,
+  Weekday,
+} from "@/lib/api/client";
+import { MAX_FIXED_COURSES } from "@/lib/fixed-courses";
 import {
   ARRIVALS_HINT,
   CANCEL_LABEL,
@@ -16,8 +23,11 @@ import {
   backPlace,
   deletePlanLabel,
   deletedPlanLabel,
+  dropFixedLabel,
+  fixedCoursesSummary,
   hopPlace,
   markTakenLabel,
+  matchCountLabel,
   stationsAway,
   unmarkTakenLabel,
 } from "@/lib/labels";
@@ -28,6 +38,7 @@ import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import {
   CLASS_CHOICES,
   FAILED_PLAN,
+  OFFERED_COURSES,
   PLAN_LIST,
   RUNNING_PLAN,
   TAKEN_COURSES,
@@ -550,6 +561,7 @@ test.describe("道標を作る", () => {
   }) => {
     api.answer({
       "/api/class-choices": CLASS_CHOICES,
+      "/api/offered-courses": OFFERED_COURSES,
       "/api/taken-courses": TAKEN_COURSES,
       [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN,
     });
@@ -571,6 +583,128 @@ test.describe("道標を作る", () => {
     await expect(page.getByLabel("なりたい職業")).toHaveValue("");
     await expect(
       page.getByRole("button", { name: "道標を作る" }),
+    ).toBeEnabled();
+  });
+});
+
+test.describe("先に入れる授業", () => {
+  test("名前で絞って選んだ授業を送り、選んだ授業から外すと欄の見出しにフォーカスを戻す", async ({
+    page,
+    api,
+  }) => {
+    const [kept, dropped] = OFFERED_COURSES.courses.filter((course) =>
+      course.name.includes("回路"),
+    );
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/offered-courses": OFFERED_COURSES,
+      "/api/taken-courses": TAKEN_COURSES,
+      [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN,
+    });
+    api.respond("POST", "/api/plans", { status: 202, json: SAMPLE_PLAN });
+    await page.goto("/");
+    await page
+      .getByLabel("なりたい職業")
+      .fill(SAMPLE_PLAN.conditions.occupation);
+    await page.getByText(fixedCoursesSummary(0)).click();
+    await page.getByLabel("授業名で絞る").fill("回路");
+    await page.getByLabel("授業名で絞る").press("Enter");
+    await expect(page.getByText(matchCountLabel(2))).toBeVisible();
+    await page.getByRole("checkbox", { name: kept.name, exact: true }).check();
+    await page
+      .getByRole("checkbox", { name: dropped.name, exact: true })
+      .check();
+    await page
+      .getByRole("button", { name: dropFixedLabel(dropped.name) })
+      .click();
+    await expect(page.getByText(fixedCoursesSummary(1))).toBeFocused();
+    await expect(
+      page.getByRole("checkbox", { name: dropped.name, exact: true }),
+    ).not.toBeChecked();
+    const posted = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/plans",
+    );
+    await page.getByRole("button", { name: "道標を作る" }).click();
+    expect((await posted).postDataJSON()).toMatchObject({
+      fixed_courses: [kept.name],
+    });
+    await expect(
+      page.getByRole("button", { name: DELETE_PLAN_LABEL }),
+    ).toBeVisible();
+  });
+
+  test("回生を変えても欄は開いたままで、一覧に無くなった授業は、変えた先の一覧で選び直すと選んだ並びから外れる", async ({
+    page,
+    api,
+  }) => {
+    const [firstGradeOnly, , secondGradeOnly] = OFFERED_COURSES.courses;
+    const firstGrade = { term: "spring", courses: [firstGradeOnly] };
+    const secondGrade = { term: "spring", courses: [secondGradeOnly] };
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/taken-courses": TAKEN_COURSES,
+    });
+    api.respond(
+      "GET",
+      "/api/offered-courses",
+      { json: firstGrade },
+      { json: secondGrade },
+      { json: firstGrade },
+    );
+    await page.goto("/");
+    await page.getByText(fixedCoursesSummary(0)).click();
+    await page
+      .getByRole("checkbox", { name: firstGradeOnly.name, exact: true })
+      .check();
+    await page.getByLabel("いまの回生").selectOption("2");
+    await page
+      .getByRole("checkbox", { name: secondGradeOnly.name, exact: true })
+      .check();
+    await expect(page.getByText(fixedCoursesSummary(1))).toBeVisible();
+    await page.getByLabel("いまの回生").selectOption("1");
+    await expect(page.getByText(fixedCoursesSummary(0))).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: firstGradeOnly.name, exact: true }),
+    ).not.toBeChecked();
+  });
+
+  test(`${MAX_FIXED_COURSES} 科目を選ぶと、ほかの授業は選べない`, async ({
+    page,
+    api,
+  }) => {
+    const courses: OfferedCourse[] = Array.from(
+      { length: MAX_FIXED_COURSES + 1 },
+      (_, index) => ({
+        name: `授業 ${String(index + 1).padStart(2, "0")}`,
+        credits: 2,
+        semesters: [{ grade: 1, term: "spring" }],
+      }),
+    );
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/offered-courses": { term: "spring", courses },
+      "/api/taken-courses": TAKEN_COURSES,
+    });
+    await page.goto("/");
+    await page.getByText(fixedCoursesSummary(0)).click();
+    for (const course of courses.slice(0, MAX_FIXED_COURSES)) {
+      await page
+        .getByRole("checkbox", { name: course.name, exact: true })
+        .check();
+    }
+    await expect(
+      page.getByText(fixedCoursesSummary(MAX_FIXED_COURSES)),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("checkbox", { name: courses.at(-1)?.name, exact: true }),
+    ).toBeDisabled();
+    await page
+      .getByRole("button", { name: dropFixedLabel(courses[0].name) })
+      .click();
+    await expect(
+      page.getByRole("checkbox", { name: courses.at(-1)?.name, exact: true }),
     ).toBeEnabled();
   });
 });

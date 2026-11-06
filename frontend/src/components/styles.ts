@@ -8,6 +8,8 @@ export const NAV_LINK = `${TARGET} hover:text-ink`;
 
 export const OUTLINED = "rounded-xs border border-edge";
 
+export const FIELD = "w-full border border-edge bg-paper px-3 py-2 text-ink";
+
 export const OUTLINE_BUTTON = `${OUTLINED} bg-sheet px-4 py-1.5 text-ink hover:border-ink`;
 
 export const SMALL_BUTTON = `${OUTLINED} px-3 py-1 text-xs text-sub hover:border-ink hover:text-ink disabled:opacity-50`;

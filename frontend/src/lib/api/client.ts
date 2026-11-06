@@ -8,6 +8,8 @@ export type PlanSummary = Schemas["PlanSummaryOut"];
 export type TakenCourses = Schemas["TakenCoursesOut"];
 export type PlanResult = Schemas["ResultOut"];
 export type ClassChoices = Schemas["ClassChoicesOut"];
+export type OfferedCourses = Schemas["OfferedCoursesOut"];
+export type OfferedCourse = Schemas["OfferedCourseOut"];
 export type SemesterPlan = Schemas["SemesterPlanOut"];
 export type PlacedCourse = Schemas["PlacedCourseOut"];
 export type Course = Schemas["CourseOut"];
@@ -20,6 +22,7 @@ export type Weekday = Schemas["Weekday"];
 const UNREACHABLE = "道標のサーバーとやり取りできませんでした";
 const UNAUTHORIZED = 401;
 export const NOT_FOUND = 404;
+export const UNPROCESSABLE = 422;
 
 const signedOutListeners = new Set<() => void>();
 

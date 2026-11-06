@@ -3,6 +3,7 @@ import { encode } from "next-auth/jwt";
 
 import type {
   ClassChoices,
+  OfferedCourses,
   Plan,
   PlanList,
   TakenCourses,
@@ -74,6 +75,35 @@ export const CLASS_CHOICES: ClassChoices = {
 };
 
 export const TAKEN_COURSES: TakenCourses = { names: ["基礎製図"] };
+
+export const OFFERED_COURSES: OfferedCourses = {
+  term: "spring",
+  courses: [
+    {
+      name: "英語 S1",
+      credits: 1,
+      semesters: [{ grade: 1, term: "spring" }],
+    },
+    {
+      name: "情報理工学と社会のかかわりを考えるキャリア形成特論",
+      credits: 2,
+      semesters: [
+        { grade: 2, term: "autumn" },
+        { grade: 3, term: "autumn" },
+      ],
+    },
+    {
+      name: "電子回路Ⅰ",
+      credits: 2,
+      semesters: [{ grade: 2, term: "spring" }],
+    },
+    {
+      name: "電子回路Ⅱ",
+      credits: 2,
+      semesters: [{ grade: 2, term: "autumn" }],
+    },
+  ],
+};
 
 type Method = "GET" | "POST" | "PUT" | "DELETE";
 
