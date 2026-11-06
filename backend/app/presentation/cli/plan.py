@@ -14,6 +14,7 @@ from app.domain.roadmap import DEFAULT_START_TERM, FixedCourse, PlacedCourse, Ro
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.cli.labels import (
+    FIXED_LABEL,
     RELEVANCE_LABELS,
     profile_lines,
     unlinked_lines,
@@ -41,7 +42,6 @@ WEEKDAY_LABELS = {
     Weekday.SAT: "土",
     Weekday.SUN: "日",
 }
-FIXED_LABEL = "予定"
 STATUS_LABELS = {
     PlanStatus.PENDING: "待ち",
     PlanStatus.RUNNING: "作成中",

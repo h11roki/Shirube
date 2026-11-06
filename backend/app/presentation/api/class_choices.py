@@ -2,14 +2,12 @@ from collections.abc import Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
 from app.application.list_class_choices import ListClassChoices
-from app.domain.course import ALL_GRADES, Term
-from app.domain.roadmap import DEFAULT_START_TERM, Semester
+from app.presentation.api.start_query import StartQuery, start_query
 from app.presentation.schemas.class_choices import ClassChoiceOut, ClassChoicesOut
 from app.presentation.schemas.errors import INVALID_RESPONSE
-from app.presentation.schemas.plans import DepartmentName
 
 
 def class_choices_router(
@@ -21,17 +19,15 @@ def class_choices_router(
 
     @router.get("/class-choices", responses=INVALID_RESPONSE)
     def show(
-        department: Annotated[DepartmentName, Query()],
-        grade: Annotated[int, Query(ge=min(ALL_GRADES), le=max(ALL_GRADES))],
+        query: Annotated[StartQuery, Depends(start_query)],
         user_id: Annotated[UUID, Depends(current_user)],
-        term: Term = DEFAULT_START_TERM,
     ) -> ClassChoicesOut:
-        start = Semester(grade, term)
+        choices = list_class_choices.run(user_id, query.department, curriculum_year, query.start)
         return ClassChoicesOut(
-            term=start.term,
+            term=query.start.term,
             courses=[
                 ClassChoiceOut(name=choice.name, class_codes=list(choice.class_codes))
-                for choice in list_class_choices.run(user_id, department, curriculum_year, start)
+                for choice in choices
             ],
         )
 

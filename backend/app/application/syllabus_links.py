@@ -9,5 +9,9 @@ class SyllabusLinks:
     def of(self, plan: Plan) -> dict[str, str]:
         if plan.result is None:
             return {}
-        codes = {course.syllabus_code for course in plan.result.recommendation.courses}
+        codes = {course.syllabus_code for course in plan.result.recommendation.courses} | {
+            course.syllabus_code
+            for course in plan.result.roadmap.fixed
+            if course.syllabus_code is not None
+        }
         return self._courses.syllabus_urls(plan.conditions.year, codes)

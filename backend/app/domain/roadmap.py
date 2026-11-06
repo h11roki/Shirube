@@ -84,14 +84,12 @@ class FixedCourse:
 PlannedCourse = RecommendedCourse | FixedCourse
 
 
-def fixed_courses(
-    names: Iterable[str], sections: Sequence[CourseSection], page_of: Mapping[str, str]
-) -> tuple[FixedCourse, ...]:
-    pages: dict[str, str] = {}
-    for section in sections:
-        if section.code in page_of:
-            pages.setdefault(section.name, page_of[section.code])
-    return tuple(FixedCourse(name, pages.get(name)) for name in sorted(set(names)))
+def _on_page(
+    course: PlannedCourse, section: CourseSection, page_of: Mapping[str, str]
+) -> PlannedCourse:
+    if isinstance(course, FixedCourse):
+        return FixedCourse(course.name, page_of.get(section.code))
+    return course
 
 
 @dataclass(frozen=True)
@@ -108,18 +106,27 @@ def offered_courses(
     semesters: Sequence[Semester],
     left_out: Set[str] = frozenset(),
 ) -> list[OfferedCourse]:
-    found: dict[str, tuple[int, set[Semester]]] = {}
+    classes: dict[str, list[tuple[int, str, int]]] = defaultdict(list)
+    opened: dict[str, set[Semester]] = defaultdict(set)
     for section in sections:
         if section.code in left_out:
             continue
-        opened = {s for s in semesters if opens_in(section, department, year, s)}
-        if not opened:
+        opens = [
+            index
+            for index, semester in enumerate(semesters)
+            if opens_in(section, department, year, semester)
+        ]
+        if not opens:
             continue
-        _, known = found.setdefault(section.name, (section.credits, set()))
-        known.update(opened)
+        classes[section.name].append((opens[0], section.code, section.credits))
+        opened[section.name].update(semesters[index] for index in opens)
     return [
-        OfferedCourse(name, credits, tuple(s for s in semesters if s in opened))
-        for name, (credits, opened) in sorted(found.items())
+        OfferedCourse(
+            name,
+            min(classes[name])[2],
+            tuple(semester for semester in semesters if semester in opened[name]),
+        )
+        for name in sorted(classes)
     ]
 
 
@@ -172,6 +179,15 @@ class Roadmap:
     unplaced: tuple[PlannedCourse, ...]
     taken: tuple[RecommendedCourse, ...] = ()
     offered_earlier: frozenset[str] = frozenset()
+
+    @property
+    def fixed(self) -> tuple[FixedCourse, ...]:
+        planned = [
+            *(placed.course for plan in self.semesters for placed in plan.courses),
+            *self.unplaced,
+        ]
+        fixed = [course for course in planned if isinstance(course, FixedCourse)]
+        return tuple(sorted(fixed, key=lambda course: course.name))
 
     def __post_init__(self) -> None:
         positions = [ALL_SEMESTERS.index(plan.semester) for plan in self.semesters]
@@ -308,11 +324,15 @@ def place(
     credit_limit: int,
     chosen_classes: Mapping[str, str],
     taken: Set[str] = frozenset(),
-    fixed: Sequence[FixedCourse] = (),
+    fixed: Iterable[str] = (),
+    page_of: Mapping[str, str] | None = None,
 ) -> Roadmap:
     if credit_limit <= 0:
         raise RoadmapError(f"単位の上限は 1 以上にしてください: {credit_limit}")
-    planned: tuple[PlannedCourse, ...] = (*fixed, *recommendation.courses)
+    planned: tuple[PlannedCourse, ...] = (
+        *(FixedCourse(name, None) for name in sorted(set(fixed))),
+        *recommendation.courses,
+    )
     names = {course.name for course in planned}
     by_name: dict[str, list[CourseSection]] = {name: [] for name in names}
     for section in sections:
@@ -357,7 +377,9 @@ def place(
             )
             if fitting is None:
                 continue
-            placed_course = PlacedCourse(course, fitting, confirmed)
+            placed_course = PlacedCourse(
+                _on_page(course, fitting, page_of or {}), fitting, confirmed
+            )
             courses.append(placed_course)
             placed.add(course.name)
             credits += fitting.credits

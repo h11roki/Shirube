@@ -7,7 +7,7 @@ from uuid import UUID
 
 from app.domain.course import CourseSection
 from app.domain.recommendation import Recommendation
-from app.domain.roadmap import Roadmap, Semester, fixed_courses, place, remaining_semesters
+from app.domain.roadmap import Roadmap, Semester, place, remaining_semesters
 
 
 class PlanError(ValueError):
@@ -68,7 +68,8 @@ class PlanConditions:
             self.credit_limit,
             dict(self.chosen_classes),
             taken,
-            fixed_courses(self.fixed_courses, sections, page_of or {}),
+            self.fixed_courses,
+            page_of,
         )
 
 

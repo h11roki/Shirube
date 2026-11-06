@@ -409,19 +409,10 @@ def result_json(result: PlanResult) -> ResultJson:
             offered_earlier=sorted(result.roadmap.offered_earlier),
             fixed=[
                 FixedJson(name=course.name, syllabus_code=course.syllabus_code)
-                for course in _fixed_of(result.roadmap)
+                for course in result.roadmap.fixed
             ],
         ),
     )
-
-
-def _fixed_of(roadmap: Roadmap) -> list[FixedCourse]:
-    planned = [
-        *(placed.course for plan in roadmap.semesters for placed in plan.courses),
-        *roadmap.unplaced,
-    ]
-    fixed = {course.name: course for course in planned if isinstance(course, FixedCourse)}
-    return [fixed[name] for name in sorted(fixed)]
 
 
 def result_from_json(data: ResultJson) -> PlanResult:

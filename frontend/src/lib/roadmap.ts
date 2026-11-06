@@ -152,8 +152,14 @@ export const RECOMMENDED_RELEVANCES: RecommendedRelevance[] = [
   "foundation",
 ];
 
-export function shownRelevances(semesters: SemesterPlan[]): Relevance[] {
-  return routeTotals(semesters).fixed > 0
+export function shownRelevances(
+  result: Pick<PlanResult, "semesters" | "unplaced">,
+): Relevance[] {
+  const courses = [
+    ...result.semesters.flatMap((semester) => semester.courses),
+    ...result.unplaced,
+  ];
+  return courses.some((course) => course.relevance === "fixed")
     ? [...RECOMMENDED_RELEVANCES, "fixed"]
     : RECOMMENDED_RELEVANCES;
 }

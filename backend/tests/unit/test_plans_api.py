@@ -18,6 +18,7 @@ from tests.builders import (
     sample_plan_asking,
     sample_plan_with_fixed,
     sample_sections,
+    syllabus,
 )
 from tests.fakes import (
     FakeChunkSearch,
@@ -494,8 +495,12 @@ def test_a_succeeded_plan_shows_its_fixed_courses_as_planned_without_a_reason() 
     users = FakeUserRepository()
     plan = sample_plan_with_fixed(uuid4(), users.id_of("google-a"))
     plans.store(plan)
+    courses, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    courses.stored_syllabi.append(replace(syllabus("10010"), url=SYLLABUS_URL))
 
-    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+    shown = (
+        client((courses, search), plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+    )
 
     assert shown["conditions"]["fixed_courses"] == ["必修X", "必修Y"]
     result = shown["result"]
@@ -506,7 +511,7 @@ def test_a_succeeded_plan_shows_its_fixed_courses_as_planned_without_a_reason() 
             "reason": "",
             "prerequisite_for": None,
             "syllabus_code": "10010",
-            "syllabus_url": None,
+            "syllabus_url": SYLLABUS_URL,
             "section_code": "10010",
             "class_code": "6T",
             "slots": [{"weekday": "tue", "period": 1}],

@@ -2,18 +2,16 @@ from collections.abc import Callable
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends
 
 from app.application.list_offered_courses import ListOfferedCourses
-from app.domain.course import ALL_GRADES, Term
-from app.domain.roadmap import DEFAULT_START_TERM, Semester
+from app.presentation.api.start_query import StartQuery, start_query
 from app.presentation.schemas.errors import INVALID_RESPONSE
 from app.presentation.schemas.offered_courses import (
     OfferedCourseOut,
     OfferedCoursesOut,
     SemesterOut,
 )
-from app.presentation.schemas.plans import DepartmentName
 
 
 def offered_courses_router(
@@ -25,14 +23,12 @@ def offered_courses_router(
 
     @router.get("/offered-courses", responses=INVALID_RESPONSE)
     def show(
-        department: Annotated[DepartmentName, Query()],
-        grade: Annotated[int, Query(ge=min(ALL_GRADES), le=max(ALL_GRADES))],
+        query: Annotated[StartQuery, Depends(start_query)],
         user_id: Annotated[UUID, Depends(current_user)],
-        term: Term = DEFAULT_START_TERM,
     ) -> OfferedCoursesOut:
-        start = Semester(grade, term)
+        offered = list_offered_courses.run(user_id, query.department, curriculum_year, query.start)
         return OfferedCoursesOut(
-            term=start.term,
+            term=query.start.term,
             courses=[
                 OfferedCourseOut(
                     name=course.name,
@@ -42,7 +38,7 @@ def offered_courses_router(
                         for semester in course.semesters
                     ],
                 )
-                for course in list_offered_courses.run(user_id, department, curriculum_year, start)
+                for course in offered
             ],
         )
 

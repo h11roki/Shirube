@@ -200,7 +200,7 @@ export function PlanResultView({
                 </QueryLink>
               ))}
             </nav>
-            <RelevanceLegend relevances={shownRelevances(result.semesters)} />
+            <RelevanceLegend relevances={shownRelevances(result)} />
           </div>
 
           {view === "route" ? (
