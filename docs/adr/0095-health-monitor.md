@@ -20,14 +20,14 @@
 高橋さんが 1 を選んだ。
 
 - `GET /api/v1/health`(ログイン不要)は、`status`(ok / degraded / down)、`version`(動いている commit)、`database`(ok / down)、`queue`(ok / stalled / unknown)、`openai`(ok / out_of_credit / unknown)を返す
-  - database: 待ちの道標と作った記録を読めれば ok。DB に繋がらない(SQLAlchemy の OperationalError)ときは down で、HTTP は 503(ほかは unknown)。ほかの例外は DB のせいにせず、ほかの API と同じに 500 にする
+  - database: 待ちの道標と作った記録を読めれば ok。DB に繋がらないときは down で、HTTP は 503(ほかは unknown)。繋がらないことは infrastructure が SQLAlchemy の OperationalError を application の `StorageUnavailableError` に変えて伝え、presentation は SQLAlchemy を知らない。ほかの例外は DB のせいにせず、ほかの API と同じに 500 にする
   - queue: 待ちの道標のうち一番古いものが 1 時間より長く待っていれば stalled(worker が止まっている)。worker は 1 件ずつ作り、1 件は遅いときに 14 分ほどかかるので、作成中の上限の 20 分(`PLAN_STALL_MINUTES`)では、混んでいるだけで知らせてしまう
-  - openai: 直近 7 日に OpenAI の答えまで届いた道標(失敗したものと、トークンを使って成功したもの)のうち最後のものが、残高切れ(`insufficient_quota`)で失敗していれば out_of_credit。残した推薦に当たって OpenAI を呼ばずに成功した道標や、止まった道標、捨てた道標では ok に戻さない。残高を足して次に OpenAI を呼ぶと(成功でも残高切れ以外の失敗でも)ok に戻る。7 日、道標が 1 件も作られなければ ok に戻る
+  - openai: 直近 7 日に残高切れ(`insufficient_quota`)で失敗した道標があり、そのあとに OpenAI を使って成功した道標(トークンを使って成功したもの)が無ければ out_of_credit。残高切れ以外の失敗(OpenAI に届く前の失敗を含む)、残した推薦に当たって OpenAI を呼ばずに成功した道標、止まった道標、捨てた道標では解かない。残高を足したあとは、次に誰かの道標が OpenAI を使って成功するまで out_of_credit のままなので、足したら運用する人が `plan create` で 1 件作って解く(約 1 円)。7 日、残高切れが無ければ ok に戻る
   - status: database が down なら down、queue か openai に問題があれば degraded、ほかは ok。degraded でも HTTP は 200(サービスは応えている)
   - version: `deploy.sh` がサーバーのリポジトリ直下の `.env.version`(`APP_VERSION=<commit>`、git の管理外)に書き、compose が backend にだけ渡す。無ければ `unknown`。worker には渡さないので、版が替わっても worker は作り直さない
 - Caddy が `/api/health` を backend の `/api/v1/health` に直接渡す(frontend を通さない)
 - `deploy.sh` は、入れ替えたあとに Caddy を通して health を読み(backend が受け付けるまで繰り返す)、`version` が入れ替えた版で、`database` が ok かも確かめる。ADR 0094 で見送った、backend が DB を読めるかの確かめになる。queue と openai は入れ替えとは関係が無いので、見ない
-- `deploy.sh` は読み込んだ自分の中身で最後まで動くので、自分を書き換える版では、新しい手順が初めの 1 回に効かない。`git merge` のあとで `deploy.sh` が変わっていれば、新しい `deploy.sh` に入れ替える版を渡して初めからやり直す(やり直しは 1 回だけで、origin を取り直さない。取り直すと、そのあいだに進んだ main の別の版を入れ替えてしまう)。この PR を出す入れ替えは、やり直しの無い前の `deploy.sh` で動くので、`.env.version` は手で書く
+- `deploy.sh` は読み込んだ自分の中身で最後まで動くので、自分を書き換える版では、新しい手順が初めの 1 回に効かない。`git merge` のあとで `deploy.sh` が変わっていれば、イメージを取る前に git だけ進め、新しい `deploy.sh` に入れ替える版を渡して初めからやり直す(やり直しは 1 回だけで、origin を取り直さず、持っている lock をそのまま使う。取り直すと、そのあいだに進んだ main の別の版を入れ替えてしまう)。この PR を出す入れ替えは、やり直しの無い前の `deploy.sh` で動くので、`.env.version` は手で書く
 - `.github/workflows/monitor.yml` を 15 分ごと(`7,22,37,52 * * * *`)と手で流す。トップが 200、ログインなしの API が 401、health の `status` が ok、証明書の残りが 14 日以上、本番の版が main の先頭と同じか、main の先頭の commit から 45 分以内か、を確かめる。どれかが通らなければ job が落ち、GitHub が定期実行の失敗をメールで知らせる(cron を最後に書き換えた人に届く)
 - CI の production の job も、health が ok で `database` が ok、`version` が unknown(`.env.version` が無い)かを確かめる
 

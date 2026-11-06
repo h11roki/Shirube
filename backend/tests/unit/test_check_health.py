@@ -64,7 +64,7 @@ def test_plans_being_built_do_not_count_as_waiting() -> None:
                 finished(3, BuildOutcome.FAILED, NO_CREDIT, {}),
                 finished(1, BuildOutcome.FAILED, TIMEOUT, {}),
             ],
-            False,
+            True,
         ),
         ([finished(8, BuildOutcome.FAILED, NO_CREDIT, {})], False),
         (
@@ -80,12 +80,12 @@ def test_plans_being_built_do_not_count_as_waiting() -> None:
     ids=[
         "last-answer-out-of-credit",
         "succeeded-after-topping-up",
-        "another-failure-after-it",
+        "other-failures-do-not-clear-it",
         "older-than-the-window",
-        "cache-hits-and-stalls-do-not-clear-it",
+        "cache-hits-stalls-and-discards-do-not-clear-it",
     ],
 )
-def test_credit_is_out_when_the_last_build_that_reached_openai_failed_for_it(
+def test_credit_stays_out_until_a_build_that_used_openai_succeeds(
     builds: list[RecordedBuild], out_of_credit: bool
 ) -> None:
     assert health_of(FakePlanRepository(), builds).run().out_of_credit is out_of_credit

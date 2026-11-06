@@ -75,7 +75,7 @@ docker compose -f compose.prod.yaml up -d
 
 ### 更新するとき
 
-main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、いま動いている版を `~/deploy.version` に持ち、`backend/` か `frontend/` が変わった側だけイメージを取って commit の札を付け(変わっていない側は前の版のイメージを使い回し、作り直さない)、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待ち(`Caddyfile` が変わった版は caddy を作り直す)、Caddy を通してトップ、ログインなしの API、`robots.txt` のサイトマップの URL を確かめる。応えなければ前の版のコードとイメージに戻し、失敗した版は次の版が来るまで試さない。マイグレーションを流した版が応えないときは戻さずに `~/deploy.held` を書き、それを消すまで次の版も入れ替えない。途中で止まったときは、理由を書いて次の回に同じ版をやり直す。振る舞いは `tests/deploy/run.sh` で確かめる(CI の scripts の job)。
+main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、いま動いている版を `~/deploy.version` に持ち、`backend/` か `frontend/` が変わった側だけイメージを取って commit の札を付け(変わっていない側は前の版のイメージを使い回し、作り直さない)、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待ち(`Caddyfile` が変わった版は caddy を作り直す)、Caddy を通してトップ、ログインなしの API、`robots.txt` のサイトマップの URL、health の `version` が入れ替えた版で `database` が ok かを確かめる(ADR 0095)。応えなければ前の版のコードとイメージに戻し、失敗した版は次の版が来るまで試さない。マイグレーションを流した版が応えないときは戻さずに `~/deploy.held` を書き、それを消すまで次の版も入れ替えない。途中で止まったときは、理由を書いて次の回に同じ版をやり直す。振る舞いは `tests/deploy/run.sh` で確かめる(CI の scripts の job)。
 
 サーバーは GHCR から鍵なしで取る。公開リポジトリの CI が置いた 2 つのパッケージ(`shirube-backend`、`shirube-frontend`)は、リポジトリに結び付いて初めから公開になる(2026-11-07 に確かめた)。`deploy.sh` が「確かめられなかった」と書いたら、GitHub のパッケージの設定(Package settings → Change visibility)で公開になっているかを見る。サーバーでは、`git pull` の前に、いま動いているイメージを作った commit を書いてから取り込み、一度流して入れ替わるのを見てから cron に足す(`crontab -e`)。
 
@@ -120,11 +120,11 @@ docker compose -f compose.prod.yaml up -d
 
 ### 監視
 
-`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が 1 時間より長く滞っていないか、直近 7 日に OpenAI の答えまで届いた最後の道標が残高切れで失敗していないかを返す。DB に繋がらなければ 503(ADR 0095)。
+`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が 1 時間より長く滞っていないか、直近 7 日に残高切れで失敗した道標があり、そのあとに OpenAI を使って成功した道標が無いかを返す。DB に繋がらなければ 503(ADR 0095)。
 
 GitHub Actions の `Monitor`(`.github/workflows/monitor.yml`)が 15 分ごとに、トップ、ログインなしの API、health の `status`、証明書の残り(14 日以上)、本番の版が main の先頭か(main の先頭の commit から 45 分までは待つ)を確かめる。落ちると GitHub が定期実行の失敗をメールで知らせる(cron を最後に書き換えた人に届く。GitHub の通知の設定で Actions のメールを切っていないこと)。知らせが来たら、job の出力で、どの確かめが落ちたかと health の中身を見る。
 
-- health が degraded で `openai` が out_of_credit: OpenAI の残高を足す。次に OpenAI を呼んだ道標が成功すると ok に戻る
+- health が degraded で `openai` が out_of_credit: OpenAI の残高を足し、サーバーで `plan create` を 1 件流して(約 1 円)成功させると ok に戻る(流さなくても、誰かの道標が成功すれば戻る)
 - `queue` が stalled: worker のログ(`docker compose -f compose.prod.yaml logs worker`)を見て、止まっていれば `up -d worker`
 - 本番が main に追いついていない: `~/deploy.log`、`~/deploy.held`、`~/deploy.failed`、main の CI(images の job)を見る(更新するとき)
 

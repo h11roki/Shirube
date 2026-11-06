@@ -11,7 +11,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from langchain_openai import ChatOpenAI
 from pydantic import SecretStr
-from sqlalchemy.exc import OperationalError
 
 from app.application.answer_taken_courses import AnswerTakenCourses
 from app.application.check_health import CheckHealth
@@ -30,6 +29,7 @@ from app.application.ports import (
     PlanRepository,
     RecommendationKey,
     RecordedBuild,
+    StorageUnavailableError,
     TokenUsage,
 )
 from app.application.recommend_courses import RecommendStep
@@ -494,7 +494,7 @@ STALL_AFTER = timedelta(hours=1)
 
 class UnreachablePlans(FakePlanRepository):
     def oldest_waiting(self) -> datetime | None:
-        raise OperationalError("SELECT min(created_at)", {}, ConnectionError("DB に繋がらない"))
+        raise StorageUnavailableError("DB に繋がらない")
 
 
 def queued(waited: timedelta, status: PlanStatus = PlanStatus.PENDING) -> FakePlanRepository:

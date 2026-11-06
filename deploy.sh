@@ -99,9 +99,13 @@ roll_back() {
 }
 
 main() {
-	cd "$(dirname "$0")"
-	exec 9> "$HOME/deploy.lock"
-	flock -n 9 || exit 0
+	local script
+	script=$(readlink -f "$0")
+	cd "$(dirname "$script")"
+	if [ -z "${DEPLOY_TARGET:-}" ]; then
+		exec 9> "$HOME/deploy.lock"
+		flock -n 9 || exit 0
+	fi
 	[ -e "$held_file" ] && exit 0
 
 	[ -e "$deployed_file" ] || git rev-parse HEAD > "$deployed_file"
@@ -120,12 +124,13 @@ main() {
 
 	log "$deployed から $target に入れ替える"
 	trap 'log "$target の入れ替えが途中で止まった(終了コード $?)"' ERR
+	if [ -z "${DEPLOY_TARGET:-}" ] && ! git diff --quiet "$deployed" "$target" -- deploy.sh; then
+		git merge --ff-only --quiet "$target" || fail "git を $target に進められなかった"
+		log "deploy.sh が変わったので、新しい deploy.sh で $target を初めからやり直す"
+		DEPLOY_TARGET=$target exec "$script"
+	fi
 	prepare_images
 	git merge --ff-only --quiet "$target" || fail "git を $target に進められなかった"
-	if [ -z "${DEPLOY_TARGET:-}" ] && ! git diff --quiet "$deployed" "$target" -- deploy.sh; then
-		log "deploy.sh が変わったので、新しい deploy.sh で $target を初めからやり直す"
-		DEPLOY_TARGET=$target exec "$0"
-	fi
 	switch_to "$target"
 
 	local migrated=false

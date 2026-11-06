@@ -14,6 +14,7 @@ from app.application.ports import (
 )
 from app.domain.plan import PlanStage
 from app.infrastructure.db.models import PlanBuildRow, PlanRow
+from app.infrastructure.db.unavailable import unavailable_as_storage_error
 
 
 class SqlPlanBuildLog:
@@ -39,7 +40,7 @@ class SqlPlanBuildLog:
             )
 
     def since(self, start: datetime) -> list[RecordedBuild]:
-        with DbSession(self._engine) as db:
+        with unavailable_as_storage_error(), DbSession(self._engine) as db:
             rows = db.scalars(
                 select(PlanBuildRow)
                 .where(PlanBuildRow.finished_at >= start)

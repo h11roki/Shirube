@@ -31,7 +31,9 @@ jobs:
       - name: 証明書の残り
         if: ${{ !cancelled() }}
         run: |
+          set -o pipefail
           expiry=$(timeout 20 openssl s_client -servername "$SITE" -connect "$SITE:443" < /dev/null 2> /dev/null | openssl x509 -noout -enddate | cut -d= -f2)
+          test -n "$expiry"
           days=$(( ($(date -d "$expiry" +%s) - $(date +%s)) / 86400 ))
           echo "証明書の残り $days 日"
           test "$days" -ge "$CERT_MIN_DAYS"

@@ -1,9 +1,9 @@
 import logging
 
 from fastapi import APIRouter, Response, status
-from sqlalchemy.exc import OperationalError
 
 from app.application.check_health import CheckHealth
+from app.application.ports import StorageUnavailableError
 from app.presentation.schemas.health import HealthOut
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ def health_router(check_health: CheckHealth, version: str) -> APIRouter:
     def health(response: Response) -> HealthOut:
         try:
             found = check_health.run()
-        except OperationalError:
+        except StorageUnavailableError:
             logger.exception("health: DB に繋がりませんでした")
             response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
             return HealthOut(

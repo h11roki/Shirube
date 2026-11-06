@@ -170,6 +170,10 @@ class PlanFormatError(ValueError):
     pass
 
 
+class StorageUnavailableError(RuntimeError):
+    pass
+
+
 class PlanRepository(Protocol):
     def add(self, plan: Plan, since: datetime, admit: Callable[[PlanCounts], None]) -> None: ...
 

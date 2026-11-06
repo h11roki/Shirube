@@ -147,8 +147,8 @@ echo "O deploy.sh が変わった版は、新しい deploy.sh で初めからや
 setup; cd "$HOME/work" || exit 1
 sed -i 's/^main() {$/main() {\n\techo "$$" >> "$HOME\/runs"/' deploy.sh
 git commit -qam "deploy.sh を変える" && git push -q origin main && new=$(git rev-parse HEAD) && echo "$new" >> "$HOME/published"
-cd "$HOME/Shirube" || exit 1; deploy
-check "終了 0 で入れ替え、やり直したと書く" 'exited 0 && deployed_is $new && grep -q "初めからやり直す" $HOME/log'
+cd "$HOME" || exit 1; Shirube/deploy.sh >> "$HOME/log" 2>&1; status=$?; cd "$HOME/Shirube" || exit 1
+check "相対の道で流しても、終了 0 で入れ替え、やり直したと書く" 'exited 0 && deployed_is $new && grep -q "初めからやり直す" $HOME/log'
 check "新しい deploy.sh が 1 回だけ流れる" '[ "$(wc -l < $HOME/runs)" = 1 ]'
 
 echo

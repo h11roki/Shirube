@@ -7,7 +7,6 @@ from app.application.ports import (
     BuildOutcome,
     PlanBuildLog,
     PlanRepository,
-    RecordedBuild,
 )
 
 
@@ -15,13 +14,6 @@ from app.application.ports import (
 class Health:
     queue_stalled: bool
     out_of_credit: bool
-
-
-def _reached_openai(recorded: RecordedBuild) -> bool:
-    build = recorded.build
-    return build.outcome is BuildOutcome.FAILED or (
-        build.outcome is BuildOutcome.SUCCEEDED and bool(build.usage)
-    )
 
 
 class CheckHealth:
@@ -42,15 +34,18 @@ class CheckHealth:
     def run(self) -> Health:
         moment = self._now()
         waiting_since = self._plans.oldest_waiting()
-        reached = [
-            recorded
-            for recorded in self._builds.since(moment - self._credit_window)
-            if _reached_openai(recorded)
+        recent = self._builds.since(moment - self._credit_window)
+        ran_out = [
+            recorded.finished_at
+            for recorded in recent
+            if recorded.build.cause is not None and recorded.build.cause.code == OUT_OF_CREDIT
         ]
-        last = max(reached, key=lambda recorded: recorded.finished_at, default=None)
+        paid = [
+            recorded.finished_at
+            for recorded in recent
+            if recorded.build.outcome is BuildOutcome.SUCCEEDED and recorded.build.usage
+        ]
         return Health(
             queue_stalled=waiting_since is not None and moment - waiting_since > self._stall_after,
-            out_of_credit=last is not None
-            and last.build.cause is not None
-            and last.build.cause.code == OUT_OF_CREDIT,
+            out_of_credit=bool(ran_out) and (not paid or max(ran_out) > max(paid)),
         )
