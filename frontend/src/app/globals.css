@@ -200,9 +200,10 @@
   }
 }
 
-@utility focus-room-x {
+@utility focus-room {
   margin-inline: calc(-1 * (var(--focus-ring) + var(--focus-offset)));
   padding-inline: calc(var(--focus-ring) + var(--focus-offset));
+  scroll-padding-block: calc(var(--focus-ring) + var(--focus-offset));
 }
 
 @layer base {
