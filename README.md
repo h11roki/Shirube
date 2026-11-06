@@ -168,7 +168,8 @@ flowchart TB
 
 1. 選択肢が 2 つ以上ある判断は、Claude Code が選択肢と良し悪しを並べ、作者が選ぶ。決めたことは実装より先に ADR に書く
 2. 変更は git の worktree の上でブランチを切って作り、PR にする
-3. PR ごとに、Claude Code にレビューを数周させて指摘を直し、CI を通してからマージする。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
+3. PR ごとに、Claude Code にレビューを数周させて指摘を直し、CI を通してからマージする。main は保護していて、PR を通し、必須の check(試験、本番の構成、依存の audit、CodeQL)が全て通らないとマージできない([`.github/rulesets/main.json`](.github/rulesets/main.json))。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
+4. マージすると、CI が作ったイメージをサーバーが取りに行って本番に出る([ADR 0094](docs/adr/0094-pull-deploy.md))
 
 Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くこと、コメントを書かず経緯はコミットメッセージに書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。
 
