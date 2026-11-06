@@ -174,7 +174,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 
 ## 品質
 
-- **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)。main では全て通った版だけイメージを作って置く
+- **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)、依存の既知の脆弱性の audit、CodeQL。main では全て通った版だけイメージを作って置く
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
 - 試験の数(2026-11-07): backend 919、Vitest 160、e2e 236、デプロイのスクリプトの場面 16
 
@@ -187,6 +187,7 @@ LLM を使う部分の守りは、入口を狭くし、出口を限ることに�
 - 指示を混ぜた職業名(「これまでの指示を無視して…」など 3 件)を流して何が起きるかを記録しました。指示には従わず、候補に無い授業も鍵も出ませんでした。保証ではなく、その日の振る舞いの記録です。読み取りや選び直しの指示文かモデルを替えたときは、同じ 3 件を流し直して記録します(手順は [docs/development.md](docs/development.md#llm-の安全性の確認))
 - 失敗の文は決まった文だけを返し、LLM や例外の文は見せません。道標の受け付けは 1 人 1 日 3 件、全体 30 件までで、OpenAI は前払いで自動の補充を切っています([ADR 0038](docs/adr/0038-plan-quota.md))
 - 画面の転送は送り元を確かめて他のサイトからの要求を断り、CSP などのヘッダーを付け、バックエンドは 5 分の JWT でだけ呼べます([ADR 0027](docs/adr/0027-auth-backend.md)、[0039](docs/adr/0039-request-guard.md))。鍵はサーバーの `.env` にだけ置き、ログと DB の例外から伏せています
+- 依存の既知の脆弱性は CI の audit で止め(backend は pip-audit、frontend は pnpm audit の high 以上)、Dependabot が出てから 7 日経った版だけを毎週上げ、CodeQL が Python、TypeScript、GitHub Actions を調べます。Docker の土台のイメージは digest で、GitHub 以外の Action は commit の SHA で固定しています。脆弱性の報告の仕方は [SECURITY.md](SECURITY.md) にあります([ADR 0096](docs/adr/0096-supply-chain.md))
 
 ## 本番の構成
 
