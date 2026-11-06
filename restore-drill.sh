@@ -1,9 +1,9 @@
 #!/bin/bash
-set -eEuo pipefail
+set -euo pipefail
 
 name=shirube-restore-drill
-course_tables=(course_sections syllabi syllabus_codes syllabus_chunks embeddings)
-newest_backup_minutes=1560
+changing_tables="'alembic_version', 'users', 'plans', 'taken_courses', 'deleted_plans', 'plan_builds', 'remembered_recommendations'"
+newest_backup_minutes=1380
 ready_seconds=60
 deploy_wait_seconds=1800
 
@@ -19,20 +19,12 @@ drill() {
 	docker exec "$name" psql -h 127.0.0.1 -U shirube -d shirube -tAc "$1"
 }
 
-remove_drill() {
-	docker rm -f -v "$name" > /dev/null 2>&1 || true
+running_image() {
+	docker inspect -f '{{.Image}}' "$(docker compose -f compose.prod.yaml ps -q "$1")"
 }
 
-wait_until_ready() {
-	local waited
-	for ((waited = 0; waited < ready_seconds; waited++)); do
-		drill "select 1" > /dev/null 2>&1 && return
-		[ "$(docker inspect -f '{{.State.Running}}' "$name")" = true ] || break
-		sleep 1
-	done
-	log "演習の Postgres が起動しなかった"
-	docker logs --tail 20 "$name"
-	exit 1
+remove_drill() {
+	docker rm -f -v "$name" > /dev/null 2>&1 || true
 }
 
 main() {
@@ -45,56 +37,59 @@ main() {
 	local dump
 	dump=$(find "$HOME/backups" -name 'shirube-*.dump' -mmin "-$newest_backup_minutes" | sort | tail -n 1)
 	[ -n "$dump" ] || {
-		log "1 日より新しいバックアップが無い"
+		log "23 時間より新しいバックアップが無い"
 		exit 1
 	}
 	trap 'log "$(basename "$dump") の演習が途中で止まった(終了コード $?)"' ERR
 	trap remove_drill EXIT
 	remove_drill
 
-	local started image
+	local started waited
 	started=$(date +%s)
-	image=$(docker inspect -f '{{.Config.Image}}' "$(docker compose -f compose.prod.yaml ps -q db)")
-	docker run -d --name "$name" --network none --tmpfs /var/lib/postgresql/data \
+	docker run -d --name "$name" --network none --memory 512m \
+		--tmpfs /var/lib/postgresql/data:size=256m \
 		-e POSTGRES_USER=shirube -e POSTGRES_PASSWORD=drill -e POSTGRES_DB=shirube \
-		"$image" > /dev/null
-	wait_until_ready
-	docker exec -i "$name" pg_restore -h 127.0.0.1 -U shirube -d shirube --no-owner --exit-on-error < "$dump"
+		"$(running_image db)" > /dev/null
+	for ((waited = 0; ; waited++)); do
+		drill "select 1" > /dev/null 2>&1 && break
+		if [ "$waited" -ge "$ready_seconds" ] || [ "$(docker inspect -f '{{.State.Running}}' "$name")" != true ]; then
+			log "演習の Postgres が起動しなかった"
+			docker logs --tail 20 "$name"
+			exit 1
+		fi
+		sleep 1
+	done
+	docker exec -i "$name" pg_restore -h 127.0.0.1 -U shirube -d shirube --no-owner --single-transaction < "$dump"
 	local restored_from migration
 	restored_from=$(drill "select version_num from alembic_version")
 	if ! migration=$(docker run --rm --network "container:$name" \
 		-e DATABASE_URL=postgresql+psycopg://shirube:drill@127.0.0.1:5432/shirube \
-		shirube-prod-backend:latest uv run --no-sync alembic upgrade head 2>&1); then
+		"$(running_image backend)" uv run --no-sync alembic upgrade head 2>&1); then
 		log "戻したものにマイグレーションを流せなかった"
 		echo "$migration"
 		exit 1
 	fi
 	local seconds=$(($(date +%s) - started))
 
-	local failures=0 table expected actual schema
+	local expected schema tables counts expected_counts actual_counts
 	expected=$(production "select version_num from alembic_version")
 	schema=$(drill "select version_num from alembic_version")
 	if [ "$expected" != "$schema" ]; then
 		log "スキーマの版が違う: 本番 $expected、戻したもの $schema"
-		failures=$((failures + 1))
+		exit 1
 	fi
-	for table in "${course_tables[@]}"; do
-		expected=$(production "select count(*) from $table")
-		actual=$(drill "select count(*) from $table")
-		if [ "$expected" != "$actual" ]; then
-			log "$table の行の数が違う: 本番 $expected、戻したもの $actual"
-			failures=$((failures + 1))
-		fi
-	done
+	tables=$(production "select tablename from pg_tables where schemaname = 'public' and tablename not in ($changing_tables) order by 1")
+	counts=$(echo "$tables" | sed "s/.*/select '&', count(*) from &/" | paste -sd '|' - | sed 's/|/ union all /g')
+	expected_counts=$(production "$counts order by 1")
+	actual_counts=$(drill "$counts order by 1")
+	if [ "$expected_counts" != "$actual_counts" ]; then
+		log "表の行の数が違う: $(diff <(echo "$expected_counts") <(echo "$actual_counts") | grep '^[<>]' | paste -sd ' ' -)"
+		exit 1
+	fi
 	local people plans
 	people=$(drill "select count(*) from users")
 	plans=$(drill "select count(*) from plans")
-
-	if [ "$failures" -gt 0 ]; then
-		log "$(basename "$dump") の戻しの演習で $failures か所が合わなかった"
-		exit 1
-	fi
-	log "$(basename "$dump") を ${seconds} 秒で戻した(スキーマ $restored_from から $schema へ、科目の表は本番と同じ、利用者 $people 人、道標 $plans 件)"
+	log "$(basename "$dump") を ${seconds} 秒で戻した(スキーマ $restored_from から $schema へ、利用者の表を除く $(echo "$tables" | wc -l) 表は本番と同じ、利用者 $people 人、道標 $plans 件)"
 }
 
 main "$@"
