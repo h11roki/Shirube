@@ -114,15 +114,21 @@ export function FixedCoursePicker({
                 className="border-b border-line last:border-b-0"
               >
                 <label className="flex cursor-pointer gap-2 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-sub">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={full && !checked}
-                    onChange={() => onToggle(course.name)}
-                    aria-labelledby={`${row}-name`}
-                    aria-describedby={`${row}-note`}
-                    className="size-6 shrink-0 accent-route"
-                  />
+                  <span className="relative size-6 shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={full && !checked}
+                      onChange={() => onToggle(course.name)}
+                      aria-labelledby={`${row}-name`}
+                      aria-describedby={`${row}-note`}
+                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route disabled:opacity-50"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 m-auto hidden h-3 w-1.5 -translate-y-0.5 rotate-45 border-r-2 border-b-2 border-paper peer-checked:block"
+                    />
+                  </span>
                   <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span id={`${row}-name`} className="block">
                       {course.name}
