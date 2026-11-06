@@ -1,8 +1,8 @@
-FROM node:24-slim AS base
-
-RUN corepack enable && corepack prepare pnpm@11.9.0 --activate
+FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS base
 
 WORKDIR /app
+COPY package.json ./
+RUN corepack enable && corepack install
 
 FROM base AS dev
 
@@ -17,7 +17,7 @@ COPY . .
 ARG SITE_URL
 RUN pnpm build && pnpm prune --prod && rm -rf .next/cache
 
-FROM node:24-slim AS runner
+FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS runner
 
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1
 WORKDIR /app
