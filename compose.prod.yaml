@@ -6,6 +6,13 @@ x-logging: &logging
     max-size: "10m"
     max-file: "3"
 
+x-healthcheck-timing: &healthcheck-timing
+  interval: 30s
+  timeout: 5s
+  retries: 3
+  start_period: 60s
+  start_interval: 2s
+
 x-site-url: &site-url https://${SITE_DOMAIN:?SITE_DOMAIN を .env に書いてください}
 
 x-backend-environment: &backend-environment
@@ -39,10 +46,14 @@ services:
   backend:
     build: ./backend
     image: shirube-prod-backend
+    pull_policy: never
     command: uv run --no-sync uvicorn app.main:app --host 0.0.0.0 --port 8000 --no-access-log
     environment:
       <<: *backend-environment
       AUTH_JWT_SECRET: ${AUTH_JWT_SECRET:?AUTH_JWT_SECRET を .env に書いてください}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import socket; socket.create_connection(('127.0.0.1', 8000), 3)"]
+      <<: *healthcheck-timing
     depends_on:
       db:
         condition: service_healthy
@@ -68,6 +79,11 @@ services:
       target: runner
       args:
         SITE_URL: *site-url
+    image: shirube-prod-frontend
+    pull_policy: never
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))"]
+      <<: *healthcheck-timing
     environment:
       BACKEND_URL: http://backend:8000
       SITE_URL: *site-url

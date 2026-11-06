@@ -1,0 +1,9 @@
+#!/bin/bash
+echo "curl $*" >> "$HOME/calls"
+[ "${CURL_FAIL:-0}" = 1 ] && exit 22
+url="${!#}"
+case "$url" in
+*/api/plans) printf 401 ;;
+*/robots.txt) printf 'User-Agent: *\nSitemap: https://%s/sitemap.xml\n' "${ROBOTS_SITE:-shirube.example}" ;;
+esac
+exit 0
