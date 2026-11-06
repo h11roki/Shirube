@@ -37,11 +37,10 @@ export function useApiAnswer<T>(path: string, query: string): ApiAnswer<T> {
     };
   }, [path, query, reloads]);
 
-  const failure = failed?.query === query ? failed.message : undefined;
   return {
-    answer: !failure && loaded?.query === query ? loaded.answer : undefined,
+    answer: loaded?.query === query ? loaded.answer : undefined,
     lastAnswer: loaded?.answer,
-    failure,
+    failure: failed?.query === query ? failed.message : undefined,
     reloading,
     reload: () => {
       setReloading(true);

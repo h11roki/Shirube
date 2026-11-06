@@ -634,6 +634,42 @@ test.describe("先に入れる授業", () => {
     ).toBeVisible();
   });
 
+  test("回生を変えて一覧に無くなった授業は、変えた先の一覧で選び直すと選んだ並びから外れる", async ({
+    page,
+    api,
+  }) => {
+    const [firstGradeOnly, , secondGradeOnly] = OFFERED_COURSES.courses;
+    const firstGrade = { term: "spring", courses: [firstGradeOnly] };
+    const secondGrade = { term: "spring", courses: [secondGradeOnly] };
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/taken-courses": TAKEN_COURSES,
+    });
+    api.respond(
+      "GET",
+      "/api/offered-courses",
+      { json: firstGrade },
+      { json: secondGrade },
+      { json: firstGrade },
+    );
+    await page.goto("/");
+    await page.getByText(fixedCoursesSummary(0)).click();
+    await page
+      .getByRole("checkbox", { name: firstGradeOnly.name, exact: true })
+      .check();
+    await page.getByLabel("いまの回生").selectOption("2");
+    await page.getByText(fixedCoursesSummary(0)).click();
+    await page
+      .getByRole("checkbox", { name: secondGradeOnly.name, exact: true })
+      .check();
+    await expect(page.getByText(fixedCoursesSummary(1))).toBeVisible();
+    await page.getByLabel("いまの回生").selectOption("1");
+    await page.getByText(fixedCoursesSummary(0)).click();
+    await expect(
+      page.getByRole("checkbox", { name: firstGradeOnly.name, exact: true }),
+    ).not.toBeChecked();
+  });
+
   test(`${MAX_FIXED_COURSES} 科目を選ぶと、ほかの授業は選べない`, async ({
     page,
     api,

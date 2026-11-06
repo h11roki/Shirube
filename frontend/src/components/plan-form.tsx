@@ -55,10 +55,11 @@ export function PlanForm() {
   const term = chosenTerm ?? classChoices.lastAnswer?.term;
 
   function toggleFixed(name: string) {
-    setChosenFixed((current) =>
-      current.includes(name)
-        ? current.filter((each) => each !== name)
-        : [...current, name],
+    const offeredNames = fixedCourses.map((course) => course.name);
+    setChosenFixed(
+      offeredNames.includes(name)
+        ? offeredNames.filter((each) => each !== name)
+        : [...offeredNames, name],
     );
   }
 
@@ -93,7 +94,6 @@ export function PlanForm() {
       setSubmitError(messageOf(error));
       setSubmitting(false);
       setTakenRefresh((current) => current + 1);
-      offered.reload();
     }
   }
 
@@ -165,7 +165,7 @@ export function PlanForm() {
 
       {offered.failure && (
         <FailureNotice
-          lead="先に入れる授業の一覧を読み込めませんでした(このまま送ると先に入れる授業なしで作ります): "
+          lead="先に入れる授業の一覧を読み込めませんでした(選べないまま送ると、先に入れる授業なしで作ります): "
           message={offered.failure}
           onRetry={offered.reload}
           busy={offered.reloading}
@@ -182,7 +182,7 @@ export function PlanForm() {
 
       {classChoices.failure && (
         <FailureNotice
-          lead="クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
+          lead="クラスの選択を読み込めませんでした(選べないまま送ると、クラスは未確定で置きます): "
           message={classChoices.failure}
           onRetry={classChoices.reload}
           busy={classChoices.reloading}

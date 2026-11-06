@@ -25,6 +25,7 @@ export function FixedCoursePicker({
   const summary = useRef<HTMLElement>(null);
   const chosenHeading = useId();
   const rows = useId();
+  const filterInput = useId();
   const chosenNames = new Set(chosen.map((course) => course.name));
   const matches = matchingCourses(courses, filter);
   const full = chosen.length >= MAX_FIXED_COURSES;
@@ -75,11 +76,11 @@ export function FixedCoursePicker({
         </div>
       )}
       <div className="mt-4 space-y-2">
-        <label htmlFor="fixed-filter" className="block text-sm">
+        <label htmlFor={filterInput} className="block text-sm">
           授業名で絞る
         </label>
         <input
-          id="fixed-filter"
+          id={filterInput}
           type="search"
           className={FIELD}
           value={filter}
