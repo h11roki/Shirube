@@ -54,7 +54,7 @@ from app.domain.recommendation import CandidateCourse, CourseChoice, Recommendat
 from app.domain.roadmap import Semester
 from app.domain.syllabus import Syllabus
 from app.presentation.api.app import create_app
-from tests.builders import course_section, syllabus
+from tests.builders import course_section, sample_conditions, syllabus
 
 FAKE_MODEL = "fake-embedding"
 FIRST_CREATED_AT = datetime(2026, 10, 19, 9, 0, tzinfo=UTC)
@@ -488,11 +488,27 @@ def chat_failing(status: int) -> ChatOpenAI:
     )
 
 
+QUEUE_STALL_AFTER = timedelta(hours=1)
+
+
+class UnreachablePlans(FakePlanRepository):
+    def oldest_waiting(self) -> datetime | None:
+        raise ConnectionError("DB に繋がらない")
+
+
+def queued(waited: timedelta, status: PlanStatus = PlanStatus.PENDING) -> FakePlanRepository:
+    plans = FakePlanRepository()
+    plan = replace(Plan(uuid4(), uuid4(), sample_conditions()), status=status)
+    plans.store(plan)
+    plans.created_at[plan.id] = FIRST_CREATED_AT - waited
+    return plans
+
+
 def health_of(
     plans: PlanRepository, builds: Sequence[RecordedBuild] = (), now: datetime = FIRST_CREATED_AT
 ) -> CheckHealth:
     return CheckHealth(
-        plans, FakePlanBuildLog(builds), lambda: now, timedelta(minutes=20), timedelta(days=1)
+        plans, FakePlanBuildLog(builds), lambda: now, QUEUE_STALL_AFTER, timedelta(days=1)
     )
 
 

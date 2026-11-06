@@ -10,7 +10,6 @@ from sqlalchemy.exc import ArgumentError
 from app.application.build_plans import BuildPlans
 from app.application.cached_occupation_analyzer import CachedOccupationAnalyzer
 from app.application.cached_recommender import CachedRecommender
-from app.application.check_health import CheckHealth
 from app.application.fingerprint import fingerprint_of
 from app.application.ports import CourseSelector, OccupationAnalyzer, ReasonJudge
 from app.application.recommend_courses import RecommendCourses, Recommender
@@ -151,7 +150,6 @@ def recommend_courses(settings: Settings, engine: Engine) -> RecommendCourses:
 
 
 RECOMMENDING_PACKAGES = ("domain", "application", "infrastructure")
-CREDIT_WINDOW = timedelta(days=1)
 
 
 def recommendation_fingerprint(settings: Settings) -> str:
@@ -218,16 +216,6 @@ def tidy_daily(engine: Engine) -> TidyDaily:
 
 def report_plan_builds(engine: Engine) -> ReportPlanBuilds:
     return ReportPlanBuilds(SqlPlanBuildLog(engine), now)
-
-
-def check_health(settings: Settings, engine: Engine) -> CheckHealth:
-    return CheckHealth(
-        SqlPlanRepository(engine),
-        SqlPlanBuildLog(engine),
-        now,
-        timedelta(minutes=settings.plan_stall_minutes),
-        CREDIT_WINDOW,
-    )
 
 
 def now() -> datetime:

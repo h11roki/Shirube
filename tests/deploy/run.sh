@@ -139,6 +139,14 @@ check "終了 1 で途中で止まったと書き、失敗した版にはしな�
 deploy
 check "次の回に入れ替える" 'exited 0 && deployed_is $new'
 
+echo "O deploy.sh が変わった版は、新しい deploy.sh で初めからやり直す"
+setup; cd "$HOME/work" || exit 1
+sed -i 's/^main() {$/main() {\n\techo "$$" >> "$HOME\/runs"/' deploy.sh
+git commit -qam "deploy.sh を変える" && git push -q origin main && new=$(git rev-parse HEAD) && echo "$new" >> "$HOME/published"
+cd "$HOME/Shirube" || exit 1; deploy
+check "終了 0 で入れ替え、やり直したと書く" 'exited 0 && deployed_is $new && grep -q "初めからやり直す" $HOME/log'
+check "新しい deploy.sh が 1 回だけ流れる" '[ "$(wc -l < $HOME/runs)" = 1 ]'
+
 echo
 echo "failures: $failures"
 [ "$failures" = 0 ]

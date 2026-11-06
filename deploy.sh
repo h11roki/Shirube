@@ -79,7 +79,7 @@ answering() {
 	curl "${resolve[@]}" -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null "https://$site/" &&
 		test "$(curl "${resolve[@]}" -sS -o /dev/null -w '%{http_code}' "https://$site/api/plans")" = 401 &&
 		curl "${resolve[@]}" -fsS "https://$site/robots.txt" | grep -qF "Sitemap: https://$site/sitemap.xml" &&
-		health=$(curl "${resolve[@]}" -fsS "https://$site/api/health") &&
+		health=$(curl "${resolve[@]}" -fsS --retry 10 --retry-all-errors --retry-delay 3 "https://$site/api/health") &&
 		[[ "$health" == *"\"version\":\"$target\""* && "$health" == *'"database":"ok"'* ]]
 }
 
@@ -119,6 +119,10 @@ main() {
 	trap 'log "$target の入れ替えが途中で止まった(終了コード $?)"' ERR
 	prepare_images
 	git merge --ff-only --quiet "$target" || fail "git を $target に進められなかった"
+	if [ -z "${DEPLOY_RESTARTED:-}" ] && ! git diff --quiet "$deployed" "$target" -- deploy.sh; then
+		log "deploy.sh が変わったので、新しい deploy.sh で初めからやり直す"
+		DEPLOY_RESTARTED=1 exec "$0"
+	fi
 	switch_to "$target"
 
 	local migrated=false

@@ -1,5 +1,4 @@
-from datetime import datetime, timedelta
-from uuid import uuid4
+from datetime import timedelta
 
 from app.application.ports import (
     OUT_OF_CREDIT,
@@ -8,14 +7,15 @@ from app.application.ports import (
     PlanBuild,
     RecordedBuild,
 )
-from app.domain.plan import Plan
-from tests.builders import sample_conditions
-from tests.fakes import API_VERSION, FIRST_CREATED_AT, FakePlanRepository, health_of, plan_api
-
-
-class UnreachablePlans(FakePlanRepository):
-    def oldest_waiting(self) -> datetime | None:
-        raise ConnectionError("DB に繋がらない")
+from tests.fakes import (
+    API_VERSION,
+    FIRST_CREATED_AT,
+    QUEUE_STALL_AFTER,
+    UnreachablePlans,
+    health_of,
+    plan_api,
+    queued,
+)
 
 
 def test_health_reports_every_check_and_the_version_without_a_login() -> None:
@@ -32,17 +32,16 @@ def test_health_reports_every_check_and_the_version_without_a_login() -> None:
 
 
 def test_a_stalled_queue_and_no_credit_degrade_the_service_but_it_still_answers() -> None:
-    plans = FakePlanRepository()
-    plan = Plan(uuid4(), uuid4(), sample_conditions())
-    plans.store(plan)
-    plans.created_at[plan.id] = FIRST_CREATED_AT - timedelta(hours=1)
     out_of_credit = RecordedBuild(
         FIRST_CREATED_AT,
         1.0,
         PlanBuild(BuildOutcome.FAILED, FailureCause(("RateLimitError",), OUT_OF_CREDIT)),
     )
+    stalled = queued(QUEUE_STALL_AFTER + timedelta(minutes=1))
 
-    response = plan_api(token=None, health=health_of(plans, [out_of_credit])).get("/api/v1/health")
+    response = plan_api(token=None, health=health_of(stalled, [out_of_credit])).get(
+        "/api/v1/health"
+    )
 
     assert response.status_code == 200
     assert response.json() == {

@@ -90,7 +90,7 @@ docker builder prune -af
 */5 * * * * ~/Shirube/deploy.sh >> ~/deploy.log 2>&1
 ```
 
-`~/deploy.log` には、入れ替えたとき、失敗したとき、途中で止まったときだけ書く。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を、止めた入れ替えを再び動かすときは、手で直してから `~/deploy.held` を消す。
+`~/deploy.log` には、入れ替えたとき、失敗したとき、途中で止まったときだけ書く。`deploy.sh` 自身が変わった版では、取り込んだ新しい `deploy.sh` で初めからやり直す(ADR 0095)。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を、止めた入れ替えを再び動かすときは、手で直してから `~/deploy.held` を消す。
 
 GHCR が使えないときは、今までどおりサーバーで作って入れ替える。cron の `deploy.sh` と重ならないよう `~/deploy.lock` を取って流し、終わったら動いている版を `~/deploy.version` に書き、止まっていた入れ替えを手で片付けたのなら `~/deploy.held` と `~/deploy.failed` も消す。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
 
@@ -120,11 +120,11 @@ docker compose -f compose.prod.yaml up -d
 
 ### 監視
 
-`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が `PLAN_STALL_MINUTES` より長く滞っていないか、直近 1 日の最後の道標が OpenAI の残高切れで失敗していないかを返す。DB に届かなければ 503(ADR 0095)。
+`https://<サブドメイン>/api/health`(Caddy が backend の `/api/v1/health` に渡す。ログイン不要)が、`status`(ok / degraded / down)、動いている版、DB に届くか、待ちの道標が 1 時間より長く滞っていないか、直近 1 日に OpenAI を呼んだ最後の道標が残高切れで失敗していないかを返す。DB に届かなければ 503(ADR 0095)。
 
 GitHub Actions の `Monitor`(`.github/workflows/monitor.yml`)が 15 分ごとに、トップ、ログインなしの API、health の `status`、証明書の残り(14 日以上)、本番の版が main の先頭か(main の先頭の commit から 45 分までは待つ)を確かめる。落ちると GitHub が定期実行の失敗をメールで知らせる(cron を最後に書き換えた人に届く。GitHub の通知の設定で Actions のメールを切っていないこと)。知らせが来たら、job の出力で、どの確かめが落ちたかと health の中身を見る。
 
-- health が degraded で `openai` が out_of_credit: OpenAI の残高を足す。次の道標が成功すると ok に戻る
+- health が degraded で `openai` が out_of_credit: OpenAI の残高を足す。次に OpenAI を呼んだ道標が成功すると ok に戻る
 - `queue` が stalled: worker のログ(`docker compose -f compose.prod.yaml logs worker`)を見て、止まっていれば `up -d worker`
 - 本番が main に追いついていない: `~/deploy.log`、`~/deploy.held`、`~/deploy.failed`、main の CI(images の job)を見る(更新するとき)
 

@@ -1,6 +1,8 @@
 import sys
+from datetime import timedelta
 
 from app.application.answer_taken_courses import AnswerTakenCourses
+from app.application.check_health import CheckHealth
 from app.application.delete_account import DeleteAccount
 from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
@@ -12,16 +14,19 @@ from app.application.syllabus_links import SyllabusLinks
 from app.application.taken_courses import TakenCourses
 from app.infrastructure.auth.jwt_verifier import JwtVerifier
 from app.infrastructure.db.courses import SqlCourseRepository
+from app.infrastructure.db.plan_builds import SqlPlanBuildLog
 from app.infrastructure.db.plans import SqlPlanRepository
 from app.infrastructure.db.users import SqlUserRepository
 from app.presentation.api.app import create_app
 from app.presentation.composition import (
-    check_health,
     database_engine,
     load_settings,
     now,
     request_plan,
 )
+
+QUEUE_STALL_AFTER = timedelta(hours=1)
+CREDIT_WINDOW = timedelta(days=1)
 
 settings = load_settings()
 if settings.auth_jwt_secret is None:
@@ -46,7 +51,7 @@ app = create_app(
     taken_courses=TakenCourses(users),
     delete_account=DeleteAccount(users, now),
     identify=IdentifyUser(verifier, users),
-    check_health=check_health(settings, engine),
+    check_health=CheckHealth(plans, SqlPlanBuildLog(engine), now, QUEUE_STALL_AFTER, CREDIT_WINDOW),
     curriculum_year=settings.curriculum_year,
     version=settings.app_version,
 )
