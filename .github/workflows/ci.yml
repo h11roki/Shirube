@@ -86,7 +86,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - run: shellcheck --severity=warning deploy.sh backup.sh tests/deploy/run.sh tests/deploy/shims/*
+      - run: shellcheck --severity=warning deploy.sh backup.sh restore-drill.sh tests/deploy/run.sh tests/deploy/shims/*
       - run: tests/deploy/run.sh
 
   audit:
