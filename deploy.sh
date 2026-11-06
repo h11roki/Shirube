@@ -1,10 +1,11 @@
 #!/bin/bash
-set -euo pipefail
+set -eEuo pipefail
 
 registry=ghcr.io/h11roki
 services=(backend frontend)
 deployed_file="$HOME/deploy.version"
 failed_file="$HOME/deploy.failed"
+held_file="$HOME/deploy.held"
 
 log() {
 	echo "$(date '+%F %T') $*"
@@ -23,6 +24,21 @@ published() {
 			esac
 			log "GHCR の $service のイメージを確かめられなかった: $output"
 			exit 1
+		fi
+	done
+}
+
+prepare_images() {
+	local service
+	for service in "${services[@]}"; do
+		docker image inspect "shirube-prod-$service:$deployed" > /dev/null 2>&1 ||
+			docker tag "shirube-prod-$service:latest" "shirube-prod-$service:$deployed"
+		if git diff --quiet "$deployed" "$target" -- "$service"; then
+			docker tag "shirube-prod-$service:$deployed" "shirube-prod-$service:$target"
+		else
+			docker pull --quiet "$registry/shirube-$service:$target" > /dev/null
+			docker tag "$registry/shirube-$service:$target" "shirube-prod-$service:$target"
+			docker rmi "$registry/shirube-$service:$target" > /dev/null
 		fi
 	done
 }
@@ -57,7 +73,7 @@ bring_up() {
 
 answering() {
 	local site resolve
-	site=$(sed -n 's/^SITE_DOMAIN=//p' .env)
+	site=$(compose config caddy | sed -n 's/^ *SITE_DOMAIN: *//p')
 	resolve=(--resolve "$site:443:127.0.0.1")
 	curl "${resolve[@]}" -fsS --retry 10 --retry-all-errors --retry-delay 3 -o /dev/null "https://$site/" &&
 		test "$(curl "${resolve[@]}" -sS -o /dev/null -w '%{http_code}' "https://$site/api/plans")" = 401 &&
@@ -83,6 +99,7 @@ main() {
 	cd "$(dirname "$0")"
 	exec 9> "$HOME/deploy.lock"
 	flock -n 9 || exit 0
+	[ -e "$held_file" ] && exit 0
 
 	[ -e "$deployed_file" ] || git rev-parse HEAD > "$deployed_file"
 	deployed=$(cat "$deployed_file")
@@ -93,14 +110,8 @@ main() {
 	published "$target" || exit 0
 
 	log "$deployed から $target に入れ替える"
-	local service
-	for service in "${services[@]}"; do
-		docker pull --quiet "$registry/shirube-$service:$target" > /dev/null
-		docker tag "$registry/shirube-$service:$target" "shirube-prod-$service:$target"
-		docker rmi "$registry/shirube-$service:$target" > /dev/null
-		docker image inspect "shirube-prod-$service:$deployed" > /dev/null 2>&1 ||
-			docker tag "shirube-prod-$service:latest" "shirube-prod-$service:$deployed"
-	done
+	trap 'log "$target の入れ替えが途中で止まった(終了コード $?)"' ERR
+	prepare_images
 	git merge --ff-only --quiet "$target" || fail "git を $target に進められなかった"
 	switch_to "$target"
 
@@ -120,7 +131,9 @@ main() {
 		return
 	fi
 	if "$migrated"; then
-		fail "$target が応えない。マイグレーションを流したので戻さずに止めた"
+		echo "$target" > "$held_file"
+		log "$target が応えない。マイグレーションを流したので戻さず、$held_file を消すまで入れ替えを止める"
+		exit 1
 	fi
 	roll_back "$target が応えないので $deployed に戻した"
 }

@@ -44,6 +44,10 @@ compose)
 	run)
 		[ "${MIGRATE_FAIL:-0}" = 1 ] && exit 1
 		;;
+	config)
+		echo "    environment:"
+		echo "      SITE_DOMAIN: $(sed -n 's/^SITE_DOMAIN=//p' .env)"
+		;;
 	esac
 	;;
 esac

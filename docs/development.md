@@ -75,22 +75,31 @@ docker compose -f compose.prod.yaml up -d
 
 ### 更新するとき
 
-main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、いま動いている版を `~/deploy.version` に持ち、イメージを取って commit の札を付け、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待ち(`Caddyfile` が変わった版は caddy を作り直す)、Caddy を通してトップ、ログインなしの API、`robots.txt` のサイトマップの URL を確かめる。応えなければ前の版のコードとイメージに戻し(マイグレーションを流した版は戻さずに止める)、失敗した版は次の版が来るまで試さない。途中で止まったときは、次の回に同じ版をやり直す。振る舞いは `tests/deploy/run.sh` で確かめる(CI の scripts の job)。cron には次を書く(`crontab -e`)。
+main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、いま動いている版を `~/deploy.version` に持ち、`backend/` か `frontend/` が変わった側だけイメージを取って commit の札を付け(変わっていない側は前の版のイメージを使い回し、作り直さない)、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待ち(`Caddyfile` が変わった版は caddy を作り直す)、Caddy を通してトップ、ログインなしの API、`robots.txt` のサイトマップの URL を確かめる。応えなければ前の版のコードとイメージに戻し、失敗した版は次の版が来るまで試さない。マイグレーションを流した版が応えないときは戻さずに `~/deploy.held` を書き、それを消すまで次の版も入れ替えない。途中で止まったときは、理由を書いて次の回に同じ版をやり直す。振る舞いは `tests/deploy/run.sh` で確かめる(CI の scripts の job)。
+
+初めて入れるときは、GHCR に初めて置かれた 2 つのパッケージ(`shirube-backend`、`shirube-frontend`)を GitHub のパッケージの設定(Package settings → Change visibility)で公開にする(サーバーは鍵なしで取る)。サーバーでは、`git pull` の前に、いま動いているイメージを作った commit を書いてから取り込み、一度流して入れ替わるのを見てから cron に足す(`crontab -e`)。
+
+```sh
+cd ~/Shirube && git rev-parse HEAD > ~/deploy.version && git pull --ff-only && ./deploy.sh
+```
 
 ```
 */5 * * * * ~/Shirube/deploy.sh >> ~/deploy.log 2>&1
 ```
 
-`~/deploy.log` には、入れ替えたときと失敗したときだけ書く。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を消す。
+`~/deploy.log` には、入れ替えたとき、失敗したとき、途中で止まったときだけ書く。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を、止めた入れ替えを再び動かすときは、手で直してから `~/deploy.held` を消す。
 
-GHCR が使えないときは、今までどおりサーバーで作って入れ替える。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
+GHCR が使えないときは、今までどおりサーバーで作って入れ替える。cron の `deploy.sh` と重ならないよう `~/deploy.lock` を取って流し、終わったら動いている版を `~/deploy.version` に書く。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
 
 ```sh
-git pull
-docker compose -f compose.prod.yaml build
-docker compose -f compose.prod.yaml stop backend worker
-docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
-docker compose -f compose.prod.yaml up -d
+flock ~/deploy.lock sh -c '
+  git pull --ff-only &&
+  docker compose -f compose.prod.yaml build &&
+  docker compose -f compose.prod.yaml stop backend worker &&
+  docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head &&
+  docker compose -f compose.prod.yaml up -d &&
+  git rev-parse HEAD > ~/deploy.version
+'
 ```
 
 手元で取り込み直しや埋め込み直しをしたら、backend と worker を止めて、本番の科目の表を空にしてから同じように戻す(止めずに空にすると、戻すまでのあいだの道標が候補なしで失敗する)。利用者と道標の表は科目の表を参照していないので、そのまま残る。残した推薦(`remembered_recommendations`)は前の科目データで作ったものなので、科目の表と一緒に空にする(ADR 0092)。
