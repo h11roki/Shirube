@@ -1,5 +1,6 @@
 from typing import Any, Self
 
+from langchain_core.exceptions import ModelRefusalError
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
@@ -160,6 +161,7 @@ class OpenAICourseSelector:
                 for choice in selection.foundation
             ]
         except (
+            ModelRefusalError,
             OpenAIRefusalError,
             ContentFilterFinishReasonError,
             LengthFinishReasonError,

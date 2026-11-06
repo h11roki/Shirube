@@ -1,6 +1,7 @@
 import logging
 from typing import Self
 
+from langchain_core.exceptions import ModelRefusalError
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langchain_openai.chat_models.base import OpenAIRefusalError
@@ -91,6 +92,7 @@ class OpenAIOccupationAnalyzer:
                 tuple(skill.strip() for skill in output.skills),
             )
         except (
+            ModelRefusalError,
             OpenAIRefusalError,
             ContentFilterFinishReasonError,
             LengthFinishReasonError,

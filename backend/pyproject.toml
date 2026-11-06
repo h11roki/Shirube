@@ -3,15 +3,15 @@ name = "shirube-backend"
 version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
-    "alembic>=1.20.0",
-    "fastapi>=0.143.1",
-    "langchain-openai>=1.7.2",
-    "openai>=3.31.0",
+    "alembic>=1.20.1",
+    "fastapi>=0.162.0",
+    "langchain-openai>=1.7.3",
+    "openai>=3.41.0",
     "pgvector>=0.5.1",
     "psycopg[binary]>=3.3.6",
-    "pydantic-settings>=2.16.0",
+    "pydantic-settings>=2.16.2",
     "pyjwt>=2.15.1",
-    "sqlalchemy>=2.1.4",
+    "sqlalchemy>=2.1.6",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -21,18 +21,18 @@ audit = [
 ]
 dev = [
     "httpx>=0.28.1",
-    "httpx2>=2.13.1",
-    "mypy>=2.4.0",
+    "httpx2>=2.16.0",
+    "mypy>=2.4.1",
     "pillow>=13.0.0",
-    "pytest>=9.1.1",
-    "reportlab>=5.0.1",
-    "ruff>=0.17.0",
+    "pytest>=9.2.0",
+    "reportlab>=5.1.0",
+    "ruff>=0.17.3",
     "types-reportlab>=5.0.0.20261008",
 ]
 scraper = [
     "beautifulsoup4>=4.15.0",
     "pdfplumber>=0.11.10",
-    "playwright>=1.64.0",
+    "playwright>=1.64.1",
 ]
 
 [tool.uv]
