@@ -3,6 +3,8 @@
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 :root {
+  --focus-ring: 2px;
+  --focus-offset: 2px;
   --paper: #f4efe4;
   --sheet: #fbf8f1;
   --note: #fffaf0;
@@ -198,10 +200,15 @@
   }
 }
 
+@utility focus-room-x {
+  margin-inline: calc(-1 * (var(--focus-ring) + var(--focus-offset)));
+  padding-inline: calc(var(--focus-ring) + var(--focus-offset));
+}
+
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--route);
-    outline-offset: 2px;
+    outline: var(--focus-ring) solid var(--route);
+    outline-offset: var(--focus-offset);
   }
 
   body {

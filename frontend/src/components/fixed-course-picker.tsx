@@ -102,9 +102,9 @@ export function FixedCoursePicker({
           </p>
         )}
       </div>
-      <fieldset className="mt-2 min-w-0">
+      <fieldset className="mt-2 min-w-0 border-y border-line">
         <legend className="sr-only">開講される授業</legend>
-        <ul className="-mx-1 max-h-80 overflow-y-auto border-y border-line px-1">
+        <ul className="focus-room-x max-h-80 overflow-y-auto">
           {matches.map((course, index) => {
             const checked = chosenNames.has(course.name);
             const row = `${rows}-${index}`;
@@ -122,7 +122,7 @@ export function FixedCoursePicker({
                       onChange={() => onToggle(course.name)}
                       aria-labelledby={`${row}-name`}
                       aria-describedby={`${row}-note`}
-                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route enabled:group-hover:border-ink disabled:opacity-50 forced-colors:disabled:border-[GrayText]"
+                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route enabled:not-checked:group-hover:border-ink disabled:opacity-50 forced-colors:disabled:border-[GrayText] forced-colors:disabled:opacity-100"
                     />
                     <span
                       aria-hidden="true"
