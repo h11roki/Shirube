@@ -418,13 +418,14 @@ def result_json(result: PlanResult) -> ResultJson:
 def result_from_json(data: ResultJson) -> PlanResult:
     recommendation = recommendation_from_json(data["recommendation"])
     courses = {course.name: course for course in recommendation.courses}
-    planned: dict[str, PlannedCourse] = {
-        **courses,
-        **{
-            item["name"]: FixedCourse(item["name"], item["syllabus_code"])
-            for item in data["roadmap"]["fixed"]
-        },
+    fixed = {
+        item["name"]: FixedCourse(item["name"], item["syllabus_code"])
+        for item in data["roadmap"]["fixed"]
     }
+    both = sorted(courses.keys() & fixed.keys())
+    if both:
+        raise ValueError(f"推薦の科目と先に入れる授業の両方にあります: {'、'.join(both)}")
+    planned: dict[str, PlannedCourse] = {**courses, **fixed}
     placed_by_grade: dict[tuple[int, str], PlacedCourse] = {}
     semester_plans = []
     for stored_plan in data["roadmap"]["semesters"]:

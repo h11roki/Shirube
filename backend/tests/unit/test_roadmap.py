@@ -504,7 +504,7 @@ def test_a_fixed_course_must_be_offered_in_the_remaining_semesters() -> None:
 
     require_offered(sections, {}, "情", 2026, later, frozenset(), ["情報処理"])
     with pytest.raises(
-        FixedCourseError, match="残りの学期に開講される授業にありません: もう取った科目、無い科目"
+        FixedCourseError, match="もう取ったと答えた授業は先に入れられません: もう取った科目"
     ):
         require_offered(
             sections,
@@ -515,3 +515,5 @@ def test_a_fixed_course_must_be_offered_in_the_remaining_semesters() -> None:
             frozenset({"もう取った科目"}),
             ["情報処理", "無い科目", "もう取った科目"],
         )
+    with pytest.raises(FixedCourseError, match="残りの学期に開講される授業にありません: 無い科目"):
+        require_offered(sections, {}, "情", 2026, later, frozenset(), ["情報処理", "無い科目"])

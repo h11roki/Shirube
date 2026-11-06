@@ -2,6 +2,8 @@ import json
 from pathlib import Path
 from uuid import UUID
 
+import pytest
+
 from app.infrastructure.db.plans import (
     CONDITIONS_JSON,
     RESULT_JSON,
@@ -39,6 +41,16 @@ def test_the_stored_conditions_and_version_4_result_read_back_to_the_same_plan()
 
     assert conditions_from_json(conditions) == plan.conditions
     assert result_from_json(result) == plan.result
+
+
+def test_a_name_that_is_both_recommended_and_fixed_cannot_be_read() -> None:
+    plan = sample_plan_with_fixed(PLAN_ID)
+    assert plan.result is not None
+    data = result_json(plan.result)
+    data["roadmap"]["fixed"].append({"name": "科目A", "syllabus_code": None})
+
+    with pytest.raises(ValueError, match="推薦の科目と先に入れる授業の両方にあります: 科目A"):
+        result_from_json(data)
 
 
 def test_taken_courses_and_the_courses_offered_earlier_read_back() -> None:

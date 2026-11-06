@@ -48,9 +48,16 @@ class RequestPlan:
         fixed = tuple(sorted(set(fixed_courses)))
         taken = self._users.taken(owner_id)
         require_class_choices(sections, department, year, semesters, chosen_classes)
-        require_offered(
-            sections, self._courses.syllabus_codes(year), department, year, semesters, taken, fixed
-        )
+        if fixed:
+            require_offered(
+                sections,
+                self._courses.syllabus_codes(year),
+                department,
+                year,
+                semesters,
+                taken,
+                fixed,
+            )
         self._search.candidates(year, department, semesters, taken | set(fixed))
         conditions = PlanConditions(
             occupation,

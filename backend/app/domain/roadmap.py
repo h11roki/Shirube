@@ -84,14 +84,6 @@ class FixedCourse:
 PlannedCourse = RecommendedCourse | FixedCourse
 
 
-def _on_page(
-    course: PlannedCourse, section: CourseSection, page_of: Mapping[str, str]
-) -> PlannedCourse:
-    if isinstance(course, FixedCourse):
-        return FixedCourse(course.name, page_of.get(section.code))
-    return course
-
-
 @dataclass(frozen=True)
 class OfferedCourse:
     name: str
@@ -106,8 +98,8 @@ def offered_courses(
     semesters: Sequence[Semester],
     left_out: Set[str] = frozenset(),
 ) -> list[OfferedCourse]:
-    classes: dict[str, list[tuple[int, str, int]]] = defaultdict(list)
-    opened: dict[str, set[Semester]] = defaultdict(set)
+    earliest: dict[str, tuple[int, str, int]] = {}
+    opened: dict[str, set[int]] = defaultdict(set)
     for section in sections:
         if section.code in left_out:
             continue
@@ -118,15 +110,15 @@ def offered_courses(
         ]
         if not opens:
             continue
-        classes[section.name].append((opens[0], section.code, section.credits))
-        opened[section.name].update(semesters[index] for index in opens)
+        first = (opens[0], section.code, section.credits)
+        if section.name not in earliest or first < earliest[section.name]:
+            earliest[section.name] = first
+        opened[section.name].update(opens)
     return [
         OfferedCourse(
-            name,
-            min(classes[name])[2],
-            tuple(semester for semester in semesters if semester in opened[name]),
+            name, earliest[name][2], tuple(semesters[index] for index in sorted(opened[name]))
         )
-        for name in sorted(classes)
+        for name in sorted(earliest)
     ]
 
 
@@ -139,6 +131,9 @@ def require_offered(
     taken: Set[str],
     names: Iterable[str],
 ) -> None:
+    already = sorted(set(names) & taken)
+    if already:
+        raise FixedCourseError(f"もう取ったと答えた授業は先に入れられません: {'、'.join(already)}")
     left_out = left_out_codes(sections, page_of, department, taken)
     offered = offered_courses(sections, department, year, semesters, left_out)
     unknown = sorted(set(names) - {course.name for course in offered})
@@ -353,6 +348,7 @@ def place(
         )
     )
     skipped = offered_earlier & taken
+    pages = page_of or {}
     year_long: dict[int, list[PlacedCourse]] = defaultdict(list)
     placed: set[str] = set()
     plans = []
@@ -377,9 +373,9 @@ def place(
             )
             if fitting is None:
                 continue
-            placed_course = PlacedCourse(
-                _on_page(course, fitting, page_of or {}), fitting, confirmed
-            )
+            if isinstance(course, FixedCourse):
+                course = FixedCourse(course.name, pages.get(fitting.code))
+            placed_course = PlacedCourse(course, fitting, confirmed)
             courses.append(placed_course)
             placed.add(course.name)
             credits += fitting.credits

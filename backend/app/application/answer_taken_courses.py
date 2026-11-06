@@ -3,7 +3,7 @@ from uuid import UUID
 
 from app.application.ports import CourseRepository, PlanRepository, UserRepository
 from app.domain.plan import Plan
-from app.domain.roadmap import ClassChoiceError
+from app.domain.roadmap import ClassChoiceError, FixedCourse
 
 OUTDATED = "時間割表が変わったので、この道標は置き直せません。道標を作り直してください"
 CONFLICTED = "ほかの画面で答えが変わりました。読み込み直してから答えてください"
@@ -60,10 +60,19 @@ class AnswerTakenCourses:
         if name not in roadmap.offered_earlier:
             raise UnaskedCourseError(f"この道標でもう取ったかを聞いていない授業です: {name}")
         conditions = plan.conditions
+        sections = self._courses.sections(conditions.year)
+        fixed_classes = [
+            placed.section
+            for plan_of_semester in roadmap.semesters
+            for placed in plan_of_semester.courses
+            if isinstance(placed.course, FixedCourse)
+        ]
+        if any(section not in sections for section in fixed_classes):
+            raise PlanOutdatedError(OUTDATED)
         try:
             again = conditions.roadmap(
                 plan.result.recommendation,
-                self._courses.sections(conditions.year),
+                sections,
                 change(frozenset(course.name for course in roadmap.taken)),
                 self._courses.syllabus_codes(conditions.year) if conditions.fixed_courses else {},
             )

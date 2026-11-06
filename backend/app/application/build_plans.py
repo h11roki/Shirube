@@ -89,7 +89,15 @@ class BuildPlans:
                     excluded=self._users.taken(plan.owner_id) | set(conditions.fixed_courses),
                 )
                 self._enter(plan, PlanStage.PLACING, entered)
-                roadmap = conditions.roadmap(recommendation, sections, page_of=self._pages(plan))
+                roadmap = conditions.roadmap(
+                    recommendation,
+                    sections,
+                    page_of=(
+                        self._courses.syllabus_codes(conditions.year)
+                        if conditions.fixed_courses
+                        else {}
+                    ),
+                )
                 finished = plan.succeeded(PlanResult(recommendation, roadmap))
             except UPSTREAM_ERRORS as error:
                 logger.exception("道標 %s の推薦で外部のサービスの呼び出しに失敗しました", plan.id)
@@ -135,11 +143,6 @@ class BuildPlans:
                 self._enter(plan, PlanStage.SELECTING, entered)
             case _:
                 assert_never(step)
-
-    def _pages(self, plan: Plan) -> dict[str, str]:
-        if not plan.conditions.fixed_courses:
-            return {}
-        return self._courses.syllabus_codes(plan.conditions.year)
 
     def _enter(self, plan: Plan, stage: PlanStage, entered: list[tuple[PlanStage, float]]) -> None:
         entered.append((stage, self._clock()))
