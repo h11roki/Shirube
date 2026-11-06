@@ -11,6 +11,7 @@ permissions:
 jobs:
   backend:
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     defaults:
       run:
         working-directory: backend
@@ -40,6 +41,7 @@ jobs:
 
   frontend:
     runs-on: ubuntu-24.04
+    timeout-minutes: 45
     defaults:
       run:
         working-directory: frontend
@@ -60,7 +62,14 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm format:check
+      - id: playwright
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
       - run: pnpm exec playwright install --with-deps chromium webkit
+        timeout-minutes: 10
       - name: pnpm test:e2e
         run: |
           set -o pipefail
@@ -75,7 +84,7 @@ jobs:
             echo "Google Fonts の取得で落ちたので流し直す($attempt 回目)"
             sleep 15
           done
-      - if: failure()
+      - if: failure() || cancelled()
         uses: actions/upload-artifact@v7
         with:
           name: playwright-results
@@ -84,6 +93,7 @@ jobs:
 
   scripts:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - run: shellcheck --severity=warning deploy.sh backup.sh restore-drill.sh tests/deploy/run.sh tests/deploy/shims/*
@@ -91,6 +101,7 @@ jobs:
 
   audit:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -113,6 +124,7 @@ jobs:
 
   audit-development:
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v7
       - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
@@ -135,6 +147,7 @@ jobs:
 
   production:
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 20
     env:
       SITE: shirube.localhost
     steps:
@@ -167,13 +180,14 @@ jobs:
         run: |
           ./backup.sh
           test "$(stat -c %a "$HOME"/backups/shirube-*.dump)" = 600
-      - if: failure()
+      - if: failure() || cancelled()
         run: docker compose -f compose.prod.yaml logs --no-color
 
   images:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [backend, frontend, scripts, audit, production]
     runs-on: ubuntu-24.04-arm
+    timeout-minutes: 30
     permissions:
       contents: read
       packages: write
