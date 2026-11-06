@@ -102,9 +102,9 @@ export function FixedCoursePicker({
           </p>
         )}
       </div>
-      <fieldset className="mt-2 min-w-0">
+      <fieldset className="mt-2 min-w-0 border-y border-line">
         <legend className="sr-only">開講される授業</legend>
-        <ul className="max-h-80 overflow-y-auto border-y border-line">
+        <ul className="focus-room max-h-80 overflow-y-auto">
           {matches.map((course, index) => {
             const checked = chosenNames.has(course.name);
             const row = `${rows}-${index}`;
@@ -113,16 +113,22 @@ export function FixedCoursePicker({
                 key={course.name}
                 className="border-b border-line last:border-b-0"
               >
-                <label className="flex cursor-pointer gap-2 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-sub">
-                  <input
-                    type="checkbox"
-                    checked={checked}
-                    disabled={full && !checked}
-                    onChange={() => onToggle(course.name)}
-                    aria-labelledby={`${row}-name`}
-                    aria-describedby={`${row}-note`}
-                    className="size-6 shrink-0 accent-route"
-                  />
+                <label className="group flex cursor-pointer gap-2 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-sub forced-colors:has-disabled:text-[GrayText]">
+                  <span className="relative shrink-0 self-start">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      disabled={full && !checked}
+                      onChange={() => onToggle(course.name)}
+                      aria-labelledby={`${row}-name`}
+                      aria-describedby={`${row}-note`}
+                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route enabled:not-checked:group-hover:border-ink disabled:bg-line forced-colors:disabled:border-[GrayText]"
+                    />
+                    <span
+                      aria-hidden="true"
+                      className="pointer-events-none absolute inset-0 m-auto hidden h-3 w-1.5 -translate-y-0.5 rotate-45 border-r-2 border-b-2 border-paper peer-checked:block"
+                    />
+                  </span>
                   <span className="min-w-0 [overflow-wrap:anywhere]">
                     <span id={`${row}-name`} className="block">
                       {course.name}

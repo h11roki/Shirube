@@ -307,7 +307,7 @@ export function PlanResultView({
         >
           {answered && (
             <p
-              className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xs border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-2 group-focus-visible:outline-offset-2 group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
+              className={`pointer-events-auto flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xs border px-5 py-2 text-sm shadow-sticky group-focus-visible:outline-[length:var(--focus-ring)] group-focus-visible:outline-offset-[var(--focus-offset)] group-focus-visible:outline-route ${answered.failed ? "border-danger/30 bg-danger-soft text-danger" : "border-line bg-sheet"}`}
             >
               {answered.message}
               {undo && (
