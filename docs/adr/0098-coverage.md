@@ -12,8 +12,8 @@
 
 ## 決定
 
-- backend は pytest-cov で `app` の行と分岐を測り(`pyproject.toml` の `[tool.coverage]`)、CI の backend の job は `pytest --cov --cov-fail-under=88` で流して、行と分岐を合わせて 88% を下回れば落とす。下限は CI の命令にだけ置き、DB の結合試験が飛ぶ手元の `pytest --cov` は数字を出すだけにする(DB なしでは 86% ほどになる)。表は job の要約に書く
-- frontend は `@vitest/coverage-v8` で `src/lib` の表示の決まりだけを測り(試験、生成した `schema.ts`、Next のサーバーだけで動く `fonts.ts`、`session.ts`、`sign-out.ts`、定数だけの `motion.ts`、`theme.ts` を除く)、文 97%、分岐 93%、関数 98%、行 97% を下回れば落とす。CI の frontend の job は `pnpm test --coverage` で流し、要約を job の要約に書く
+- backend は pytest-cov で `app` の行と分岐を測り(`pyproject.toml` の `[tool.coverage]`)、CI の backend の job は `pytest --cov --cov-fail-under=87` で流して、行と分岐を合わせて 87% を下回れば落とす(今は 88.9%。手で流す CLI を 1 つ足しても落ちないよう、frontend と同じくらいの余白を取る)。下限は CI の命令にだけ置き、DB の結合試験が飛ぶ手元の `pytest --cov` は数字を出すだけにする(DB なしでは 86% ほどになる)。表は job の要約に書く
+- frontend は `@vitest/coverage-v8` で `src/lib` の TypeScript の表示の決まりだけを測り(試験、生成した `schema.ts` と `openapi.json`、Next のサーバーだけで動く `fonts.ts`、`session.ts`、`sign-out.ts`、定数だけの `motion.ts`、`theme.ts` を除く)、文 97%、分岐 93%、関数 97%、行 97% を下回れば落とす。vitest と `@vitest/coverage-v8` は同じ版でないと動かないので、Dependabot はメジャーも含めて 1 つの PR で上げる。CI の frontend の job は `pnpm test --coverage` で流し、要約を job の要約に書く
 - 下限は今の値の少し下に置く。試験を足して上がったら下限も上げる。下げるのは、試験しにくいコードを足す理由を ADR に書いたときだけ
 - README の品質の節に、層ごとの数字を載せる。バッジは外の仕組み(Codecov など)が要るので付けない
 

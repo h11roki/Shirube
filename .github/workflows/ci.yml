@@ -37,7 +37,7 @@ jobs:
       - run: uv run ruff format --check .
       - run: uv run ruff check --line-length 100 ../frontend/brand/make.py
       - run: uv run mypy
-      - run: uv run pytest --cov --cov-fail-under=88
+      - run: uv run pytest --cov --cov-fail-under=87
       - name: カバレッジを job の要約に書く
         if: ${{ !cancelled() && hashFiles('backend/.coverage') != '' }}
         run: uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"

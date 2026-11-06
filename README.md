@@ -178,7 +178,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)、依存の既知の脆弱性の audit、CodeQL。main では全て通った版だけイメージを作って置く
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
 - 試験の数(2026-11-07): backend 919、Vitest 160、e2e 236、デプロイのスクリプトの場面 16
-- カバレッジ(2026-11-07、CI で測り、下がったら落とす。[ADR 0098](docs/adr/0098-coverage.md)): backend は行と分岐を合わせて 88.9%(domain と application は行 99.7%、分岐 98% ほど、infrastructure は行 92%、分岐 78%。手で流す取り込みの CLI に試験が薄い)。frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 94.8%。部品と画面は通しの試験で確かめます
+- カバレッジ(2026-11-07、CI で測り、下がったら落とす。[ADR 0098](docs/adr/0098-coverage.md)): backend は行と分岐を合わせて 88.9%(domain と application は行 99.7%、分岐 98% ほど、infrastructure は行 92%、分岐 78%、presentation は行 77%、分岐 74% で、手で流す取り込みの CLI に試験が薄い)。frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 94.8%。部品と画面は通しの試験で確かめます
 
 ## 安全性
 

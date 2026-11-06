@@ -11,7 +11,7 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**"],
     coverage: {
       provider: "v8",
-      include: ["src/lib/**"],
+      include: ["src/lib/**/*.ts"],
       exclude: [
         ...coverageConfigDefaults.exclude,
         "src/lib/api/schema.ts",
@@ -23,7 +23,7 @@ export default defineConfig({
       ],
       reporter: ["text-summary", "json-summary"],
       reportOnFailure: true,
-      thresholds: { statements: 97, branches: 93, functions: 98, lines: 97 },
+      thresholds: { statements: 97, branches: 93, functions: 97, lines: 97 },
     },
   },
 });

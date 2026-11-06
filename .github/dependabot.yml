@@ -24,6 +24,8 @@ updates:
     cooldown:
       default-days: 7
     groups:
+      vitest:
+        patterns: [vitest, "@vitest/*"]
       frontend:
         update-types: [minor, patch]
     ignore:
