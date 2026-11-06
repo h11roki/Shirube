@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { FailureNotice } from "@/components/failure-notice";
 import { SMALL_BUTTON } from "@/components/styles";
 import { type TakenCourses, messageOf, requestJson } from "@/lib/api/client";
-import { forgetTakenLabel } from "@/lib/labels";
+import { forgetTakenLabel, takenCoursesSummary } from "@/lib/labels";
 
 export function TakenCourseList({
   refresh,
@@ -80,7 +80,7 @@ export function TakenCourseList({
         ref={summary}
         className="cursor-pointer py-1 text-sm font-medium"
       >
-        もう取ったと答えた授業({names.length} 科目)
+        {takenCoursesSummary(names.length)}
       </summary>
       <p className="mt-3 text-sm text-sub">
         道標を作るとき、これらの授業は推薦の候補から除きます。まだ取っていない授業は取り消してください。

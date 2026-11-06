@@ -5,9 +5,16 @@
 [![CI](https://github.com/h11roki/Shirube/actions/workflows/ci.yml/badge.svg)](https://github.com/h11roki/Shirube/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-**デモ: https://shirube.duckdns.org**
+**デモ: https://shirube.duckdns.org** ・ [English summary](#english-summary)
 
 ログイン前のトップで、実際の出力の見本の道標を見られます。道標を作るには Google でのログインが要り、今はテストの利用者に限っています。
+
+## 30 秒で
+
+- **作ったもの**: 職業名からシラバスを RAG で引き、LLM が授業を選んで理由を書き、卒業までの時間割に並べる Web アプリ。AWS で公開しています
+- **規模**(2026-11-06 時点): 個人開発、2026-10-14 から 3 週間あまりで、980 を超えるコミット、100 を超える PR、90 を超える ADR、試験 1,300 件ほど([品質](#品質))
+- **作り方**: Claude Code と作り、設計の選択肢から選ぶのと改善を採るかを決めるのは作者です([作り方](#作り方))
+- **見どころ**: LLM の出力を数字で直す評価の仕組みです(下の[技術の見どころ](#技術の見どころ))
 
 ## 技術の見どころ
 
@@ -42,7 +49,7 @@
 - 職業の中心になる授業を「柱」、柱の前提になる授業を「礎」として分け、どの礎がどの柱につながるかを示す
 - 卒業までの残りの学期に、曜日と時限が重ならず、1 学期の単位の上限に収まるように並べる
 
-道標に並ぶのは推薦した授業だけで、必修や卒業要件の授業は入りません。前提の授業を前の学期に置く制約もかけていないので、礎が柱より後の学期に来ることがあります([ADR 0007](docs/adr/0007-greedy-timetable.md)、[0034](docs/adr/0034-taken-courses.md))。理由の文は、150 件を Claude の判定者 3 体で測ると、柱の理由のうち職業のどの仕事に効くかを具体的に言えていたのは 28% でした([ADR 0088](docs/adr/0088-reason-evaluation.md))。柱の理由にも仕事のどこで使うかを書かせる指示文に替え、前と後を同じ判定で比べると 37% → 67% に上がりましたが、残りの 3 分の 1 はまだぼんやりか、職業に触れないままです(礎の理由は 77% が柱のどの内容の前提かを言えています。[ADR 0090](docs/adr/0090-reason-wording.md))。理由の文を自動で判定する判定器も gpt-5.4-nano と mini で作りましたが、確かめる用の 75 件での正解との一致(Cohen の κ)が 0.54 と、測る前に決めた 0.6 に届かなかったので採っていません([推薦の評価の記録](docs/evaluation-log.md#理由の文の判定器採らなかった))。
+道標が自分で選ぶのは推薦の授業だけで、必修や卒業要件は見ていません。必修など先に取ると決めた授業は、入力の画面で選べば推薦の授業より先に置けますが、要件を満たしているかは確かめません([ADR 0093](docs/adr/0093-fixed-courses.md))。前提の授業を前の学期に置く制約もかけていないので、礎が柱より後の学期に来ることがあります([ADR 0007](docs/adr/0007-greedy-timetable.md)、[0034](docs/adr/0034-taken-courses.md))。理由の文は、150 件を Claude の判定者 3 体で測ると、柱の理由のうち職業のどの仕事に効くかを具体的に言えていたのは 28% でした([ADR 0088](docs/adr/0088-reason-evaluation.md))。柱の理由にも仕事のどこで使うかを書かせる指示文に替え、前と後を同じ判定で比べると 37% → 67% に上がりましたが、残りの 3 分の 1 はまだぼんやりか、職業に触れないままです(礎の理由は 77% が柱のどの内容の前提かを言えています。[ADR 0090](docs/adr/0090-reason-wording.md))。理由の文を自動で判定する判定器も gpt-5.4-nano と mini で作りましたが、確かめる用の 75 件での正解との一致(Cohen の κ)が 0.54 と、測る前に決めた 0.6 に届かなかったので採っていません([推薦の評価の記録](docs/evaluation-log.md#理由の文の判定器採らなかった))。
 
 ## 主な機能
 
@@ -52,8 +59,8 @@
 
 | 職業と回生を入れる | 学期ごとの時間割帳 |
 |---|---|
-| ![入力の画面。なりたい職業、いまの回生、始める学期を選ぶ](docs/images/form-1280.png) | ![時間割帳。月〜金と 1〜5 限の表に授業を置き、右に授業の切符を並べる](docs/images/result-timetable-1280.png) |
-| 職業は自由に入れられます。学科で分かれたクラスの選択と、もう取った授業も入力の画面で扱えます | 学期ごとに、週の時間割の表で重なりなく並んでいることを確かめられます |
+| ![入力の画面。なりたい職業、いまの回生、始める学期を選び、開いた「先に入れる授業」の欄で「回路」と絞って電子回路Ⅰと電気回路Ⅰにチェックを入れ、選んだ 3 科目が上に並ぶ](docs/images/form-1280.png) | ![時間割帳。月〜金と 1〜5 限の表に授業を置き、右に授業の切符を並べる](docs/images/result-timetable-1280.png) |
+| 職業は自由に入れられます。必修など先に取ると決めた授業は、開講される授業の一覧から名前で絞って選ぶと、推薦の授業より先に時間割へ置き、推薦の候補からは外します([ADR 0093](docs/adr/0093-fixed-courses.md))。学科で分かれたクラスの選択と、もう取った授業も入力の画面で扱えます | 学期ごとに、週の時間割の表で重なりなく並んでいることを確かめられます |
 
 <p>
   <img src="docs/images/progress-375.png" width="260" alt="作成中の画面。4 つの段の進みと、待ち時間と目安の板">
@@ -128,7 +135,7 @@ flowchart LR
 
 ## まず読んでほしい ADR
 
-設計の判断は 90 本の ADR に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
+設計の判断は [ADR](docs/adr/README.md) に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
 
 | ADR | 読みどころ |
 |---|---|
@@ -151,15 +158,25 @@ flowchart TB
 
 - フロントは API を呼んで表示するだけで、業務ロジックを置きません。Next.js の Route Handler がログインを確かめ、Google の利用者の番号を入れた JWT を付けて backend に転送します([ADR 0027](docs/adr/0027-auth-backend.md)、[0028](docs/adr/0028-auth-frontend.md))
 - API の型は OpenAPI から生成してコミットし、backend の試験が OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
-- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています(2026-11-04 時点で 90 本)
+- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています
 
-このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。ADR の中では、作者を「高橋さん」と書いています。
+## 作り方
+
+このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。ADR の中では、作者を「高橋さん」と書いています。
+
+1 つの変更は、次の順に進めます。
+
+1. 選択肢が 2 つ以上ある判断は、Claude Code が選択肢と良し悪しを並べ、作者が選ぶ。決めたことは実装より先に ADR に書く
+2. 変更は git の worktree の上でブランチを切って作り、PR にする
+3. PR ごとに、Claude Code にレビューを数周させて指摘を直し、CI を通してからマージする。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
+
+Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くこと、コメントを書かず経緯はコミットメッセージに書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。
 
 ## 品質
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を組み立てて起動し HTTPS とログインの戻り先を確かめる job
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-04): backend 862、Vitest 148、e2e 232
+- 試験の数(2026-11-06): backend 904、Vitest 160、e2e 236
 
 ## 安全性
 
@@ -201,6 +218,18 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 - コマンドの一覧と、Claude Code に守らせる決まりは [CLAUDE.md](CLAUDE.md) にあります
 
 前の ADR が「README の「本番」」「README の「50 職業で比べ直す」」のように書いている節は、見出しの名前のまま、この 2 つの文書に移しました。
+
+## English summary
+
+shirube ("signpost") helps university students choose courses backwards from the job they want. Given a target occupation and the student's current year, it retrieves related courses from the university syllabi (RAG with pgvector), has an LLM pick the courses and explain why each one matters for that job, and lays them out into a clash-free timetable for every remaining semester until graduation. It currently covers the Department of Electronic and Computer Engineering at Ritsumeikan University, and is live at https://shirube.duckdns.org (sign-in is limited to test users; the landing page shows a real sample plan).
+
+- **Evaluation-driven LLM development**: a development set of 50 occupations and a held-out set of 20, with expected courses labelled by majority vote of three Claude judges with different viewpoints (a different model family from the OpenAI models the app uses, so the app is not graded by itself); two configurations are run interleaved, and changes are accepted by bootstrap confidence intervals and permutation tests. Acceptance criteria are written down before measuring, and rejected changes are documented as well. Last measured on both sets (dev / held-out): 16.4% / 17.5% of chosen courses judged irrelevant and 67.5% / 89.7% of expected courses chosen as core. The held-out 89.7% is a single run that jumped from 69.0% for the previous settings measured at the same time, so read it with care. After the latest prompt change (ADR 0090), one dev run gave 15.1% and 63.6%; the held-out set has not been re-run. A recommendation costs about 1 JPY
+- **A staged pipeline, not an agent**: occupation reading with structured output, retrieval, selection by a 3-vote majority, and greedy timetable placement. Each stage is measured on its own, so a missed course can be traced to the stage that dropped it. LLM output is only matched against candidate course names and shown to its owner; it never drives tool calls or queries
+- **Running in production**: FastAPI (clean architecture, mypy strict) and Next.js on a single AWS EC2 instance with Docker Compose and Caddy, a PostgreSQL-backed job queue with a worker, daily quotas and prepaid billing as cost limits, a 7-day recommendation cache, and per-build records of cost, latency and failure type
+- **Quality**: CI runs pytest (with database integration tests), Vitest, and Playwright end-to-end tests that check every screen against WCAG 2.2 AA with axe at two widths in light and dark themes, and check that nothing overflows at 320px or is clipped at 200% text size
+- **Decisions on record**: more than 90 ADRs list the options, the decision, the trade-offs accepted and when to revisit. The code was written with Claude Code; the author made the product and design decisions recorded in the ADRs
+
+The documentation is in Japanese.
 
 ## ライセンス
 
