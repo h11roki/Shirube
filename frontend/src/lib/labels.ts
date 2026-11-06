@@ -24,8 +24,6 @@ export const RELEVANCE_LABELS: Record<Relevance, string> = {
   fixed: "予定",
 };
 
-export const RELEVANCES = Object.keys(RELEVANCE_LABELS) as Relevance[];
-
 export const RELEVANCE_DESCRIPTIONS: Record<Relevance, string> = {
   core: "職業に直結する授業",
   foundation: "柱の前提になる授業",

@@ -39,7 +39,7 @@ export const RELEVANCE_TONES: Record<
   fixed: {
     text: "text-ink",
     sticky: "rotate-[0.2deg] bg-note",
-    stamp: `${TICKET_STAMP} ${STAMP_OUTLINES.fixed} text-ink`,
+    stamp: `${TICKET_STAMP} ${STAMP_OUTLINES.fixed} text-ink text-[0.875rem] leading-none [writing-mode:vertical-rl]`,
     mark: `${LEGEND_MARK} ${STAMP_OUTLINES.fixed} bg-note`,
     ground: `${TICKET_GROUND} [--ground:color-mix(in_srgb,var(--ink)_6%,transparent)]`,
   },
