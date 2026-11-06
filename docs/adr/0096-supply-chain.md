@@ -13,13 +13,13 @@
 
 ## 決定
 
-- CI に `audit` の job を足す。backend は `uv export` で全てのグループの依存を固定の版とハッシュで書き出して `pip-audit` にかけ、1 件でもあれば落とす。pip-audit は dev のグループに入れ、その依存ごと lock で固定する(監査の道具が取り込み口にならないよう、ほかの依存と同じに Dependabot の cooldown を通して上げる)。frontend は `pnpm audit --audit-level high` で、high 以上があれば落とす(moderate 以下は Dependabot の知らせと更新の PR で追う)。images の job は audit も待ち、既知の脆弱性のある版のイメージは置かない
-- 直す版の無い脆弱性は、backend は ci.yml の pip-audit の行に `--ignore-vuln <ID>` を、frontend は package.json の `pnpm.auditConfig.ignoreGhsas` に GHSA を足して除き、理由を ADR に書く
+- CI に `audit` の job を足す。backend は `uv export` で全てのグループの依存を固定の版とハッシュで書き出して `pip-audit` にかけ、1 件でもあれば落とす。pip-audit は既定では入らない audit のグループに入れ、その依存ごと lock で固定する(監査の道具が取り込み口にならないよう、ほかの依存と同じに Dependabot の cooldown を通して上げる)。監査するのは audit のグループの外の全てで、監査の道具自身の依存(pip など、本番にも手元にも入らない)の勧告では落とさない。frontend は `pnpm audit --audit-level high` で、high 以上があれば落とす(moderate 以下は Dependabot の知らせと更新の PR で追う)。images の job は audit も待ち、既知の脆弱性のある版のイメージは置かない
+- 直す版の無い脆弱性は、backend は ci.yml の pip-audit の行に `--ignore-vuln <ID>` を、frontend は `frontend/pnpm-workspace.yaml` の `auditConfig.ignoreGhsas` に GHSA を足して除き(pnpm 11 は設定を package.json でなくこのファイルから読む)、理由を ADR に書く
 - Pillow を 13.0.0、certifi を 2026.10.23 に上げる
 - `.github/dependabot.yml` で、uv(backend)、npm(frontend)、GitHub Actions、Dockerfile、compose の 5 つを毎週月曜に見る。出てから 7 日経った版だけを出し(cooldown。出たばかりの版が乗っ取られていたときに巻き込まれないため)、minor と patch はまとめて 1 本の PR にする。マージは人が CI を見て行う
 - Dependabot の知らせ(alerts)と、脆弱性を直す PR(security updates)を有効にする
 - `.github/workflows/codeql.yml` で、Python、JavaScript と TypeScript、GitHub Actions を、main への push、PR、毎週月曜に `security-extended` の問いで調べる。結果は GitHub のコードの走査に出る
-- Dockerfile の土台のイメージを digest で固定する(`node:24-slim@sha256:…`、`ghcr.io/astral-sh/uv:python3.13-bookworm-slim@sha256:…`)。更新は Dependabot が digest を上げる PR で届く。frontend のイメージの pnpm は、Dockerfile に版を書かず、`corepack install` で package.json の `packageManager` から取る(Dependabot が package.json だけ上げて、CI とイメージの pnpm がずれないよう)
+- Dockerfile の土台のイメージを digest で固定する(`node:24-slim@sha256:…`、`ghcr.io/astral-sh/uv:python3.13-bookworm-slim@sha256:…`)。更新は Dependabot が digest を上げる PR で届く。frontend のイメージの pnpm は、Dockerfile に版を書かず、`corepack install` で package.json の `packageManager` から取る(Dependabot が package.json だけ上げて、CI とイメージの pnpm がずれないよう)。`packageManager` には版のあとに中身の sha512 を付け、corepack が取ってきた pnpm を確かめる
 - Dockerfile と compose のイメージは、メジャーの版を上げる PR を出させない。Node の奇数の版は LTS でなく、25 からは corepack を同梱しない。`pgvector/pgvector:pg16` を pg17 にすると、本番の pg16 で作ったデータのボリュームで DB が起動しない。メジャーは ADR を書いて手で上げる
 - GitHub 以外の人が出している Action は commit の SHA で固定し、行の後ろに版を書く(Dependabot がこの書き方を読んで、SHA と版を一緒に上げる。コードにコメントを書かない決まりの例外で、Dependabot が読む印として置く)。GitHub が出している Action(`actions/*`、`github/*`)はメジャーの版のタグのまま
 - ワークフローの既定の権限を `contents: read` にし、要る job(images の `packages: write`、CodeQL の `security-events: write`)だけ足す
