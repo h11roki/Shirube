@@ -7,6 +7,7 @@ import {
   dropFixedLabel,
   fixedCoursesSummary,
   forgetTakenLabel,
+  takenCoursesSummary,
 } from "@/lib/labels";
 import { transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -124,7 +125,7 @@ const SCREENS: Screen[] = [
         .getByText(classChoicesSummary(CLASS_CHOICES.courses.length))
         .click();
       await page
-        .getByText(`もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`)
+        .getByText(takenCoursesSummary(TAKEN_COURSES.names.length))
         .click();
       await expect(
         page.getByRole("combobox", { name: CLASS_CHOICES.courses[0].name }),

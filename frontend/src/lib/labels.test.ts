@@ -28,6 +28,7 @@ import {
   backPlace,
   arrivalsLabel,
   classChoicesSummary,
+  takenCoursesSummary,
   fixedCoursesSummary,
   offeredCourseNote,
   matchCountLabel,
@@ -134,10 +135,11 @@ describe("labels", () => {
     expect(forgetTakenLabel("情報処理")).toBe("情報処理を取り消す");
   });
 
-  it("counts the courses with a class to choose", () => {
+  it("counts the courses in the folded sections of the form", () => {
     expect(classChoicesSummary(1)).toBe(
       "学科でクラスが分かれている科目(1 科目、任意)",
     );
+    expect(takenCoursesSummary(2)).toBe("もう取ったと答えた授業(2 科目)");
   });
 
   it("describes the courses to place first", () => {
