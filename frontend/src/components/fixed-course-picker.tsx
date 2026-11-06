@@ -104,7 +104,7 @@ export function FixedCoursePicker({
       </div>
       <fieldset className="mt-2 min-w-0">
         <legend className="sr-only">開講される授業</legend>
-        <ul className="max-h-80 overflow-y-auto border-y border-line">
+        <ul className="-mx-1 max-h-80 overflow-y-auto border-y border-line px-1">
           {matches.map((course, index) => {
             const checked = chosenNames.has(course.name);
             const row = `${rows}-${index}`;
@@ -113,8 +113,8 @@ export function FixedCoursePicker({
                 key={course.name}
                 className="border-b border-line last:border-b-0"
               >
-                <label className="flex cursor-pointer gap-2 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-sub">
-                  <span className="relative size-6 shrink-0">
+                <label className="group flex cursor-pointer gap-2 py-2 text-sm has-disabled:cursor-not-allowed has-disabled:text-sub forced-colors:has-disabled:text-[GrayText]">
+                  <span className="relative shrink-0 self-start">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -122,7 +122,7 @@ export function FixedCoursePicker({
                       onChange={() => onToggle(course.name)}
                       aria-labelledby={`${row}-name`}
                       aria-describedby={`${row}-note`}
-                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route disabled:opacity-50"
+                      className="peer block size-6 cursor-[inherit] appearance-none border border-edge bg-paper checked:border-route checked:bg-route enabled:group-hover:border-ink disabled:opacity-50 forced-colors:disabled:border-[GrayText]"
                     />
                     <span
                       aria-hidden="true"
