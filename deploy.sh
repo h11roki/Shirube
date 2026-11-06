@@ -33,7 +33,7 @@ prepare_images() {
 	for service in "${services[@]}"; do
 		docker image inspect "shirube-prod-$service:$deployed" > /dev/null 2>&1 ||
 			docker tag "shirube-prod-$service:latest" "shirube-prod-$service:$deployed"
-		if git diff --quiet "$deployed" "$target" -- "$service"; then
+		if git diff --quiet "$deployed" "$target" -- "$service" .github/workflows/ci.yml; then
 			docker tag "shirube-prod-$service:$deployed" "shirube-prod-$service:$target"
 		else
 			docker pull --quiet "$registry/shirube-$service:$target" > /dev/null
@@ -91,7 +91,7 @@ roll_back() {
 	git reset --keep --quiet "$deployed"
 	switch_to "$deployed"
 	bring_up "$target" "$deployed" || log "$deployed も応えない"
-	keep_images "$deployed"
+	keep_images "$deployed" || log "古いイメージを消せなかった"
 	fail "$1"
 }
 
@@ -103,7 +103,10 @@ main() {
 
 	[ -e "$deployed_file" ] || git rev-parse HEAD > "$deployed_file"
 	deployed=$(cat "$deployed_file")
-	git fetch --quiet origin main
+	if ! git fetch --quiet origin main 2> /dev/null; then
+		log "origin の main を取れなかった"
+		exit 1
+	fi
 	target=$(git rev-parse origin/main)
 	[ "$deployed" = "$target" ] && exit 0
 	[ "$(cat "$failed_file" 2> /dev/null)" = "$target" ] && exit 0
@@ -126,8 +129,8 @@ main() {
 	if bring_up "$deployed" "$target" && answering; then
 		echo "$target" > "$deployed_file"
 		rm -f "$failed_file"
-		keep_images "$target" "$deployed"
 		log "$target に入れ替えた"
+		keep_images "$target" "$deployed" || log "古いイメージを消せなかった"
 		return
 	fi
 	if "$migrated"; then

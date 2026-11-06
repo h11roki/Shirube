@@ -118,6 +118,22 @@ echo "J トップが応えないので戻す"
 setup; push_change backend/app.py api2; CURL_FAIL=1 deploy
 check "終了 1 で戻す" 'exited 1 && head_is $old && [ "$(latest backend)" = id-local ]'
 
+echo "K サーバーで手で直したファイルがあり、git を進められない"
+setup; echo local > "$HOME/Shirube/Caddyfile"; push_change Caddyfile v2; deploy
+check "終了 1 で失敗した版を覚え、何も入れ替えない" 'exited 1 && grep -q "進められなかった" $HOME/log && [ "$(cat $HOME/deploy.failed)" = $new ] && head_is $old && [ "$(latest backend)" = id-local ]'
+check "手で直したファイルを消さない" '[ "$(cat $HOME/Shirube/Caddyfile)" = local ]'
+
+echo "L 入れ替えを重ねても、今の版と前の版のイメージだけを残す"
+setup; push_change backend/app.py api2; second=$new; deploy; push_change backend/app.py api3; deploy
+check "終了 0 で、最初の版の札を消す" "exited 0 && ! grep -q 'shirube-prod-backend:$old ' \$HOME/images"
+check "前の版の札は残す" "grep -q 'shirube-prod-backend:$second ' \$HOME/images && grep -q 'shirube-prod-backend:$new ' \$HOME/images"
+
+echo "M 取り込みが途中で止まったら理由を書き、次の回にやり直す"
+setup; push_change backend/app.py api2; PULL_FAIL=1 deploy
+check "終了 1 で途中で止まったと書き、失敗した版にはしない" 'exited 1 && grep -q "途中で止まった" $HOME/log && [ ! -e $HOME/deploy.failed ] && deployed_is $old'
+deploy
+check "次の回に入れ替える" 'exited 0 && deployed_is $new'
+
 echo
 echo "failures: $failures"
 [ "$failures" = 0 ]

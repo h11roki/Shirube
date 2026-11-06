@@ -81,7 +81,10 @@ main にマージすると、CI が通った版だけ Arm のイメージを作�
 
 ```sh
 cd ~/Shirube && git rev-parse HEAD > ~/deploy.version && git pull --ff-only && ./deploy.sh
+docker builder prune -af
 ```
+
+最後の行は、サーバーで作っていたころのビルドのキャッシュを消す(GHCR が使えずにサーバーで作ったあとも流す)。
 
 ```
 */5 * * * * ~/Shirube/deploy.sh >> ~/deploy.log 2>&1
@@ -89,10 +92,11 @@ cd ~/Shirube && git rev-parse HEAD > ~/deploy.version && git pull --ff-only && .
 
 `~/deploy.log` には、入れ替えたとき、失敗したとき、途中で止まったときだけ書く。待たずに入れ替えたいときは、サーバーで `~/Shirube/deploy.sh` を流す(同時には 1 つしか流れない)。失敗した版をもう一度試すときは `~/deploy.failed` を、止めた入れ替えを再び動かすときは、手で直してから `~/deploy.held` を消す。
 
-GHCR が使えないときは、今までどおりサーバーで作って入れ替える。cron の `deploy.sh` と重ならないよう `~/deploy.lock` を取って流し、終わったら動いている版を `~/deploy.version` に書く。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
+GHCR が使えないときは、今までどおりサーバーで作って入れ替える。cron の `deploy.sh` と重ならないよう `~/deploy.lock` を取って流し、終わったら動いている版を `~/deploy.version` に書き、止まっていた入れ替えを手で片付けたのなら `~/deploy.held` と `~/deploy.failed` も消す。先にイメージを作り(動いている版はそのまま応える)、backend と worker を止めてからマイグレーションを流す(古い版が新しいスキーマで動かないように)。メモリが足りずにビルドが落ちるときは、ビルドのあいだも worker を止める。
 
 ```sh
 flock ~/deploy.lock sh -c '
+  cd ~/Shirube &&
   git pull --ff-only &&
   docker compose -f compose.prod.yaml build &&
   docker compose -f compose.prod.yaml stop backend worker &&

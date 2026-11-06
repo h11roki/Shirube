@@ -16,6 +16,7 @@ manifest)
 	esac
 	;;
 pull)
+	[ "${PULL_FAIL:-0}" = 1 ] && { echo "pull failed" >&2; exit 1; }
 	image="${!#}"
 	set_tag "$image" "id-${image##*:}"
 	;;

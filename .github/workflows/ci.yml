@@ -129,6 +129,8 @@ jobs:
     permissions:
       contents: read
       packages: write
+    env:
+      IMAGE: ghcr.io/${{ github.repository_owner }}/shirube
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -141,7 +143,7 @@ jobs:
         with:
           context: backend
           push: true
-          tags: ghcr.io/h11roki/shirube-backend:${{ github.sha }}
+          tags: ${{ env.IMAGE }}-backend:${{ github.sha }}
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=backend
           cache-to: type=gha,scope=backend,mode=max
@@ -151,7 +153,7 @@ jobs:
           target: runner
           build-args: SITE_URL=https://${{ vars.SITE_DOMAIN }}
           push: true
-          tags: ghcr.io/h11roki/shirube-frontend:${{ github.sha }}
+          tags: ${{ env.IMAGE }}-frontend:${{ github.sha }}
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,scope=frontend,mode=max
