@@ -608,6 +608,7 @@ test.describe("先に入れる授業", () => {
       .fill(SAMPLE_PLAN.conditions.occupation);
     await page.getByText(fixedCoursesSummary(0)).click();
     await page.getByLabel("授業名で絞る").fill("回路");
+    await page.getByLabel("授業名で絞る").press("Enter");
     await expect(page.getByText(matchCountLabel(2))).toBeVisible();
     await page.getByRole("checkbox", { name: kept.name, exact: true }).check();
     await page
@@ -634,7 +635,7 @@ test.describe("先に入れる授業", () => {
     ).toBeVisible();
   });
 
-  test("回生を変えて一覧に無くなった授業は、変えた先の一覧で選び直すと選んだ並びから外れる", async ({
+  test("回生を変えても欄は開いたままで、一覧に無くなった授業は、変えた先の一覧で選び直すと選んだ並びから外れる", async ({
     page,
     api,
   }) => {
@@ -658,13 +659,12 @@ test.describe("先に入れる授業", () => {
       .getByRole("checkbox", { name: firstGradeOnly.name, exact: true })
       .check();
     await page.getByLabel("いまの回生").selectOption("2");
-    await page.getByText(fixedCoursesSummary(0)).click();
     await page
       .getByRole("checkbox", { name: secondGradeOnly.name, exact: true })
       .check();
     await expect(page.getByText(fixedCoursesSummary(1))).toBeVisible();
     await page.getByLabel("いまの回生").selectOption("1");
-    await page.getByText(fixedCoursesSummary(0)).click();
+    await expect(page.getByText(fixedCoursesSummary(0))).toBeVisible();
     await expect(
       page.getByRole("checkbox", { name: firstGradeOnly.name, exact: true }),
     ).not.toBeChecked();

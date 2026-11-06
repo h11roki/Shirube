@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 
 import { FIELD, SMALL_BUTTON } from "@/components/styles";
 import type { OfferedCourse } from "@/lib/api/client";
@@ -27,13 +27,11 @@ export function FixedCoursePicker({
   const rows = useId();
   const filterInput = useId();
   const chosenNames = new Set(chosen.map((course) => course.name));
-  const matches = matchingCourses(courses, filter);
+  const matches = useMemo(
+    () => matchingCourses(courses, filter),
+    [courses, filter],
+  );
   const full = chosen.length >= MAX_FIXED_COURSES;
-
-  function drop(name: string) {
-    onToggle(name);
-    summary.current?.focus();
-  }
 
   return (
     <details className="border border-line bg-paper p-4">
@@ -64,7 +62,10 @@ export function FixedCoursePicker({
                 </span>
                 <button
                   type="button"
-                  onClick={() => drop(course.name)}
+                  onClick={() => {
+                    onToggle(course.name);
+                    summary.current?.focus();
+                  }}
                   aria-label={dropFixedLabel(course.name)}
                   className={SMALL_BUTTON}
                 >
@@ -85,6 +86,11 @@ export function FixedCoursePicker({
           className={FIELD}
           value={filter}
           onChange={(event) => setFilter(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === "Enter") {
+              event.preventDefault();
+            }
+          }}
         />
       </div>
       <div aria-live="polite" className="mt-2 space-y-1 text-sm text-sub">

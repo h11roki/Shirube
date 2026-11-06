@@ -4,7 +4,7 @@ import { messageOf, requestJson } from "@/lib/api/client";
 
 export type ApiAnswer<T> = {
   answer: T | undefined;
-  lastAnswer: T | undefined;
+  loading: boolean;
   failure: string | undefined;
   reloading: boolean;
   reload: () => void;
@@ -37,10 +37,13 @@ export function useApiAnswer<T>(path: string, query: string): ApiAnswer<T> {
     };
   }, [path, query, reloads]);
 
+  const current = loaded?.query === query ? loaded.answer : undefined;
+  const failure = failed?.query === query ? failed.message : undefined;
+  const loading = current === undefined && failure === undefined;
   return {
-    answer: loaded?.query === query ? loaded.answer : undefined,
-    lastAnswer: loaded?.answer,
-    failure: failed?.query === query ? failed.message : undefined,
+    answer: current ?? (loading ? loaded?.answer : undefined),
+    loading,
+    failure,
     reloading,
     reload: () => {
       setReloading(true);

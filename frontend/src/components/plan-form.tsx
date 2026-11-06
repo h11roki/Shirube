@@ -49,10 +49,8 @@ export function PlanForm() {
   const offered = useApiAnswer<OfferedCourses>("/api/offered-courses", query);
   const choices = classChoices.answer;
   const fixedCourses = chosenCourses(offered.answer, chosenFixed);
-  const loading =
-    (!choices && !classChoices.failure) ||
-    (!offered.answer && !offered.failure);
-  const term = chosenTerm ?? classChoices.lastAnswer?.term;
+  const loading = classChoices.loading || offered.loading;
+  const term = chosenTerm ?? classChoices.answer?.term;
 
   function toggleFixed(name: string) {
     const offeredNames = fixedCourses.map((course) => course.name);
@@ -94,6 +92,7 @@ export function PlanForm() {
       setSubmitError(messageOf(error));
       setSubmitting(false);
       setTakenRefresh((current) => current + 1);
+      offered.reload();
     }
   }
 
@@ -165,7 +164,11 @@ export function PlanForm() {
 
       {offered.failure && (
         <FailureNotice
-          lead="先に入れる授業の一覧を読み込めませんでした(選べないまま送ると、先に入れる授業なしで作ります): "
+          lead={
+            offered.answer
+              ? "先に入れる授業の一覧を読み直せませんでした(前に読んだ一覧のまま選べます): "
+              : "先に入れる授業の一覧を読み込めませんでした(このまま送ると先に入れる授業なしで作ります): "
+          }
           message={offered.failure}
           onRetry={offered.reload}
           busy={offered.reloading}
@@ -182,7 +185,11 @@ export function PlanForm() {
 
       {classChoices.failure && (
         <FailureNotice
-          lead="クラスの選択を読み込めませんでした(選べないまま送ると、クラスは未確定で置きます): "
+          lead={
+            choices
+              ? "クラスの選択を読み直せませんでした(前に読んだ選択のまま選べます): "
+              : "クラスの選択を読み込めませんでした(このまま送るとクラスは未確定で置きます): "
+          }
           message={classChoices.failure}
           onRetry={classChoices.reload}
           busy={classChoices.reloading}
