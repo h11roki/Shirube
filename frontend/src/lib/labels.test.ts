@@ -27,6 +27,7 @@ import {
   hopPlace,
   backPlace,
   arrivalsLabel,
+  classChoicesSummary,
   fixedCoursesSummary,
   offeredCourseNote,
   matchCountLabel,
@@ -131,6 +132,12 @@ describe("labels", () => {
     expect(markTakenLabel("情報処理")).toBe("情報処理はもう取った");
     expect(unmarkTakenLabel("情報処理")).toBe("情報処理を道標に戻す");
     expect(forgetTakenLabel("情報処理")).toBe("情報処理を取り消す");
+  });
+
+  it("counts the courses with a class to choose", () => {
+    expect(classChoicesSummary(1)).toBe(
+      "学科でクラスが分かれている科目(1 科目、任意)",
+    );
   });
 
   it("describes the courses to place first", () => {

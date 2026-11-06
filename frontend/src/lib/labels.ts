@@ -199,6 +199,10 @@ export function unmarkTakenLabel(name: string): string {
   return `${name}を道標に戻す`;
 }
 
+export function classChoicesSummary(count: number): string {
+  return `学科でクラスが分かれている科目(${count} 科目、任意)`;
+}
+
 export function fixedCoursesSummary(count: number): string {
   return `先に入れる授業(選んだ ${count} 科目、任意)`;
 }

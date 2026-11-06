@@ -21,7 +21,12 @@ import {
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
 import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
-import { DEPARTMENT_NAME, TERM_LABELS, classLabel } from "@/lib/labels";
+import {
+  DEPARTMENT_NAME,
+  TERM_LABELS,
+  classChoicesSummary,
+  classLabel,
+} from "@/lib/labels";
 
 const DEPARTMENT = "情";
 const GRADES = [1, 2, 3, 4];
@@ -197,7 +202,7 @@ export function PlanForm() {
       {choices && choices.courses.length > 0 && (
         <details className="border border-line bg-paper p-4">
           <summary className="cursor-pointer py-1 text-sm font-medium">
-            学科でクラスが分かれている科目({choices.courses.length} 科目、任意)
+            {classChoicesSummary(choices.courses.length)}
           </summary>
           <p className="mt-3 text-sm text-sub">
             自分のクラスが分かっている科目だけ選んでください。選ばない科目が道標に入ったときは、学科向けのクラスに置き「クラス未確定」と出します。

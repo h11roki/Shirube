@@ -3,6 +3,7 @@ import type { Page } from "@playwright/test";
 
 import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import {
+  classChoicesSummary,
   dropFixedLabel,
   fixedCoursesSummary,
   forgetTakenLabel,
@@ -120,9 +121,7 @@ const SCREENS: Screen[] = [
         }),
       ).toBeVisible();
       await page
-        .getByText(
-          `学科でクラスが分かれている科目(${CLASS_CHOICES.courses.length} 科目、任意)`,
-        )
+        .getByText(classChoicesSummary(CLASS_CHOICES.courses.length))
         .click();
       await page
         .getByText(`もう取ったと答えた授業(${TAKEN_COURSES.names.length} 科目)`)
