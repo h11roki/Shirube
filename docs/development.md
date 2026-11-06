@@ -146,24 +146,29 @@ docker compose -f compose.prod.yaml exec backend uv run --no-sync python -m app.
 0 4 * * * ~/Shirube/backup.sh >> ~/backups/backup.log 2>&1
 ```
 
-戻すときは、backend と worker を止めてから 1 つのトランザクションで戻し、マイグレーションを流してから起動する(バックアップが今のコードより前のスキーマのことがある。2026-11-07 の演習では 11-06 のバックアップが 0011 で、本番は 0012 だった)。そのバックアップのあとに消した道標や退会した人の情報も戻るので、プライバシーポリシーに書いたとおり、戻したことをポリシーのページで知らせ、もう一度消すか退会するよう書く。
+戻すときは、`deploy.sh` と重ならないよう `~/deploy.lock` を取り、backend と worker を止め、DB を作り直して空の DB に 1 つのトランザクションで戻し、マイグレーションを流してから起動する。週ごとの演習(下)と同じ戻し方にしてある。今の DB の上に `--clean` で戻すと、バックアップのあとのマイグレーションで足した表や外部キーが残り、マイグレーションか戻しが落ちうる。戻しに失敗したら、DB は空のままなので、同じ手順をもう一度流す。バックアップは今のコードより前のスキーマのことがある(2026-11-07 の演習では 11-06 のバックアップが 0011 で、本番は 0012 だった)。そのバックアップのあとに消した道標や退会した人の情報も戻るので、プライバシーポリシーに書いたとおり、戻したことをポリシーのページで知らせ、もう一度消すか退会するよう書く。
 
 ```sh
-docker compose -f compose.prod.yaml stop backend worker
-docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --clean --if-exists --single-transaction < ~/backups/shirube-<日付>.dump
-docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head
-docker compose -f compose.prod.yaml up -d
+flock ~/deploy.lock sh -c '
+  cd ~/Shirube &&
+  docker compose -f compose.prod.yaml stop backend worker &&
+  docker compose -f compose.prod.yaml exec -T db dropdb -U shirube --force shirube &&
+  docker compose -f compose.prod.yaml exec -T db createdb -U shirube shirube &&
+  docker compose -f compose.prod.yaml exec -T db pg_restore -U shirube -d shirube --no-owner --single-transaction < ~/backups/shirube-<日付>.dump &&
+  docker compose -f compose.prod.yaml run --rm backend uv run --no-sync alembic upgrade head &&
+  docker compose -f compose.prod.yaml up -d
+'
 ```
 
 ### 戻しの演習
 
-バックアップが本当に戻せるかを、毎週 `restore-drill.sh` で確かめる(ADR 0097)。一番新しいバックアップを、ネットワークから切り離した使い捨ての Postgres のコンテナに戻し、本番の backend のイメージでマイグレーションを流し、スキーマの版が本番と同じか、科目の表の行の数が本番と同じかを見て、かかった秒と結果を 1 行書き、コンテナを消す。本番の DB には読むだけで、データはサーバーの外に出ない。合わなければ 1 で終わり、理由を書く。cron には、バックアップのあとに書く。
+バックアップが本当に戻せるかを、毎週 `restore-drill.sh` で確かめる(ADR 0097)。`~/deploy.lock` を取り(入れ替えの途中で比べない)、1 日より新しいバックアップのうち一番新しいものを、本番の DB と同じイメージで、ネットワークから切り離し、データをメモリの上にだけ置く(`--tmpfs`)使い捨ての Postgres のコンテナに戻す。本番の backend のイメージでマイグレーションを流し、スキーマの版が本番と同じか、科目の 5 つの表の行の数が本番と同じかを見て、かかった秒と結果を 1 行書き、コンテナを消す(ディスクに複製を残さない)。本番の DB には読むだけで、データはサーバーの外に出ない。1 日より新しいバックアップが無い、起動しない、戻せない、合わないときは、理由を書いて 1 で終わる。科目の表を足したら、`restore-drill.sh` の一覧にも足す。cron には、バックアップのあとに書く。
 
 ```
 30 4 * * 0 ~/Shirube/restore-drill.sh >> ~/backups/drill.log 2>&1
 ```
 
-2026-11-07 に初めて流した結果: 11-06 のバックアップ(11MB)を 7 秒で戻し、スキーマを 0011 から 0012 に上げられ、科目の 5 つの表は本番と同じだった。前の戻しの手順にマイグレーションが無いことが分かり、上の手順に足した。
+2026-11-07 に初めて流した結果: 11-06 のバックアップ(11MB、DB は 26MB)を 5〜7 秒で戻し、スキーマを 0011 から 0012 に上げられ、科目の 5 つの表は本番と同じだった。前の戻しの手順にマイグレーションが無いことが分かり、上の手順に足した。初めの版はコンテナの名前の無いボリュームを消さず、本番の DB の複製がディスクに残っていたので消し、メモリの上に置く形にした。
 
 ## LLM の安全性の確認
 
