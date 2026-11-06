@@ -79,13 +79,19 @@ jobs:
           path: frontend/test-results
           retention-days: 7
 
-  production:
+  scripts:
     runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - run: shellcheck --severity=warning deploy.sh backup.sh tests/deploy/run.sh tests/deploy/shims/*
+      - run: tests/deploy/run.sh
+
+  production:
+    runs-on: ubuntu-24.04-arm
     env:
       SITE: shirube.localhost
     steps:
       - uses: actions/checkout@v7
-      - run: shellcheck --severity=warning deploy.sh backup.sh
       - name: 試しの値で .env を書く
         run: |
           {
@@ -118,7 +124,7 @@ jobs:
 
   images:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [backend, frontend, production]
+    needs: [backend, frontend, scripts, production]
     runs-on: ubuntu-24.04-arm
     permissions:
       contents: read

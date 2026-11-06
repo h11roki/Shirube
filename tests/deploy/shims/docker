@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+state="$HOME/images"
+touch "$state"
+echo "docker $*" >> "$HOME/calls"
+
+id_of() { awk -v name="$1" '$1 == name { print $2 }' "$state"; }
+set_tag() { grep -v "^$1 " "$state" > "$state.tmp" || true; mv "$state.tmp" "$state"; echo "$1 $2" >> "$state"; }
+
+case "$1" in
+manifest)
+	tag="${3##*:}"
+	case "${MANIFEST:-ok}" in
+	ok) grep -qx "$tag" "$HOME/published" && exit 0; echo "no such manifest: $3" >&2; exit 1 ;;
+	denied) echo "unauthorized: authentication required" >&2; exit 1 ;;
+	esac
+	;;
+pull)
+	image="${!#}"
+	set_tag "$image" "id-${image##*:}"
+	;;
+tag)
+	id=$(id_of "$2")
+	[ -n "$id" ] || { echo "No such image: $2" >&2; exit 1; }
+	set_tag "$3" "$id"
+	;;
+rmi)
+	grep -q "^$2 " "$state" || { echo "No such image: $2" >&2; exit 1; }
+	grep -v "^$2 " "$state" > "$state.tmp" || true
+	mv "$state.tmp" "$state"
+	;;
+image)
+	[ "$2" = prune ] || [ -n "$(id_of "$3")" ]
+	;;
+images)
+	awk -v repo="$2" '{ split($1, part, ":"); if (part[1] == repo) print part[2] }' "$state"
+	;;
+compose)
+	shift 3
+	case "$1" in
+	up)
+		if [[ " $* " == *" --wait "* ]] && [ "${UP_FAIL:-0}" = 1 ]; then exit 1; fi
+		;;
+	run)
+		[ "${MIGRATE_FAIL:-0}" = 1 ] && exit 1
+		;;
+	esac
+	;;
+esac
+exit 0

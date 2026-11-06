@@ -75,7 +75,7 @@ docker compose -f compose.prod.yaml up -d
 
 ### 更新するとき
 
-main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、イメージを取り、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待って、Caddy を通してトップとログインなしの API を確かめる。応えなければ前の版のコードとイメージ(`previous` の札)に戻し(マイグレーションを流した版は戻さずに止める)、失敗した版は次の版が来るまで試さない。cron には次を書く(`crontab -e`)。
+main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR(`ghcr.io/h11roki/shirube-backend` と `shirube-frontend`、タグは commit)に置き、サーバーの cron が 5 分おきに流す `deploy.sh` がそれを見つけて入れ替える(ADR 0094)。`deploy.sh` は、いま動いている版を `~/deploy.version` に持ち、イメージを取って commit の札を付け、`git merge --ff-only` で設定を新しい版にし、`backend/migrations` が変わった版なら backend と worker を止めてマイグレーションを流し、`up -d --wait` でヘルスチェックを待ち(`Caddyfile` が変わった版は caddy を作り直す)、Caddy を通してトップ、ログインなしの API、`robots.txt` のサイトマップの URL を確かめる。応えなければ前の版のコードとイメージに戻し(マイグレーションを流した版は戻さずに止める)、失敗した版は次の版が来るまで試さない。途中で止まったときは、次の回に同じ版をやり直す。振る舞いは `tests/deploy/run.sh` で確かめる(CI の scripts の job)。cron には次を書く(`crontab -e`)。
 
 ```
 */5 * * * * ~/Shirube/deploy.sh >> ~/deploy.log 2>&1

@@ -21,35 +21,44 @@
 
 高橋さんが 1 を選んだ。
 
-- CI に `images` の job を足す。main への push で、backend、frontend、production の 3 つの job が通ったときだけ、Arm の runner(`ubuntu-24.04-arm`)で backend と frontend(`runner` の段)のイメージを作り、`ghcr.io/h11roki/shirube-backend:<commit>` と `ghcr.io/h11roki/shirube-frontend:<commit>` に置く。frontend のビルドに渡す `SITE_URL` は、リポジトリの変数 `SITE_DOMAIN` から作る。イメージがあることが、その版の CI が通ったことの印になる
-- サーバーの `deploy.sh` を cron で 5 分おきに流す。`git fetch` で main の先頭を見て、今の版と違い、その版の 2 つのイメージが GHCR にあり、前にその版で失敗していなければ、入れ替える
-  1. イメージを取る(動いている版はそのまま応える)
-  2. `git merge --ff-only` で compose や Caddy の設定と `deploy.sh` 自身を新しい版にする。進められなければ何も替えずに止める
-  3. 今のイメージに `previous` の札を付けて残し、取ったイメージに compose が使う名前(`shirube-prod-backend`、`shirube-prod-frontend`)を付ける
-  4. その版で `backend/migrations` が変わっていれば、backend と worker を止めてからマイグレーションを流す(ADR 0075 の手順と同じ。古い版が新しいスキーマで動かないように)。失敗したら前の版のコードとイメージに戻す。変わっていなければ止めない
-  5. `docker compose up -d --no-build --wait` で入れ替え、backend と frontend のヘルスチェックが通るのを待ち、Caddy を通してトップが 200、ログインなしの API が 401 かを確かめる
-  6. 応えなければ、マイグレーションを流していなければ前の版のコードとイメージに戻す。流したときは戻さずに止める(新しいスキーマで古い版が動く保証が無い)。どちらも失敗した版を覚え、次の版が来るまで同じ版を試さない。入れ替えたら、札の外れた古いイメージを消す
+- CI に `images` の job を足す。main への push で、ほかの job(backend、frontend、scripts、production)が全て通ったときだけ、Arm の runner(`ubuntu-24.04-arm`)で backend と frontend(`runner` の段)のイメージを作り、`ghcr.io/h11roki/shirube-backend:<commit>` と `ghcr.io/h11roki/shirube-frontend:<commit>` に置く。frontend のビルドに渡す `SITE_URL` は、リポジトリの変数 `SITE_DOMAIN` から作る。イメージがあることが、その版の CI が通ったことの印になる
+- CI の production の job を Arm の runner に移し、本番と同じ CPU で compose の構成を組み立てて確かめる
+- サーバーの `deploy.sh` を cron で 5 分おきに流す。いま動いている版を `~/deploy.version` に持ち(無ければ初めに git の今の版を書く)、`git fetch` で見た main の先頭がそれと違い、その版の 2 つのイメージが GHCR にあり、前にその版で失敗していなければ、入れ替える
+  1. イメージを取り、その commit の札を付ける(動いている版はそのまま応える)。動いている版のイメージにも、まだ無ければその commit の札を付けて残す
+  2. `git merge --ff-only` で compose や Caddy の設定と `deploy.sh` 自身を新しい版にする。進められなければ止める
+  3. compose が使う名前(`shirube-prod-backend:latest`、`shirube-prod-frontend:latest`)を新しい版のイメージに付け替える
+  4. その版までに `backend/migrations` が変わっていれば、backend と worker を止めてからマイグレーションを流す(ADR 0075 の手順と同じ。古い版が新しいスキーマで動かないように)。失敗したら前の版に戻す。変わっていなければ止めない
+  5. `docker compose up -d --no-build --wait` で入れ替え、backend と frontend のヘルスチェックが通るのを待つ。`Caddyfile` が変わっていれば caddy を作り直す(1 つのファイルのバインドマウントは、git がファイルを置き換えると前の中身を指したままになるため)
+  6. Caddy を通して、トップが 200、ログインなしの API が 401、`robots.txt` のサイトマップの URL がサーバーの `SITE_DOMAIN` と同じかを確かめる(最後は、CI の変数で frontend に入れた URL とサーバーの設定の食い違いを見つける)
+  7. 通れば `~/deploy.version` を新しい版にし、新しい版と前の版のイメージだけを残して古いものを消す
+  8. 応えなければ、マイグレーションを流していなければ前の版のコード(`git reset --keep`)とイメージに戻す。流したときは戻さずに止める(新しいスキーマで古い版が動く保証が無い)。どちらも失敗した版を `~/deploy.failed` に覚え、次の版が来るまで同じ版を試さない(消せば試し直す)
+- 途中で止まったとき(サーバーの再起動など)は、`~/deploy.version` が前の版のままなので、次の回に同じ版を初めからやり直す
+- GHCR にイメージが無いだけなら何も書かずに待ち、取れない理由がほかにあれば(非公開、認証、通信)理由を書く
 - 入れ替えの記録は `~/deploy.log` に、入れ替えたときと失敗したときだけ書く。同時には 1 つしか流さない
 - compose の backend、frontend、worker はローカルの名前のイメージを使い(`pull_policy: never`)、`build` も残す。CI の production の job と、GHCR が使えないときの手での入れ替えは、今までどおりサーバーで作れる
-- compose の backend と frontend にヘルスチェックを足す。backend は 8000 番に繋がるか(uvicorn は起動の処理を終えてから受け付ける)、frontend はトップが 200 か。CI の production の job も `--wait` で起動し、ヘルスチェックが通るかを確かめる。`deploy.sh` と `backup.sh` は CI で shellcheck にかける
+- compose の backend と frontend にヘルスチェックを足す。backend は 8000 番に繋がるか(uvicorn は起動の処理を終えてから受け付ける)、frontend はトップが 200 か。CI の production の job も `--wait` で起動し、ヘルスチェックが通るかを確かめる
+- `deploy.sh` の振る舞い(初回、イメージがまだ無い、GHCR に断られる、応えないので戻す、マイグレーションの失敗、マイグレーションを流した版が応えない、Caddyfile の変更、URL の食い違い、途中で止まった版のやり直し)を、`docker` と `curl` を差し替えた試験(`tests/deploy/run.sh`)で確かめる。CI の scripts の job が、shellcheck とこの試験を流す
 - 手で入れ替えたいときは、サーバーで `deploy.sh` を流す。GHCR が使えないときは、ADR 0075 の手順どおりサーバーで作って入れ替えられる
 
 ## 理由
 
 - 外からサーバーに入る口が増えない。GitHub に SSH の鍵も AWS の権限も置かず、セキュリティグループの 22 番は今のまま自分の IP だけに開けておける
 - AWS の機能(SSM、IAM)に頼らないので、ほかのサーバーに移っても `deploy.sh` と cron をそのまま使える
-- イメージは CI の Arm の runner で作るので、サーバーで `next build` が走らず、メモリとディスクを使わない。どの版のイメージも CI を通った同じものになる
+- イメージは CI の Arm の runner で作るので、サーバーで `next build` が走らず、メモリとディスクを使わない
 - 公開リポジトリでは、GitHub Actions(Arm の runner を含む)と GHCR の公開のイメージは無料
-- 入れ替えの手順が 1 つのスクリプトに書かれるので、マイグレーションの流し忘れが起きない
+- 入れ替えの手順が 1 つのスクリプトに書かれ、試験があるので、マイグレーションの流し忘れや、手順の抜けが起きない
 
 ## 受け入れたトレードオフ
 
 - マージから本番まで、CI(5 分ほど)とイメージの作成と、cron の間隔の最大 5 分がかかる。急ぐときは手で `deploy.sh` を流せる
+- 置くイメージは、CI の production の job が確かめたイメージそのものではない。frontend は `SITE_URL` をビルドで埋め込むので(ADR 0045)、試しの名前(`shirube.localhost`)と本番の名前で別に作る必要がある。同じ Dockerfile と同じ CPU で作り、入れ替えたあとに本番の名前で確かめ、だめなら戻すことで補う
+- backend のヘルスチェックは 8000 番に繋がるかだけで、DB や worker が動くかは見ない。監視(次の ADR)で DB に触れる health の API を足したら、`deploy.sh` もそれを確かめる
 - GHCR のイメージは誰でも取れる。秘密の値はイメージに入れず `.env` から渡すので、見られて困るものは無い(コードは公開している)
-- マイグレーションを流した版が応えないときは、自動では戻さず止まる。監視の知らせ(次の ADR)を見て手で直す
+- マイグレーションを流した版が応えないときは、自動では戻さず止まる。監視の知らせを見て手で直す
 - backend と worker を止めるのはマイグレーションのある版だけで、そのあいだ道標を作れない。worker は作っている 1 件を終えるまで最長 17 分待つ
 - CI が落ちた版のイメージは作られないので、main がその版で止まっているあいだは何も入れ替わらない。次に CI が通った版で追いつく
 - `deploy.sh` は自分自身を `git merge` で書き換えるので、全体を関数に入れ、読み込みを終えてから動かす
+- 戻すときの `git reset --keep` は、サーバーで手で直したファイルがあると止まる(消さない)。そのときは `~/deploy.failed` を残して止まるので、手で片付ける
 
 ## 再検討する条件
 
