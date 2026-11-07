@@ -42,11 +42,32 @@ jobs:
         if: ${{ !cancelled() && hashFiles('backend/.coverage') != '' }}
         run: uv run coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
 
+  playwright-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: frontend/pnpm-lock.yaml
+          sparse-checkout-cone-mode: false
+      - id: image
+        run: |
+          version=$(yq '.importers["."].devDependencies["@playwright/test"].version' frontend/pnpm-lock.yaml)
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.-]*$ ]]
+          echo "image=mcr.microsoft.com/playwright:v$version-noble" >> "$GITHUB_OUTPUT"
+
   frontend:
+    needs: playwright-image
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    container:
+      image: ${{ needs.playwright-image.outputs.image }}
+      options: --user 1001 --ipc=host
     defaults:
       run:
+        shell: bash
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7
@@ -67,25 +88,14 @@ jobs:
       - name: カバレッジを job の要約に書く
         if: ${{ !cancelled() && hashFiles('frontend/coverage/coverage-summary.json') != '' }}
         run: |
-          jq -r '.total | "| | % | 数 |\n|---|---|---|\n" + ([("statements", "branches", "functions", "lines") as $metric | "| \($metric) | \(.[$metric].pct) | \(.[$metric].covered)/\(.[$metric].total) |"] | join("\n"))' coverage/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
+          node -p '
+            const { total } = require("./coverage/coverage-summary.json");
+            const rows = ["statements", "branches", "functions", "lines"].map((metric) =>
+              ["", metric, total[metric].pct, total[metric].covered + "/" + total[metric].total, ""].join(" | ").trim(),
+            );
+            ["| | % | 数 |", "|---|---|---|", ...rows].join("\n");
+          ' >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm format:check
-      - id: playwright
-        run: |
-          version=$(pnpm exec playwright --version | awk '{print $2}')
-          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+[0-9A-Za-z.+-]*$ ]]
-          echo "key=playwright-${ImageOS:?}-${RUNNER_ARCH:?}-$version" >> "$GITHUB_OUTPUT"
-      - id: browsers
-        uses: actions/cache/restore@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.playwright.outputs.key }}
-      - run: pnpm exec playwright install --with-deps chromium webkit
-        timeout-minutes: 10
-      - if: steps.browsers.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v6
-        with:
-          path: ~/.cache/ms-playwright
-          key: ${{ steps.playwright.outputs.key }}
       - name: pnpm test:e2e
         run: |
           set -o pipefail
