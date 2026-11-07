@@ -95,8 +95,9 @@ CI の `playwright install --with-deps` が、ブラウザの取得の途中で�
 
 そこで、frontend の job を Playwright の公式イメージ(`mcr.microsoft.com/playwright:v<版>-noble`、Node 24、git を含む)のコンテナで、文書のとおり runner と同じ利用者(`--user 1001`)で流す。ブラウザと系の依存はイメージに入っていて、job の中では取得も apt も行わない。前の追記のブラウザのキャッシュ、版を読む段、取得の段とその上限は消す。job の時間の上限と、取り消しでも記録を残すことは残す。
 
-- イメージの版は `@playwright/test` の版とそろえる。Playwright はイメージに自分の版を記していて、違えば通しの試験が、どのイメージにすればよいかを書いた文で落ちる。Playwright を上げる PR では、`ci.yml` のイメージの版も同じに上げる
-- イメージは版のタグで書く(CI の services の DB と同じ。Dockerfile の土台は digest で固定するが、試験だけで使うイメージは版のタグで足りる)
-- 取得はイメージの取得 1 回(Microsoft のコンテナの配信)になり、Ubuntu のミラーに頼らない
+- イメージの版は `@playwright/test` の版とそろえないと動かない(Playwright はイメージに自分の版を記していて、違えば通しの試験がどのイメージにすればよいかを書いた文で落ちる)。手で 2 か所に書くとずれ、Dependabot が Playwright を上げる PR が毎回落ちるので、前の job(`playwright-image`)が `pnpm-lock.yaml` の `@playwright/test` の版を読んでイメージの名前を作り、frontend の job に渡す。版を読めなければこの job を落とす
+- `playwright-image` が落ちると frontend の job は飛ばされ、飛ばされた必須の check は通ったと見なされるので、`playwright-image` も main の必須の check にする
+- イメージは版のタグで引く(CI の services の DB と同じ。Dockerfile の土台は digest で固定するが、試験だけで使うイメージは、lock の版に付いていける版のタグにする)
+- 取得はイメージの取得 1 回(Microsoft のコンテナの配信)になり、Ubuntu のミラーに頼らない。コンテナの取得は段の外なので、段ごとの上限は付けられず、job の 45 分の上限だけで止まる
 
 再検討する条件に足す: イメージの取得が遅くて job が上限に当たることが続くとき、Playwright がこのイメージを出さなくなったとき。
