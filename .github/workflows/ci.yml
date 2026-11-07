@@ -64,9 +64,10 @@ jobs:
     timeout-minutes: 45
     container:
       image: ${{ needs.playwright-image.outputs.image }}
-      options: --user 1001
+      options: --user 1001 --ipc=host
     defaults:
       run:
+        shell: bash
         working-directory: frontend
     steps:
       - uses: actions/checkout@v7
