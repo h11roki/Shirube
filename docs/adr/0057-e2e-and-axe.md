@@ -93,7 +93,7 @@ CI の `playwright install --with-deps` が、ブラウザの取得の途中で�
 
 前の追記の、止まった原因の見立てが違っていた。止まった 2 回と、キャッシュを入れたあとの 3 回目の記録を見ると、どれもブラウザの取得ではなく、`--with-deps` が apt で入れる系の依存(181 個、114MB)の取得で、Azure の Ubuntu のミラーが止まらずに這うように遅くなっていた(8 分で 20MB ほど)。apt の時間切れは無通信の間しか見ないので、這う取得は切れない。ブラウザのキャッシュは apt に効かず、時間も変わらなかった(外れ 38 秒、当たり 43 秒)。Playwright の文書も、Linux では系の依存をキャッシュできず、戻す時間が取得と変わらないとして、ブラウザのキャッシュを勧めていない。
 
-そこで、frontend の job を Playwright の公式イメージ(`mcr.microsoft.com/playwright:v<版>-noble`、Node 24、git を含む)のコンテナで、文書のとおり runner と同じ利用者(`--user 1001`)で、Chromium が Docker の既定の 64MB の共有メモリで落ちないよう `--ipc=host` を付けて流す。コンテナの中では `run` の既定のシェルが sh になり、`set -o pipefail` が使えず、`| tee` が試験の失敗を隠すので、job の既定のシェルを bash にする。ブラウザと系の依存はイメージに入っていて、job の中では取得も apt も行わない。前の追記のブラウザのキャッシュ、版を読む段、取得の段とその上限は消す。job の時間の上限と、取り消しでも記録を残すことは残す。
+そこで、frontend の job を Playwright の公式イメージ(`mcr.microsoft.com/playwright:v<版>-noble`、git を含む)のコンテナで、文書のとおり runner と同じ利用者(`--user 1001`)で、Chromium が Docker の既定の 64MB の共有メモリで落ちないよう `--ipc=host` を付けて流す。コンテナの中では `run` の既定のシェルが sh になり、`set -o pipefail` が使えず、`| tee` が試験の失敗を隠すので、job の既定のシェルを bash にする。ブラウザと系の依存はイメージに入っていて、job の中では取得も apt も行わない。前の追記のブラウザのキャッシュ、版を読む段、取得の段とその上限は消す。job の時間の上限と、取り消しでも記録を残すことは残す。Node は、これまでどおり setup-node で本番の frontend のイメージ(node:24)と同じ版にそろえる。イメージの Node は Playwright が決める版で、本番とずれうるので頼らない。
 
 - イメージの版は `@playwright/test` の版とそろえないと動かない(Playwright はイメージに自分の版を記していて、違えば通しの試験がどのイメージにすればよいかを書いた文で落ちる)。手で 2 か所に書くとずれ、Dependabot が Playwright を上げる PR が毎回落ちるので、前の job(`playwright-image`)が `pnpm-lock.yaml` の `@playwright/test` の版を読んでイメージの名前を作り、frontend の job に渡す。版を読めなければこの job を落とす
 - `playwright-image` が落ちると frontend の job は飛ばされ、飛ばされた必須の check は通ったと見なされるので、`playwright-image` も main の必須の check にする
