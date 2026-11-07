@@ -88,7 +88,13 @@ jobs:
       - name: カバレッジを job の要約に書く
         if: ${{ !cancelled() && hashFiles('frontend/coverage/coverage-summary.json') != '' }}
         run: |
-          jq -r '.total | "| | % | 数 |\n|---|---|---|\n" + ([("statements", "branches", "functions", "lines") as $metric | "| \($metric) | \(.[$metric].pct) | \(.[$metric].covered)/\(.[$metric].total) |"] | join("\n"))' coverage/coverage-summary.json >> "$GITHUB_STEP_SUMMARY"
+          node -p '
+            const { total } = require("./coverage/coverage-summary.json");
+            const rows = ["statements", "branches", "functions", "lines"].map((metric) =>
+              ["", metric, total[metric].pct, total[metric].covered + "/" + total[metric].total, ""].join(" | ").trim(),
+            );
+            ["| | % | 数 |", "|---|---|---|", ...rows].join("\n");
+          ' >> "$GITHUB_STEP_SUMMARY"
       - run: pnpm format:check
       - name: pnpm test:e2e
         run: |
