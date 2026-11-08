@@ -417,12 +417,42 @@ test.describe("もう取ったの半券(動きを減らさない設定)", () => 
 });
 
 test.describe("乗換の欄", () => {
-  const routes = transferRoutes(SAMPLE_PLAN.result.semesters);
+  const MOVED_FROM = 1;
+  const moved = SAMPLE_PLAN.result.semesters[MOVED_FROM].courses.find(
+    (course) => course.relevance === "foundation",
+  );
+  if (!moved) {
+    throw new Error("見本の道標の 2 学期目に礎が無い");
+  }
+  const TRANSFER_PLAN = {
+    ...SAMPLE_PLAN,
+    result: {
+      ...SAMPLE_PLAN.result,
+      semesters: SAMPLE_PLAN.result.semesters.map((semester, index) => {
+        if (index === MOVED_FROM) {
+          return {
+            ...semester,
+            credits: semester.credits - moved.credits,
+            courses: semester.courses.filter((course) => course !== moved),
+          };
+        }
+        if (index === MOVED_FROM + 1) {
+          return {
+            ...semester,
+            credits: semester.credits + moved.credits,
+            courses: [...semester.courses, moved],
+          };
+        }
+        return semester;
+      }),
+    },
+  } satisfies Plan;
+  const routes = transferRoutes(TRANSFER_PLAN.result.semesters);
   const transfer = [...routes.departures.values()].find(
-    (each) => each.to.station !== each.from.station,
+    (each) => each.to.station < each.from.station,
   );
   if (!transfer) {
-    throw new Error("見本の道標に、別の駅の柱へ乗り換える礎が無い");
+    throw new Error("前の駅の柱へ乗り換える礎が無い");
   }
   const departureOf = (page: Page): Locator =>
     ticketOf(page, transfer.from.name).getByRole("button", {
@@ -443,8 +473,8 @@ test.describe("乗換の欄", () => {
       api,
     }) => {
       await page.setViewportSize({ width, height: 800 });
-      api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-      await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+      api.answer({ [planApi(TRANSFER_PLAN)]: TRANSFER_PLAN });
+      await page.goto(`/plans/${TRANSFER_PLAN.id}`);
       const departure = departureOf(page);
       await expect(departure).toContainText(transfer.to.name);
       await expect(departure).toContainText(
@@ -493,8 +523,8 @@ test.describe("乗換の欄", () => {
     page,
     api,
   }) => {
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    api.answer({ [planApi(TRANSFER_PLAN)]: TRANSFER_PLAN });
+    await page.goto(`/plans/${TRANSFER_PLAN.id}`);
     const pillar = ticketOf(page, transfer.to.name);
     await expect(pillar).not.toHaveClass(/ring-route/);
     await ticketOf(page, transfer.from.name).hover();
@@ -509,8 +539,8 @@ test.describe("乗換の欄", () => {
     page,
     api,
   }) => {
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+    api.answer({ [planApi(TRANSFER_PLAN)]: TRANSFER_PLAN });
+    await page.goto(`/plans/${TRANSFER_PLAN.id}`);
     const pillar = ticketOf(page, transfer.to.name);
     await expect(pillar).toContainText(
       arrivalsLabel(routes.arrivals.get(transfer.to.name)?.length ?? 0),
@@ -532,9 +562,9 @@ test.describe("乗換の欄", () => {
     page,
     api,
   }) => {
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    api.answer({ [planApi(TRANSFER_PLAN)]: TRANSFER_PLAN });
     await page.goto(
-      `/plans/${SAMPLE_PLAN.id}?view=timetable&semester=${semesterKey(transfer.from.semester)}`,
+      `/plans/${TRANSFER_PLAN.id}?view=timetable&semester=${semesterKey(transfer.from.semester)}`,
     );
     const entries = await page.evaluate(() => history.length);
     await departureOf(page).click();
@@ -546,9 +576,13 @@ test.describe("乗換の欄", () => {
   });
 
   test("道標が変わると、着いた切符の戻る道を外す", async ({ page, api }) => {
-    api.answer({ [planApi(ASKED_PLAN)]: ASKED_PLAN });
+    const asked = {
+      ...TRANSFER_PLAN,
+      result: { ...TRANSFER_PLAN.result, offered_earlier: [TAKEN.name] },
+    };
+    api.answer({ [planApi(asked)]: asked });
     api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
-    await page.goto(`/plans/${ASKED_PLAN.id}`);
+    await page.goto(`/plans/${asked.id}`);
     await departureOf(page).click();
     const back = page.getByRole("button", {
       name: `${transfer.from.name}${backPlace(transfer.from)}`,
