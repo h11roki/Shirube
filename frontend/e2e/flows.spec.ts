@@ -911,9 +911,11 @@ test.describe("読み替えの知らせ", () => {
     page,
     api,
   }) => {
-    api.answer({
-      [planApi(REREAD_PLAN)]: REREAD_PLAN,
-      [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN,
+    const rebuilt = Promise.withResolvers<void>();
+    api.answer({ [planApi(REREAD_PLAN)]: REREAD_PLAN });
+    api.respond("GET", planApi(SAMPLE_PLAN), {
+      json: SAMPLE_PLAN,
+      until: rebuilt.promise,
     });
     api.respond("POST", "/api/plans", { status: 202, json: SAMPLE_PLAN });
     await page.goto(`/plans/${REREAD_PLAN.id}`);
@@ -943,6 +945,13 @@ test.describe("読み替えの知らせ", () => {
       fixed_courses: conditions.fixed_courses,
     });
     await expect(page).toHaveURL(`/plans/${SAMPLE_PLAN.id}`);
+    await expect(page.getByRole("form", { name: REBUILD_LABEL })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("button", { name: DELETE_PLAN_LABEL }),
+    ).toHaveCount(0);
+    rebuilt.resolve();
     await expect(
       page.getByRole("navigation", { name: "路線図" }),
     ).toBeVisible();

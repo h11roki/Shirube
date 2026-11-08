@@ -87,8 +87,8 @@ export function RebuildForm({
       setConditionsRefused(
         error instanceof ApiError && error.status === UNPROCESSABLE,
       );
+      setSubmitting(false);
     }
-    setSubmitting(false);
   }
 
   if (!open) {
