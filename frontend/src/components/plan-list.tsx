@@ -17,6 +17,7 @@ import {
 } from "@/lib/api/client";
 import {
   CONFIRM_DELETE_LABEL,
+  CREATE_PLAN_LABEL,
   DELETE_PLAN_NOTE,
   DELETE_ROW_LABEL,
   deletePlanLabel,
@@ -124,7 +125,7 @@ export function PlanList() {
         <p className="text-sm text-sub">
           まだ道標がありません。
           <Link href="/" className={TEXT_LINK}>
-            道標を作る
+            {CREATE_PLAN_LABEL}
           </Link>
         </p>
       ) : (

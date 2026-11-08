@@ -21,6 +21,7 @@ import {
 import { offeredClasses } from "@/lib/class-choices";
 import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
 import {
+  CREATE_PLAN_LABEL,
   DEPARTMENT_NAME,
   OCCUPATION_LABEL,
   TERM_LABELS,
@@ -259,7 +260,7 @@ export function PlanForm() {
           disabled={busy || loading}
           className={`px-6 py-2.5 font-bold disabled:cursor-not-allowed disabled:opacity-50 ${PRIMARY_BUTTON}`}
         >
-          {busy ? "受け付けています" : "道標を作る"}
+          {busy ? "受け付けています" : CREATE_PLAN_LABEL}
         </button>
       </div>
     </form>

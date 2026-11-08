@@ -275,6 +275,8 @@ export function classLabel(classCode: string): string {
 
 export const PROGRESS_HEADING = ["道標を", "作っています"];
 export const MY_PLANS_LABEL = "自分の道標";
+
+export const CREATE_PLAN_LABEL = "道標を作る";
 export const WAITED_LABEL = "待ち時間";
 export const USUAL_DURATION_LABEL = "目安";
 export const USUAL_DURATION = "10〜30 秒";
