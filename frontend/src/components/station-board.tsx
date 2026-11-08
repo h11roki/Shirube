@@ -2,8 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { DestinationName } from "@/components/destination-name";
 import type { SemesterPlan } from "@/lib/api/client";
 import { semesterLabel, semesterReading, stationLabel } from "@/lib/labels";
+import type { Destination } from "@/lib/words";
 
 const SEEN_RATIO = 0.6;
 
@@ -21,7 +23,7 @@ export function StationBoard({
   semester: SemesterPlan;
   previous?: SemesterPlan;
   next?: SemesterPlan;
-  destination: string;
+  destination: Destination;
 }) {
   const board = useRef<HTMLDivElement>(null);
   const [seen, setSeen] = useState(false);
@@ -75,7 +77,13 @@ export function StationBoard({
       />
       <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-direction text-sub">
         <span>{previous && `← ${label(previous)}`}</span>
-        <span>{next ? label(next) : destination} →</span>
+        <span className="min-w-0 text-right">
+          {next ? (
+            `${label(next)} →`
+          ) : (
+            <DestinationName words={destination.words}>{" →"}</DestinationName>
+          )}
+        </span>
       </p>
     </div>
   );

@@ -28,7 +28,7 @@ import {
 
 const NARROW_WIDTHS = [320, 375];
 
-const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
+const SAMPLE_DESTINATION = SAMPLE_PLAN.conditions.occupation;
 
 const SAMPLE_WORDS = ["データ", "サイエンティスト"];
 
@@ -37,9 +37,14 @@ const SIGNPOST_BESIDE_WIDTHS = [448, 480];
 function resultFor(destination: string): Plan {
   return {
     ...SAMPLE_PLAN,
+    conditions: { ...SAMPLE_PLAN.conditions, occupation: destination },
     result: {
       ...SAMPLE_PLAN.result,
-      profile: { ...SAMPLE_PLAN.result.profile, interpretation: destination },
+      profile: {
+        ...SAMPLE_PLAN.result.profile,
+        occupation: destination,
+        interpretation: destination,
+      },
     },
   };
 }
@@ -58,6 +63,8 @@ const SCREENS: {
       }),
   },
 ];
+
+const UNBROKEN_DESTINATION = "MachineLearningInfrastructureEngineer";
 
 const LONG_DESTINATIONS = [
   ["組込み", "ソフトウェア", "エンジニア"],
@@ -314,9 +321,9 @@ async function expectPlateBreaksBetweenWords(
   expect(await escapedBox(text), "字がはみ出した箱").toBe("");
 }
 
-test("見本の語の並びは、見本の解釈と入力した職業名に同じ", () => {
+test("見本は読み替えておらず、語の並びは入力した職業名に同じ", () => {
+  expect(SAMPLE_PLAN.result.profile.interpretation).toBe(SAMPLE_DESTINATION);
   expect(SAMPLE_WORDS.join("")).toBe(SAMPLE_DESTINATION);
-  expect(SAMPLE_WORDS.join("")).toBe(SAMPLE_PLAN.conditions.occupation);
 });
 
 for (const width of [...NARROW_WIDTHS, ...SIGNPOST_BESIDE_WIDTHS]) {
@@ -344,6 +351,43 @@ for (const width of [...NARROW_WIDTHS, ...SIGNPOST_BESIDE_WIDTHS]) {
 }
 
 for (const width of NARROW_WIDTHS) {
+  test(`幅 ${width}px の結果の画面で、空白の無い長い行き先も、板、最後の駅名標、道のりの終わりからはみ出さない`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, resultFor(UNBROKEN_DESTINATION));
+    for (const text of [
+      plateText(page, UNBROKEN_DESTINATION),
+      page.getByText(`${UNBROKEN_DESTINATION} →`, { exact: true }),
+      page.getByRole("heading", {
+        name: `${UNBROKEN_DESTINATION}へ`,
+        exact: true,
+      }),
+    ]) {
+      await expect(text).toBeVisible();
+      expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+    }
+  });
+
+  for (const words of LONG_DESTINATIONS) {
+    const destination = words.join("");
+    test(`幅 ${width}px の結果の画面で、最後の駅名標の${destination}を語の切れ目で折る`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page, api, resultFor(destination));
+      const next = page.getByText(`${destination} →`, { exact: true });
+      await expect(next).toBeVisible();
+      const lines = await renderedLines(next);
+      expect(
+        breaksOnlyBetween(lines, endingWith(words, " →")),
+        lines.join(" / "),
+      ).toBe(true);
+    });
+  }
+
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
     page,
   }) => {

@@ -31,6 +31,7 @@ import {
   answeredLabel,
   assumptionLabel,
   failedAnswerLabel,
+  readAsLabel,
   unmarkTakenLabel,
   semesterLabel,
 } from "@/lib/labels";
@@ -76,12 +77,12 @@ export function PlanResultView({
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
+  const { conditions } = plan;
   const destination = useMemo(
-    () => destinationOf(profile.interpretation),
-    [profile.interpretation],
+    () => destinationOf(conditions.occupation),
+    [conditions.occupation],
   );
   const courseWords = useMemo(() => wordsByText(courseNames(result)), [result]);
-  const { conditions } = plan;
   const last = result.semesters[result.semesters.length - 1];
   const undo = answered?.undo ?? null;
 
@@ -163,9 +164,9 @@ export function PlanResultView({
       >
         <div className="grid gap-8">
           <section className="grid gap-4">
-            <h1 className="sr-only">{profile.interpretation}への道標</h1>
-            {profile.occupation !== profile.interpretation && (
-              <Kicker>入力した職業 {profile.occupation}</Kicker>
+            <h1 className="sr-only">{destination.name}への道標</h1>
+            {destination.name !== profile.interpretation && (
+              <Kicker>{readAsLabel(profile.interpretation)}</Kicker>
             )}
             <DestinationPlate destination={destination} arriving={arriving} />
             {profile.assumption && (
