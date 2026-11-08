@@ -2,7 +2,6 @@ import Link from "next/link";
 
 import { signIn } from "@/auth";
 import { NAV_LINK, PRIMARY_BUTTON, TEXT_LINK } from "@/components/styles";
-import { CREATE_PLAN_LABEL } from "@/lib/labels";
 import { currentSession } from "@/lib/session";
 import { signOutToTop } from "@/lib/sign-out";
 import { LOGIN_PATH } from "@/lib/site";
@@ -26,19 +25,6 @@ export async function Account() {
       </button>
     </form>
   );
-}
-
-export function CreatePlanLink({ href }: { href: string }) {
-  return (
-    <Link href={href} className={NAV_LINK}>
-      {CREATE_PLAN_LABEL}
-    </Link>
-  );
-}
-
-export async function SessionCreatePlanLink() {
-  const session = await currentSession();
-  return <CreatePlanLink href={session?.googleSubject ? "/" : LOGIN_PATH} />;
 }
 
 export function SignInButton() {

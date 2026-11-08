@@ -600,7 +600,17 @@ test.describe("道標を作る", () => {
     ).toBeVisible();
   });
 
-  test("ログインしたあとにログインのページを開くと、入力の画面へ移る", async ({
+  test("ログインしていないとき、無いページの道標を作るもログインのページを指す", async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await page.goto("/no-such-station");
+    await expect(
+      page.getByRole("main").getByRole("link", { name: CREATE_PLAN_LABEL }),
+    ).toHaveAttribute("href", LOGIN_PATH);
+  });
+
+  test("ログイン済みでログインのページを開くと、入力の画面へ移る", async ({
     page,
     api,
   }) => {
