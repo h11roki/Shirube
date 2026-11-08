@@ -28,13 +28,17 @@ export async function Account() {
   );
 }
 
-export async function CreatePlanLink() {
-  const session = await currentSession();
+export function CreatePlanLink({ href }: { href: string }) {
   return (
-    <Link href={session?.googleSubject ? "/" : LOGIN_PATH} className={NAV_LINK}>
+    <Link href={href} className={NAV_LINK}>
       {CREATE_PLAN_LABEL}
     </Link>
   );
+}
+
+export async function SessionCreatePlanLink() {
+  const session = await currentSession();
+  return <CreatePlanLink href={session?.googleSubject ? "/" : LOGIN_PATH} />;
 }
 
 export function SignInButton() {

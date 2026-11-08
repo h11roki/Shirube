@@ -1,10 +1,14 @@
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { Account, CreatePlanLink } from "@/components/account";
+import {
+  Account,
+  CreatePlanLink,
+  SessionCreatePlanLink,
+} from "@/components/account";
 import { NAV_LINK } from "@/components/styles";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { CREATE_PLAN_LABEL, MY_PLANS_LABEL } from "@/lib/labels";
+import { MY_PLANS_LABEL } from "@/lib/labels";
 import { LOGIN_PATH } from "@/lib/site";
 
 export function SiteHeader() {
@@ -21,14 +25,8 @@ export function SiteHeader() {
           <ThemeToggle />
         </div>
         <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub lg:w-auto">
-          <Suspense
-            fallback={
-              <Link href={LOGIN_PATH} className={NAV_LINK}>
-                {CREATE_PLAN_LABEL}
-              </Link>
-            }
-          >
-            <CreatePlanLink />
+          <Suspense fallback={<CreatePlanLink href={LOGIN_PATH} />}>
+            <SessionCreatePlanLink />
           </Suspense>
           <Link href="/plans" className={NAV_LINK}>
             {MY_PLANS_LABEL}
