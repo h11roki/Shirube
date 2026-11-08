@@ -17,6 +17,8 @@ import {
   USUAL_DURATION_LABEL,
   WAITED_LABEL,
   WAITING_LABEL,
+  assumptionLabel,
+  readingLabel,
   semesterLabel,
 } from "@/lib/labels";
 import {
@@ -72,6 +74,18 @@ export function PlanProgress({
           from={`${conditions.grade} 回生`}
           className="ml-auto w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
         />
+      </div>
+      <div aria-live="polite">
+        {plan.reading?.assumption && (
+          <p className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
+            <span className="font-bold">
+              {readingLabel(plan.reading.interpretation)}
+            </span>
+            <span className="text-sub">
+              {assumptionLabel(plan.reading.assumption)}
+            </span>
+          </p>
+        )}
       </div>
       {plan.status === "pending" && (
         <p aria-hidden className="flex items-center gap-2.5 text-sm font-bold">

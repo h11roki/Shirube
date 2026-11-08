@@ -23,15 +23,17 @@ import { offeredClasses } from "@/lib/class-choices";
 import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
 import {
   DEPARTMENT_NAME,
+  OCCUPATION_LABEL,
+  OCCUPATION_REQUIRED,
   TERM_LABELS,
   classChoicesSummary,
   classLabel,
 } from "@/lib/labels";
+import { MAX_OCCUPATION_LENGTH } from "@/lib/plan-request";
 
 const DEPARTMENT = "情";
 const GRADES = [1, 2, 3, 4];
 const TERMS: Term[] = ["spring", "autumn"];
-const MAX_OCCUPATION_LENGTH = 100;
 
 export function PlanForm() {
   const router = useRouter();
@@ -62,7 +64,7 @@ export function PlanForm() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!occupation.trim()) {
-      setSubmitError("なりたい職業を入れてください");
+      setSubmitError(OCCUPATION_REQUIRED);
       return;
     }
     setSubmitting(true);
@@ -104,7 +106,7 @@ export function PlanForm() {
     >
       <div className="space-y-2">
         <label htmlFor="occupation" className="block text-sm font-medium">
-          なりたい職業
+          {OCCUPATION_LABEL}
         </label>
         <input
           id="occupation"

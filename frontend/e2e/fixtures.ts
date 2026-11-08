@@ -39,6 +39,29 @@ export const RUNNING_PLAN = asRunning({
   },
 });
 
+export const READING = {
+  occupation: "Webエンジニア",
+  interpretation: "ITエンジニア",
+  assumption:
+    "Webエンジニアを、Web を含むソフトウェア開発全般の IT エンジニアとして読んだ",
+  skills: SAMPLE_PLAN.result.profile.skills,
+};
+
+export const READING_PLAN: Plan = {
+  ...RUNNING_PLAN,
+  id: "7f1c2a10-0000-4000-8000-000000000004",
+  stage: "searching",
+  conditions: { ...RUNNING_PLAN.conditions, occupation: READING.occupation },
+  reading: READING,
+};
+
+export const REREAD_PLAN: Plan = {
+  ...SAMPLE_PLAN,
+  id: "7f1c2a10-0000-4000-8000-000000000005",
+  conditions: { ...SAMPLE_PLAN.conditions, occupation: READING.occupation },
+  result: { ...SAMPLE_PLAN.result, profile: READING },
+};
+
 export const FAILED_PLAN = asFailed({
   ...SAMPLE_PLAN,
   id: "7f1c2a10-0000-4000-8000-000000000003",
