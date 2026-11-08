@@ -1,12 +1,19 @@
 import type { Locator, Page } from "@playwright/test";
 
 import type { PlacedCourse, Plan } from "@/lib/api/client";
-import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
+import {
+  PRIVACY_TITLE,
+  PROGRESS_HEADING,
+  STAGE_LABELS,
+  sampleLabel,
+} from "@/lib/labels";
 import { STAGES } from "@/lib/progress";
 import { resultViewHref } from "@/lib/result-view";
 import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE } from "@/lib/site";
+import { wordsOf } from "@/lib/words";
 
 import {
   type Api,
@@ -526,6 +533,30 @@ for (const width of NARROW_WIDTHS) {
 }
 
 for (const width of [...NARROW_WIDTHS, 1280]) {
+  test(`幅 ${width}px のトップで、見本の切符の理由を語の切れ目でだけ折る`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await page.addStyleTag({
+      content:
+        "* { transform: none !important; rotate: none !important; translate: none !important; }",
+    });
+    const hero = page
+      .locator('[aria-hidden="true"]')
+      .filter({ hasText: sampleLabel(SAMPLE_PLAN.conditions.occupation) });
+    for (const course of SAMPLE_TICKETS) {
+      const reason = hero.getByText(course.reason, { exact: true }).first();
+      const lines = await renderedLines(reason);
+      expect(
+        breaksOnlyBetween(lines, wordsOf(course.reason)),
+        lines.join(" / "),
+      ).toBe(true);
+      expect(await escapedBox(reason), "字がはみ出した箱").toBe("");
+    }
+  });
+
   test(`幅 ${width}px の結果の画面で、切符の授業名を語の切れ目でだけ折る`, async ({
     page,
     api,
