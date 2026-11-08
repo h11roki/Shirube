@@ -68,6 +68,7 @@ const BRACKETED_NAME = [
 
 const TICKET_NAMES = [
   ["データ", "エンジニアリング", "基礎"],
+  ["確率", "統計"],
   ["データ", "サイエンス・", "AI", "基礎"],
   ["応用Cプログラミング"],
   ["データ", "構造と", "アルゴリズム"],
@@ -77,18 +78,25 @@ const TICKET_NAMES = [
   BRACKETED_NAME,
 ];
 
+const BRACKETED_COURSE = {
+  ...SAMPLE_PLAN.result.semesters[0].courses[0],
+  name: BRACKETED_NAME.join(""),
+  section_code: BRACKETED_NAME.join(""),
+};
+
 const TICKET_PLAN = {
   ...SAMPLE_PLAN,
   result: {
     ...SAMPLE_PLAN.result,
-    semesters: SAMPLE_PLAN.result.semesters.map((semester) => ({
-      ...semester,
-      courses: semester.courses.map((course) =>
-        course.name === "確率統計"
-          ? { ...course, name: BRACKETED_NAME.join("") }
-          : course,
-      ),
-    })),
+    semesters: SAMPLE_PLAN.result.semesters.map((semester, index) =>
+      index === 0
+        ? {
+            ...semester,
+            credits: semester.credits + BRACKETED_COURSE.credits,
+            courses: [...semester.courses, BRACKETED_COURSE],
+          }
+        : semester,
+    ),
   },
 } satisfies Plan;
 
