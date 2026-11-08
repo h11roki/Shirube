@@ -12,7 +12,7 @@ import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { destinationOf, wordsByText } from "@/lib/words";
 
 const SAMPLE_SEMESTERS = 2;
-const SAMPLE_DESTINATION = destinationOf(SAMPLE_PLAN.result.profile.occupation);
+const SAMPLE_DESTINATION = destinationOf(SAMPLE_PLAN.conditions.occupation);
 const SAMPLE_COURSE_WORDS = wordsByText(courseNames(SAMPLE_PLAN.result));
 
 const STEPS = [
@@ -62,7 +62,7 @@ export function Introduction() {
 
       <section className="grid gap-5">
         <div className="grid gap-1">
-          <h2 className="sr-only">{result.profile.occupation}への道標</h2>
+          <h2 className="sr-only">{conditions.occupation}への道標</h2>
           <div className="flex flex-col items-start justify-self-start sm:flex-row sm:items-stretch">
             <span className="grid place-items-center border border-b-0 border-ink px-2 font-serif text-sm font-semibold tracking-[0.24em] sm:border-r-0 sm:border-b sm:px-1.5 sm:[writing-mode:vertical-rl]">
               見本

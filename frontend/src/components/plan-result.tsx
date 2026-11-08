@@ -77,12 +77,12 @@ export function PlanResultView({
   const [answered, setAnswered] = useState<Answered>();
   const notice = useRef<HTMLDivElement>(null);
   const { profile } = result;
+  const { conditions } = plan;
   const destination = useMemo(
-    () => destinationOf(profile.occupation),
-    [profile.occupation],
+    () => destinationOf(conditions.occupation),
+    [conditions.occupation],
   );
   const courseWords = useMemo(() => wordsByText(courseNames(result)), [result]);
-  const { conditions } = plan;
   const last = result.semesters[result.semesters.length - 1];
   const undo = answered?.undo ?? null;
 
@@ -164,7 +164,7 @@ export function PlanResultView({
       >
         <div className="grid gap-8">
           <section className="grid gap-4">
-            <h1 className="sr-only">{profile.occupation}への道標</h1>
+            <h1 className="sr-only">{conditions.occupation}への道標</h1>
             {profile.occupation !== profile.interpretation && (
               <Kicker>{readAsLabel(profile.interpretation)}</Kicker>
             )}

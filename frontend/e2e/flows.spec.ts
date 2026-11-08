@@ -972,11 +972,29 @@ test.describe("読み替えの知らせ", () => {
       page.getByText(`${READING.occupation}行`, { exact: true }),
     ).toBeVisible();
     await expect(
+      page.getByRole("heading", {
+        name: `${READING.occupation}へ`,
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      page
+        .getByRole("navigation", { name: "路線図" })
+        .getByRole("button", { name: READING.occupation, exact: true }),
+    ).toBeVisible();
+    await expect(
       page.getByText(`${READING.interpretation}行`, { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", {
+        name: `${READING.interpretation}へ`,
+        exact: true,
+      }),
     ).toHaveCount(0);
     await expect(
       page.getByText(readAsLabel(READING.interpretation)),
     ).toBeVisible();
+    await expect(page.getByText(/入力した職業/)).toHaveCount(0);
   });
 
   test("作成中でも、前提の無い読み取りは知らせない", async ({ page, api }) => {

@@ -28,7 +28,7 @@ import {
 
 const NARROW_WIDTHS = [320, 375];
 
-const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.occupation;
+const SAMPLE_DESTINATION = SAMPLE_PLAN.conditions.occupation;
 
 const SAMPLE_WORDS = ["データ", "サイエンティスト"];
 
@@ -319,9 +319,9 @@ async function expectPlateBreaksBetweenWords(
   expect(await escapedBox(text), "字がはみ出した箱").toBe("");
 }
 
-test("見本の語の並びは、見本の解釈と入力した職業名に同じ", () => {
+test("見本は読み替えておらず、語の並びは入力した職業名に同じ", () => {
+  expect(SAMPLE_PLAN.result.profile.interpretation).toBe(SAMPLE_DESTINATION);
   expect(SAMPLE_WORDS.join("")).toBe(SAMPLE_DESTINATION);
-  expect(SAMPLE_WORDS.join("")).toBe(SAMPLE_PLAN.conditions.occupation);
 });
 
 for (const width of [...NARROW_WIDTHS, ...SIGNPOST_BESIDE_WIDTHS]) {
