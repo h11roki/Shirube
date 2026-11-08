@@ -1,80 +1,73 @@
 # shirube 道標
 
-**履修に迷ったら、なりたい職業から。** なりたい職業と回生を入れると、大学のシラバスから職業につながる授業を選び、取るべき理由を添えて、卒業までの学期ごとの時間割(道標)を組む Web アプリです。最初の対象は立命館大学 理工学部 電子情報工学科です。
+なりたい職業と回生(学年)を入れると、大学のシラバスから職業につながる授業を AI が選び、授業ごとに「なぜ取るか」を一文で添えて、卒業までの学期ごとの時間割(道標)を組む Web アプリです。対象は立命館大学 理工学部 電子情報工学科です。LLM の出力は、評価データと検定で測ってから、変更を採るかを決めています。
 
 [![CI](https://github.com/h11roki/Shirube/actions/workflows/ci.yml/badge.svg)](https://github.com/h11roki/Shirube/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 **デモ: https://shirube.duckdns.org** ・ [English summary](#english-summary)
 
-ログイン前のトップで、実際の出力の見本の道標を見られます。道標を作るには Google でのログインが要り、今はテストの利用者に限っています。
+ログインしなくても、トップで実際の出力の見本の道標を見られます。道標を作るには Google でのログインが要り、今はテストの利用者に限っています。
 
 ## 30 秒で
 
-- **作ったもの**: 職業名からシラバスを RAG で引き、LLM が授業を選んで理由を書き、卒業までの時間割に並べる Web アプリ。AWS で公開しています
-- **規模**(2026-11-06 時点): 個人開発、2026-10-14 から 3 週間あまりで、980 を超えるコミット、100 を超える PR、90 を超える ADR、試験 1,300 件ほど([品質](#品質))
-- **作り方**: Claude Code と作り、設計の選択肢から選ぶのと改善を採るかを決めるのは作者です([作り方](#作り方))
-- **見どころ**: LLM の出力を数字で直す評価の仕組みです(下の[技術の見どころ](#技術の見どころ))
+- **作ったもの**: なりたい職業から逆算して履修を組む LLM アプリです。シラバスを RAG で引き、LLM が授業を選んで理由を書き、時間割に並べます。AWS で公開しています
+- **今の数字**: 開発用 50 職業で、選んだ授業のうち判定者の誰も関係ありとしなかったものが 15%、期待する科目のうち柱に選んだものが 64% です。推薦 1 件は約 1 円です([指標と今の精度](#指標と今の精度))
+- **見どころ**: 指示文(プロンプト)や検索を変えたら、開発用 50 職業で前と後を交互に流し、職業ごとの並べ替え検定で比べます。採る条件は測る前に ADR に書き、採らなかった改善も残しています。見ていない職業への効き目は、取っておいた確かめ用(ホールドアウト)20 職業で、直しを決めたあとに確かめます(これまで 2 回。今の設定(ADR 0090)は開発用だけで採り、確かめ用では流していません)([評価と改善](#評価と改善))
+- **作りの選び方**: エージェントにせず、読み取り → 検索 → 選び直し → 配置の決まった段にしています。段ごとに測れること、1 件で LLM を呼ぶ回数が決まって費用と時間を見積もれること、LLM に道具を渡さずに済むことを優先しました([推薦の仕組み](#推薦の仕組み))
+- **作り方**: 2026-10-14 から個人で作り、コードの多くは Claude Code が書きました。何を作るか、評価の設計、改善を採るかは作者が決めています。例えば、ねらいの指標で差が出なかった案を、結果を見てから指標を替えて採ることはせず、採りませんでした([作り方](#作り方))
 
-## 技術の見どころ
+## 何ができるか
 
-- **LLM を数字で直す**: 開発用 50 職業と確かめ用 20 職業の評価データ(正解は LLM-as-a-Judge で、立場の違う判定者 3 体の多数決)、2 つの設定を交互に流す実験の道具、並べ替え検定で、指示文や検索の作りの変更を採るかを決めます。採る条件は測る前に ADR に書き、採らなかった改善も残しています([評価と改善のサイクル](#評価と改善のサイクル))
-- **段ごとに測れる LLM ワークフロー**: 職業の読み取り(プロンプト設計と構造化出力)→ シラバスの RAG(pgvector)→ LLM が候補から授業を選ぶ段に分け、期待する科目をどの段で落としたかまで数えます。エージェントが道具を呼ぶ形にせず、段の決まった流れにしているのは、段ごとに測って直すためです([推薦の仕組み](#推薦の仕組み))
-- **本番で動かす**: AWS EC2 と Docker Compose で公開し、main にマージすると CI が通った版のイメージをサーバーが取りに行って入れ替え([ADR 0094](docs/adr/0094-pull-deploy.md))、GitHub Actions が 15 分ごとに外から health(DB、待ちの滞り、OpenAI の残高切れ、動いている版)と証明書を確かめます([ADR 0095](docs/adr/0095-health-monitor.md))。1 件約 1 円、1 日の上限、前払いで費用を抑え、同じ職業と条件の推薦は 7 日使い回して LLM を呼ばずに作り([ADR 0092](docs/adr/0092-recommendation-cache.md))、道標を作るごとに費用、時間、失敗の種類を記録して日ごとに見ています。バックエンドはクリーンアーキテクチャで作り、型の厳しい検査と画面の通しの試験(axe で WCAG 2.2 AA)を CI で回しています([設計](#設計)、[品質](#品質)、[安全性](#安全性))
-
-## 今の精度と費用
-
-| 指標 | 開発用 50 職業 | 確かめ用 20 職業 |
-|---|---|---|
-| 選んだ科目のうち関係なし(誤りの目安) | 16.4% | 17.5% |
-| 期待する科目を中心に選んだ割合(再現率にあたる) | 67.5% | 89.7% |
-| 中心の適合率 | 37.5% | 42.3% |
-
-- 正解(期待する科目)は、職業ごとに立場の違う 3 体の判定者が科目を判定した多数決で作りました。中心は画面の「柱」にあたります。指標と作り方は下の[評価と改善のサイクル](#評価と改善のサイクル)にあります
-- どちらも [ADR 0080](docs/adr/0080-selection-coverage.md) で選ぶ授業を広げたあとに、1 回ずつ流した値です。確かめ用の 89.7% は、同じ時に流した前の設定の 69.0% から +20.7 ポイント跳ねた 1 回だけの値で、読み取りの揺れも入っています
-- 中心の適合率が低めなのは、判定者の中心が選び手より狭いうえに、ADR 0080 で柱をわざと広げたためです
-- [ADR 0090](docs/adr/0090-reason-wording.md) で柱の理由の書き方を替えたあと、開発用を 1 回流した値は、関係なし 15.1%、期待する科目を中心に選んだ割合 63.6%、中心の適合率 37.4% で、表の値からの動きは時刻による揺れの範囲です(1 職業に選んだ柱は 5.74 → 5.14 と減りました)。確かめ用は流していません
-- 推薦 1 件は約 1 円(初めての職業で 1.07 円。同じ職業名の読み取りを覚えると下がります)、道標 1 件を作るのは 10〜30 秒です。道標の受け付けは 1 人 1 日 3 件、全体で 1 日 30 件までにし、OpenAI は前払いで自動の補充を切って、使いすぎの最後の歯止めにしています([ADR 0038](docs/adr/0038-plan-quota.md))
-
-![トップから見本の道標までスクロールし、礎の切符の乗換の欄を押すと柱の切符へ移って戻る道が出て、戻るで元の切符に帰る様子](docs/images/demo.gif)
+![なりたい職業にデータサイエンティストと入れて道標を作ると、作成中の段が進んで道標ができる。礎の切符の乗換を押すと前提になる柱の切符へ移り、戻るで元の切符に帰る](docs/images/demo.gif)
 
 > 大学とは関係のない個人の非公式のアプリです。必修、卒業要件、履修の前提は見ていません。授業は AI が選ぶので、誤りや作るたびの違いがあります。
 
-## 何を解決するか
+履修を選ぶ学生は、シラバスを 1 つずつ読んでも、その授業が将来の仕事のどこに効くのかが分かりにくく、時間割の重なりも自分で調べる必要があります。shirube は、なりたい職業から逆算して次のことをまとめて行います。
 
-履修を選ぶ学生は、シラバスを 1 つずつ読んでも「この授業が将来の仕事のどこに効くのか」が分かりにくく、時間割の重なりも自分で調べる必要があります。shirube は、なりたい職業から逆算して、次のことをまとめて行います。
+- **職業から授業を選ぶ**: 職業名は自由に入れられます。LLM が職業に要るスキルを読み取り、学科のシラバスから関係する授業を選びます
+- **なぜ取るかを添える**: 授業ごとに、シラバスの抜粋をもとに、仕事のどこで使うかを一文で書きます。シラバスの原ページへのリンクも付けます
+- **柱と礎に分ける**: 職業に直結する授業を「柱」、柱の前提になる授業を「礎」と分け、どの礎がどの柱を支えるかを両方の切符に示します
+- **重ならない時間割に並べる**: 卒業までの残りの学期に、曜日と時限が重ならず、1 学期の単位の上限に収まるように並べます
+- **自分の条件に合わせる**: 始める学期、必修など先に入れる授業、学科で分かれたクラス、もう取った授業を入力の画面で扱えます。職業名を広い職業に読み替えたときは作成中の画面で知らせ、完成の画面から同じ条件のまま別の職業名で作り直せます
 
-- 職業に必要なスキルを読み取り、シラバスの中身から関係する授業を選ぶ
-- 授業ごとに「なぜ取るか」を、シラバスの抜粋をもとに短く書く
-- 職業の中心になる授業を「柱」、柱の前提になる授業を「礎」として分け、どの礎がどの柱につながるかを示す
-- 卒業までの残りの学期に、曜日と時限が重ならず、1 学期の単位の上限に収まるように並べる
+画面の画像と動画は、本番と同じビルドに、トップの見本と同じ道標を返して撮りました。この道標は 2026-10-19 に作った実際の出力で、3 回の多数決(ADR 0049)と理由の書き方の直し(ADR 0090)より前の設定のものです。今の設定の理由の文はこれと違います。
 
-道標が自分で選ぶのは推薦の授業だけで、必修や卒業要件は見ていません。必修など先に取ると決めた授業は、入力の画面で選べば推薦の授業より先に置けますが、要件を満たしているかは確かめません([ADR 0093](docs/adr/0093-fixed-courses.md))。前提の授業を前の学期に置く制約もかけていないので、礎が柱より後の学期に来ることがあります([ADR 0007](docs/adr/0007-greedy-timetable.md)、[0034](docs/adr/0034-taken-courses.md))。理由の文は、150 件を Claude の判定者 3 体で測ると、柱の理由のうち職業のどの仕事に効くかを具体的に言えていたのは 28% でした([ADR 0088](docs/adr/0088-reason-evaluation.md))。柱の理由にも仕事のどこで使うかを書かせる指示文に替え、前と後を同じ判定で比べると 37% → 67% に上がりましたが、残りの 3 分の 1 はまだぼんやりか、職業に触れないままです(礎の理由は 77% が柱のどの内容の前提かを言えています。[ADR 0090](docs/adr/0090-reason-wording.md))。理由の文を自動で判定する判定器も gpt-5.4-nano と mini で作りましたが、確かめる用の 75 件での正解との一致(Cohen の κ)が 0.54 と、測る前に決めた 0.6 に届かなかったので採っていません([推薦の評価の記録](docs/evaluation-log.md#理由の文の判定器採らなかった))。
+### 結果の画面
 
-## 主な機能
+![結果の画面。「データサイエンティスト 行」の行先表示、「3 回生 春学期 発」と経由するスキルの要約、学期の駅の帯、最初の学期の授業の切符 3 枚](docs/images/result-route.png)
 
-![結果の画面。職業の行先、発・経由・所要の要約、学期ごとの駅名標と、授業ごとの切符(柱か礎かの判子、選んだ理由、コマ、単位、通し番号、乗換と乗り入れの欄)](docs/images/result-route-1280.png)
+卒業までを、なりたい職業を終点にした 1 本の路線に見立てています。学期が駅、授業がその学期の切符です。
 
-結果の画面は、学期を駅、授業を切符に見立てた路線図です。切符には柱か礎かの判子、選んだ理由、コマ、単位、シラバスの原ページへのリンクを載せ、礎から柱への乗り換えは、駅の路線記号のような英字の印を両方の切符に刷り、礎の切符の下の乗換の欄に柱の授業名、学期、何駅先かを、柱の切符の下に乗り入れる礎の一覧を載せます。欄には「前提になる柱へ」「この柱を前提にする礎」と一言添え、凡例にも柱と礎が何かを書いて、路線図の言葉を知らなくても読めるようにしています。欄を押すと相手の切符へ移り、戻るで元の切符に帰れます。動きは題材から出した 3 つ(駅名標の帯、完成の瞬間の方向幕、「もう取った」で半券が裂ける)に絞り、動きを減らす設定では止めます([ADR 0083](docs/adr/0083-ruled-refinement.md)、[0084](docs/adr/0084-route-motions.md)、[0086](docs/adr/0086-transfer-marks.md)、[0091](docs/adr/0091-legend-words.md))。
-
-| 職業と回生を入れる | 学期ごとの時間割帳 |
+| 画面の言葉 | 意味 |
 |---|---|
-| ![入力の画面。なりたい職業、いまの回生、始める学期を選び、開いた「先に入れる授業」の欄で「回路」と絞って電子回路Ⅰと電気回路Ⅰにチェックを入れ、選んだ 3 科目が上に並ぶ](docs/images/form-1280.png) | ![時間割帳。月〜金と 1〜5 限の表に授業を置き、右に授業の切符を並べる](docs/images/result-timetable-1280.png) |
-| 職業は自由に入れられます。必修など先に取ると決めた授業は、開講される授業の一覧から名前で絞って選ぶと、推薦の授業より先に時間割へ置き、推薦の候補からは外します([ADR 0093](docs/adr/0093-fixed-courses.md))。学科で分かれたクラスの選択と、もう取った授業も入力の画面で扱えます | 学期ごとに、週の時間割の表で重なりなく並んでいることを確かめられます |
+| データサイエンティスト 行 | なりたい職業(道標の行き先) |
+| 3 回生 春学期 発 | 始める学期 |
+| 経由 | 職業に要るスキル(LLM が職業名から読み取ったもの) |
+| 所要 / 計 | 卒業までの学期の数 / 単位の合計 |
+| SH01、SH02… | 駅の番号。始める学期から順に振る |
+| 柱(朱の丸い判子) | 職業に直結する授業 |
+| 礎(紺の四角い判子) | 柱の前提になる授業 |
+| 乗換 / 乗り入れ | 礎の切符には前提になる柱と何駅先か、柱の切符にはその柱を前提にする礎を載せる。押すと相手の切符へ移る |
+
+### 時間割帳と入力
+
+![時間割帳。月〜金と 1〜5 限の週の表に授業を置き、右に授業の切符を並べる](docs/images/result-timetable.png)
+
+学期ごとの週の時間割の表で、授業が重ならずに並んでいることを確かめられます。道標に置くのは職業につながる授業と、先に入れた授業だけです。ほかの授業は学生が埋めるので、後の学期が空くこともあります。
+
+![入力の画面。なりたい職業にデータサイエンティスト、3 回生、春学期を選び、「先に入れる授業」の欄で「回路」と絞って電子回路Ⅰと電気回路Ⅰを、ほかに電子情報工学実験Ⅰを選んでいる](docs/images/form.png)
+
+必修など先に取ると決めた授業は、開講される授業の一覧から名前で絞って選ぶと、推薦の授業より先に時間割へ置き、推薦の候補から外します([ADR 0093](docs/adr/0093-fixed-courses.md))。
 
 <p>
-  <img src="docs/images/progress-375.png" width="260" alt="作成中の画面。4 つの段の進みと、待ち時間と目安の板">
-  <img src="docs/images/result-375-top.png" width="260" alt="スマホの幅の結果の画面の上部。職業の表示と要約">
-  <img src="docs/images/result-375-tickets.png" width="260" alt="スマホの幅の授業の切符。路線図の帯が上に付いてくる">
+  <img src="docs/images/form-375.png" width="300" alt="スマホの幅の入力の画面">
+  <img src="docs/images/result-375-tickets.png" width="300" alt="スマホの幅の授業の切符。上に学期の駅の帯が付いてくる">
 </p>
 
-作成中の画面は、道標を作る 4 つの段(読み取り、検索、選び直し、配置。下の「推薦の仕組み」)の進みを路線の駅のように見せ、駅の発車案内のような板で待ち時間を出します([ADR 0031](docs/adr/0031-route-design.md)、[0079](docs/adr/0079-progress-board.md))。スマホの幅でも読めて、明るい見た目と暗い見た目を切り替えられます。キーボードだけで操作でき、作成の段と完成を読み上げの枠で伝え、WCAG 2.2 の AA を目安にしています([ADR 0056](docs/adr/0056-accessibility.md))。
-
-ほかに、始める学期より前に開講された授業を「もう取った」と答えて道標から外す機能があります。答えた授業は覚えて、次に作る道標の候補からも除きます([ADR 0034](docs/adr/0034-taken-courses.md)、[0035](docs/adr/0035-taken-candidates.md))。自分の道標の一覧と削除、退会もあります。
+スマホの幅でも使え、明るい見た目と暗い見た目を切り替えられます。キーボードだけで操作でき、WCAG 2.2 の AA を目安にしています([品質](#品質))。
 
 ## 推薦の仕組み
-
-職業名から授業を選ぶまでを、読み取り、検索、選び直しの 3 段に分け、それぞれを別に測って直せるようにしています。選んだ授業は、最後の配置の段で時間割に並べます。LLM に段ごとの決まった仕事をさせ、道具を呼ぶエージェントにはしていません。段ごとに測って直すためで、LLM の出力は候補の科目名との突き合わせと画面に出す文にしか使いません([ADR 0018](docs/adr/0018-llm-pipeline.md)、[0089](docs/adr/0089-llm-safety.md))。道標は API が「待ち」で受け付け、worker が 1 件ずつ作ります(1 件 10〜30 秒、[ADR 0029](docs/adr/0029-plan-jobs.md))。
 
 ```mermaid
 flowchart LR
@@ -84,70 +77,174 @@ flowchart LR
   C --> T[配置<br/>学期ごとの貪欲法で<br/>重ならない時間割に]
 ```
 
-- **読み取り**: LLM が職業名を、その職業の解釈と必要なスキルに直します。学科の授業に無い応用分野で決まる細かい職種(Web エンジニアなど)は、授業で備えられる広い職業として読み、そう読んだことを前提として画面に出します([ADR 0032](docs/adr/0032-broad-occupation.md))。読み替えたときは、作成中の画面で「〜として作っています」と知らせ、完成の画面ではその場で、同じ条件のまま別の職業名で作り直せます([ADR 0099](docs/adr/0099-reading-notice.md))。同じ職業名の読み取りは覚えて使い回し、揺れと費用を減らします([ADR 0052](docs/adr/0052-reading-cache.md))
-- **検索**: シラバスを節(授業概要、到達目標、授業計画)ごとに埋め込み、職業全体のクエリと各スキルのクエリの順位から交互に 20 件の候補を取ります([ADR 0005](docs/adr/0005-section-chunking.md)、[0063](docs/adr/0063-search-by-skill.md))
-- **選び直し**: 検索の候補 20 件のシラバスの抜粋を LLM に読ませ、柱と礎を理由つきで選ばせます。職業に少しでも役立つ授業は、迷っても選ばせます([ADR 0080](docs/adr/0080-selection-coverage.md))。同じ問いを LLM に 3 回並行して投げ、2 回以上選ばれた授業だけを残します。何回で残すかは設定で替えられます([ADR 0049](docs/adr/0049-selection-votes.md)、[0081](docs/adr/0081-selection-min-votes.md))。2 回目からは少し遅らせて入力のキャッシュを効かせ、費用を下げています([ADR 0051](docs/adr/0051-vote-delay.md))
-- **配置**: 学期ごとに、配当回生と開講学期を満たし、コマが重ならず、単位の上限に収まる授業を貪欲法で詰めます。前提科目は制約にせず表示だけにしています([ADR 0007](docs/adr/0007-greedy-timetable.md))
+道標は API が待ち行列に入れ、worker が 1 件ずつ作ります。今の設定の実験(開発用 50 職業、1 回)では、推薦 1 件は平均 9.4 秒、1.06 円でした。作成中の画面の「目安 10〜30 秒」は、待ちを含めた目安です。
 
-将来の学期のシラバスはまだ無いので、当年度のシラバスと時間割を翌年度以降の代理にして組んでいます([ADR 0010](docs/adr/0010-graduation-roadmap.md))。
+- **読み取り(クエリの解釈と展開)**: LLM が職業名を、解釈、前提の 1 文、必要なスキル 3〜6 個に直します(構造化出力)。学科の授業に無い応用分野の細かい職種(Web エンジニアなど)は、授業で備えられる広い職業として読み、そう読んだことを前提として画面に出します([ADR 0032](docs/adr/0032-broad-occupation.md))
+- **検索(RAG)**: 2026 年度のシラバス 530 ページを、授業概要、到達目標、授業計画の節ごとに 1,589 のチャンクにして埋め込んであります。職業全体のクエリと各スキルのクエリで検索し、それぞれの順位から交互に 20 科目を候補にします([ADR 0063](docs/adr/0063-search-by-skill.md))
+- **選び直し(候補の中から LLM が選ぶ段)**: 候補 20 科目のシラバスの抜粋を LLM に読ませ、柱と礎を理由つきで選ばせます。答えは JSON Schema の構造化出力で受け、科目名を候補の enum に限るので、候補に無い授業は出ません。同じ問いを 3 回並べて投げ、2 回以上選ばれた授業だけを残します([ADR 0049](docs/adr/0049-selection-votes.md))。2 回目からは 0.5 秒遅らせて送り、1 回目の入力がキャッシュに入ってから当てることで、費用を 11% 下げました([ADR 0051](docs/adr/0051-vote-delay.md))
+- **配置**: 学期ごとに、その授業を取れる回生と開講学期を満たし、コマが重ならず、単位の上限に収まる授業を貪欲法で詰めます([ADR 0007](docs/adr/0007-greedy-timetable.md))
 
-## 評価と改善のサイクル
+この形にした理由です。
 
-LLM の出力は「それらしく見える」ので、感覚ではなく数字で直すために、評価データ、実験の道具、統計の決まりを先に作りました。
+- **検索で絞ってから読ませる**: 学科の授業は 188 科目あり、全科目の抜粋を読ませると入力が 5 倍以上になります。他学部に広げるとさらに増えます。検索で 20 科目に絞れば、入力の大きさは学科の大きさによりません。全科目を読ませる案は測っていません([ADR 0018](docs/adr/0018-llm-pipeline.md))
+- **選び直しは小さいモデルを 3 回**: 当時の指示文と候補 30 件で 10 職業を比べると、どの指標でも gpt-5.4-nano が mini と同じか上回り、費用は約 4 分の 1 でした([ADR 0020](docs/adr/0020-course-selection-evaluated.md))。今の指示文では比べ直していません。1 回だけでは選ぶ授業が揺れるので、多数決にしています
+- **エージェントにしない**: どの職業でも段の順は同じで、次に何をするかを LLM に決めさせる場面がありません。段を固定すると、期待する授業をどの段で落としたかを数えられ、1 件で LLM を呼ぶ回数(読み取り 1〜2 回と選び直し 3 回)が決まって費用と時間を見積もれ、LLM に道具を渡さずに済みます
+- **同じ条件は使い回す**: 同じ職業名と条件の推薦は 7 日残し、LLM を呼ばずに配置から作ります([ADR 0092](docs/adr/0092-recommendation-cache.md))。同じ職業名の読み取りも覚えて使い回します([ADR 0052](docs/adr/0052-reading-cache.md))
+
+将来の学期のシラバスはまだ無いので、当年度のシラバスと時間割を翌年度以降の代理にしています([ADR 0010](docs/adr/0010-graduation-roadmap.md))。
+
+## 評価と改善
+
+LLM の出力はそれらしく見えるので、感覚ではなく数字で直すために、評価データ、実験の CLI、統計の決まりを先に作りました。作りながら分かったことが 3 つあり、どれも今の仕組みに入っています。
+
+- 10 職業で同じ設定を別の時刻に流した 2 組で、「関係なし」が 9 ポイントほど動いた。そこで、比べる 2 つの設定を職業と回ごとに交互に流すようにした([ADR 0055](docs/adr/0055-interleaved-runs.md))
+- 開発用の取りこぼしを見て決めた直しが、見ていない職業には効かなかった。そこで確かめ用の 20 職業を分け、直しを ADR に書いたあとにだけ流して、平均と検定だけを見るようにした([ADR 0067](docs/adr/0067-heldout-occupations.md))
+- 理由の文を自動で判定する LLM は、正解との一致が測る前に決めた線に届かなかった。そこで採らず、Claude の判定者 3 体の判定を使い続けている([ADR 0088](docs/adr/0088-reason-evaluation.md))
 
 ```mermaid
 flowchart LR
-  D[評価データ<br/>開発用 50 職業<br/>確かめ用 20 職業] --> E[experiment run / pair<br/>本番と同じ道で推薦を流す]
+  D[評価データ<br/>開発用 50 職業<br/>確かめ用 20 職業] --> E[experiment run / pair<br/>本番と同じ処理の流れで推薦を流す]
   E --> M[compare<br/>ブートストラップの区間<br/>並べ替え検定]
   E --> A[analyze<br/>期待する科目を<br/>どの段で落としたか]
-  M --> H[判断を ADR に書く<br/>採る / 採らない]
+  M --> H[採るかを ADR に書く]
   A --> H
   H -->|直しを決めたあとだけ| V[確かめ用で<br/>平均と検定だけを見る]
 ```
 
-- **期待する科目(正解)**: 職業ごとに、Claude のサブエージェントを判定者にして、科目ごとに中心・土台・関係なし(中心と土台は、画面の柱と礎にあたる)の票を入れさせ、その多数決で作りました。判定者は立場の違う 3 体(採用・育成担当のエンジニア、カリキュラムを設計する教員、進路を考える 3 回生)で、科目が多いので前半と後半を別の判定者に渡しています。中心の票が 1 つだけの科目は、作者が票と根拠を見て決めました(2 回目に足した 20 職業の 17 件は、判定者の多数に合わせて全て土台にしました。[ADR 0017](docs/adr/0017-eval-judging.md)、[0023](docs/adr/0023-foundation-links-core.md)、[0054](docs/adr/0054-thirty-occupations.md)、[0064](docs/adr/0064-fifty-occupations.md))。人が付けた正解ではなく、判定者 3 体は同じ Claude なので、判定者の癖は正解に残ります。アプリの LLM(OpenAI)とは系統を分け、答え合わせが循環しないようにしています
-- **実験の道具**: `experiment run` が評価データの職業に本番と同じ道(読み取り → 検索 → 選び直し)で推薦を流し、精度、揺れ、1 件あたりの費用と時間を JSON に残します([ADR 0048](docs/adr/0048-recommendation-experiments.md))。揺れは、同じ職業を何回か作ったときに選んだ授業の重なり(Jaccard)で測ります。比べる 2 つの設定は `experiment pair` で職業と回ごとに交互に流し、流した時刻による指標のずれを差から消します。同じ設定を別の時刻に流すと、関係なしが 9 ポイントほど動くと分かったためです([ADR 0055](docs/adr/0055-interleaved-runs.md))
-- **統計の決まり**: 差の 95% 信頼区間は職業を選び直すブートストラップで、差ありは職業ごとに前と後を入れ替える並べ替え検定(p < 0.05)で決めます。判定に使う指標と採る条件は、変える前に ADR に書きます([ADR 0053](docs/adr/0053-paired-bootstrap.md)、[0055](docs/adr/0055-interleaved-runs.md))
-- **取りこぼしの内訳**: `experiment analyze` が、期待する科目を読み取り、検索、選び直しのどの段で落としたかを数え、次に直す段を決める材料にします([ADR 0073](docs/adr/0073-experiment-analysis.md))
-- **確かめ用を分ける**: 開発用の取りこぼしを見て決めた直しは、決めるときに見た職業にだけ効いていることがありました(下の表の [ADR 0063](docs/adr/0063-search-by-skill.md) の行)。そこで確かめ用の 20 職業を取っておき、直しを決めて ADR に書いたあとに流して、職業ごとの結果は見ずに平均と検定を見ます([ADR 0067](docs/adr/0067-heldout-occupations.md))
+### 正解の作り方
 
-| 指標 | 意味 |
+- **期待する科目(正解ラベル)**: 職業ごとに、Claude(Opus 5.5)のサブエージェントを 3 つの立場の判定者にしました。立場は、採用・育成担当のエンジニア、カリキュラムを設計する教員、進路を考える 3 回生です。学科の 188 科目全てを、職業名とシラバスの抜粋だけから判定させ、「中心」か「土台」の票を入れさせました。2 体以上が中心とした授業と、中心の票が 1 つだけで作者が中心に決めた 4 件が、期待する科目です。中心と土台は、画面の柱と礎にあたります。期待する科目は、開発用 50 職業で 151、確かめ用 20 職業で 58 です。期待する科目が 1 つも無かった職業(開発用 8、確かめ用 1)は予備と入れ替えたので、数字は学科の授業が備える職業についてのものです([ADR 0017](docs/adr/0017-eval-judging.md)、[0064](docs/adr/0064-fifty-occupations.md))
+- **人が関わった範囲**: 正解は判定者の票から作りました。作者が決めたのは、中心の票が 1 つだけの科目 32 件(開発用 26、確かめ用 6)だけです。うち 23 件は判定者の多数に合わせて一括で土台にし、残る 9 件は 1 件ずつ決めて 4 件を中心にしました。人が一から付けた正解ではなく、人の判断との一致も測っていないので、判定者の癖は正解に残ります。アプリの LLM(OpenAI)とは系統を分け、答え合わせが循環しないようにしています
+
+### 指標と今の精度
+
+| 指標 | 意味 | 今の設定(開発用 50 職業、2026-11-04、1 回) | 前の設定を別の時刻に 3 回(2026-10-31〜11-04) |
+|---|---|---|---|
+| 候補の再現率 | 期待する科目のうち、検索の候補 20 科目に入った割合 | 88.8% | 88.7〜90.7% |
+| 関係なし | 選んだ授業のうち、3 体のどれも中心とも土台ともしなかった割合(誤りの目安。判定者の読み落としも含み、1 体だけが挙げた授業は数えない) | 15.1% | 13.4〜16.7% |
+| 期待する科目を柱に選んだ割合 | 期待する科目のうち、柱に選んだ割合(再現率にあたる) | 63.6% | 67.5〜70.2% |
+| 柱の適合率 | 柱に選んだ授業のうち、期待する科目の割合 | 37.4% | 36.2〜37.5% |
+
+- 同じ設定でも、少なくとも右の列ほどは動きます(3 回の幅で、10 職業では別の時刻に流して 9 ポイント動いた例もあります)。今の設定の 1 回の値もその幅で読みます。期待する科目を柱に選んだ割合の 63.6% は、この幅より低い値です
+- 今の設定は、ADR 0090 で柱の理由の書き方を替えたものです。同じ時刻に交互に流した前の設定と比べると、関係なしは 16.7% → 15.1%(p = 0.478)、期待する科目を柱に選んだ割合は 68.9% → 63.6%(p = 0.204。差ありではないが下がる向き)、1 職業に選んだ柱は 5.74 → 5.14(p = 0.029)でした
+- 柱の適合率が低めなのは、判定者の中心が「授業の中心テーマが、仕事で直接使う知識・技能そのもの」と狭いのに対し、ADR 0080 で柱を「職業に少しでも役立つ授業」まで広げたためです。今の設定で選んだ柱の半分ほどは、判定では土台です。網羅を取る代わりに、関係なしが 20% を超えたら見直すと決めています([ADR 0080](docs/adr/0080-selection-coverage.md))。決めた測り方(今の既定どうしを交互に 3 回流した平均)はまだ流しておらず、今の 15.1% は 1 回の値です
+- 確かめ用 20 職業は、直しを決めたあとに 2 回だけ使いました。どちらも 1 回ずつ流し、採る条件は点の推定の向きだけでした。ADR 0069 では関係なしが 15.0% → 12.2%(p = 0.210)でした。ADR 0080 では 1 職業の柱が 4.35 → 6.15(p = 0.001)、期待する科目を柱に選んだ割合が 69.0% → 89.7% と増えた一方、関係なしは 15.0% → 17.5%(p = 0.337)、柱の適合率は 46.0% → 42.3% でした。この回は読み取りが揺れて、検索の再現率 @20 も +3.5 ポイント動いています。今の設定(ADR 0090)は開発用だけで採り、確かめ用では流していません
+
+### 段ごとの取りこぼし
+
+`experiment analyze` が、期待する科目をどの段で落としたかを数えます([ADR 0073](docs/adr/0073-experiment-analysis.md))。読み取りと検索のどちらで落としたかは、評価データに付けた参照用のスキル(Claude が下書きし、作者が確かめた「手書きのスキル」)で検索し直して分けます。科目を知る側が書いたスキルなので、検索には有利になりえます。2 つ前の設定(ADR 0069、2026-10-26)の開発用 50 職業の 151 件では、次のとおりでした。
+
+| 期待する科目の行方 | 件数 |
 |---|---|
-| 選んだ科目のうち関係なし | 選んだ授業のうち、判定で関係なしになった授業の割合。誤りの目安 |
-| 期待する科目を中心に選んだ割合 | 判定で中心になった授業(期待する科目)のうち、柱に選んだ割合。再現率にあたる |
-| 中心の適合率 | 柱に選んだ授業のうち、期待する科目の割合。判定者の中心は選び手より狭く(0080 の前の分析で、柱の半分ほどが判定では土台)、0080 で柱をわざと広げたので、低めに出る |
-| 候補の再現率(@20) | 期待する科目のうち、検索が 20 件の候補に入れた割合 |
+| 柱に選んだ | 100(66%) |
+| 礎に選んだ | 6(4%) |
+| 礎に選んだが、柱につながらず外した | 3(2%) |
+| 候補にあったが選ばなかった(選び直しで落とした) | 20(13%) |
+| 候補に無く、手書きのスキルなら入った(読み取りで落とした) | 18(12%) |
+| 手書きのスキルでも候補に入らない(検索で落とした) | 4(3%) |
+
+取りこぼしは検索より、読み取りと選び直しに多いと分かりました。この表より前の調べでも、LLM のスキルで落とした 25 件のうち 17 件は手書きのスキルなら候補に入ったので、読み取りを弱点と見て、読み取りの指示文に学科の分野を書く案を試しました。候補の再現率が下がる向きだったので採りませんでした(下の表の ADR 0065)。
+
+### 実験と統計の決まり
+
+- **実験の CLI**: `experiment run` が評価データの職業に、本番と同じ処理の流れで推薦を流します。精度、揺れ(同じ職業の回どうしの選んだ授業の重なり、Jaccard)、1 件の費用と時間を、設定と生の出力と一緒に JSON に残します([ADR 0048](docs/adr/0048-recommendation-experiments.md))。比べる 2 つの設定は `experiment pair` で、職業と回ごとに交互に流します
+- **統計**: 差の 95% 信頼区間は、職業を選び直すブートストラップで出します。差の有無は、職業ごとに前と後を入れ替える並べ替え検定(p < 0.05)で決めます([ADR 0053](docs/adr/0053-paired-bootstrap.md)、[0055](docs/adr/0055-interleaved-runs.md))
+- **採る条件を先に書く(事前登録)**: ADR 0054 からは、判定に使う指標と採る条件を、変える前に ADR に書いています。ほかの指標は、区間の悪い側の端でどこまで悪くなりうるかを見ます
 
 ### 採った改善と採らなかった改善
 
-| 変えたこと | ねらい | 結果 | 判断 |
+| 変えたこと | ねらいの指標 | 結果 | 判断 |
 |---|---|---|---|
-| 選び直しを 3 回の多数決に([ADR 0049](docs/adr/0049-selection-votes.md)) | 関係なし | 23% → 10%(差あり)。費用は約 1.9 倍。10 職業を別の時刻に流し、当時のブートストラップの区間で判定した比べで、時刻によるずれも入る | 採った |
-| 職業の読み取りを覚える([ADR 0052](docs/adr/0052-reading-cache.md)) | 揺れと費用 | 回どうしの重なり 0.56 → 0.73(差あり)。費用は初めての職業で 1.00 円のまま、覚えた職業で 0.59 円。10 職業を別の時刻に流し、当時のブートストラップの区間で判定した比べ | 採った |
-| 検索を職業全体と各スキルの交互に([ADR 0063](docs/adr/0063-search-by-skill.md)) | 候補の再現率 | 50 職業で +3.3 ポイント(p = 0.391、差なし)。上がったのは直しを決めるときに見た 30 職業だけで(+6.4)、足した 20 職業では上がらなかった(-1.2) | 30 職業の時点でねらいが差なし(p = 0.089)のまま、作者が承知で採った。3 つの測り方で再現率が同じ向きに上がり、悪化が無かったため |
-| 読み取りに学科の分野を書く([ADR 0065](docs/adr/0065-department-fields.md)) | 候補の再現率(@20) | 0.910 → 0.865(丸める前の値で -4.4 ポイント、p = 0.105) | 採らなかった |
-| 選び直しで迷った授業を選ばない([ADR 0069](docs/adr/0069-selection-restraint.md)) | 関係なし | 開発用 16.4% → 10.6%(p = 0.004)、確かめ用 15.0% → 12.2%(p = 0.210、下がる向き) | 採った。効き目は確かめ用で開発用の半分ほど。のちに 0080 で替えた |
-| 少しでも役立つ授業は迷っても選ぶ([ADR 0080](docs/adr/0080-selection-coverage.md)) | 1 職業に選ぶ柱と礎の数 | 柱が開発用 4.60 → 5.44(p < 0.001)、確かめ用 4.35 → 6.15(p = 0.001)。関係なしは開発用 12.3% → 16.4%(p = 0.027) | 道標を広く取りたいので採った。増えた柱の多くは判定では土台か関係なしで、きっかけの職業(データサイエンティスト)に少し役立つ授業(深層学習の応用など)は、まだ選ばれなかった。確かめ用の条件は「増える向き」だけで、ほぼ必ず通るものだった |
-| 選び直しの 3 回のうち 1 回でも選べば残す([ADR 0081](docs/adr/0081-selection-min-votes.md)) | 1 職業に選ぶ柱 | 5.66 → 6.20(p = 0.076、差なし)。増えたのは礎で、関係なしは 13.4% → 19.7%(p = 0.003) | 採らなかった。設定で切り替えられる形だけ残した |
-| 柱の理由に、仕事のどの作業や対象に授業のどの内容を使うかを書かせる([ADR 0090](docs/adr/0090-reason-wording.md)) | 柱の理由のうち具体的な割合(Claude の判定者 3 体の中央値) | 36.8% → 67.1%(区間 +17.8〜+42.7、差あり)。関係なしは 16.7% → 15.1%(p = 0.478)、1 職業に選んだ柱は 5.74 → 5.14(p = 0.029、差あり) | 採った。理由を書きにくい授業を柱に選ばなくなったとみられ、選ぶ数が少し減った |
+| 選び直しを 3 回の多数決に([0049](docs/adr/0049-selection-votes.md)) | 関係なし | 23% → 10%(10 職業、別の時刻の比べ)。費用は約 1.9 倍。のちに 30 職業で交互に流し直すと、多数決を含む 4 つの変更をまとめて 27.6% → 21.6%(p = 0.023) | 採った |
+| 職業の読み取りを覚える([0052](docs/adr/0052-reading-cache.md)) | 揺れと費用 | 回どうしの重なり 0.56 → 0.73。同じ職業名に同じ読み取りを返す仕組みで揺れを止めたもので、読み取りそのものは揺れたまま。覚えた職業は 1 件 0.59 円 | 採った |
+| 埋め込みを 3-large にし、検索を職業全体と各スキルの交互にする。2 つを同時に替えた([0063](docs/adr/0063-search-by-skill.md)) | 候補の再現率 | 50 職業で +3.3 ポイント(p = 0.391)。上がったのは直しを決めるときに見た 30 職業だけ(+6.4 と -1.2) | 採った(注 1) |
+| 読み取りに学科の分野を書く([0065](docs/adr/0065-department-fields.md)) | 候補の再現率 @20 | -4.4 ポイント(p = 0.105) | 採らなかった |
+| 迷った授業は選ばない([0069](docs/adr/0069-selection-restraint.md)) | 関係なし | 開発用 16.4% → 10.6%(p = 0.004)、確かめ用 15.0% → 12.2%(p = 0.210) | 採った。のちに 0080 で替えた |
+| 少しでも役立つ授業は迷っても選ぶ([0080](docs/adr/0080-selection-coverage.md)) | 1 職業の柱と礎の数 | 柱 4.60 → 5.44(p < 0.001)、礎は差なし。期待する科目を柱に選んだ割合は +6.0 ポイント(p = 0.058)、選び直しで落とした期待する科目は 24 → 24 のまま。関係なしは 12.3% → 16.4%(p = 0.027) | 採った(注 2) |
+| 3 票のうち 1 票でも選べば残す([0081](docs/adr/0081-selection-min-votes.md)) | 1 職業の柱の数 | 5.66 → 6.20(p = 0.076)。増えたのは礎で、関係なしは 13.4% → 19.7%(p = 0.003) | 採らなかった |
+| 柱の理由に、仕事のどの作業に授業のどの内容を使うかを書かせる([0090](docs/adr/0090-reason-wording.md)) | 柱の理由が具体的な割合 | 36.8% → 67.1%(区間 +17.8〜+42.7)。期待する科目を柱に選んだ割合は 68.9% → 63.6%(p = 0.204、下がる向き) | 採った |
+| 理由の文を自動で判定する判定器([0088](docs/adr/0088-reason-evaluation.md)) | 正解との κ が 0.6 以上 | 確かめる用の 75 件で 0.54(gpt-5.4-mini) | 採らなかった |
 
-行ごとに、測った時刻と職業の数が違います。同じ設定でも流した時刻で関係なしが 9 ポイントほど動くので、行と行の数字はつながらず、比べられるのは各行の前と後だけです(上の 2 行は、前と後も別の時刻に流しています)。細かい数字と経緯は[推薦の評価の記録](docs/evaluation-log.md)に、今の値は上の[今の精度と費用](#今の精度と費用)にあります。
+- 行ごとに、流した時刻と職業の数が違うので、比べられるのは各行の前と後だけです。上の 2 行は、交互に流す決まりと、採る条件を先に書く決まりを作る前の判断です
+- 注 1: 採ると決めたのは 30 職業の結果を見たときです。ねらいの候補の再現率は差ありに届きませんでした(+7.0 ポイント、p = 0.089)。それでも、3 つの測り方で再現率が同じ向きに上がり、関係なしが下がり(-7.7 ポイント、p = 0.004)、費用も増えないので、作者が条件を満たさないと承知のうえで採りました。50 職業で比べ直しても再現率ははっきりせず(p = 0.391)、悪くなった指標も無いので戻していません
+- 注 2: 確かめ用の採る条件は、0069 も 0080 も点の推定の向きだけでした。0080 は選ぶ数を増やす指示文なので、ほぼ必ず通る条件でした。増えた柱の多くは判定では礎か関係なしで、選び直しで落としていた期待する科目を拾う効き目はありませんでした
 
-## まず読んでほしい ADR
+細かい数字と経緯は[推薦の評価の記録](docs/evaluation-log.md)にあります。
 
-設計の判断は [ADR](docs/adr/README.md) に残しています。評価と改善の考え方をつかむなら、次の 5 本から読んでください。
+### 理由の文の評価
+
+- 理由の文は、柱なら職業のどの仕事に効くかを、礎なら柱のどの内容の前提かを言えているかを、具体的・ぼんやり・無いの 3 段で判定しています。判定したのは Claude のサブエージェント 3 体で、150 件の 3 票の中央値を正解にしました。3 体の一致は Fleiss の κ で 0.80 です。同じモデルの 3 体なので、これは判定の再現性で、正しさの裏付けではありません([ADR 0088](docs/adr/0088-reason-evaluation.md))
+- 最初の測定では、柱の理由のうち具体的だったのは 28% でした。仕事のどこで使うかを書かせる指示文に替え、前と後を同じ時刻に交互に流して同じ判定者で比べると、36.8% → 67.1% に上がりました。前の 36.8% と 28% の違いには、流した時刻、取った 150 件、判定者のモデル(Opus 5.5 → Fable 5.1)の違いが入っています([ADR 0090](docs/adr/0090-reason-wording.md))
+- 判定の決まりと指示文が同じ観点なので、上がったのは「書き方が決まりに沿った割合」です。理由がシラバスの抜粋に無いことを言っていないか(作り話)は測っていません
+
+### まず読んでほしい ADR
 
 | ADR | 読みどころ |
 |---|---|
-| [0018 LLM の流れの全体](docs/adr/0018-llm-pipeline.md) | 職業をスキルに直し、検索の候補を LLM が読み直して理由つきで選ぶ、と段を分けた。段ごとに測って直せる形の出発点 |
-| [0017 評価の正解の作り方](docs/adr/0017-eval-judging.md) | 検索の候補の全科目を、立場の違う 3 体が職業名だけから独立に判定し、その多数決を正解にした |
-| [0067 確かめ用を分けた理由](docs/adr/0067-heldout-occupations.md) | 開発用の取りこぼしを見て決めた直しが、決めるときに見た職業にだけ効いていた。確かめ用の 20 職業を取っておき、直しを決めて ADR に書いたあとにだけ、平均と検定で測る |
-| [0065 測って採らなかった案](docs/adr/0065-department-fields.md) | 職業の読み取りに学科の分野を書く案を、変える前に決めた測り方で比べ、候補の再現率が下がる向き(-4.4 ポイント)だったので前の文面に戻した |
-| [0080 精度と網羅のどちらを取るか](docs/adr/0080-selection-coverage.md) | 「迷ったら選ばない」を「少しでも役立てば選ぶ」に替え、関係なしが増えるのを受け入れて網羅を取った。確かめ用の採る条件が甘かった反省も残した |
+| [0018 LLM の流れの全体](docs/adr/0018-llm-pipeline.md) | 段を分けて、段ごとに測って直せる形にした出発点 |
+| [0067 確かめ用を分けた理由](docs/adr/0067-heldout-occupations.md) | 直しが、決めるときに見た職業にだけ効いていた |
+| [0080 精度と網羅のどちらを取るか](docs/adr/0080-selection-coverage.md) | 関係なしが増えるのを受け入れて網羅を取り、条件が甘かった反省も残した |
+
+## 限界
+
+- 必修、卒業要件、履修の前提は見ていません。必修など先に取ると決めた授業は先に置けますが、要件を満たすかは確かめません
+- 前提の授業を前の学期に置く制約は無いので、礎が柱より後の学期に来ることがあります([ADR 0034](docs/adr/0034-taken-courses.md))
+- 柱の理由の 3 分の 1 は、まだ仕事のどこに効くかを具体的に言えていません。理由が作り話でないかは測っていません
+- 正解は Claude の判定の多数決で、人の判断との一致は測っていません。評価の職業は、学科の授業が備える職業に限っています。今の設定は確かめ用で流していません
+- 比べる土台(全科目を読ませる案、キーワードの検索など)は測っていません。最初の作りと今の設定を、同じ時刻に交互に流して比べたこともありません
+- 職業の読み取りが揺れます。50 職業を 2 つの設定で読むと、100 回のうち 16 回を「IT エンジニア」と読みました。Web エンジニアのような決まりどおりの読みのほかに、AI・機械学習エンジニアや起業家まで広く読んだ回があります(ADR 0065)。学科の授業と合わない職業では関係なしが多くなります(ADR 0080 の設定で、テック系スタートアップの起業家は選んだ 13 科目のうち 9 科目)
+- 10 職業で同じ設定を別の時刻に流した 2 組では、関係なしが 9 ポイントほど動き、その原因は分かっていません。50 職業で同じ設定を 3 回流すと 13.4〜16.7% でした
+- 実際の学生に使ってもらった検証はまだです。今はテストの利用者だけが道標を作れます
+
+## 作り方
+
+このリポジトリは Claude Code(Anthropic の AI コーディングエージェント)と作りました。コード、テスト、文書の多くは Claude Code が書きました。作者が決めたのは、何を作るか、設計の選択肢のどれを選ぶか、評価の設計(確かめ用を分ける、採る条件を測る前に書く)、改善を採るかどうかです。ADR の中では、作者を「高橋さん」と書いています。
+
+作者が数字を見て決めた例です。
+
+- 1 票でも選んだ授業を残す案は、ねらいの指標で差が出なかった。結果を見てから指標を替えて採ることはせず、採らなかった([ADR 0081](docs/adr/0081-selection-min-votes.md))
+- 本番で作ったデータサイエンティストの道標が少なく見えたので、関係なしが増えるのを受け入れて網羅を取る方針に替え、関係なしが 20% を超えたら見直す線を決めた。きっかけの職業に少し役立つ授業(深層学習の応用)は、変えたあとも選ばれなかった([ADR 0080](docs/adr/0080-selection-coverage.md))
+- 検索の改善は、ねらいの指標(候補の再現率)で差が出なかった。それでも、3 つの測り方で同じ向きに上がり、関係なしが下がり、費用も増えないことを見て、条件を満たさないと承知のうえで採った([ADR 0063](docs/adr/0063-search-by-skill.md))
+
+1 つの変更は、次の順に進めます。
+
+1. 選択肢が 2 つ以上ある判断は、Claude Code が選択肢と良し悪しを並べ、作者が選ぶ。決めたことは実装より先に ADR に書く
+2. git の worktree の上でブランチを切って作り、PR にする
+3. Claude Code にセルフレビューをさせ、新しい指摘が無くなるまで(最大 3 周)直し、CI が通ってからマージする。周ごとの指摘と見送った理由は PR の本文に残す(例: [#122](https://github.com/h11roki/Shirube/pull/122))。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
+4. マージすると、CI が作ったイメージをサーバーが取りに行って本番に出る
+
+Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くこと、コメントを書かず経緯はコミットメッセージに書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。
+
+## 品質
+
+| CI の job | 確かめること |
+|---|---|
+| backend | ruff、mypy(strict)、pytest(DB の結合テストを含む)、カバレッジの下限 |
+| frontend | lint、型、Vitest、整形、E2E テスト(Playwright) |
+| production | 本番の構成を本番と同じ Arm の runner で組み立てて起動し、HTTPS、HSTS、ログインの戻り先を確かめる |
+| scripts | デプロイのスクリプトの shellcheck と、場面ごとのテスト(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど) |
+| audit、CodeQL | 依存の既知の脆弱性と、コードの静的解析 |
+
+- main は GitHub の ruleset で保護し、PR を通して必須の check が全て通らないとマージできません([`.github/rulesets/main.json`](.github/rulesets/main.json))
+- E2E テストは、全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます。折り返しのテストは、Chromium のほかに WebKit(iPhone のまね)でも流します([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))
+- テストの数(2026-11-08): backend 924、Vitest 165、E2E 252、デプロイのスクリプトの場面 16
+- カバレッジ: backend は行と分岐で 89.0%、frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 95.0% です。下限(backend 87%、frontend は文 97%、分岐 93%)を下回ったら CI が落とします([ADR 0098](docs/adr/0098-coverage.md))
+
+## 安全性
+
+LLM を使う部分の守りは、入口を狭くし、出口を限ることにしています([ADR 0089](docs/adr/0089-llm-safety.md))。
+
+- 利用者の入力のうち LLM に渡るのは職業名(100 字まで)だけです。学科、回生、学期、クラスは決まった値から選びます
+- LLM の答えは構造化出力で受け、選ぶ授業は候補の科目名の enum に限ります。LLM の文を SQL の文や道具の呼び出しに組み込みません。読み取ったスキルは埋め込んで検索に使いますが、DB に渡るのはベクトルだけです
+- 道標の文は作った本人の画面に出します。ただし、同じ職業名と条件の推薦は 7 日使い回すので、同じ職業名を入れたほかの利用者にも同じ理由の文が出ます
+- 指示を混ぜた職業名(プロンプトインジェクション)を 3 件流しました。指示文を出させる、解釈に API キーを書かせる、といった指示です。3 件とも指示には従わず、候補に無い授業も指示文の中身も出ませんでした(API キーはもともと LLM に渡していません)。保証ではなく、その日の振る舞いの記録です。指示文かモデルを替えたら流し直します
+- 失敗の文は決まった文だけを返します。道標の受け付けは 1 人 1 日 3 件、全体で 1 日 30 件までで、OpenAI は前払いにして自動の補充を切っています([ADR 0038](docs/adr/0038-plan-quota.md))
+- フロントの Route Handler は、送り元を確かめてほかのサイトからの要求を断ります。全てのページと API に CSP などのヘッダーを付けます。health の API を除き、バックエンドは 5 分で切れる JWT でだけ呼べます([ADR 0027](docs/adr/0027-auth-backend.md)、[0039](docs/adr/0039-request-guard.md))
+- 依存の既知の脆弱性を CI で止め、Dependabot は出てから 7 日経った版だけを上げ、CodeQL がコードを調べます。脆弱性の報告の仕方は [SECURITY.md](SECURITY.md) にあります([ADR 0096](docs/adr/0096-supply-chain.md))
 
 ## 設計
 
-バックエンドはクリーンアーキテクチャの 4 層で、依存は内側にだけ向けています。大学ごとのシラバスの取得元や LLM は application のポート(Protocol)の向こうに置き、infrastructure に実装を足して差し替える形にしています(今は 1 大学だけで、2 つ目の取得元はまだ作っていません)。
+バックエンドはクリーンアーキテクチャの 4 層で、依存は内側にだけ向けています。大学ごとのシラバスの取得元や LLM は application のポート(Protocol)の向こうに置き、infrastructure に実装を足して差し替える形にしています。今は 1 大学だけで、2 つ目の取得元はまだ作っていません。
 
 ```mermaid
 flowchart TB
@@ -157,50 +254,25 @@ flowchart TB
 ```
 
 - フロントは API を呼んで表示するだけで、業務ロジックを置きません。Next.js の Route Handler がログインを確かめ、Google の利用者の番号を入れた JWT を付けて backend に転送します([ADR 0027](docs/adr/0027-auth-backend.md)、[0028](docs/adr/0028-auth-frontend.md))
-- API の型は OpenAPI から生成してコミットし、backend の試験が OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
-- 設計の判断は、選択肢、決定、理由、受け入れたトレードオフ、見直す条件を [ADR](docs/adr/README.md) に書いています
-
-## 作り方
-
-このリポジトリは Claude Code(Anthropic のコーディングエージェント)と作りました。コード、試験、文書の多くは Claude Code が書き、何を作るか、設計の選択肢からどれを選ぶか、改善を採るかどうかは作者が決めて ADR に残しています。ADR の中では、作者を「高橋さん」と書いています。
-
-1 つの変更は、次の順に進めます。
-
-1. 選択肢が 2 つ以上ある判断は、Claude Code が選択肢と良し悪しを並べ、作者が選ぶ。決めたことは実装より先に ADR に書く
-2. 変更は git の worktree の上でブランチを切って作り、PR にする
-3. PR ごとに、Claude Code にレビューを数周させて指摘を直し、CI を通してからマージする。main は保護していて、PR を通し、必須の check(試験、本番の構成、依存の audit、CodeQL)が全て通らないとマージできない([`.github/rulesets/main.json`](.github/rulesets/main.json))。LLM の振る舞いを変える PR は、評価の数字と検定の結果も ADR に残す
-4. マージすると、CI が作ったイメージをサーバーが取りに行って本番に出る([ADR 0094](docs/adr/0094-pull-deploy.md))
-
-Claude Code に守らせる決まり(層の依存の向き、ADR を先に書くこと、コメントを書かず経緯はコミットメッセージに書くことなど)は [CLAUDE.md](CLAUDE.md) にあります。
-
-## 品質
-
-- **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)、依存の既知の脆弱性の audit、CodeQL。main では全て通った版だけイメージを作って置く
-- **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-08): backend 923、Vitest 163、e2e 252、デプロイのスクリプトの場面 16
-- カバレッジ(2026-11-07、CI で測り、下がったら落とす。[ADR 0098](docs/adr/0098-coverage.md)): backend は行と分岐を合わせて 88.9%(domain と application は行 99.7%、分岐 98% ほど、infrastructure は行 92%、分岐 78%、presentation は行 77%、分岐 74% で、手で流す取り込みの CLI に試験が薄い)。frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 94.8%。部品と画面は通しの試験で確かめます
-
-## 安全性
-
-LLM を使う部分の守りは、入口を狭くし、出口を限ることにしています([ADR 0089](docs/adr/0089-llm-safety.md))。
-
-- 利用者の入力のうち LLM に渡るのは職業名(100 字まで)だけです。学科、回生、学期、クラスは決まった値から選びます
-- LLM の出力は構造化出力で受け、選ぶ授業は候補の科目名の enum に限ります。LLM の出力を道具の呼び出しや DB の問い合わせには使わず、本人の画面に文として出すだけです
-- 指示を混ぜた職業名(「これまでの指示を無視して…」など 3 件)を流して何が起きるかを記録しました。指示には従わず、候補に無い授業も鍵も出ませんでした。保証ではなく、その日の振る舞いの記録です。読み取りや選び直しの指示文かモデルを替えたときは、同じ 3 件を流し直して記録します(手順は [docs/development.md](docs/development.md#llm-の安全性の確認))
-- 失敗の文は決まった文だけを返し、LLM や例外の文は見せません。道標の受け付けは 1 人 1 日 3 件、全体 30 件までで、OpenAI は前払いで自動の補充を切っています([ADR 0038](docs/adr/0038-plan-quota.md))
-- 画面の転送は送り元を確かめて他のサイトからの要求を断り、CSP などのヘッダーを付け、バックエンドは 5 分の JWT でだけ呼べます([ADR 0027](docs/adr/0027-auth-backend.md)、[0039](docs/adr/0039-request-guard.md))。鍵はサーバーの `.env` にだけ置き、ログと DB の例外から伏せています
-- 依存の既知の脆弱性は CI の audit で止め(backend は pip-audit、frontend は pnpm audit の high 以上)、Dependabot が出てから 7 日経った版だけを毎週上げ、CodeQL が Python、TypeScript、GitHub Actions を調べます。Docker の土台のイメージは digest で、GitHub 以外の Action は commit の SHA で固定しています。脆弱性の報告の仕方は [SECURITY.md](SECURITY.md) にあります([ADR 0096](docs/adr/0096-supply-chain.md))
+- API の型は OpenAPI から生成してコミットし、backend のテストが OpenAPI との食い違いを見つけます([ADR 0030](docs/adr/0030-screens.md))
 
 ## 本番の構成
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/architecture-dark.png">
-  <img src="docs/images/architecture.png" alt="構成図。利用者は DuckDNS の名前で、HTTPS で AWS シドニーの EC2 の Caddy に届き、Caddy は Let's Encrypt から証明書を取る。EC2 の中の Docker Compose で、Caddy から Next.js、JWT を付けて FastAPI、SQL で PostgreSQL(pgvector)へつながる。Next.js は Google でログインさせる。Worker は DB の待ちの道標を取り、OpenAI の gpt-5.4-mini(職業からスキル)、text-embedding-3-large(検索の埋め込み)、gpt-5.4-nano(3 回の多数決で授業を選ぶ)を呼ぶ。cron が毎日 pg_dump で DB を残す。下の段は、GitHub Actions の CI(Ruff、mypy、pytest、Vitest、Playwright、本番の compose の確かめ)が通った版のイメージを GHCR に置き、EC2 がそれを取りに行くデプロイと、Actions の 15 分ごとの外からの監視と、手元の開発機で Playwright がシラバスを取り BeautifulSoup で解析して埋め込み、本番の DB へ移す流れ">
+  <img src="docs/images/architecture.png" alt="構成図。利用者は HTTPS で AWS の EC2 の Caddy に届き、Docker Compose の Next.js、FastAPI、PostgreSQL(pgvector)、worker へつながる。worker は OpenAI を呼ぶ。下の段は、CI が通った版のイメージを GHCR に置いて EC2 が取りに行くデプロイ、GitHub Actions の外からの監視、手元の開発機でのシラバスの取り込み">
 </picture>
 
-AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が証明書を自動で取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出さず、バックアップは毎日取って 7 日分を残し、毎週、使い捨てのコンテナに戻して、本番のスキーマと科目の表と合うかを確かめます(初めの演習で 5〜7 秒で戻り、戻しの手順にマイグレーションが抜けていたのを見つけて直しました。[ADR 0097](docs/adr/0097-restore-drill.md))。main にマージすると、CI が通った版だけ Arm のイメージを作って GHCR に置き、サーバーの cron が 5 分おきに新しい版を見つけて取りに行き、マイグレーション、入れ替え、ヘルスチェックまでを行い、応えなければ前の版に戻します。サーバーへ入る口と鍵を CI に持たせず、AWS の機能にも頼らないので、別のサーバーへ移ってもそのまま使えます([ADR 0094](docs/adr/0094-pull-deploy.md))。GitHub Actions の定期実行が 15 分ごとに、トップ、ログインなしの API、health の API(DB に届くか、待ちの道標が滞っていないか、OpenAI の残高切れ、動いている版)、証明書の残り、本番が main に追いついているかを外から確かめ、落ちたら GitHub のメールで知らせます。お金も新しいアカウントも要らず、外へ送るのは公開しているページと health の結果だけです([ADR 0095](docs/adr/0095-health-monitor.md))。シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移すので、本番のイメージには取り込みの依存がありません。道標を作るごとに、費用、待ちと作る時間、失敗の種類(残高切れを見分ける)を、利用者の番号も入力も持たない形で残し、サーバーの CLI で日ごとに見ます([ADR 0087](docs/adr/0087-build-records.md))。手順は[開発と本番の手順](docs/development.md#本番)、判断は [ADR 0075](docs/adr/0075-production-setup.md)〜[0077](docs/adr/0077-auth-url.md) と [0094](docs/adr/0094-pull-deploy.md)、[0095](docs/adr/0095-health-monitor.md) にあります。図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
+- **構成**: AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が Let's Encrypt の証明書を取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出しません([ADR 0075](docs/adr/0075-production-setup.md))
+- **デプロイ**: サーバーが取りに行く形です。main にマージすると、CI が全て通った版だけ Arm のイメージを作って GHCR に置きます。サーバーの cron は 5 分おきに新しい版を見つけ、マイグレーション、入れ替え、ヘルスチェックまで行い、応えなければ前の版に戻します。マイグレーションを流した版は戻さず、人が確かめるまで入れ替えを止めます。CI に SSH の入口や鍵を持たせません([ADR 0094](docs/adr/0094-pull-deploy.md))
+- **監視**: GitHub Actions の定期実行が 15 分ごとに外から確かめ、落ちたら GitHub のメールで知らせます。見るのは、トップ、ログインせずに呼んだ API の応答、health の API(DB に届くか、待ちの滞り、OpenAI の残高切れ、動いている版)、証明書の残り、本番が main に追いついているかです([ADR 0095](docs/adr/0095-health-monitor.md))
+- **バックアップ**: 毎日取って 7 日分を残し、毎週、使い捨てのコンテナに戻して、本番のスキーマと科目の表と合うかを確かめます。初めの演習で、戻しの手順にマイグレーションが抜けていたのを見つけて直しました([ADR 0097](docs/adr/0097-restore-drill.md))
+- **取り込み**: シラバスの取得、解析、埋め込みは手元の開発機で行い、科目の表の中身だけを本番の DB へ移します。取得は 2〜3 秒の間隔で 1 本ずつ行い、取った HTML を保存して取り直しません
+- **記録**: 道標を作るごとに、費用、待ちと作る時間、失敗の種類(残高切れを見分ける)を、利用者の番号も入力も持たない形で残し、日ごとに集計します([ADR 0087](docs/adr/0087-build-records.md))
 
-## 技術
+図は [stack-diagram](https://github.com/caru-ini/stack-diagram) で描いた [`docs/images/architecture.html`](docs/images/architecture.html) を撮ったものです。
+
+## 使った技術
 
 | 領域 | 技術 |
 |---|---|
@@ -210,30 +282,26 @@ AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Cad
 | LLM / 埋め込み | OpenAI API(gpt-5.4-mini、gpt-5.4-nano、text-embedding-3-large) |
 | 評価データの判定 | Claude のサブエージェント |
 | シラバスの取り込み | Playwright、BeautifulSoup |
-| 開発環境 | Docker Compose |
 | 本番 | AWS EC2、Docker Compose、Caddy、DuckDNS |
 | CI / CD / 監視 | GitHub Actions、GHCR、サーバーの cron が取りに行くデプロイ、Actions の定期実行による外からの監視 |
 
-## 開発者向け
+## 関連文書
 
 - [開発と本番の手順](docs/development.md): 手元での起動、本番の用意とデプロイと更新とバックアップ、データの取り扱い、開発のルール
 - [推薦の評価の記録](docs/evaluation-log.md): 基準、改善ごとの数字、30 職業と 50 職業での比べ、取りこぼしの内訳
-- コマンドの一覧と、Claude Code に守らせる決まりは [CLAUDE.md](CLAUDE.md) にあります
-
-前の ADR が「README の「本番」」「README の「50 職業で比べ直す」」のように書いている節は、見出しの名前のまま、この 2 つの文書に移しました。
+- [ADR の一覧](docs/adr/README.md)
 
 ## English summary
 
-shirube ("signpost") helps university students choose courses backwards from the job they want. Given a target occupation and the student's current year, it retrieves related courses from the university syllabi (RAG with pgvector), has an LLM pick the courses and explain why each one matters for that job, and lays them out into a clash-free timetable for every remaining semester until graduation. It currently covers the Department of Electronic and Computer Engineering at Ritsumeikan University, and is live at https://shirube.duckdns.org (sign-in is limited to test users; the landing page shows a real sample plan).
+shirube ("signpost") helps university students plan their courses by working backwards from the job they want. Given an occupation and the student's year, it retrieves related courses from the university's syllabi (RAG over pgvector), has an LLM choose courses and explain how each one matters for that job, and lays them out as a clash-free timetable until graduation. It covers one department at Ritsumeikan University and is live at https://shirube.duckdns.org (sign-in is limited to test users; the landing page shows a real sample plan).
 
-- **Evaluation-driven LLM development**: a development set of 50 occupations and a held-out set of 20, with expected courses labelled by majority vote of three Claude judges with different viewpoints (a different model family from the OpenAI models the app uses, so the app is not graded by itself); two configurations are run interleaved, and changes are accepted by bootstrap confidence intervals and permutation tests. Acceptance criteria are written down before measuring, and rejected changes are documented as well. Last measured on both sets (dev / held-out): 16.4% / 17.5% of chosen courses judged irrelevant and 67.5% / 89.7% of expected courses chosen as core. The held-out 89.7% is a single run that jumped from 69.0% for the previous settings measured at the same time, so read it with care. After the latest prompt change (ADR 0090), one dev run gave 15.1% and 63.6%; the held-out set has not been re-run. A recommendation costs about 1 JPY
-- **A staged pipeline, not an agent**: occupation reading with structured output, retrieval, selection by a 3-vote majority, and greedy timetable placement. Each stage is measured on its own, so a missed course can be traced to the stage that dropped it. LLM output is only matched against candidate course names and shown to its owner; it never drives tool calls or queries
-- **Running in production**: FastAPI (clean architecture, mypy strict) and Next.js on a single AWS EC2 instance with Docker Compose and Caddy, pull-based continuous deployment (CI pushes arm64 images to GHCR only when every check passes; the server picks up the new version, migrates, health-checks and rolls back on failure), external monitoring every 15 minutes from GitHub Actions against a health endpoint (database, stalled queue, OpenAI credit, running version) and the TLS certificate, a PostgreSQL-backed job queue with a worker, daily quotas and prepaid billing as cost limits, a 7-day recommendation cache, and per-build records of cost, latency and failure type
-- **Quality**: CI runs pytest (with database integration tests), Vitest, and Playwright end-to-end tests that check every screen against WCAG 2.2 AA with axe at two widths in light and dark themes, and check that nothing overflows at 320px or is clipped at 200% text size
-- **Decisions on record**: more than 90 ADRs list the options, the decision, the trade-offs accepted and when to revisit. The code was written with Claude Code; the author made the product and design decisions recorded in the ADRs
+- **Evaluation-driven**: changes to prompts and retrieval are compared on 50 development occupations with interleaved runs and permutation tests, and acceptance criteria are written in an ADR before measuring. The labels come from three Claude judges (a different model family from the OpenAI models the app uses) and have not been checked against human judgement. A 20-occupation held-out set is used only after a change is decided; it has been used twice, with direction-only criteria, and the current configuration was adopted on the development set alone. Rejected changes are documented too.
+- **A staged pipeline, not an agent**: occupation interpretation with structured output, retrieval, selection by a three-vote majority, and greedy timetable placement. Each stage is measured on its own, course names are constrained to the candidates by an enum, and a recommendation costs about 1 JPY.
+- **In production**: FastAPI and Next.js on one AWS EC2 instance, pull-based deployment with rollback (a version that ran migrations is held for a person instead), external monitoring every 15 minutes, and daily quotas with prepaid billing as cost limits.
+- **How it was built**: most of the code was written by Claude Code. The author made the product and design decisions, designed the evaluation and chose which changes to adopt, as recorded in 99 ADRs.
 
-The documentation is in Japanese.
+The rest of the documentation is in Japanese.
 
 ## ライセンス
 
-コードは [MIT License](LICENSE) です。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外です(大学と担当教員のもの)。テストには実ページを置かず、科目名・教員名・本文が架空の合成のページ(`backend/tests/unit/syllabus_pages.py` がテストの中で組み立てる)と PDF(`backend/tests/fixtures/timetable/make_sample.py` が作る)を使います([ADR 0043](docs/adr/0043-license-and-fixtures.md))。
+コードは [MIT License](LICENSE) です。取り込んだシラバスと時間割表の内容(`backend/data/`、git 管理外)と画面に出す引用は、このライセンスの対象外です(大学と担当教員のもの)。テストには実ページを置かず、科目名、教員名、本文が架空の合成のページと PDF を使います([ADR 0043](docs/adr/0043-license-and-fixtures.md))。
