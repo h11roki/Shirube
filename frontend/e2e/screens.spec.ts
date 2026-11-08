@@ -20,6 +20,7 @@ import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 import {
   type Api,
+  CHROMIUM_DEFAULT_FONT_PX,
   CLASS_CHOICES,
   FAILED_PLAN,
   OFFERED_COURSES,
@@ -29,6 +30,8 @@ import {
   REREAD_PLAN,
   RUNNING_PLAN,
   TAKEN_COURSES,
+  TEXT_ZOOM,
+  enlargeText,
   expect,
   fontsReady,
   planApi,
@@ -40,8 +43,6 @@ const WCAG_TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 const WIDTHS = [375, 1280];
 const NARROWEST = 320;
 const ENLARGED_WIDTHS = [NARROWEST, ...WIDTHS];
-const CHROMIUM_DEFAULT_FONT_PX = { standard: 16, fixed: 13 };
-const TEXT_ZOOM = 2;
 const TEXT_RESIZE_WIDTH = 1280;
 const GLYPH_OVERHANG_EM = 0.25;
 const UNDECORATED_CSS = `
@@ -312,14 +313,7 @@ for (const screen of SCREENS) {
       api,
     }) => {
       await open(page, api, screen, NARROWEST, false);
-      const devtools = await page.context().newCDPSession(page);
-      await devtools.send("Page.setFontSizes", {
-        fontSizes: {
-          standard: CHROMIUM_DEFAULT_FONT_PX.standard * TEXT_ZOOM,
-          fixed: CHROMIUM_DEFAULT_FONT_PX.fixed * TEXT_ZOOM,
-        },
-      });
-      await devtools.detach();
+      await enlargeText(page);
       expect(
         await page.evaluate(
           () => getComputedStyle(document.documentElement).fontSize,

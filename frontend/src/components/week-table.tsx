@@ -10,28 +10,26 @@ import {
   WEEKDAY_SUFFIX,
 } from "@/lib/labels";
 import { halfWidthAlphanumerics } from "@/lib/ticket-face";
-import {
-  type WeekTable as Week,
-  daySchedules,
-  weekTable,
-} from "@/lib/timetable";
+import { type Week, daySchedules, weekTable } from "@/lib/timetable";
 
-export function WeekTable({ courses }: { courses: PlacedCourse[] }) {
+const SWITCHES = {
+  "20rem": { grid: "hidden min-[20rem]:table", list: "min-[20rem]:hidden" },
+  "40rem": { grid: "hidden sm:table", list: "sm:hidden" },
+} as const;
+
+export function WeekTable({
+  courses,
+  listBelow,
+}: {
+  courses: PlacedCourse[];
+  listBelow: keyof typeof SWITCHES;
+}) {
   const table = weekTable(courses);
+  const classes = SWITCHES[listBelow];
   return (
     <div className="grid min-w-0 gap-2">
-      <WeekGrid table={table} className="table" />
-      <Unscheduled table={table} />
-    </div>
-  );
-}
-
-export function StationWeek({ courses }: { courses: PlacedCourse[] }) {
-  const table = weekTable(courses);
-  return (
-    <div className="grid min-w-0 gap-2">
-      <WeekGrid table={table} className="hidden sm:table" />
-      <DayList table={table} />
+      <WeekGrid table={table} className={classes.grid} />
+      <DayList table={table} className={classes.list} />
       <Unscheduled table={table} />
     </div>
   );
@@ -89,9 +87,9 @@ function WeekGrid({ table, className }: { table: Week; className: string }) {
   );
 }
 
-function DayList({ table }: { table: Week }) {
+function DayList({ table, className }: { table: Week; className: string }) {
   return (
-    <dl className="grid gap-1.5 text-xs sm:hidden">
+    <dl className={`grid gap-1.5 text-xs ${className}`}>
       {daySchedules(table).map((day) => (
         <div
           key={day.weekday}

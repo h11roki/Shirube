@@ -248,6 +248,20 @@ export function planApi(plan: Plan): string {
   return `/api/plans/${plan.id}`;
 }
 
+export const CHROMIUM_DEFAULT_FONT_PX = { standard: 16, fixed: 13 };
+export const TEXT_ZOOM = 2;
+
+export async function enlargeText(page: Page) {
+  const devtools = await page.context().newCDPSession(page);
+  await devtools.send("Page.setFontSizes", {
+    fontSizes: {
+      standard: CHROMIUM_DEFAULT_FONT_PX.standard * TEXT_ZOOM,
+      fixed: CHROMIUM_DEFAULT_FONT_PX.fixed * TEXT_ZOOM,
+    },
+  });
+  await devtools.detach();
+}
+
 export async function fontsReady(page: Page) {
   await page.evaluate(async () => {
     await document.fonts.ready;

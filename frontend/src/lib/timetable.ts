@@ -22,13 +22,13 @@ export type WeekRow = {
   cells: PlacedCourse[][];
 };
 
-export type WeekTable = {
+export type Week = {
   weekdays: Weekday[];
   rows: WeekRow[];
   unscheduled: PlacedCourse[];
 };
 
-export function weekTable(courses: PlacedCourse[]): WeekTable {
+export function weekTable(courses: PlacedCourse[]): Week {
   const slots = courses.flatMap((course) => course.slots);
   const used = new Set(slots.map((slot) => slot.weekday));
   const weekdays = WEEK.filter(
@@ -59,7 +59,7 @@ export type DayLesson = { period: number; course: PlacedCourse };
 
 export type DaySchedule = { weekday: Weekday; lessons: DayLesson[] };
 
-export function daySchedules(table: WeekTable): DaySchedule[] {
+export function daySchedules(table: Week): DaySchedule[] {
   return table.weekdays.map((weekday, index) => ({
     weekday,
     lessons: table.rows.flatMap((row) =>
