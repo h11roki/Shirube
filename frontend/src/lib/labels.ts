@@ -102,6 +102,8 @@ export const NO_LESSONS_LABEL = "授業なし";
 
 export const CLASS_UNCONFIRMED_LABEL = "クラス未確定";
 
+export const ROOM_LABEL = "教室";
+
 export const WEEKDAY_SUFFIX = "曜日";
 
 export const PERIOD_SUFFIX = "限";

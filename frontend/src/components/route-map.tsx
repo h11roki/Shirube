@@ -360,7 +360,7 @@ function Station({
         hidden={!open}
         className="min-w-0 border border-line bg-note p-3.5 motion-safe:animate-rise"
       >
-        {open && <WeekTable courses={all} listBelow="40rem" />}
+        {open && <WeekTable courses={all} />}
       </div>
     </li>
   );

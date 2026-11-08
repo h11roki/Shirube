@@ -98,7 +98,7 @@ export function TimetableBook({
         </nav>
         <div className="grid items-start gap-4 lg:grid-cols-[1.55fr_1fr]">
           <div className="min-w-0 border border-line bg-note p-3.5">
-            <WeekTable courses={all} listBelow="20rem" />
+            <WeekTable courses={all} />
           </div>
           {all.length > 0 ? (
             <div className="grid min-w-0 gap-3">

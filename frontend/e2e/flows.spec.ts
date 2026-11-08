@@ -873,8 +873,8 @@ test.describe("時間割帳の週", () => {
         "1 限 9:00 から 10:35",
       );
       for (const [name, note] of [
-        ["信号処理", "柱 C302"],
-        ["電磁気学", "礎 情処演P33クラス未確定"],
+        ["信号処理", "柱 教室 C302"],
+        ["電磁気学", "礎 教室 情処演P33クラス未確定"],
         ["回路理論", "柱"],
       ]) {
         await expect(
@@ -896,15 +896,26 @@ test.describe("時間割帳の週", () => {
       await expect(list).toBeVisible();
       await expect(page.getByRole("table")).toBeHidden();
     }
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(list).toBeHidden();
+    for (const width of [640, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      const table = page.getByRole("table");
+      await expect(table).toBeVisible();
+      await expect(list).toBeHidden();
+      expect(
+        await table.evaluate((grid) =>
+          [...grid.querySelectorAll("td > span")]
+            .filter((note) => note.scrollWidth > note.clientWidth + 1)
+            .map((note) => note.textContent),
+        ),
+        "マスからはみ出した授業",
+      ).toEqual([]);
+    }
   });
 
-  test("道のりの駅の時間割は、幅 640px 未満では曜日ごとの一覧にし、曜日を略さずに読ませる", async ({
+  test("道のりの駅の時間割は、枠が狭い幅 320px では曜日ごとの一覧にし、曜日を略さずに時限の時刻とともに読ませる", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 375, height: 900 });
+    await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(`/plans/${WEEK_PLAN.id}`);
     await page
       .getByRole("button", { name: /この学期の時間割を開く/ })
@@ -913,9 +924,9 @@ test.describe("時間割帳の週", () => {
     await expect(page.locator("dl").filter({ hasText: NO_LESSONS_LABEL }))
       .toMatchAriaSnapshot(`
       - term: 月曜日
-      - definition: 2 限 信号処理 柱 C302
+      - definition: 2 限 10:45 から 12:20 信号処理 柱 教室 C302
       - term: 火曜日
-      - definition: 1 限 電磁気学 礎 情処演P33 クラス未確定 3 限 回路理論 柱
+      - definition: 1 限 9:00 から 10:35 電磁気学 礎 教室 情処演P33 クラス未確定 3 限 13:10 から 14:45 回路理論 柱
       - term: 水曜日
       - definition: 授業なし
       - term: 木曜日
@@ -926,8 +937,10 @@ test.describe("時間割帳の週", () => {
     await expect(page.getByRole("table")).toBeHidden();
   });
 
-  test("道のりの駅の時間割は、幅 640px 以上では表にする", async ({ page }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
+  test("道のりの駅の時間割は、枠に余裕のある幅 375px では表にする", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
     await page.goto(`/plans/${WEEK_PLAN.id}`);
     await page
       .getByRole("button", { name: /この学期の時間割を開く/ })
