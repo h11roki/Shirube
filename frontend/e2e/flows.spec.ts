@@ -419,10 +419,10 @@ test.describe("もう取ったの半券(動きを減らさない設定)", () => 
 test.describe("乗換の欄", () => {
   const routes = transferRoutes(SAMPLE_PLAN.result.semesters);
   const transfer = [...routes.departures.values()].find(
-    (each) => each.to.station < each.from.station,
+    (each) => each.to.station !== each.from.station,
   );
   if (!transfer) {
-    throw new Error("見本の道標に、前の駅の柱へ乗り換える礎が無い");
+    throw new Error("見本の道標に、別の駅の柱へ乗り換える礎が無い");
   }
   const departureOf = (page: Page): Locator =>
     ticketOf(page, transfer.from.name).getByRole("button", {

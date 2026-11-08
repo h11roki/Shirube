@@ -57,25 +57,51 @@ const LONG_DESTINATIONS = [
   ["電子", "情報", "システム", "保守", "技術者"],
 ];
 
+const BRACKETED_NAME = [
+  "特殊",
+  "講義",
+  "（専門）Ⅲ",
+  "（深層",
+  "学習の",
+  "応用）",
+];
+
 const TICKET_NAMES = [
   ["データ", "エンジニアリング", "基礎"],
   ["データ", "サイエンス・", "AI", "基礎"],
+  ["応用Cプログラミング"],
   ["データ", "構造と", "アルゴリズム"],
-  ["メディア", "情報", "処理"],
   ["ＡＩ・", "機械", "学習"],
-  ["特殊", "講義", "（専門）Ⅲ", "（深層", "学習の", "応用）"],
+  ["情報処理", "演習"],
+  ["情報処理"],
+  BRACKETED_NAME,
 ];
 
-const UNPLACED_PLAN: Plan = {
+const TICKET_PLAN = {
   ...SAMPLE_PLAN,
   result: {
     ...SAMPLE_PLAN.result,
     semesters: SAMPLE_PLAN.result.semesters.map((semester) => ({
       ...semester,
+      courses: semester.courses.map((course) =>
+        course.name === "確率統計"
+          ? { ...course, name: BRACKETED_NAME.join("") }
+          : course,
+      ),
+    })),
+  },
+} satisfies Plan;
+
+const UNPLACED_PLAN: Plan = {
+  ...TICKET_PLAN,
+  result: {
+    ...TICKET_PLAN.result,
+    semesters: TICKET_PLAN.result.semesters.map((semester) => ({
+      ...semester,
       courses: [],
       continuing: [],
     })),
-    unplaced: SAMPLE_PLAN.result.semesters
+    unplaced: TICKET_PLAN.result.semesters
       .flatMap(semesterCourses)
       .map(
         ({
@@ -506,7 +532,7 @@ for (const width of [...NARROW_WIDTHS, 1280]) {
     api,
   }) => {
     await page.setViewportSize({ width, height: 900 });
-    await openPlan(page, api, SAMPLE_PLAN);
+    await openPlan(page, api, TICKET_PLAN);
     await expectBreaksBetweenWords(page, TICKET_NAMES);
   });
 
@@ -530,14 +556,14 @@ for (const width of [...NARROW_WIDTHS, 1280]) {
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await signIn(page);
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    api.answer({ [planApi(TICKET_PLAN)]: TICKET_PLAN });
     for (const words of TICKET_NAMES) {
-      const semester = SAMPLE_PLAN.result.semesters.find((each) =>
+      const semester = TICKET_PLAN.result.semesters.find((each) =>
         semesterCourses(each).some((course) => course.name === words.join("")),
       );
       await page.goto(
         resultViewHref(
-          `/plans/${SAMPLE_PLAN.id}`,
+          `/plans/${TICKET_PLAN.id}`,
           "timetable",
           semester && semesterKey(semester),
         ),

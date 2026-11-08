@@ -1,10 +1,16 @@
+import type { PlacedCourse } from "@/lib/api/client";
 import { slotsLabel } from "@/lib/labels";
+import type { RecommendedRelevance } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { halfWidthAlphanumerics } from "@/lib/ticket-face";
 
-const SAMPLE_COURSES = SAMPLE_PLAN.result.semesters.flatMap(
-  (semester) => semester.courses,
-);
+type RecommendedCourse = PlacedCourse & { relevance: RecommendedRelevance };
+
+const SAMPLE_COURSES = SAMPLE_PLAN.result.semesters
+  .flatMap((semester): PlacedCourse[] => semester.courses)
+  .filter(
+    (course): course is RecommendedCourse => course.relevance !== "fixed",
+  );
 const SENTENCE = /[^。！？!?]*[。！？!?]+[」』）)】〕］〉》”’]*/g;
 
 export function lastSentence(text: string): string {
@@ -13,12 +19,11 @@ export function lastSentence(text: string): string {
   return rest || sentences.at(-1)?.trim() || text;
 }
 
-export const SAMPLE_TICKETS = ["電子情報基礎数学", "ＡＩ・機械学習"].flatMap(
-  (name) =>
-    SAMPLE_COURSES.filter((course) => course.name === name).map((course) => ({
-      ...course,
-      name: halfWidthAlphanumerics(course.name),
-      reason: lastSentence(course.reason),
-      slot: slotsLabel(course),
-    })),
+export const SAMPLE_TICKETS = ["情報処理", "確率統計"].flatMap((name) =>
+  SAMPLE_COURSES.filter((course) => course.name === name).map((course) => ({
+    ...course,
+    name: halfWidthAlphanumerics(course.name),
+    reason: lastSentence(course.reason),
+    slot: slotsLabel(course),
+  })),
 );
