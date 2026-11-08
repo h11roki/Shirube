@@ -134,6 +134,11 @@ class Plan:
         if over:
             raise PlanError(f"単位の上限を超えた学期があります: {'、'.join(over)}")
 
+    def entered(self, stage: PlanStage, reading: OccupationProfile) -> Self:
+        if self.status is not PlanStatus.RUNNING:
+            raise PlanError(f"作成中でない道標は段に入れません: {self.status}")
+        return replace(self, stage=stage, reading=reading)
+
     def succeeded(self, result: PlanResult) -> Self:
         if self.status is not PlanStatus.RUNNING:
             raise PlanError(f"作成中でない道標は完了にできません: {self.status}")

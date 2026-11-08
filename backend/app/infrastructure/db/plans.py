@@ -119,12 +119,15 @@ class SqlPlanRepository:
     def claim(self, plan_id: UUID) -> Plan | None:
         return self._claim(PlanRow.id == plan_id)
 
-    def enter_stage(self, plan_id: UUID, stage: PlanStage, reading: OccupationProfile) -> None:
+    def enter_stage(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(
                 update(PlanRow)
-                .where(PlanRow.id == plan_id, PlanRow.status == PlanStatus.RUNNING)
-                .values(stage=stage, reading=profile_json(reading))
+                .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.RUNNING)
+                .values(
+                    stage=plan.stage,
+                    reading=None if plan.reading is None else profile_json(plan.reading),
+                )
                 .execution_options(synchronize_session=False)
             )
 

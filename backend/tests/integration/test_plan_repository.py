@@ -345,17 +345,16 @@ def test_a_running_plan_keeps_the_stage_and_reading_it_entered_until_it_finishes
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = waiting(repository, owner)
-    repository.enter_stage(plan.id, PlanStage.SEARCHING, READING)
-    assert repository.get(plan.id) == plan
     running = repository.claim(plan.id)
     assert running is not None
     assert (running.stage, running.reading) == (PlanStage.ANALYZING, None)
 
-    repository.enter_stage(plan.id, PlanStage.SELECTING, READING)
+    repository.enter_stage(running.entered(PlanStage.SELECTING, READING))
     entered = repository.get(plan.id)
     assert entered is not None
     assert (entered.stage, entered.reading) == (PlanStage.SELECTING, READING)
     repository.finish(entered.failed("文"))
+    repository.enter_stage(running.entered(PlanStage.PLACING, READING))
 
     finished = repository.get(plan.id)
     assert finished is not None
@@ -370,8 +369,9 @@ def test_a_stalled_plan_loses_its_stage_and_reading(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = waiting(repository, owner)
-    repository.claim(plan.id)
-    repository.enter_stage(plan.id, PlanStage.SEARCHING, READING)
+    running = repository.claim(plan.id)
+    assert running is not None
+    repository.enter_stage(running.entered(PlanStage.SEARCHING, READING))
     with engine.begin() as connection:
         connection.execute(
             update(PlanRow)

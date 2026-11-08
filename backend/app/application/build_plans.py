@@ -158,7 +158,7 @@ class BuildPlans:
     ) -> None:
         entered.append((stage, self._clock()))
         try:
-            self._plans.enter_stage(plan.id, stage, reading)
+            self._plans.enter_stage(plan.entered(stage, reading))
         except Exception:
             logger.exception("道標 %s の段 %s を書けませんでした", plan.id, stage)
 

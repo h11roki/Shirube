@@ -343,11 +343,12 @@ class FakePlanRepository:
         self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING)
         return self.plans[plan_id]
 
-    def enter_stage(self, plan_id: UUID, stage: PlanStage, reading: OccupationProfile) -> None:
-        plan = self.plans.get(plan_id)
-        if plan is not None and plan.status is PlanStatus.RUNNING:
-            self.stages.append((plan_id, stage, reading))
-            self.plans[plan_id] = replace(plan, stage=stage, reading=reading)
+    def enter_stage(self, plan: Plan) -> None:
+        stored = self.plans.get(plan.id)
+        if stored is not None and stored.status is PlanStatus.RUNNING:
+            assert plan.stage is not None and plan.reading is not None
+            self.stages.append((plan.id, plan.stage, plan.reading))
+            self.plans[plan.id] = replace(stored, stage=plan.stage, reading=plan.reading)
 
     def finish(self, plan: Plan) -> bool:
         stored = self.plans.get(plan.id)

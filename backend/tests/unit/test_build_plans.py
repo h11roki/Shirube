@@ -137,6 +137,22 @@ def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() 
     assert built.stage is None
 
 
+def test_a_reading_for_another_occupation_is_not_written_and_the_plan_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    plans = FakePlanRepository()
+    waiting(plans)
+    other = OccupationProfile("別の職業", "別の職業", None, ("甲", "乙", "丙"))
+
+    with caplog.at_level(logging.WARNING):
+        built = builder(courses_ranked_by({"科目A": 0.9}), plans, profile=other).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.FAILED
+    assert plans.stages == []
+    assert "読み取った職業が条件と違います" in caplog.text
+
+
 def test_a_remembered_recommendation_still_writes_its_reading_when_placing() -> None:
     class Remembered:
         def run(
@@ -297,7 +313,7 @@ def test_a_stage_that_cannot_be_written_does_not_fail_the_plan(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     class StagesFail(FakePlanRepository):
-        def enter_stage(self, plan_id: UUID, stage: PlanStage, reading: OccupationProfile) -> None:
+        def enter_stage(self, plan: Plan) -> None:
             raise RuntimeError("接続が切れました")
 
     plans = StagesFail()
