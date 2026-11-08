@@ -581,6 +581,21 @@ test.describe("乗換の欄", () => {
 });
 
 test.describe("道標を作る", () => {
+  test("ログインしていないとき、ヘッダーの道標を作るを押すと、ログインのページへ移る", async ({
+    page,
+  }) => {
+    await page.context().clearCookies();
+    await page.goto("/");
+    await page
+      .getByRole("banner")
+      .getByRole("link", { name: "道標を作る" })
+      .click();
+    await expect(page).toHaveURL("/login");
+    await expect(
+      page.getByRole("button", { name: "Google でログイン" }),
+    ).toBeVisible();
+  });
+
   test("作って結果の画面に移ったあと、入力の画面に戻ると、職業名が空でもう一度作れる", async ({
     page,
     api,

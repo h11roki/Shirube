@@ -5,6 +5,9 @@ import { Account } from "@/components/account";
 import { NAV_LINK } from "@/components/styles";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MY_PLANS_LABEL } from "@/lib/labels";
+import { currentSession } from "@/lib/session";
+
+const CREATE_PLAN_LABEL = "道標を作る";
 
 export function SiteHeader() {
   return (
@@ -20,9 +23,15 @@ export function SiteHeader() {
           <ThemeToggle />
         </div>
         <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub lg:w-auto">
-          <Link href="/" className={NAV_LINK}>
-            道標を作る
-          </Link>
+          <Suspense
+            fallback={
+              <Link href="/" className={NAV_LINK}>
+                {CREATE_PLAN_LABEL}
+              </Link>
+            }
+          >
+            <CreatePlanLink />
+          </Suspense>
           <Link href="/plans" className={NAV_LINK}>
             {MY_PLANS_LABEL}
           </Link>
@@ -32,5 +41,14 @@ export function SiteHeader() {
         </nav>
       </div>
     </header>
+  );
+}
+
+async function CreatePlanLink() {
+  const session = await currentSession();
+  return (
+    <Link href={session?.googleSubject ? "/" : "/login"} className={NAV_LINK}>
+      {CREATE_PLAN_LABEL}
+    </Link>
   );
 }
