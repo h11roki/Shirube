@@ -7,7 +7,7 @@
 
 **デモ: https://shirube.duckdns.org** ・ [English summary](#english-summary)
 
-ログインしなくても、トップで実際の出力の見本の道標を見られます。道標を作るには Google でのログインが要り、今はテストの利用者に限っています。
+ログインしなくても、トップで実際の出力の見本の道標を見られます。道標は、Google でログインすれば誰でも作れます(1 人 1 日 3 件まで)。
 
 ## 30 秒で
 
@@ -194,7 +194,7 @@ flowchart LR
 - 比べる土台(全科目を読ませる案、キーワードの検索など)は測っていません。最初の作りと今の設定を、同じ時刻に交互に流して比べたこともありません
 - 職業の読み取りが揺れます。50 職業を 2 つの設定で読むと、100 回のうち 16 回を「IT エンジニア」と読みました。Web エンジニアのような決まりどおりの読みのほかに、AI・機械学習エンジニアや起業家まで広く読んだ回があります(ADR 0065)。学科の授業と合わない職業では関係なしが多くなります(ADR 0080 の設定で、テック系スタートアップの起業家は選んだ 13 科目のうち 9 科目)
 - 10 職業で同じ設定を別の時刻に流した 2 組では、関係なしが 9 ポイントほど動き、その原因は分かっていません。50 職業で同じ設定を 3 回流すと 13.4〜16.7% でした
-- 実際の学生に使ってもらった検証はまだです。今はテストの利用者だけが道標を作れます
+- 実際の学生に使ってもらった検証はまだです。ログインは 2026-11-08 に誰でも使えるようにしたばかりで、それまでに本番で作った道標はテストの数件だけです
 
 ## 作り方
 
@@ -293,7 +293,7 @@ flowchart TB
 
 ## English summary
 
-shirube ("signpost") helps university students plan their courses by working backwards from the job they want. Given an occupation and the student's year, it retrieves related courses from the university's syllabi (RAG over pgvector), has an LLM choose courses and explain how each one matters for that job, and lays them out as a clash-free timetable until graduation. It covers one department at Ritsumeikan University and is live at https://shirube.duckdns.org (sign-in is limited to test users; the landing page shows a real sample plan).
+shirube ("signpost") helps university students plan their courses by working backwards from the job they want. Given an occupation and the student's year, it retrieves related courses from the university's syllabi (RAG over pgvector), has an LLM choose courses and explain how each one matters for that job, and lays them out as a clash-free timetable until graduation. It covers one department at Ritsumeikan University and is live at https://shirube.duckdns.org (anyone with a Google account can sign in and create up to 3 plans a day; the landing page shows a real sample plan).
 
 - **Evaluation-driven**: changes to prompts and retrieval are compared on 50 development occupations with interleaved runs and permutation tests, and acceptance criteria are written in an ADR before measuring. The labels come from three Claude judges (a different model family from the OpenAI models the app uses) and have not been checked against human judgement. A 20-occupation held-out set is used only after a change is decided; it has been used twice, with direction-only criteria, and the current configuration was adopted on the development set alone. Rejected changes are documented too.
 - **A staged pipeline, not an agent**: occupation interpretation with structured output, retrieval, selection by a three-vote majority, and greedy timetable placement. Each stage is measured on its own, course names are constrained to the candidates by an enum, and a recommendation costs about 1 JPY.
