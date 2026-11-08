@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { Account } from "@/components/account";
+import { CreatePlanLink } from "@/components/create-plan-link";
 import { NAV_LINK } from "@/components/styles";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { MY_PLANS_LABEL } from "@/lib/labels";
@@ -20,9 +21,7 @@ export function SiteHeader() {
           <ThemeToggle />
         </div>
         <nav className="flex w-full flex-wrap items-center gap-x-5 gap-y-1 text-sm text-sub lg:w-auto">
-          <Link href="/" className={NAV_LINK}>
-            道標を作る
-          </Link>
+          <CreatePlanLink className={NAV_LINK} />
           <Link href="/plans" className={NAV_LINK}>
             {MY_PLANS_LABEL}
           </Link>

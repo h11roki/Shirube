@@ -4,12 +4,13 @@ import { signIn } from "@/auth";
 import { NAV_LINK, PRIMARY_BUTTON, TEXT_LINK } from "@/components/styles";
 import { currentSession } from "@/lib/session";
 import { signOutToTop } from "@/lib/sign-out";
+import { LOGIN_PATH } from "@/lib/site";
 
 export async function Account() {
   const session = await currentSession();
   if (!session?.googleSubject) {
     return (
-      <Link href="/login" className={NAV_LINK}>
+      <Link href={LOGIN_PATH} className={NAV_LINK}>
         ログイン
       </Link>
     );

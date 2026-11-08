@@ -8,6 +8,8 @@ export const SUBHEAD = "なぜ学ぶかが見える、卒業までの時間割�
 
 export const PUBLIC_PAGES = ["/", "/terms", "/privacy"];
 
+export const LOGIN_PATH = "/login";
+
 export const INDEXED = { index: true, follow: true };
 
 export const OPERATOR = "h11roki";

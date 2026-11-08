@@ -4,6 +4,7 @@ import type { Page } from "@playwright/test";
 import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import {
   classChoicesSummary,
+  CREATE_PLAN_LABEL,
   OCCUPATION_LABEL,
   REBUILD_LABEL,
   dropFixedLabel,
@@ -14,6 +15,7 @@ import {
 } from "@/lib/labels";
 import { transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { LOGIN_PATH } from "@/lib/site";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 import {
@@ -79,7 +81,7 @@ const SCREENS: Screen[] = [
   },
   {
     name: "ログイン",
-    path: "/login",
+    path: LOGIN_PATH,
     ready: (page) =>
       expect(
         page.getByRole("button", { name: "Google でログイン" }),
@@ -116,7 +118,7 @@ const SCREENS: Screen[] = [
     },
     ready: async (page) => {
       await expect(
-        page.getByRole("button", { name: "道標を作る" }),
+        page.getByRole("button", { name: CREATE_PLAN_LABEL }),
       ).toBeEnabled();
       await page.getByText(fixedCoursesSummary(0)).click();
       await page
