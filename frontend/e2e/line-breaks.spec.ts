@@ -64,6 +64,8 @@ const SCREENS: {
   },
 ];
 
+const UNBROKEN_DESTINATION = "MachineLearningInfrastructureEngineer";
+
 const LONG_DESTINATIONS = [
   ["組込み", "ソフトウェア", "エンジニア"],
   ["半導体・", "LSI ", "設計", "エンジニア"],
@@ -349,6 +351,17 @@ for (const width of [...NARROW_WIDTHS, ...SIGNPOST_BESIDE_WIDTHS]) {
 }
 
 for (const width of NARROW_WIDTHS) {
+  test(`幅 ${width}px の結果の画面で、空白の無い長い行き先も最後の駅名標からはみ出さない`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, resultFor(UNBROKEN_DESTINATION));
+    const next = page.getByText(`${UNBROKEN_DESTINATION} →`, { exact: true });
+    await expect(next).toBeVisible();
+    expect(await escapedBox(next), "字がはみ出した箱").toBe("");
+  });
+
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
     page,
   }) => {

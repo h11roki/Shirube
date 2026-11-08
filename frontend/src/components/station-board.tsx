@@ -73,9 +73,9 @@ export function StationBoard({
         aria-hidden
         className={`col-start-2 h-2 origin-left bg-route ${seen ? "motion-safe:animate-band" : "motion-safe:scale-x-0 print:scale-x-100"}`}
       />
-      <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-direction text-sub">
+      <p className="col-span-2 flex justify-between gap-2 border-t border-line px-3 py-1 text-direction text-sub [overflow-wrap:anywhere]">
         <span>{previous && `← ${label(previous)}`}</span>
-        <span>{next ? label(next) : destination} →</span>
+        <span className="text-right">{next ? label(next) : destination} →</span>
       </p>
     </div>
   );
