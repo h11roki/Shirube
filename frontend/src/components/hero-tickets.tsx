@@ -47,7 +47,7 @@ export function HeroTickets() {
                     <p className="pr-9 text-lg leading-snug font-bold md:pr-10 md:text-[1.3125rem]">
                       <Phrases parts={wordsOf(course.name)} />
                     </p>
-                    <p className="text-xs leading-relaxed text-sub md:text-fine">
+                    <p className="text-xs leading-relaxed text-balance text-sub md:text-fine">
                       {course.reason}
                     </p>
                   </div>
