@@ -12,6 +12,7 @@ import {
   ARRIVALS_HINT,
   CANCEL_LABEL,
   CONFIRM_DELETE_LABEL,
+  CREATE_PLAN_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
   OCCUPATION_LABEL,
@@ -36,6 +37,7 @@ import {
   matchCountLabel,
   readingLabel,
   stationsAway,
+  takenCoursesSummary,
   unmarkTakenLabel,
 } from "@/lib/labels";
 import { POLL_INTERVAL_MS } from "@/lib/polling";
@@ -588,11 +590,30 @@ test.describe("道標を作る", () => {
     await page.goto("/");
     await page
       .getByRole("banner")
-      .getByRole("link", { name: "道標を作る" })
+      .getByRole("link", { name: CREATE_PLAN_LABEL })
       .click();
     await expect(page).toHaveURL("/login");
     await expect(
       page.getByRole("button", { name: "Google でログイン" }),
+    ).toBeVisible();
+  });
+
+  test("ログインしたあとにログインのページを開くと、入力の画面へ移る", async ({
+    page,
+    api,
+  }) => {
+    api.answer({
+      "/api/class-choices": CLASS_CHOICES,
+      "/api/offered-courses": OFFERED_COURSES,
+      "/api/taken-courses": TAKEN_COURSES,
+    });
+    await page.goto("/login");
+    await expect(page).toHaveURL("/");
+    await expect(
+      page.getByRole("button", { name: CREATE_PLAN_LABEL }),
+    ).toBeEnabled();
+    await expect(
+      page.getByText(takenCoursesSummary(TAKEN_COURSES.names.length)),
     ).toBeVisible();
   });
 
@@ -611,19 +632,19 @@ test.describe("道標を作る", () => {
     await page
       .getByLabel("なりたい職業")
       .fill(SAMPLE_PLAN.conditions.occupation);
-    await page.getByRole("button", { name: "道標を作る" }).click();
+    await page.getByRole("button", { name: CREATE_PLAN_LABEL }).click();
     await expect(page).toHaveURL(`/plans/${SAMPLE_PLAN.id}`);
     await expect(
       page.getByRole("button", { name: DELETE_PLAN_LABEL }),
     ).toBeVisible();
     await page
-      .getByRole("navigation")
-      .getByRole("link", { name: "道標を作る" })
+      .getByRole("banner")
+      .getByRole("link", { name: CREATE_PLAN_LABEL })
       .click();
     await expect(page).toHaveURL("/");
     await expect(page.getByLabel("なりたい職業")).toHaveValue("");
     await expect(
-      page.getByRole("button", { name: "道標を作る" }),
+      page.getByRole("button", { name: CREATE_PLAN_LABEL }),
     ).toBeEnabled();
   });
 });
@@ -667,7 +688,7 @@ test.describe("先に入れる授業", () => {
         request.method() === "POST" &&
         new URL(request.url()).pathname === "/api/plans",
     );
-    await page.getByRole("button", { name: "道標を作る" }).click();
+    await page.getByRole("button", { name: CREATE_PLAN_LABEL }).click();
     expect((await posted).postDataJSON()).toMatchObject({
       fixed_courses: [kept.name],
     });
@@ -888,7 +909,7 @@ async function openHeader(page: Page) {
   const banner = page.getByRole("banner");
   const logo = banner.getByRole("link", { name: "shirube" });
   const toggle = banner.getByRole("button", { name: "ダークモード" });
-  const nav = banner.getByRole("link", { name: "道標を作る" });
+  const nav = banner.getByRole("link", { name: CREATE_PLAN_LABEL });
   await logo.focus();
   await page.keyboard.press("Tab");
   await expect(toggle).toBeFocused();

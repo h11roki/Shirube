@@ -2,14 +2,16 @@ import Link from "next/link";
 
 import { signIn } from "@/auth";
 import { NAV_LINK, PRIMARY_BUTTON, TEXT_LINK } from "@/components/styles";
+import { CREATE_PLAN_LABEL } from "@/lib/labels";
 import { currentSession } from "@/lib/session";
 import { signOutToTop } from "@/lib/sign-out";
+import { LOGIN_PATH } from "@/lib/site";
 
 export async function Account() {
   const session = await currentSession();
   if (!session?.googleSubject) {
     return (
-      <Link href="/login" className={NAV_LINK}>
+      <Link href={LOGIN_PATH} className={NAV_LINK}>
         ログイン
       </Link>
     );
@@ -23,6 +25,15 @@ export async function Account() {
         ログアウト
       </button>
     </form>
+  );
+}
+
+export async function CreatePlanLink() {
+  const session = await currentSession();
+  return (
+    <Link href={session?.googleSubject ? "/" : LOGIN_PATH} className={NAV_LINK}>
+      {CREATE_PLAN_LABEL}
+    </Link>
   );
 }
 
