@@ -21,6 +21,7 @@ import {
 import { offeredClasses } from "@/lib/class-choices";
 import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
 import {
+  CLASS_UNCONFIRMED_LABEL,
   CREATE_PLAN_LABEL,
   DEPARTMENT_NAME,
   OCCUPATION_LABEL,
@@ -203,7 +204,8 @@ export function PlanForm() {
             {classChoicesSummary(choices.courses.length)}
           </summary>
           <p className="mt-3 text-sm text-sub">
-            自分のクラスが分かっている科目だけ選んでください。選ばない科目が道標に入ったときは、学科向けのクラスに置き「クラス未確定」と出します。
+            自分のクラスが分かっている科目だけ選んでください。選ばない科目が道標に入ったときは、学科向けのクラスに置き「
+            {CLASS_UNCONFIRMED_LABEL}」と出します。
           </p>
           <div className="mt-4 grid gap-3 sm:grid-cols-2">
             {choices.courses.map((course) => {

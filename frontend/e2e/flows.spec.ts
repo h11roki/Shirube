@@ -59,6 +59,7 @@ import {
   TAKEN_COURSES,
   asFailed,
   asRunning,
+  enlargeText,
   expect,
   planApi,
   signIn,
@@ -98,7 +99,7 @@ const MARKED_PLAN = markedTaken(SAMPLE_PLAN);
 function lesson(
   name: string,
   relevance: Relevance,
-  classCode: string,
+  room: string | null,
   weekday: Weekday,
   period: number,
 ): PlacedCourse {
@@ -106,9 +107,9 @@ function lesson(
     ...SAMPLE_PLAN.result.semesters[0].courses[0],
     name,
     relevance,
-    class_code: classCode,
     section_code: name,
     slots: [{ weekday, period }],
+    room,
   };
 }
 
@@ -121,9 +122,12 @@ const WEEK_PLAN: Plan = {
         ? {
             ...semester,
             courses: [
-              lesson("信号処理", "core", "A", "mon", 2),
-              lesson("電磁気学", "foundation", "B", "tue", 1),
-              lesson("回路理論", "core", "A", "tue", 3),
+              lesson("信号処理", "core", "Ｃ３０２", "mon", 2),
+              {
+                ...lesson("電磁気学", "foundation", "情処演P33", "tue", 1),
+                class_confirmed: false,
+              },
+              lesson("回路理論", "core", null, "tue", 3),
             ],
             continuing: [],
           }
@@ -853,17 +857,76 @@ test.describe("時間割帳の週", () => {
     api.answer({ [planApi(WEEK_PLAN)]: WEEK_PLAN });
   });
 
-  test("幅 640px 未満では曜日ごとの一覧にし、曜日を略さずに読ませる", async ({
+  for (const width of [320, 375, 1280]) {
+    test(`幅 ${width}px で、月〜金と時限の表にし、時限の時刻と、授業の柱か礎と教室を出す`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/plans/${WEEK_PLAN.id}?view=timetable`);
+      const table = page.getByRole("table");
+      for (const day of ["月曜日", "火曜日", "水曜日", "木曜日", "金曜日"]) {
+        await expect(
+          table.getByRole("columnheader", { name: day }),
+        ).toBeVisible();
+      }
+      await expect(table.getByRole("rowheader").first()).toHaveAccessibleName(
+        "1 限 9:00 から 10:35",
+      );
+      for (const [name, note] of [
+        ["信号処理", "柱 教室 C302"],
+        ["電磁気学", "礎 教室 情処演P33クラス未確定"],
+        ["回路理論", "柱"],
+      ]) {
+        await expect(
+          table.getByRole("cell").filter({ hasText: name }),
+        ).toHaveText(`${name}${note}`);
+      }
+    });
+  }
+
+  test("ブラウザの文字を 200% にすると、幅 320px と 375px の時間割帳は曜日ごとの一覧にする", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 375, height: 900 });
+    await page.setViewportSize({ width: 320, height: 900 });
     await page.goto(`/plans/${WEEK_PLAN.id}?view=timetable`);
+    await enlargeText(page);
+    const list = page.locator("dl").filter({ hasText: NO_LESSONS_LABEL });
+    for (const width of [320, 375]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect(list).toBeVisible();
+      await expect(page.getByRole("table")).toBeHidden();
+    }
+    for (const width of [640, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      const table = page.getByRole("table");
+      await expect(table).toBeVisible();
+      await expect(list).toBeHidden();
+      expect(
+        await table.evaluate((grid) =>
+          [...grid.querySelectorAll("td > span")]
+            .filter((note) => note.scrollWidth > note.clientWidth + 1)
+            .map((note) => note.textContent),
+        ),
+        "マスからはみ出した授業",
+      ).toEqual([]);
+    }
+  });
+
+  test("道のりの駅の時間割は、枠が狭い幅 320px では曜日ごとの一覧にし、曜日を略さずに時限の時刻とともに読ませる", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 320, height: 900 });
+    await page.goto(`/plans/${WEEK_PLAN.id}`);
+    await page
+      .getByRole("button", { name: /この学期の時間割を開く/ })
+      .first()
+      .click();
     await expect(page.locator("dl").filter({ hasText: NO_LESSONS_LABEL }))
       .toMatchAriaSnapshot(`
       - term: 月曜日
-      - definition: 2 限 信号処理 柱 ・ A
+      - definition: 2 限 10:45 から 12:20 信号処理 柱 教室 C302
       - term: 火曜日
-      - definition: 1 限 電磁気学 礎 ・ B 3 限 回路理論 柱 ・ A
+      - definition: 1 限 9:00 から 10:35 電磁気学 礎 教室 情処演P33 クラス未確定 3 限 13:10 から 14:45 回路理論 柱
       - term: 水曜日
       - definition: 授業なし
       - term: 木曜日
@@ -874,13 +937,17 @@ test.describe("時間割帳の週", () => {
     await expect(page.getByRole("table")).toBeHidden();
   });
 
-  test("幅 640px 以上では表にし、列の見出しを曜日の名前で読ませる", async ({
+  test("道のりの駅の時間割は、枠に余裕のある幅 375px では表にする", async ({
     page,
   }) => {
-    await page.setViewportSize({ width: 1280, height: 900 });
-    await page.goto(`/plans/${WEEK_PLAN.id}?view=timetable`);
+    await page.setViewportSize({ width: 375, height: 900 });
+    await page.goto(`/plans/${WEEK_PLAN.id}`);
+    await page
+      .getByRole("button", { name: /この学期の時間割を開く/ })
+      .first()
+      .click();
     await expect(
-      page.getByRole("columnheader", { name: "月曜日" }),
+      page.getByRole("table").getByRole("columnheader", { name: "月曜日" }),
     ).toBeVisible();
     await expect(
       page.locator("dl").filter({ hasText: NO_LESSONS_LABEL }),

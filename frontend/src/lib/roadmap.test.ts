@@ -29,6 +29,7 @@ function placed(name: string, relevance: Relevance, credits = 2): PlacedCourse {
     section_code: name,
     class_code: null,
     slots: [],
+    room: null,
     credits,
     class_confirmed: true,
   };

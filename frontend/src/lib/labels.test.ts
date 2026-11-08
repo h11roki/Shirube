@@ -54,6 +54,7 @@ function withSlots(slots: PlacedCourse["slots"]): PlacedCourse {
     section_code: "10000",
     class_code: null,
     slots,
+    room: null,
     credits: 2,
     class_confirmed: true,
   };
