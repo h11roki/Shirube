@@ -928,6 +928,10 @@ test.describe("読み替えの知らせ", () => {
       page.getByRole("alert").filter({ hasText: SAME_OCCUPATION_NOTE }),
     ).toBeVisible();
     await expect(field).toBeFocused();
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expect(field).toHaveAccessibleDescription(
+      new RegExp(SAME_OCCUPATION_NOTE),
+    );
     await field.fill(SAMPLE_PLAN.conditions.occupation);
     const posted = page.waitForRequest(
       (request) =>

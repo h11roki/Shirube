@@ -39,6 +39,12 @@ import {
   rebuildRequest,
 } from "@/lib/plan-request";
 
+type Refusal = {
+  message: string;
+  cause: "occupation" | "conditions" | "other";
+  attempt: number;
+};
+
 export function RebuildForm({
   conditions,
 }: {
@@ -47,8 +53,7 @@ export function RebuildForm({
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [occupation, setOccupation] = useState("");
-  const [problem, setProblem] = useState<string>();
-  const [conditionsRefused, setConditionsRefused] = useState(false);
+  const [refusal, setRefusal] = useState<Refusal>();
   const [submitting, setSubmitting] = useState(false);
   const [navigating, startNavigation] = useTransition();
   const busy = submitting || navigating;
@@ -65,6 +70,14 @@ export function RebuildForm({
     }
   }, [open]);
 
+  function refuse(message: string, cause: Refusal["cause"]) {
+    setRefusal((previous) => ({
+      message,
+      cause,
+      attempt: (previous?.attempt ?? 0) + 1,
+    }));
+  }
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (busy) {
@@ -72,20 +85,20 @@ export function RebuildForm({
     }
     const refused = rebuildProblem(occupation, conditions);
     if (refused) {
-      setProblem(refused);
+      refuse(refused, "occupation");
       field.current?.focus();
       return;
     }
     setSubmitting(true);
-    setProblem(undefined);
-    setConditionsRefused(false);
     try {
       const plan = await createPlan(rebuildRequest(occupation, conditions));
       startNavigation(() => router.push(`/plans/${plan.id}`));
     } catch (error) {
-      setProblem(messageOf(error));
-      setConditionsRefused(
-        error instanceof ApiError && error.status === UNPROCESSABLE,
+      refuse(
+        messageOf(error),
+        error instanceof ApiError && error.status === UNPROCESSABLE
+          ? "conditions"
+          : "other",
       );
       setSubmitting(false);
     }
@@ -98,8 +111,7 @@ export function RebuildForm({
         type="button"
         onClick={() => {
           setOccupation("");
-          setProblem(undefined);
-          setConditionsRefused(false);
+          setRefusal(undefined);
           setOpen(true);
         }}
         className={SMALL_BUTTON}
@@ -127,7 +139,10 @@ export function RebuildForm({
         value={occupation}
         onChange={(event) => setOccupation(event.target.value)}
         maxLength={MAX_OCCUPATION_LENGTH}
-        aria-describedby="rebuild-note"
+        aria-describedby={
+          refusal ? "rebuild-note rebuild-refusal" : "rebuild-note"
+        }
+        aria-invalid={refusal?.cause === "occupation" || undefined}
       />
       <div className="flex flex-wrap gap-2">
         <button
@@ -150,11 +165,19 @@ export function RebuildForm({
           {REBUILD_SUBMIT_LABEL}
         </button>
       </div>
-      {problem && <FailureNotice message={problem} />}
-      {conditionsRefused && (
-        <Link href="/" className={`justify-self-start ${STANDALONE_LINK}`}>
-          {REBUILD_ON_FORM_LABEL}
-        </Link>
+      {refusal && (
+        <div
+          key={refusal.attempt}
+          id="rebuild-refusal"
+          className="grid justify-items-start gap-2"
+        >
+          <FailureNotice message={refusal.message} />
+          {refusal.cause === "conditions" && (
+            <Link href="/" className={STANDALONE_LINK}>
+              {REBUILD_ON_FORM_LABEL}
+            </Link>
+          )}
+        </div>
       )}
     </form>
   );

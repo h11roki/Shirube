@@ -94,7 +94,7 @@ class SqlPlanRepository:
                     result=None if plan.result is None else result_json(plan.result),
                     failure=plan.failure,
                     stage=plan.stage,
-                    reading=None if plan.reading is None else profile_json(plan.reading),
+                    reading=_reading_json(plan.reading),
                 )
             )
 
@@ -124,10 +124,7 @@ class SqlPlanRepository:
             db.execute(
                 update(PlanRow)
                 .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.RUNNING)
-                .values(
-                    stage=plan.stage,
-                    reading=None if plan.reading is None else profile_json(plan.reading),
-                )
+                .values(stage=plan.stage, reading=_reading_json(plan.reading))
                 .execution_options(synchronize_session=False)
             )
 
@@ -351,6 +348,10 @@ def profile_json(profile: OccupationProfile) -> ProfileJson:
         assumption=profile.assumption,
         skills=list(profile.skills),
     )
+
+
+def _reading_json(reading: OccupationProfile | None) -> ProfileJson | None:
+    return None if reading is None else profile_json(reading)
 
 
 def profile_from_json(stored: ProfileJson) -> OccupationProfile:
