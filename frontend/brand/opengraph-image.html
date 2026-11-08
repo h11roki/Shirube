@@ -90,6 +90,9 @@
         font-size: 18px;
         line-height: 1.6;
         color: #6b6257;
+        word-break: keep-all;
+        overflow-wrap: anywhere;
+        text-wrap: balance;
       }
       .ticket .stub {
         position: relative;
@@ -169,7 +172,7 @@
           inset 0 0 0 2px #fffaf0,
           inset 0 0 0 3px #b23d27;
         color: #b23d27;
-        transform: rotate(-9deg);
+        transform: rotate(-5deg);
       }
       .seal {
         border: 2px solid #2f5874;
@@ -177,15 +180,15 @@
           inset 0 0 0 2px #fffaf0,
           inset 0 0 0 3px #2f5874;
         color: #2f5874;
-        transform: rotate(-4deg);
+        transform: rotate(-9deg);
       }
       .back {
-        top: 132px;
+        top: 112px;
         right: 86px;
         transform: rotate(4deg);
       }
       .front {
-        top: 296px;
+        top: 326px;
         right: 56px;
         transform: rotate(-3deg);
       }
@@ -198,8 +201,10 @@
     <div class="brand">shirube<small>道標</small></div>
     <article class="ticket foundation back">
       <div class="body">
-        <p class="name">電子情報基礎数学</p>
-        <p class="reason">確率分布や推定・検定で使う数学の前提になるため。</p>
+        <p class="name">情報処理</p>
+        <p class="reason">
+          情報処理で<wbr />学ぶ<wbr />配列・<wbr />関数・<wbr />ポインタ<wbr />などの<wbr />基礎が、<wbr />情報処理<wbr />演習の<wbr />プログラム<wbr />作成や<wbr />デバッグに<wbr />必要に<wbr />なる。
+        </p>
       </div>
       <dl class="stub">
         <div>
@@ -215,13 +220,15 @@
     </article>
     <article class="ticket core front">
       <div class="body">
-        <p class="name">AI・機械学習</p>
-        <p class="reason">予測モデル開発に直結する。</p>
+        <p class="name">確率統計</p>
+        <p class="reason">
+          データの<wbr />ばらつきを<wbr />数値で<wbr />扱える。
+        </p>
       </div>
       <dl class="stub">
         <div>
           <dt>コマ</dt>
-          <dd>火3</dd>
+          <dd>月4</dd>
         </div>
         <div>
           <dt>単位</dt>

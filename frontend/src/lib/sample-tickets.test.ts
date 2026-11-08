@@ -11,17 +11,17 @@ describe("the sample tickets on the top page", () => {
     ]);
   });
 
-  it("show full-width letters in a course name at half width", () => {
+  it("name the courses on the sample tickets", () => {
     expect(SAMPLE_TICKETS.map((course) => course.name)).toEqual([
-      "電子情報基礎数学",
-      "AI・機械学習",
+      "情報処理",
+      "確率統計",
     ]);
   });
 
   it("quote the last sentence of each reason", () => {
     expect(SAMPLE_TICKETS.map((course) => course.reason)).toEqual([
-      "確率分布や推定・検定で使う数学の前提になるため。",
-      "予測モデル開発に直結する。",
+      "情報処理で学ぶ配列・関数・ポインタなどの基礎が、情報処理演習のプログラム作成やデバッグに必要になる。",
+      "データのばらつきを数値で扱える。",
     ]);
   });
 

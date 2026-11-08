@@ -19,6 +19,11 @@ const DEAL_DELAY_MS: Record<RecommendedRelevance, number> = {
   foundation: 100,
   core: 280,
 };
+const TICKETS = SAMPLE_TICKETS.map((course) => ({
+  ...course,
+  nameWords: wordsOf(course.name),
+  reasonWords: wordsOf(course.reason),
+}));
 const STAMP_DELAY_MS = 1000;
 const THUD_DELAY_MS = STAMP_DELAY_MS + 60;
 
@@ -27,7 +32,7 @@ export function HeroTickets() {
     <div aria-hidden className="flex flex-col gap-3">
       <Tilt className="group max-w-[19.875rem] md:w-[21rem] md:max-w-none">
         <div className="flex flex-col motion-safe:transition-transform motion-safe:duration-200 motion-safe:ease-out motion-safe:[transform:perspective(900px)_rotateX(var(--tilt-x,0deg))_rotateY(var(--tilt-y,0deg))]">
-          {SAMPLE_TICKETS.map((course) => {
+          {TICKETS.map((course) => {
             const core = course.relevance === "core";
             return (
               <div
@@ -45,10 +50,10 @@ export function HeroTickets() {
                 >
                   <div className="grid gap-0.5 px-3.5 py-3 md:px-4 md:pt-3.5 md:pb-4">
                     <p className="pr-9 text-lg leading-snug font-bold md:pr-10 md:text-[1.3125rem]">
-                      <Phrases parts={wordsOf(course.name)} />
+                      <Phrases parts={course.nameWords} />
                     </p>
-                    <p className="text-xs leading-relaxed text-sub md:text-fine">
-                      {course.reason}
+                    <p className="text-xs leading-relaxed text-balance text-sub md:text-fine">
+                      <Phrases parts={course.reasonWords} />
                     </p>
                   </div>
                   <dl

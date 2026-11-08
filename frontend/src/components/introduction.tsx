@@ -72,7 +72,8 @@ export function Introduction() {
             <DestinationPlate destination={SAMPLE_DESTINATION} />
           </div>
           <p className="text-sm text-sub">
-            実際に作った道標です。要約は卒業まで、道のりは初めの{" "}
+            実際に作った道標です。同じ条件で 3
+            回作り、明らかな誤りの無かったものを選んでいます。要約は卒業まで、道のりは初めの{" "}
             {SAMPLE_SEMESTERS} 学期を載せています。
           </p>
         </div>

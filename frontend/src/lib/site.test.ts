@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE, SUBHEAD } from "@/lib/site";
 import { stampTilt } from "@/lib/ticket-face";
+import { wordsOf } from "@/lib/words";
 
 const FRONTEND = new URL("../../", import.meta.url);
 
@@ -22,7 +23,7 @@ const tickets = [
   ...card.matchAll(/<article class="ticket [^"]*">([\s\S]*?)<\/article>/g),
 ].map(([, ticket]) => ({
   name: field(ticket, /<p class="name">([^<]+)<\/p>/),
-  reason: field(ticket, /<p class="reason">([^<]+)<\/p>/),
+  reason: field(ticket, /<p class="reason">([\s\S]*?)<\/p>/)?.split("<wbr />"),
   slots: field(ticket, /<dt>コマ<\/dt>\s*<dd>([^<]+)<\/dd>/),
   credits: field(ticket, /<dt>単位<\/dt>\s*<dd>([^<]+)<\/dd>/),
 }));
@@ -37,11 +38,11 @@ describe("the share card", () => {
     expect(alt).toContain(CATCHPHRASE.join("") + SUBHEAD);
   });
 
-  it("shows the same tickets as the top page", () => {
+  it("shows the same tickets as the top page, with the reasons broken at the same phrases", () => {
     expect(tickets).toEqual(
       SAMPLE_TICKETS.map((course) => ({
         name: course.name,
-        reason: course.reason,
+        reason: wordsOf(course.reason),
         slots: course.slot,
         credits: String(course.credits),
       })),

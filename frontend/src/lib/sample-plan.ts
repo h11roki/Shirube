@@ -4,7 +4,6 @@ export const SAMPLE_PLAN = {
   id: "de4d4f3e-5c1c-4673-b6c7-93ba0a97e5e3",
   status: "succeeded",
   stage: null,
-  reading: null,
   conditions: {
     occupation: "データサイエンティスト",
     department: "情",
@@ -17,6 +16,7 @@ export const SAMPLE_PLAN = {
     credit_limit: 16,
     fixed_courses: [],
   },
+  reading: null,
   result: {
     profile: {
       occupation: "データサイエンティスト",
@@ -25,22 +25,23 @@ export const SAMPLE_PLAN = {
       skills: [
         "統計学",
         "機械学習",
-        "データ分析",
-        "プログラミング",
+        "Python",
+        "データベース",
         "データ可視化",
+        "データ解析",
       ],
     },
     semesters: [
       {
         grade: 3,
         term: "spring",
-        credits: 12,
+        credits: 10,
         courses: [
           {
             name: "データエンジニアリング基礎",
             relevance: "core",
             reason:
-              "データ表現、収集、整形・加工、DB抽出、可視化まで扱い、データ分析を回す実務の中心を学べるため。",
+              "データ収集→整形加工→データベース抽出→可視化までを概観し、分析前処理や管理・保護の手順を仕事で再現できる。",
             prerequisite_for: null,
             syllabus_code: "34926",
             syllabus_url:
@@ -52,29 +53,14 @@ export const SAMPLE_PLAN = {
             class_confirmed: true,
           },
           {
-            name: "データサイエンス・AI基礎",
-            relevance: "core",
-            reason:
-              "データ分析の進め方と設計、数学の基礎、教師あり/なし学習や深層学習の入口を演習で習得できるため。データサイエンティストの中核スキルに直結する。",
-            prerequisite_for: null,
-            syllabus_code: "34923",
-            syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwaLQAS/202634923?language=ja",
-            section_code: "34923",
-            class_code: "G1",
-            slots: [],
-            credits: 2,
-            class_confirmed: true,
-          },
-          {
             name: "確率統計",
             relevance: "core",
             reason:
-              "確率分布・推定・仮説検定などの基礎理論と、Matlab等での実践的統計処理を学べるため。統計的判断の土台になる。",
+              "データ解析で不可欠な確率・仮説検定・区間推定を学び、実験/サンプルから根拠ある結論を作る基礎になる。データのばらつきを数値で扱える。",
             prerequisite_for: null,
-            syllabus_code: "32506",
+            syllabus_code: "32505",
             syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwcnQAC/202632506?language=ja",
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwbpQAC/202632505?language=ja",
             section_code: "32506",
             class_code: "6B",
             slots: [
@@ -87,31 +73,46 @@ export const SAMPLE_PLAN = {
             class_confirmed: true,
           },
           {
-            name: "メディア情報処理",
+            name: "データサイエンス・AI基礎",
             relevance: "core",
             reason:
-              "音声・画像を中心に信号処理や画像処理の解析基礎をMATLABで実装するため。特徴抽出や類似性評価など可視化と分析に効く。",
+              "データ記述や分析手法、機械学習の基礎、深層学習の流れを演習で習得し、データ分析の進め方を現場で使える形にする。",
             prerequisite_for: null,
-            syllabus_code: "32510",
+            syllabus_code: "34924",
             syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwgfQAC/202632510?language=ja",
-            section_code: "32510",
-            class_code: "6T",
-            slots: [
-              {
-                weekday: "tue",
-                period: 4,
-              },
-            ],
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwbJQAS/202634924?language=ja",
+            section_code: "34923",
+            class_code: "G1",
+            slots: [],
             credits: 2,
             class_confirmed: true,
           },
           {
-            name: "データ構造とアルゴリズム",
-            relevance: "core",
+            name: "応用Cプログラミング",
+            relevance: "foundation",
             reason:
-              "探索・整列・グラフなどを通じて効率的アルゴリズムの選択を学ぶため。大量データ解析で計算量を意識した実装に必要。",
-            prerequisite_for: null,
+              "データ分析を進めるうえで、配列や文字・ファイル入出力、構造体、再帰などを扱う力が前提になる。演習課題の実装に効く。",
+            prerequisite_for: "データサイエンス・AI基礎",
+            syllabus_code: "32482",
+            syllabus_url:
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwITQA0/202632482?language=ja",
+            section_code: "32482",
+            class_code: "6A",
+            slots: [
+              {
+                weekday: "thu",
+                period: 1,
+              },
+            ],
+            credits: 2,
+            class_confirmed: false,
+          },
+          {
+            name: "データ構造とアルゴリズム",
+            relevance: "foundation",
+            reason:
+              "効率的な処理のために、探索・整列・グラフなどの手順を選ぶ考え方が必要で、演習での自作コードを高速化/整理する前提になる。",
+            prerequisite_for: "情報処理演習",
             syllabus_code: "32481",
             syllabus_url:
               "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwHVQA0/202632481?language=ja",
@@ -126,39 +127,19 @@ export const SAMPLE_PLAN = {
             credits: 2,
             class_confirmed: true,
           },
-          {
-            name: "電子情報基礎数学",
-            relevance: "foundation",
-            reason:
-              "指数・対数、微分積分、行列、ベクトルなどを道具として計算できるようにする。確率分布や推定・検定で使う数学の前提になるため。",
-            prerequisite_for: "確率統計",
-            syllabus_code: "32459",
-            syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rvz7QAC/202632459?language=ja",
-            section_code: "32459",
-            class_code: "6T",
-            slots: [
-              {
-                weekday: "thu",
-                period: 2,
-              },
-            ],
-            credits: 2,
-            class_confirmed: true,
-          },
         ],
         continuing: [],
       },
       {
         grade: 3,
         term: "autumn",
-        credits: 4,
+        credits: 5,
         courses: [
           {
             name: "ＡＩ・機械学習",
             relevance: "core",
             reason:
-              "機械学習のワークフローから回帰・分類、ニューラルネットワーク、CNNまでMATLABで実装するため。予測モデル開発に直結する。",
+              "回帰・分類・ニューラルネットの流れを学び、目的変数に対する予測モデルを構築して意思決定に使う。画像中心の学習で実装も扱う。",
             prerequisite_for: null,
             syllabus_code: "32516",
             syllabus_url:
@@ -175,11 +156,31 @@ export const SAMPLE_PLAN = {
             class_confirmed: true,
           },
           {
+            name: "情報処理演習",
+            relevance: "core",
+            reason:
+              "Cで入力・配列・関数を実装し、データ処理の土台を作る。デバッグ/テストとレポート作成も扱うので、分析用コード開発に直結する。",
+            prerequisite_for: null,
+            syllabus_code: "31839",
+            syllabus_url:
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rvv9QAC/202631839?language=ja",
+            section_code: "31839",
+            class_code: "6A",
+            slots: [
+              {
+                weekday: "wed",
+                period: 3,
+              },
+            ],
+            credits: 1,
+            class_confirmed: false,
+          },
+          {
             name: "情報処理",
             relevance: "foundation",
             reason:
-              "Cでデータ読み込みや配列、関数を扱い、実装の基礎を作る。探索・整列・グラフを作る前に必要なプログラミング力になるため。",
-            prerequisite_for: "データ構造とアルゴリズム",
+              "情報処理で学ぶ配列・関数・ポインタなどの基礎が、情報処理演習のプログラム作成やデバッグに必要になる。",
+            prerequisite_for: "情報処理演習",
             syllabus_code: "31825",
             syllabus_url:
               "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwtmQAC/202631825?language=ja",
@@ -200,29 +201,8 @@ export const SAMPLE_PLAN = {
       {
         grade: 4,
         term: "spring",
-        credits: 2,
-        courses: [
-          {
-            name: "特殊講義（専門）Ⅲ（深層学習の応用）",
-            relevance: "core",
-            reason:
-              "分類・回帰から時系列分類、検出、生成まで深層学習の応用をMATLABで実装し、実務のモデル設計に近づくため。",
-            prerequisite_for: null,
-            syllabus_code: "32519",
-            syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003Rwq1QAC/202632519?language=ja",
-            section_code: "32519",
-            class_code: "6T",
-            slots: [
-              {
-                weekday: "tue",
-                period: 1,
-              },
-            ],
-            credits: 2,
-            class_confirmed: true,
-          },
-        ],
+        credits: 0,
+        courses: [],
         continuing: [],
       },
       {
@@ -235,7 +215,14 @@ export const SAMPLE_PLAN = {
     ],
     unplaced: [],
     taken: [],
-    offered_earlier: [],
+    offered_earlier: [
+      "データエンジニアリング基礎",
+      "データサイエンス・AI基礎",
+      "データ構造とアルゴリズム",
+      "応用Cプログラミング",
+      "情報処理",
+      "情報処理演習",
+    ],
     unlinked: [],
   },
   failure: null,

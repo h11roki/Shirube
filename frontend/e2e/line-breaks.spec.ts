@@ -1,12 +1,19 @@
 import type { Locator, Page } from "@playwright/test";
 
-import type { Plan } from "@/lib/api/client";
-import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
+import type { PlacedCourse, Plan } from "@/lib/api/client";
+import {
+  PRIVACY_TITLE,
+  PROGRESS_HEADING,
+  STAGE_LABELS,
+  sampleLabel,
+} from "@/lib/labels";
 import { STAGES } from "@/lib/progress";
 import { resultViewHref } from "@/lib/result-view";
 import { semesterCourses, semesterKey } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { SAMPLE_TICKETS } from "@/lib/sample-tickets";
 import { CATCHPHRASE } from "@/lib/site";
+import { wordsOf } from "@/lib/words";
 
 import {
   type Api,
@@ -16,6 +23,7 @@ import {
   planApi,
   signIn,
   test,
+  withSemesterCourses,
 } from "./fixtures";
 
 const NARROW_WIDTHS = [320, 375];
@@ -57,25 +65,49 @@ const LONG_DESTINATIONS = [
   ["電子", "情報", "システム", "保守", "技術者"],
 ];
 
-const TICKET_NAMES = [
-  ["データ", "エンジニアリング", "基礎"],
-  ["データ", "サイエンス・", "AI", "基礎"],
-  ["データ", "構造と", "アルゴリズム"],
-  ["メディア", "情報", "処理"],
-  ["ＡＩ・", "機械", "学習"],
-  ["特殊", "講義", "（専門）Ⅲ", "（深層", "学習の", "応用）"],
+const BRACKETED_NAME = [
+  "特殊",
+  "講義",
+  "（専門）Ⅲ",
+  "（深層",
+  "学習の",
+  "応用）",
 ];
 
+const TICKET_NAMES = [
+  ["データ", "エンジニアリング", "基礎"],
+  ["確率", "統計"],
+  ["データ", "サイエンス・", "AI", "基礎"],
+  ["応用Cプログラミング"],
+  ["データ", "構造と", "アルゴリズム"],
+  ["ＡＩ・", "機械", "学習"],
+  ["情報処理", "演習"],
+  ["情報処理"],
+  BRACKETED_NAME,
+];
+
+const BRACKETED_COURSE: PlacedCourse = {
+  ...SAMPLE_PLAN.result.semesters[0].courses[0],
+  name: BRACKETED_NAME.join(""),
+  section_code: BRACKETED_NAME.join(""),
+  slots: [{ weekday: "tue", period: 1 }],
+};
+
+const TICKET_PLAN = withSemesterCourses(SAMPLE_PLAN, 0, (courses) => [
+  ...courses,
+  BRACKETED_COURSE,
+]);
+
 const UNPLACED_PLAN: Plan = {
-  ...SAMPLE_PLAN,
+  ...TICKET_PLAN,
   result: {
-    ...SAMPLE_PLAN.result,
-    semesters: SAMPLE_PLAN.result.semesters.map((semester) => ({
+    ...TICKET_PLAN.result,
+    semesters: TICKET_PLAN.result.semesters.map((semester) => ({
       ...semester,
       courses: [],
       continuing: [],
     })),
-    unplaced: SAMPLE_PLAN.result.semesters
+    unplaced: TICKET_PLAN.result.semesters
       .flatMap(semesterCourses)
       .map(
         ({
@@ -501,12 +533,36 @@ for (const width of NARROW_WIDTHS) {
 }
 
 for (const width of [...NARROW_WIDTHS, 1280]) {
+  test(`幅 ${width}px のトップで、見本の切符の理由を語の切れ目でだけ折る`, async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await page.addStyleTag({
+      content:
+        "* { transform: none !important; rotate: none !important; translate: none !important; }",
+    });
+    const hero = page
+      .locator('[aria-hidden="true"]')
+      .filter({ hasText: sampleLabel(SAMPLE_PLAN.conditions.occupation) });
+    for (const course of SAMPLE_TICKETS) {
+      const reason = hero.getByText(course.reason, { exact: true }).first();
+      const lines = await renderedLines(reason);
+      expect(
+        breaksOnlyBetween(lines, wordsOf(course.reason)),
+        lines.join(" / "),
+      ).toBe(true);
+      expect(await escapedBox(reason), "字がはみ出した箱").toBe("");
+    }
+  });
+
   test(`幅 ${width}px の結果の画面で、切符の授業名を語の切れ目でだけ折る`, async ({
     page,
     api,
   }) => {
     await page.setViewportSize({ width, height: 900 });
-    await openPlan(page, api, SAMPLE_PLAN);
+    await openPlan(page, api, TICKET_PLAN);
     await expectBreaksBetweenWords(page, TICKET_NAMES);
   });
 
@@ -530,14 +586,14 @@ for (const width of [...NARROW_WIDTHS, 1280]) {
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await signIn(page);
-    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    api.answer({ [planApi(TICKET_PLAN)]: TICKET_PLAN });
     for (const words of TICKET_NAMES) {
-      const semester = SAMPLE_PLAN.result.semesters.find((each) =>
+      const semester = TICKET_PLAN.result.semesters.find((each) =>
         semesterCourses(each).some((course) => course.name === words.join("")),
       );
       await page.goto(
         resultViewHref(
-          `/plans/${SAMPLE_PLAN.id}`,
+          `/plans/${TICKET_PLAN.id}`,
           "timetable",
           semester && semesterKey(semester),
         ),
