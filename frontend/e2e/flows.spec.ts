@@ -43,6 +43,7 @@ import {
 import { POLL_INTERVAL_MS } from "@/lib/polling";
 import { semesterKey, transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { LOGIN_PATH } from "@/lib/site";
 
 import {
   CLASS_CHOICES,
@@ -588,11 +589,12 @@ test.describe("道標を作る", () => {
   }) => {
     await page.context().clearCookies();
     await page.goto("/");
-    await page
+    const link = page
       .getByRole("banner")
-      .getByRole("link", { name: CREATE_PLAN_LABEL })
-      .click();
-    await expect(page).toHaveURL("/login");
+      .getByRole("link", { name: CREATE_PLAN_LABEL });
+    await expect(link).toHaveAttribute("href", LOGIN_PATH);
+    await link.click();
+    await expect(page).toHaveURL(LOGIN_PATH);
     await expect(
       page.getByRole("button", { name: "Google でログイン" }),
     ).toBeVisible();
@@ -607,7 +609,7 @@ test.describe("道標を作る", () => {
       "/api/offered-courses": OFFERED_COURSES,
       "/api/taken-courses": TAKEN_COURSES,
     });
-    await page.goto("/login");
+    await page.goto(LOGIN_PATH);
     await expect(page).toHaveURL("/");
     await expect(
       page.getByRole("button", { name: CREATE_PLAN_LABEL }),
@@ -637,10 +639,11 @@ test.describe("道標を作る", () => {
     await expect(
       page.getByRole("button", { name: DELETE_PLAN_LABEL }),
     ).toBeVisible();
-    await page
+    const link = page
       .getByRole("banner")
-      .getByRole("link", { name: CREATE_PLAN_LABEL })
-      .click();
+      .getByRole("link", { name: CREATE_PLAN_LABEL });
+    await expect(link).toHaveAttribute("href", "/");
+    await link.click();
     await expect(page).toHaveURL("/");
     await expect(page.getByLabel("なりたい職業")).toHaveValue("");
     await expect(

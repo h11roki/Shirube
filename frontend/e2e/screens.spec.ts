@@ -15,6 +15,7 @@ import {
 } from "@/lib/labels";
 import { transferRoutes } from "@/lib/roadmap";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
+import { LOGIN_PATH } from "@/lib/site";
 import { DARK_THEME, THEME_STORAGE_KEY } from "@/lib/theme";
 
 import {
@@ -80,7 +81,7 @@ const SCREENS: Screen[] = [
   },
   {
     name: "ログイン",
-    path: "/login",
+    path: LOGIN_PATH,
     ready: (page) =>
       expect(
         page.getByRole("button", { name: "Google でログイン" }),
