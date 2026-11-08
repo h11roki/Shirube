@@ -164,8 +164,8 @@ export function PlanResultView({
       >
         <div className="grid gap-8">
           <section className="grid gap-4">
-            <h1 className="sr-only">{conditions.occupation}への道標</h1>
-            {profile.occupation !== profile.interpretation && (
+            <h1 className="sr-only">{destination.name}への道標</h1>
+            {destination.name !== profile.interpretation && (
               <Kicker>{readAsLabel(profile.interpretation)}</Kicker>
             )}
             <DestinationPlate destination={destination} arriving={arriving} />

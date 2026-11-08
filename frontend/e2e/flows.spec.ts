@@ -994,7 +994,9 @@ test.describe("読み替えの知らせ", () => {
     await expect(
       page.getByText(readAsLabel(READING.interpretation)),
     ).toBeVisible();
-    await expect(page.getByText(/入力した職業/)).toHaveCount(0);
+    await expect(
+      page.getByText(`入力した職業 ${READING.occupation}`),
+    ).toHaveCount(0);
   });
 
   test("作成中でも、前提の無い読み取りは知らせない", async ({ page, api }) => {
