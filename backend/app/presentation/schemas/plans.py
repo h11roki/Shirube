@@ -6,7 +6,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
 from app.domain.course import ALL_GRADES, Term, Weekday
-from app.domain.occupation import is_single_line
+from app.domain.occupation import OccupationProfile, is_single_line
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
 from app.domain.roadmap import FixedCourse, PlacedCourse, PlannedCourse
 
@@ -121,6 +121,7 @@ class PlanOut(BaseModel):
     status: PlanStatus
     stage: PlanStage | None
     conditions: ConditionsOut
+    reading: ProfileOut | None
     result: ResultOut | None
     failure: str | None
 
@@ -187,20 +188,24 @@ def plan_out(plan: Plan, links: Mapping[str, str]) -> PlanOut:
             credit_limit=conditions.credit_limit,
             fixed_courses=list(conditions.fixed_courses),
         ),
+        reading=None if plan.reading is None else _profile_out(plan.reading),
         result=None if plan.result is None else _result_out(plan.result, links),
         failure=plan.failure,
     )
 
 
+def _profile_out(profile: OccupationProfile) -> ProfileOut:
+    return ProfileOut(
+        occupation=profile.occupation,
+        interpretation=profile.interpretation,
+        assumption=profile.assumption,
+        skills=list(profile.skills),
+    )
+
+
 def _result_out(result: PlanResult, links: Mapping[str, str]) -> ResultOut:
-    profile = result.recommendation.profile
     return ResultOut(
-        profile=ProfileOut(
-            occupation=profile.occupation,
-            interpretation=profile.interpretation,
-            assumption=profile.assumption,
-            skills=list(profile.skills),
-        ),
+        profile=_profile_out(result.recommendation.profile),
         semesters=[
             SemesterPlanOut(
                 grade=semester_plan.semester.grade,

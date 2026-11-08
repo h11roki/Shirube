@@ -21,6 +21,7 @@ from app.application.ports import (
 )
 from app.application.recommend_courses import Recommender, RecommendStep
 from app.application.search_courses import NoCandidatesError
+from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
 from app.domain.recommendation import RecommendationError
 
@@ -85,10 +86,10 @@ class BuildPlans:
                     conditions.year,
                     conditions.department,
                     conditions.semesters,
-                    lambda step: self._enter_step(plan, step, entered),
+                    lambda step, profile: self._enter_step(plan, step, profile, entered),
                     excluded=self._users.taken(plan.owner_id) | set(conditions.fixed_courses),
                 )
-                self._enter(plan, PlanStage.PLACING, entered)
+                self._enter(plan, PlanStage.PLACING, recommendation.profile, entered)
                 roadmap = conditions.roadmap(
                     recommendation,
                     sections,
@@ -134,20 +135,30 @@ class BuildPlans:
         return self._plans.get(plan.id)
 
     def _enter_step(
-        self, plan: Plan, step: RecommendStep, entered: list[tuple[PlanStage, float]]
+        self,
+        plan: Plan,
+        step: RecommendStep,
+        profile: OccupationProfile,
+        entered: list[tuple[PlanStage, float]],
     ) -> None:
         match step:
             case RecommendStep.SEARCHING:
-                self._enter(plan, PlanStage.SEARCHING, entered)
+                self._enter(plan, PlanStage.SEARCHING, profile, entered)
             case RecommendStep.SELECTING:
-                self._enter(plan, PlanStage.SELECTING, entered)
+                self._enter(plan, PlanStage.SELECTING, profile, entered)
             case _:
                 assert_never(step)
 
-    def _enter(self, plan: Plan, stage: PlanStage, entered: list[tuple[PlanStage, float]]) -> None:
+    def _enter(
+        self,
+        plan: Plan,
+        stage: PlanStage,
+        reading: OccupationProfile,
+        entered: list[tuple[PlanStage, float]],
+    ) -> None:
         entered.append((stage, self._clock()))
         try:
-            self._plans.enter_stage(plan.id, stage)
+            self._plans.enter_stage(plan.id, stage, reading)
         except Exception:
             logger.exception("道標 %s の段 %s を書けませんでした", plan.id, stage)
 

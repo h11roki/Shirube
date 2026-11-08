@@ -6,6 +6,7 @@ from typing import Self
 from uuid import UUID
 
 from app.domain.course import CourseSection
+from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation
 from app.domain.roadmap import Roadmap, Semester, place, remaining_semesters
 
@@ -88,10 +89,15 @@ class Plan:
     result: PlanResult | None = None
     failure: str | None = None
     stage: PlanStage | None = None
+    reading: OccupationProfile | None = None
 
     def __post_init__(self) -> None:
         if self.stage is not None and self.status is not PlanStatus.RUNNING:
             raise PlanError(f"段を持つのは作成中の道標だけです: {self.status}")
+        if self.reading is not None and self.status is not PlanStatus.RUNNING:
+            raise PlanError(f"読み取りを持つのは作成中の道標だけです: {self.status}")
+        if self.reading is not None and self.reading.occupation != self.conditions.occupation:
+            raise PlanError(f"読み取った職業が条件と違います: {self.reading.occupation}")
         if (self.result is not None) != (self.status is PlanStatus.SUCCEEDED):
             raise PlanError(f"結果を持つのは完了した道標だけです: {self.status}")
         if (self.failure is not None) != (self.status is PlanStatus.FAILED):
@@ -131,7 +137,7 @@ class Plan:
     def succeeded(self, result: PlanResult) -> Self:
         if self.status is not PlanStatus.RUNNING:
             raise PlanError(f"作成中でない道標は完了にできません: {self.status}")
-        return replace(self, status=PlanStatus.SUCCEEDED, result=result, stage=None)
+        return replace(self, status=PlanStatus.SUCCEEDED, result=result, stage=None, reading=None)
 
     def placed_again(self, roadmap: Roadmap) -> Self:
         if self.result is None:
@@ -141,7 +147,7 @@ class Plan:
     def failed(self, failure: str) -> Self:
         if self.status is not PlanStatus.RUNNING:
             raise PlanError(f"作成中でない道標は失敗にできません: {self.status}")
-        return replace(self, status=PlanStatus.FAILED, failure=failure, stage=None)
+        return replace(self, status=PlanStatus.FAILED, failure=failure, stage=None, reading=None)
 
 
 @dataclass(frozen=True)

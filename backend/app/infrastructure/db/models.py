@@ -263,6 +263,7 @@ class PlanRow(Base):
             "AND stage IN ('analyzing', 'searching', 'selecting', 'placing'))",
             name="ck_plans_stage",
         ),
+        CheckConstraint("reading IS NULL OR status = 'running'", name="ck_plans_reading"),
         Index("ix_plans_pending", "created_at", postgresql_where=text("status = 'pending'")),
         Index("ix_plans_running", "claimed_at", postgresql_where=text("status = 'running'")),
     )
@@ -276,6 +277,7 @@ class PlanRow(Base):
     result: Mapped[ResultJson | None] = mapped_column(JSONB(none_as_null=True))
     failure: Mapped[str | None]
     stage: Mapped[str | None]
+    reading: Mapped[ProfileJson | None] = mapped_column(JSONB(none_as_null=True))
     claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     finished_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -321,6 +321,7 @@ export interface components {
             status: components["schemas"]["PlanStatus"];
             stage: components["schemas"]["PlanStage"] | null;
             conditions: components["schemas"]["ConditionsOut"];
+            reading: components["schemas"]["ProfileOut"] | null;
             result: components["schemas"]["ResultOut"] | null;
             /** Failure */
             failure: string | null;

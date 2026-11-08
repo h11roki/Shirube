@@ -243,12 +243,12 @@ class FakeRecommender:
         year: int,
         department: str,
         semesters: Sequence[Semester],
-        enter: Callable[[RecommendStep], None] = lambda step: None,
+        enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
         excluded: Set[str] = frozenset(),
     ) -> Recommendation:
         self.calls.append((occupation, year, department, tuple(semesters), frozenset(excluded)))
-        enter(RecommendStep.SEARCHING)
-        enter(RecommendStep.SELECTING)
+        enter(RecommendStep.SEARCHING, self._recommendation.profile)
+        enter(RecommendStep.SELECTING, self._recommendation.profile)
         return self._recommendation
 
 
@@ -259,7 +259,7 @@ class FakePlanRepository:
         self.purges: list[datetime] = []
         self.created_at: dict[UUID, datetime] = {}
         self.stall_limits: list[timedelta] = []
-        self.stages: list[tuple[UUID, PlanStage]] = []
+        self.stages: list[tuple[UUID, PlanStage, OccupationProfile]] = []
 
     def store(self, plan: Plan) -> None:
         self.plans[plan.id] = plan
@@ -343,11 +343,11 @@ class FakePlanRepository:
         self.plans[plan_id] = replace(plan, status=PlanStatus.RUNNING, stage=PlanStage.ANALYZING)
         return self.plans[plan_id]
 
-    def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+    def enter_stage(self, plan_id: UUID, stage: PlanStage, reading: OccupationProfile) -> None:
         plan = self.plans.get(plan_id)
         if plan is not None and plan.status is PlanStatus.RUNNING:
-            self.stages.append((plan_id, stage))
-            self.plans[plan_id] = replace(plan, stage=stage)
+            self.stages.append((plan_id, stage, reading))
+            self.plans[plan_id] = replace(plan, stage=stage, reading=reading)
 
     def finish(self, plan: Plan) -> bool:
         stored = self.plans.get(plan.id)

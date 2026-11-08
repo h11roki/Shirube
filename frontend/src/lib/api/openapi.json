@@ -1309,6 +1309,16 @@
           "conditions": {
             "$ref": "#/components/schemas/ConditionsOut"
           },
+          "reading": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ProfileOut"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "result": {
             "anyOf": [
               {
@@ -1337,6 +1347,7 @@
           "status",
           "stage",
           "conditions",
+          "reading",
           "result",
           "failure"
         ],
