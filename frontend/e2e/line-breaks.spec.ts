@@ -24,6 +24,8 @@ const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
 
 const SAMPLE_WORDS = ["データ", "サイエンティスト"];
 
+const SIGNPOST_BESIDE_WIDTH = 448;
+
 function resultFor(destination: string): Plan {
   return {
     ...SAMPLE_PLAN,
@@ -266,6 +268,24 @@ async function expectBreaksBetweenWords(
   }
 }
 
+for (const width of [...NARROW_WIDTHS, SIGNPOST_BESIDE_WIDTH]) {
+  test(`幅 ${width}px の作成中の画面で、見本の行先表示の板を語の切れ目で折る`, async ({
+    page,
+    api,
+  }) => {
+    await page.setViewportSize({ width, height: 900 });
+    await openPlan(page, api, asRunning(SAMPLE_PLAN));
+    const text = plateText(page, SAMPLE_DESTINATION);
+    await expect(text).toBeVisible();
+    const lines = await renderedLines(text);
+    expect(
+      breaksOnlyBetween(lines, endingWith(SAMPLE_WORDS, "行")),
+      lines.join(" / "),
+    ).toBe(true);
+    expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+  });
+}
+
 for (const width of NARROW_WIDTHS) {
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
     page,
@@ -278,7 +298,7 @@ for (const width of NARROW_WIDTHS) {
   });
 
   for (const screen of SCREENS) {
-    for (const words of [SAMPLE_WORDS, ...LONG_DESTINATIONS]) {
+    for (const words of LONG_DESTINATIONS) {
       const destination = words.join("");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
