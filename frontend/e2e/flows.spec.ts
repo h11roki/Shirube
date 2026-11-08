@@ -35,6 +35,7 @@ import {
   hopPlace,
   markTakenLabel,
   matchCountLabel,
+  readAsLabel,
   readingLabel,
   stationsAway,
   takenCoursesSummary,
@@ -953,6 +954,29 @@ test.describe("読み替えの知らせ", () => {
       .filter({ hasText: readingLabel(READING.interpretation) });
     await expect(notice).toBeVisible();
     await expect(notice).toContainText(assumptionLabel(READING.assumption));
+  });
+
+  test("完成の画面では、行き先を入力した職業名にし、読み替えた職業を板の上に添える", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(REREAD_PLAN)]: REREAD_PLAN });
+    await page.goto(`/plans/${REREAD_PLAN.id}`);
+    await expect(
+      page.getByRole("heading", {
+        level: 1,
+        name: `${READING.occupation}への道標`,
+      }),
+    ).toBeAttached();
+    await expect(
+      page.getByText(`${READING.occupation}行`, { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(`${READING.interpretation}行`, { exact: true }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByText(readAsLabel(READING.interpretation)),
+    ).toBeVisible();
   });
 
   test("作成中でも、前提の無い読み取りは知らせない", async ({ page, api }) => {

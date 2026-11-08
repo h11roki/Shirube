@@ -28,7 +28,7 @@ import {
 
 const NARROW_WIDTHS = [320, 375];
 
-const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
+const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.occupation;
 
 const SAMPLE_WORDS = ["データ", "サイエンティスト"];
 
@@ -37,9 +37,14 @@ const SIGNPOST_BESIDE_WIDTHS = [448, 480];
 function resultFor(destination: string): Plan {
   return {
     ...SAMPLE_PLAN,
+    conditions: { ...SAMPLE_PLAN.conditions, occupation: destination },
     result: {
       ...SAMPLE_PLAN.result,
-      profile: { ...SAMPLE_PLAN.result.profile, interpretation: destination },
+      profile: {
+        ...SAMPLE_PLAN.result.profile,
+        occupation: destination,
+        interpretation: destination,
+      },
     },
   };
 }

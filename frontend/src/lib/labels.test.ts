@@ -4,6 +4,7 @@ import type { PlacedCourse, Plan } from "@/lib/api/client";
 import {
   assumptionLabel,
   classLabel,
+  readAsLabel,
   readingLabel,
   roleLabel,
   semesterLabel,
@@ -226,5 +227,9 @@ describe("読み取りの知らせ", () => {
   it("解釈した職業として作っていることと、前提を出す", () => {
     expect(readingLabel("ITエンジニア")).toBe("ITエンジニアとして作っています");
     expect(assumptionLabel("広く読んだ")).toBe("前提: 広く読んだ");
+  });
+
+  it("完成の画面では、読み替えた職業を行き先に添える", () => {
+    expect(readAsLabel("ITエンジニア")).toBe("読み替えた職業 ITエンジニア");
   });
 });
