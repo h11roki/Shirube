@@ -4,6 +4,7 @@ import type {
   OfferedCourse,
   PlacedCourse,
   Plan,
+  PlanResult,
   Relevance,
   Weekday,
 } from "@/lib/api/client";
@@ -73,25 +74,29 @@ const ASKED_PLAN: Plan = {
   result: { ...SAMPLE_PLAN.result, offered_earlier: [TAKEN.name] },
 };
 
-const MARKED_PLAN: Plan = {
-  ...SAMPLE_PLAN,
-  result: {
-    ...SAMPLE_PLAN.result,
-    semesters: SAMPLE_PLAN.result.semesters.map((semester, index) =>
-      index === 0
-        ? {
-            ...semester,
-            credits: semester.credits - TAKEN.credits,
-            courses: semester.courses.filter(
-              (course) => course.name !== TAKEN.name,
-            ),
-          }
-        : semester,
-    ),
-    taken: [TAKEN],
-    offered_earlier: [TAKEN.name],
-  },
-};
+function markedTaken(plan: Plan & { result: PlanResult }): Plan {
+  return {
+    ...plan,
+    result: {
+      ...plan.result,
+      semesters: plan.result.semesters.map((semester, index) =>
+        index === 0
+          ? {
+              ...semester,
+              credits: semester.credits - TAKEN.credits,
+              courses: semester.courses.filter(
+                (course) => course.name !== TAKEN.name,
+              ),
+            }
+          : semester,
+      ),
+      taken: [TAKEN],
+      offered_earlier: [TAKEN.name],
+    },
+  };
+}
+
+const MARKED_PLAN = markedTaken(SAMPLE_PLAN);
 
 function lesson(
   name: string,
@@ -581,7 +586,7 @@ test.describe("乗換の欄", () => {
       result: { ...TRANSFER_PLAN.result, offered_earlier: [TAKEN.name] },
     };
     api.answer({ [planApi(asked)]: asked });
-    api.respond("PUT", takenApi(TAKEN.name), { json: MARKED_PLAN });
+    api.respond("PUT", takenApi(TAKEN.name), { json: markedTaken(asked) });
     await page.goto(`/plans/${asked.id}`);
     await departureOf(page).click();
     const back = page.getByRole("button", {
