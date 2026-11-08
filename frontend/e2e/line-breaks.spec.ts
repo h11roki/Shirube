@@ -351,16 +351,42 @@ for (const width of [...NARROW_WIDTHS, ...SIGNPOST_BESIDE_WIDTHS]) {
 }
 
 for (const width of NARROW_WIDTHS) {
-  test(`幅 ${width}px の結果の画面で、空白の無い長い行き先も最後の駅名標からはみ出さない`, async ({
+  test(`幅 ${width}px の結果の画面で、空白の無い長い行き先も、板、最後の駅名標、道のりの終わりからはみ出さない`, async ({
     page,
     api,
   }) => {
     await page.setViewportSize({ width, height: 900 });
     await openPlan(page, api, resultFor(UNBROKEN_DESTINATION));
-    const next = page.getByText(`${UNBROKEN_DESTINATION} →`, { exact: true });
-    await expect(next).toBeVisible();
-    expect(await escapedBox(next), "字がはみ出した箱").toBe("");
+    for (const text of [
+      plateText(page, UNBROKEN_DESTINATION),
+      page.getByText(`${UNBROKEN_DESTINATION} →`, { exact: true }),
+      page.getByRole("heading", {
+        name: `${UNBROKEN_DESTINATION}へ`,
+        exact: true,
+      }),
+    ]) {
+      await expect(text).toBeVisible();
+      expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+    }
   });
+
+  for (const words of LONG_DESTINATIONS) {
+    const destination = words.join("");
+    test(`幅 ${width}px の結果の画面で、最後の駅名標の${destination}を語の切れ目で折る`, async ({
+      page,
+      api,
+    }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await openPlan(page, api, resultFor(destination));
+      const next = page.getByText(`${destination} →`, { exact: true });
+      await expect(next).toBeVisible();
+      const lines = await renderedLines(next);
+      expect(
+        breaksOnlyBetween(lines, endingWith(words, " →")),
+        lines.join(" / "),
+      ).toBe(true);
+    });
+  }
 
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
     page,

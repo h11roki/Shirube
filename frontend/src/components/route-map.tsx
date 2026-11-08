@@ -157,7 +157,7 @@ export function RouteMap({
               routes={routes}
               serials={serials}
               planPath={planPath}
-              destination={destination.name}
+              destination={destination}
               delayMs={index * STAGGER_MS}
             />
           ))}
@@ -279,7 +279,7 @@ function Station({
   routes: TransferRoutes;
   serials: Map<string, string>;
   planPath?: string;
-  destination: string;
+  destination: Destination;
   delayMs: number;
 }) {
   const [open, setOpen] = useState(false);
