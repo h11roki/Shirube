@@ -24,7 +24,7 @@ const SAMPLE_DESTINATION = SAMPLE_PLAN.result.profile.interpretation;
 
 const SAMPLE_WORDS = ["データ", "サイエンティスト"];
 
-const SIGNPOST_BESIDE_WIDTH = 448;
+const SIGNPOST_BESIDE_WIDTH = 480;
 
 function resultFor(destination: string): Plan {
   return {
@@ -268,23 +268,49 @@ async function expectBreaksBetweenWords(
   }
 }
 
+async function expectPlateBreaksBetweenWords(
+  page: Page,
+  words: readonly string[],
+) {
+  const text = plateText(page, words.join(""));
+  await expect(text).toBeVisible();
+  const lines = await renderedLines(text);
+  expect(
+    breaksOnlyBetween(lines, endingWith(words, "行")),
+    lines.join(" / "),
+  ).toBe(true);
+  expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+}
+
 for (const width of [...NARROW_WIDTHS, SIGNPOST_BESIDE_WIDTH]) {
   test(`幅 ${width}px の作成中の画面で、見本の行先表示の板を語の切れ目で折る`, async ({
     page,
     api,
   }) => {
+    expect(SAMPLE_WORDS.join("")).toBe(SAMPLE_PLAN.conditions.occupation);
     await page.setViewportSize({ width, height: 900 });
     await openPlan(page, api, asRunning(SAMPLE_PLAN));
-    const text = plateText(page, SAMPLE_DESTINATION);
-    await expect(text).toBeVisible();
-    const lines = await renderedLines(text);
-    expect(
-      breaksOnlyBetween(lines, endingWith(SAMPLE_WORDS, "行")),
-      lines.join(" / "),
-    ).toBe(true);
-    expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+    await expectPlateBreaksBetweenWords(page, SAMPLE_WORDS);
   });
 }
+
+test(`幅 ${SIGNPOST_BESIDE_WIDTH}px の作成中の画面では、道標の絵が板の横に並ぶ`, async ({
+  page,
+  api,
+}) => {
+  await page.setViewportSize({ width: SIGNPOST_BESIDE_WIDTH, height: 900 });
+  await openPlan(page, api, asRunning(SAMPLE_PLAN));
+  const plate = await plateText(
+    page,
+    SAMPLE_PLAN.conditions.occupation,
+  ).boundingBox();
+  const signpost = await page.locator("svg", { hasText: "卒業" }).boundingBox();
+  if (!plate || !signpost) {
+    throw new Error("板か道標の絵が見えない");
+  }
+  expect(signpost.x).toBeGreaterThanOrEqual(plate.x + plate.width);
+  expect(signpost.y).toBeLessThan(plate.y + plate.height);
+});
 
 for (const width of NARROW_WIDTHS) {
   test(`幅 ${width}px で、見本の行先表示の板を 1 行に収める`, async ({
@@ -306,14 +332,7 @@ for (const width of NARROW_WIDTHS) {
       }) => {
         await page.setViewportSize({ width, height: 900 });
         await openPlan(page, api, screen.plan(destination));
-        const text = plateText(page, destination);
-        await expect(text).toBeVisible();
-        const lines = await renderedLines(text);
-        expect(
-          breaksOnlyBetween(lines, endingWith(words, "行")),
-          lines.join(" / "),
-        ).toBe(true);
-        expect(await escapedBox(text), "字がはみ出した箱").toBe("");
+        await expectPlateBreaksBetweenWords(page, words);
       });
     }
   }
