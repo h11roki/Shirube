@@ -16,6 +16,7 @@ import {
   NO_LESSONS_LABEL,
   OCCUPATION_LABEL,
   REBUILD_LABEL,
+  REBUILD_ON_FORM_LABEL,
   REBUILD_SUBMIT_LABEL,
   RELEVANCE_DESCRIPTIONS,
   RELEVANCE_LABELS,
@@ -950,15 +951,17 @@ test.describe("読み替えの知らせ", () => {
     );
   });
 
-  test("断られたら API の文をその場に出し、やめるで閉じると押したボタンにフォーカスを戻す", async ({
+  test("断られたら API の文をその場に出し、条件で断られたら入力の画面への導線も出し、やめるで閉じると押したボタンにフォーカスを戻す", async ({
     page,
     api,
   }) => {
     api.answer({ [planApi(REREAD_PLAN)]: REREAD_PLAN });
-    api.respond("POST", "/api/plans", {
-      status: 429,
-      json: { detail: "今日はもう道標を作れません" },
-    });
+    api.respond(
+      "POST",
+      "/api/plans",
+      { status: 429, json: { detail: "今日はもう道標を作れません" } },
+      { status: 422, json: { detail: "選べないクラスです" } },
+    );
     await page.goto(`/plans/${REREAD_PLAN.id}`);
     const opener = page.getByRole("button", { name: REBUILD_LABEL });
     await opener.click();
@@ -969,11 +972,28 @@ test.describe("読み替えの知らせ", () => {
     await expect(
       page.getByRole("alert").filter({ hasText: "今日はもう道標を作れません" }),
     ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: REBUILD_ON_FORM_LABEL }),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: REBUILD_SUBMIT_LABEL }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "選べないクラスです" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: REBUILD_ON_FORM_LABEL }),
+    ).toHaveAttribute("href", "/");
     await expect(page).toHaveURL(`/plans/${REREAD_PLAN.id}`);
     await page
       .getByRole("form", { name: REBUILD_LABEL })
       .getByRole("button", { name: CANCEL_LABEL })
       .click();
     await expect(opener).toBeFocused();
+    await opener.click();
+    await expect(
+      page.getByRole("textbox", { name: OCCUPATION_LABEL }),
+    ).toHaveValue("");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "選べないクラスです" }),
+    ).toHaveCount(0);
   });
 });

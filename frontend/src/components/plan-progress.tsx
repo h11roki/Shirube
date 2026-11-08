@@ -75,18 +75,6 @@ export function PlanProgress({
           className="ml-auto w-14 shrink-0 origin-bottom text-ink motion-safe:animate-sway sm:w-16"
         />
       </div>
-      <div aria-live="polite">
-        {plan.reading?.assumption && (
-          <p className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
-            <span className="font-bold">
-              {readingLabel(plan.reading.interpretation)}
-            </span>
-            <span className="text-sub">
-              {assumptionLabel(plan.reading.assumption)}
-            </span>
-          </p>
-        )}
-      </div>
       {plan.status === "pending" && (
         <p aria-hidden className="flex items-center gap-2.5 text-sm font-bold">
           <span
@@ -98,7 +86,17 @@ export function PlanProgress({
       )}
       <StepLine steps={steps} />
       <div className="grid gap-3">
-        <div aria-live="polite">
+        <div aria-live="polite" className="grid gap-3">
+          {plan.reading?.assumption && (
+            <div className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
+              <p className="font-bold">
+                {readingLabel(plan.reading.interpretation)}
+              </p>
+              <p className="text-sub">
+                {assumptionLabel(plan.reading.assumption)}
+              </p>
+            </div>
+          )}
           <p className="sr-only">
             {current ? STAGE_LABELS[current.stage].join("") : WAITING_LABEL}
           </p>

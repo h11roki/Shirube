@@ -113,6 +113,14 @@ export function isTemporary(error: unknown): boolean {
   );
 }
 
+export function createPlan(request: PlanRequest): Promise<Plan> {
+  return requestJson<Plan>("/api/plans", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(request),
+  });
+}
+
 export async function deletePlan(id: string): Promise<void> {
   try {
     await requestNothing(`/api/plans/${encodeURIComponent(id)}`, {

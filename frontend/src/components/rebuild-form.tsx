@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   type FormEvent,
@@ -15,13 +16,21 @@ import {
   OUTLINE_BUTTON,
   PRIMARY_BUTTON,
   SMALL_BUTTON,
+  STANDALONE_LINK,
 } from "@/components/styles";
-import { type Plan, messageOf, requestJson } from "@/lib/api/client";
+import {
+  ApiError,
+  type Plan,
+  UNPROCESSABLE,
+  createPlan,
+  messageOf,
+} from "@/lib/api/client";
 import {
   CANCEL_LABEL,
   OCCUPATION_LABEL,
   REBUILD_LABEL,
   REBUILD_NOTE,
+  REBUILD_ON_FORM_LABEL,
   REBUILD_SUBMIT_LABEL,
 } from "@/lib/labels";
 import {
@@ -39,6 +48,7 @@ export function RebuildForm({
   const [open, setOpen] = useState(false);
   const [occupation, setOccupation] = useState("");
   const [problem, setProblem] = useState<string>();
+  const [conditionsRefused, setConditionsRefused] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [navigating, startNavigation] = useTransition();
   const busy = submitting || navigating;
@@ -68,15 +78,15 @@ export function RebuildForm({
     }
     setSubmitting(true);
     setProblem(undefined);
+    setConditionsRefused(false);
     try {
-      const plan = await requestJson<Plan>("/api/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(rebuildRequest(occupation, conditions)),
-      });
+      const plan = await createPlan(rebuildRequest(occupation, conditions));
       startNavigation(() => router.push(`/plans/${plan.id}`));
     } catch (error) {
       setProblem(messageOf(error));
+      setConditionsRefused(
+        error instanceof ApiError && error.status === UNPROCESSABLE,
+      );
     }
     setSubmitting(false);
   }
@@ -87,7 +97,9 @@ export function RebuildForm({
         ref={opener}
         type="button"
         onClick={() => {
+          setOccupation("");
           setProblem(undefined);
+          setConditionsRefused(false);
           setOpen(true);
         }}
         className={SMALL_BUTTON}
@@ -139,6 +151,11 @@ export function RebuildForm({
         </button>
       </div>
       {problem && <FailureNotice message={problem} />}
+      {conditionsRefused && (
+        <Link href="/" className={`justify-self-start ${STANDALONE_LINK}`}>
+          {REBUILD_ON_FORM_LABEL}
+        </Link>
+      )}
     </form>
   );
 }

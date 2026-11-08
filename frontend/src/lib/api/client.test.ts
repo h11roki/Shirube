@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   ApiError,
+  createPlan,
   deletePlan,
   isTemporary,
   messageOf,
@@ -136,6 +137,28 @@ describe("requestNothing", () => {
     ).rejects.toMatchObject({
       status: 409,
       message: "作っている途中の道標は、できてから消せます",
+    });
+  });
+});
+
+describe("createPlan", () => {
+  it("posts the request as JSON and returns the accepted plan", async () => {
+    const fetchMock = respondWith(
+      Response.json({ id: "abc" }, { status: 202 }),
+    );
+    const request = {
+      occupation: "職業",
+      grade: 3,
+      department: "情",
+    };
+
+    await expect(createPlan(request)).resolves.toEqual({ id: "abc" });
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/plans");
+    expect(init).toMatchObject({
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
     });
   });
 });

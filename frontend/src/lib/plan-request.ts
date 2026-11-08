@@ -5,15 +5,18 @@ type Conditions = Plan["conditions"];
 
 export const MAX_OCCUPATION_LENGTH = 100;
 
+export function occupationProblem(occupation: string): string | null {
+  return occupation.trim() ? null : OCCUPATION_REQUIRED;
+}
+
 export function rebuildProblem(
   occupation: string,
   conditions: Conditions,
 ): string | null {
-  const name = occupation.trim();
-  if (!name) {
-    return OCCUPATION_REQUIRED;
-  }
-  return name === conditions.occupation ? SAME_OCCUPATION_NOTE : null;
+  return (
+    occupationProblem(occupation) ??
+    (occupation.trim() === conditions.occupation ? SAME_OCCUPATION_NOTE : null)
+  );
 }
 
 export function rebuildRequest(

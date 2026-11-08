@@ -59,6 +59,8 @@ export const REBUILD_NOTE =
 
 export const REBUILD_SUBMIT_LABEL = "作り直す";
 
+export const REBUILD_ON_FORM_LABEL = "入力の画面で条件を選び直して作る";
+
 export const SAME_OCCUPATION_NOTE =
   "この道標と同じ職業名です。同じ道標になるので、別の職業名を入れてください";
 

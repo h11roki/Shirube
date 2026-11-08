@@ -12,24 +12,22 @@ import {
   ApiError,
   type ClassChoices,
   type OfferedCourses,
-  type Plan,
   type PlanRequest,
   type Term,
   UNPROCESSABLE,
+  createPlan,
   messageOf,
-  requestJson,
 } from "@/lib/api/client";
 import { offeredClasses } from "@/lib/class-choices";
 import { chosenCourses, toggledCourses } from "@/lib/fixed-courses";
 import {
   DEPARTMENT_NAME,
   OCCUPATION_LABEL,
-  OCCUPATION_REQUIRED,
   TERM_LABELS,
   classChoicesSummary,
   classLabel,
 } from "@/lib/labels";
-import { MAX_OCCUPATION_LENGTH } from "@/lib/plan-request";
+import { MAX_OCCUPATION_LENGTH, occupationProblem } from "@/lib/plan-request";
 
 const DEPARTMENT = "情";
 const GRADES = [1, 2, 3, 4];
@@ -63,8 +61,9 @@ export function PlanForm() {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!occupation.trim()) {
-      setSubmitError(OCCUPATION_REQUIRED);
+    const refused = occupationProblem(occupation);
+    if (refused) {
+      setSubmitError(refused);
       return;
     }
     setSubmitting(true);
@@ -78,11 +77,7 @@ export function PlanForm() {
       fixed_courses: fixedCourses.map((course) => course.name),
     };
     try {
-      const plan = await requestJson<Plan>("/api/plans", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(request),
-      });
+      const plan = await createPlan(request);
       startNavigation(() => {
         setOccupation("");
         router.push(`/plans/${plan.id}`);

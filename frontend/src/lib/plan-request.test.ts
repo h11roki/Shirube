@@ -1,12 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { OCCUPATION_REQUIRED, SAME_OCCUPATION_NOTE } from "@/lib/labels";
 import {
-  OCCUPATION_REQUIRED,
-  SAME_OCCUPATION_NOTE,
-  assumptionLabel,
-  readingLabel,
-} from "@/lib/labels";
-import { rebuildProblem, rebuildRequest } from "@/lib/plan-request";
+  occupationProblem,
+  rebuildProblem,
+  rebuildRequest,
+} from "@/lib/plan-request";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
 
 const CONDITIONS = {
@@ -39,9 +38,9 @@ describe("別の職業名で作り直す", () => {
   });
 });
 
-describe("読み取りの知らせ", () => {
-  it("解釈した職業として作っていることと、前提を出す", () => {
-    expect(readingLabel("ITエンジニア")).toBe("ITエンジニアとして作っています");
-    expect(assumptionLabel("広く読んだ")).toBe("前提: 広く読んだ");
+describe("職業名", () => {
+  it("空白だけなら入れるよう断り、何か書いてあれば通す", () => {
+    expect(occupationProblem(" 　\n")).toBe(OCCUPATION_REQUIRED);
+    expect(occupationProblem(" 職業 ")).toBeNull();
   });
 });
