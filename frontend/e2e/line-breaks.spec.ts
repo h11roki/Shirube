@@ -278,7 +278,7 @@ for (const width of NARROW_WIDTHS) {
   });
 
   for (const screen of SCREENS) {
-    for (const words of LONG_DESTINATIONS) {
+    for (const words of [SAMPLE_WORDS, ...LONG_DESTINATIONS]) {
       const destination = words.join("");
       test(`幅 ${width}px の${screen.name}で、${destination}の板を語の切れ目で折る`, async ({
         page,
