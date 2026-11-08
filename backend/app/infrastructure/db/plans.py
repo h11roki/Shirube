@@ -51,6 +51,7 @@ from app.infrastructure.db.unavailable import unavailable_as_storage_error
 
 RESULT_JSON_VERSION = 4
 CONDITIONS_JSON = TypeAdapter(ConditionsJson)
+PROFILE_JSON = TypeAdapter(ProfileJson)
 RESULT_JSON = TypeAdapter(ResultJson)
 FINISHED = frozenset({PlanStatus.SUCCEEDED, PlanStatus.FAILED})
 
@@ -93,6 +94,7 @@ class SqlPlanRepository:
                     result=None if plan.result is None else result_json(plan.result),
                     failure=plan.failure,
                     stage=plan.stage,
+                    reading=_reading_json(plan.reading),
                 )
             )
 
@@ -117,12 +119,12 @@ class SqlPlanRepository:
     def claim(self, plan_id: UUID) -> Plan | None:
         return self._claim(PlanRow.id == plan_id)
 
-    def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+    def enter_stage(self, plan: Plan) -> None:
         with DbSession(self._engine) as db, db.begin():
             db.execute(
                 update(PlanRow)
-                .where(PlanRow.id == plan_id, PlanRow.status == PlanStatus.RUNNING)
-                .values(stage=stage)
+                .where(PlanRow.id == plan.id, PlanRow.status == PlanStatus.RUNNING)
+                .values(stage=plan.stage, reading=_reading_json(plan.reading))
                 .execution_options(synchronize_session=False)
             )
 
@@ -138,6 +140,7 @@ class SqlPlanRepository:
                     result=None if plan.result is None else result_json(plan.result),
                     failure=plan.failure,
                     stage=None,
+                    reading=None,
                     finished_at=func.now(),
                 )
                 .returning(PlanRow.id)
@@ -176,6 +179,7 @@ class SqlPlanRepository:
                         status=PlanStatus.FAILED,
                         failure=failure,
                         stage=None,
+                        reading=None,
                         finished_at=func.now(),
                     )
                     .returning(PlanRow.id)
@@ -276,6 +280,9 @@ def _plan(row: PlanRow) -> Plan:
             result,
             row.failure,
             None if row.stage is None else PlanStage(row.stage),
+            None
+            if row.reading is None
+            else profile_from_json(PROFILE_JSON.validate_python(row.reading, strict=True)),
         )
     except (KeyError, ValueError) as error:
         raise PlanFormatError(f"{row.id}: 保存した道標を読めません: {error!r}") from error
@@ -334,15 +341,31 @@ def conditions_from_json(data: ConditionsJson) -> PlanConditions:
     )
 
 
+def profile_json(profile: OccupationProfile) -> ProfileJson:
+    return ProfileJson(
+        occupation=profile.occupation,
+        interpretation=profile.interpretation,
+        assumption=profile.assumption,
+        skills=list(profile.skills),
+    )
+
+
+def _reading_json(reading: OccupationProfile | None) -> ProfileJson | None:
+    return None if reading is None else profile_json(reading)
+
+
+def profile_from_json(stored: ProfileJson) -> OccupationProfile:
+    return OccupationProfile(
+        stored["occupation"],
+        stored["interpretation"],
+        stored["assumption"],
+        tuple(stored["skills"]),
+    )
+
+
 def recommendation_json(recommendation: Recommendation) -> RecommendationJson:
-    profile = recommendation.profile
     return RecommendationJson(
-        profile=ProfileJson(
-            occupation=profile.occupation,
-            interpretation=profile.interpretation,
-            assumption=profile.assumption,
-            skills=list(profile.skills),
-        ),
+        profile=profile_json(recommendation.profile),
         courses=[
             RecommendedJson(
                 name=course.name,
@@ -367,14 +390,8 @@ def recommendation_json(recommendation: Recommendation) -> RecommendationJson:
 
 
 def recommendation_from_json(stored: RecommendationJson) -> Recommendation:
-    profile = stored["profile"]
     return Recommendation(
-        OccupationProfile(
-            profile["occupation"],
-            profile["interpretation"],
-            profile["assumption"],
-            tuple(profile["skills"]),
-        ),
+        profile_from_json(stored["profile"]),
         tuple(
             RecommendedCourse(
                 course["name"],

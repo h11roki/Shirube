@@ -84,7 +84,7 @@ flowchart LR
   C --> T[配置<br/>学期ごとの貪欲法で<br/>重ならない時間割に]
 ```
 
-- **読み取り**: LLM が職業名を、その職業の解釈と必要なスキルに直します。学科の授業に無い応用分野で決まる細かい職種(Web エンジニアなど)は、授業で備えられる広い職業として読み、そう読んだことを前提として画面に出します([ADR 0032](docs/adr/0032-broad-occupation.md))。同じ職業名の読み取りは覚えて使い回し、揺れと費用を減らします([ADR 0052](docs/adr/0052-reading-cache.md))
+- **読み取り**: LLM が職業名を、その職業の解釈と必要なスキルに直します。学科の授業に無い応用分野で決まる細かい職種(Web エンジニアなど)は、授業で備えられる広い職業として読み、そう読んだことを前提として画面に出します([ADR 0032](docs/adr/0032-broad-occupation.md))。読み替えたときは、作成中の画面で「〜として作っています」と知らせ、完成の画面ではその場で、同じ条件のまま別の職業名で作り直せます([ADR 0099](docs/adr/0099-reading-notice.md))。同じ職業名の読み取りは覚えて使い回し、揺れと費用を減らします([ADR 0052](docs/adr/0052-reading-cache.md))
 - **検索**: シラバスを節(授業概要、到達目標、授業計画)ごとに埋め込み、職業全体のクエリと各スキルのクエリの順位から交互に 20 件の候補を取ります([ADR 0005](docs/adr/0005-section-chunking.md)、[0063](docs/adr/0063-search-by-skill.md))
 - **選び直し**: 検索の候補 20 件のシラバスの抜粋を LLM に読ませ、柱と礎を理由つきで選ばせます。職業に少しでも役立つ授業は、迷っても選ばせます([ADR 0080](docs/adr/0080-selection-coverage.md))。同じ問いを LLM に 3 回並行して投げ、2 回以上選ばれた授業だけを残します。何回で残すかは設定で替えられます([ADR 0049](docs/adr/0049-selection-votes.md)、[0081](docs/adr/0081-selection-min-votes.md))。2 回目からは少し遅らせて入力のキャッシュを効かせ、費用を下げています([ADR 0051](docs/adr/0051-vote-delay.md))
 - **配置**: 学期ごとに、配当回生と開講学期を満たし、コマが重ならず、単位の上限に収まる授業を貪欲法で詰めます。前提科目は制約にせず表示だけにしています([ADR 0007](docs/adr/0007-greedy-timetable.md))
@@ -177,7 +177,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 
 - **CI**(GitHub Actions): backend の ruff、mypy(strict)、pytest(DB の結合試験を含む)、frontend の lint、型、Vitest、整形、画面の通しの試験、本番の構成を本番と同じ Arm で組み立てて起動し HTTPS とログインの戻り先を確かめる job、デプロイのスクリプトの shellcheck と場面ごとの試験(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)、依存の既知の脆弱性の audit、CodeQL。main では全て通った版だけイメージを作って置く
 - **画面の通しの試験**(Playwright): 全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))。Chromium のほかに WebKit(iPhone の幅)でも流します
-- 試験の数(2026-11-07): backend 919、Vitest 160、e2e 236、デプロイのスクリプトの場面 16
+- 試験の数(2026-11-08): backend 923、Vitest 163、e2e 252、デプロイのスクリプトの場面 16
 - カバレッジ(2026-11-07、CI で測り、下がったら落とす。[ADR 0098](docs/adr/0098-coverage.md)): backend は行と分岐を合わせて 88.9%(domain と application は行 99.7%、分岐 98% ほど、infrastructure は行 92%、分岐 78%、presentation は行 77%、分岐 74% で、手で流す取り込みの CLI に試験が薄い)。frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 94.8%。部品と画面は通しの試験で確かめます
 
 ## 安全性

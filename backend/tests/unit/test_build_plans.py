@@ -130,11 +130,60 @@ def test_the_oldest_waiting_plan_is_recommended_placed_and_saved_as_succeeded() 
     assert plans.plans[oldest.id] == built
     assert plans.plans[newer.id].status is PlanStatus.PENDING
     assert plans.stages == [
-        (oldest.id, PlanStage.SEARCHING),
-        (oldest.id, PlanStage.SELECTING),
-        (oldest.id, PlanStage.PLACING),
+        (oldest.id, PlanStage.SEARCHING, PROFILE),
+        (oldest.id, PlanStage.SELECTING, PROFILE),
+        (oldest.id, PlanStage.PLACING, PROFILE),
     ]
     assert built.stage is None
+
+
+def test_a_reading_for_another_occupation_is_not_written_and_the_plan_fails(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    plans = FakePlanRepository()
+    waiting(plans)
+    other = OccupationProfile("別の職業", "別の職業", None, ("甲", "乙", "丙"))
+
+    with caplog.at_level(logging.WARNING):
+        built = builder(courses_ranked_by({"科目A": 0.9}), plans, profile=other).build_next()
+
+    assert built is not None
+    assert built.status is PlanStatus.FAILED
+    assert plans.stages == []
+    assert "読み取った職業が条件と違います" in caplog.text
+
+
+def test_a_remembered_recommendation_still_writes_its_reading_when_placing() -> None:
+    class Remembered:
+        def run(
+            self,
+            occupation: str,
+            year: int,
+            department: str,
+            semesters: Sequence[Semester],
+            enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
+            excluded: Set[str] = frozenset(),
+        ) -> Recommendation:
+            return Recommendation(PROFILE, (), ())
+
+    courses, _ = courses_ranked_by({"科目A": 0.9})
+    plans = FakePlanRepository()
+    plan = waiting(plans)
+    build = BuildPlans(
+        Remembered(),
+        courses,
+        plans,
+        FakeUserRepository(),
+        FakePlanBuildLog(),
+        FakeUsageMeter(),
+        Ticks(),
+    )
+
+    built = build.build_next()
+
+    assert built is not None
+    assert (built.status, built.reading) == (PlanStatus.SUCCEEDED, None)
+    assert plans.stages == [(plan.id, PlanStage.PLACING, PROFILE)]
 
 
 def test_nothing_is_built_when_no_plan_is_waiting() -> None:
@@ -264,7 +313,7 @@ def test_a_stage_that_cannot_be_written_does_not_fail_the_plan(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     class StagesFail(FakePlanRepository):
-        def enter_stage(self, plan_id: UUID, stage: PlanStage) -> None:
+        def enter_stage(self, plan: Plan) -> None:
             raise RuntimeError("接続が切れました")
 
     plans = StagesFail()
@@ -468,11 +517,11 @@ def test_a_stage_entered_twice_is_recorded_with_the_time_of_both_visits() -> Non
             year: int,
             department: str,
             semesters: Sequence[Semester],
-            enter: Callable[[RecommendStep], None] = lambda step: None,
+            enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
             excluded: Set[str] = frozenset(),
         ) -> Recommendation:
             for step in (RecommendStep.SEARCHING, RecommendStep.SELECTING) * 2:
-                enter(step)
+                enter(step, PROFILE)
             return super().run(occupation, year, department, semesters, excluded=excluded)
 
     courses, search = courses_ranked_by({"科目A": 0.9})

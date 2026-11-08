@@ -14,12 +14,18 @@ import {
   CONFIRM_DELETE_LABEL,
   DELETE_PLAN_LABEL,
   NO_LESSONS_LABEL,
+  OCCUPATION_LABEL,
+  REBUILD_LABEL,
+  REBUILD_ON_FORM_LABEL,
+  REBUILD_SUBMIT_LABEL,
   RELEVANCE_DESCRIPTIONS,
   RELEVANCE_LABELS,
+  SAME_OCCUPATION_NOTE,
   TRANSFER_HINT,
   TRANSFER_LABEL,
   answeredLabel,
   arrivalsLabel,
+  assumptionLabel,
   backPlace,
   deletePlanLabel,
   deletedPlanLabel,
@@ -28,6 +34,7 @@ import {
   hopPlace,
   markTakenLabel,
   matchCountLabel,
+  readingLabel,
   stationsAway,
   unmarkTakenLabel,
 } from "@/lib/labels";
@@ -40,6 +47,9 @@ import {
   FAILED_PLAN,
   OFFERED_COURSES,
   PLAN_LIST,
+  READING,
+  READING_PLAN,
+  REREAD_PLAN,
   RUNNING_PLAN,
   TAKEN_COURSES,
   asFailed,
@@ -865,3 +875,138 @@ async function boxesOf(...locators: Locator[]) {
     }),
   );
 }
+
+test.describe("読み替えの知らせ", () => {
+  test("作成中に、広く読み替えた職業として作っていることと前提を、読み上げの枠に出す", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(READING_PLAN)]: READING_PLAN });
+    await page.goto(`/plans/${READING_PLAN.id}`);
+    const notice = page
+      .locator('[aria-live="polite"]')
+      .filter({ hasText: readingLabel(READING.interpretation) });
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText(assumptionLabel(READING.assumption));
+  });
+
+  test("作成中でも、前提の無い読み取りは知らせない", async ({ page, api }) => {
+    const plain = {
+      ...READING_PLAN,
+      reading: {
+        ...READING,
+        interpretation: READING.occupation,
+        assumption: null,
+      },
+    };
+    api.answer({ [planApi(plain)]: plain });
+    await page.goto(`/plans/${plain.id}`);
+    await expect(
+      page.getByRole("heading", { name: /道標を作っています/ }),
+    ).toBeVisible();
+    await expect(page.getByText(/として作っています/)).toHaveCount(0);
+  });
+
+  test("完成の画面で別の職業名で作り直すと、同じ職業名は断り、ほかの条件はそのままで職業名だけ替えて送り、新しい道標へ移る", async ({
+    page,
+    api,
+  }) => {
+    const rebuilt = Promise.withResolvers<void>();
+    api.answer({ [planApi(REREAD_PLAN)]: REREAD_PLAN });
+    api.respond("GET", planApi(SAMPLE_PLAN), {
+      json: SAMPLE_PLAN,
+      until: rebuilt.promise,
+    });
+    api.respond("POST", "/api/plans", { status: 202, json: SAMPLE_PLAN });
+    await page.goto(`/plans/${REREAD_PLAN.id}`);
+    await page.getByRole("button", { name: REBUILD_LABEL }).click();
+    const field = page.getByRole("textbox", { name: OCCUPATION_LABEL });
+    await expect(field).toBeFocused();
+    await field.fill(` ${READING.occupation} `);
+    await page.getByRole("button", { name: REBUILD_SUBMIT_LABEL }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: SAME_OCCUPATION_NOTE }),
+    ).toBeVisible();
+    await expect(field).toBeFocused();
+    await expect(field).toHaveAttribute("aria-invalid", "true");
+    await expect(field).toHaveAccessibleDescription(
+      new RegExp(SAME_OCCUPATION_NOTE),
+    );
+    await field.fill(SAMPLE_PLAN.conditions.occupation);
+    const posted = page.waitForRequest(
+      (request) =>
+        request.method() === "POST" &&
+        new URL(request.url()).pathname === "/api/plans",
+    );
+    await page.getByRole("button", { name: REBUILD_SUBMIT_LABEL }).click();
+    const { conditions } = REREAD_PLAN;
+    expect((await posted).postDataJSON()).toEqual({
+      occupation: SAMPLE_PLAN.conditions.occupation,
+      grade: conditions.grade,
+      term: conditions.term,
+      department: conditions.department,
+      chosen_classes: conditions.chosen_classes,
+      fixed_courses: conditions.fixed_courses,
+    });
+    await expect(page).toHaveURL(`/plans/${SAMPLE_PLAN.id}`);
+    await expect(page.getByRole("form", { name: REBUILD_LABEL })).toHaveCount(
+      0,
+    );
+    await expect(
+      page.getByRole("button", { name: DELETE_PLAN_LABEL }),
+    ).toHaveCount(0);
+    rebuilt.resolve();
+    await expect(
+      page.getByRole("navigation", { name: "路線図" }),
+    ).toBeVisible();
+    await expect(page.getByRole("button", { name: REBUILD_LABEL })).toHaveCount(
+      0,
+    );
+  });
+
+  test("断られたら API の文をその場に出し、条件で断られたら入力の画面への導線も出し、やめるで閉じると押したボタンにフォーカスを戻す", async ({
+    page,
+    api,
+  }) => {
+    api.answer({ [planApi(REREAD_PLAN)]: REREAD_PLAN });
+    api.respond(
+      "POST",
+      "/api/plans",
+      { status: 429, json: { detail: "今日はもう道標を作れません" } },
+      { status: 422, json: { detail: "選べないクラスです" } },
+    );
+    await page.goto(`/plans/${REREAD_PLAN.id}`);
+    const opener = page.getByRole("button", { name: REBUILD_LABEL });
+    await opener.click();
+    await page
+      .getByRole("textbox", { name: OCCUPATION_LABEL })
+      .fill(SAMPLE_PLAN.conditions.occupation);
+    await page.getByRole("button", { name: REBUILD_SUBMIT_LABEL }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "今日はもう道標を作れません" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: REBUILD_ON_FORM_LABEL }),
+    ).toHaveCount(0);
+    await page.getByRole("button", { name: REBUILD_SUBMIT_LABEL }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "選べないクラスです" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("link", { name: REBUILD_ON_FORM_LABEL }),
+    ).toHaveAttribute("href", "/");
+    await expect(page).toHaveURL(`/plans/${REREAD_PLAN.id}`);
+    await page
+      .getByRole("form", { name: REBUILD_LABEL })
+      .getByRole("button", { name: CANCEL_LABEL })
+      .click();
+    await expect(opener).toBeFocused();
+    await opener.click();
+    await expect(
+      page.getByRole("textbox", { name: OCCUPATION_LABEL }),
+    ).toHaveValue("");
+    await expect(
+      page.getByRole("alert").filter({ hasText: "選べないクラスです" }),
+    ).toHaveCount(0);
+  });
+});

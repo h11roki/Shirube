@@ -141,7 +141,7 @@ class RunExperiment:
     ) -> Trial | FailedTrial:
         entered: dict[RecommendStep, float] = {}
 
-        def mark(step: RecommendStep) -> None:
+        def mark(step: RecommendStep, _profile: OccupationProfile) -> None:
             entered[step] = self._clock()
 
         started = self._clock()

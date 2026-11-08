@@ -40,6 +40,30 @@ export const STAGE_LABELS: Record<PlanStage, readonly string[]> = {
 
 export const WAITING_LABEL = "順番を待っています";
 
+export function readingLabel(interpretation: string): string {
+  return `${interpretation}として作っています`;
+}
+
+export function assumptionLabel(assumption: string): string {
+  return `前提: ${assumption}`;
+}
+
+export const OCCUPATION_LABEL = "なりたい職業";
+
+export const OCCUPATION_REQUIRED = "なりたい職業を入れてください";
+
+export const REBUILD_LABEL = "別の職業名で作り直す";
+
+export const REBUILD_NOTE =
+  "回生、始める学期、クラス、先に入れる授業はこの道標と同じまま、職業名だけ替えて作ります。";
+
+export const REBUILD_SUBMIT_LABEL = "作り直す";
+
+export const REBUILD_ON_FORM_LABEL = "入力の画面で条件を選び直して作る";
+
+export const SAME_OCCUPATION_NOTE =
+  "この道標と同じ職業名です。同じ道標になるので、別の職業名を入れてください";
+
 const PLAN_TITLE_PREFIXES: Record<PlanStatus, string> = {
   pending: "作成中: ",
   running: "作成中: ",

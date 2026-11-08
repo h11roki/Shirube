@@ -15,6 +15,7 @@ from sqlalchemy import Engine, delete, func, insert, select, text, update
 from sqlalchemy.exc import IntegrityError
 
 from app.application.ports import Deletion, PlanFormatError
+from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanListing, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
 from app.infrastructure.db.models import DeletedPlanRow, PlanRow, TakenCourseRow, UserRow
@@ -34,6 +35,7 @@ VERSION_3 = FIXTURES / "plan_v3.json"
 VERSION_4 = FIXTURES / "plan_v4.json"
 STALL_LIMIT = timedelta(minutes=15)
 ANY_DAY = datetime(2000, 1, 1, tzinfo=UTC)
+READING = OccupationProfile("職業", "広く読んだ職業", "広く読んだ前提", ("甲", "乙", "丙"))
 
 
 def allow(counts: PlanCounts) -> None:
@@ -339,33 +341,37 @@ def test_a_succeeded_plan_is_placed_again_only_from_the_result_it_was_read_with(
     assert repository.get(pending.id) == pending
 
 
-def test_a_running_plan_keeps_the_stage_it_entered_until_it_finishes(
+def test_a_running_plan_keeps_the_stage_and_reading_it_entered_until_it_finishes(
     repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = waiting(repository, owner)
-    repository.enter_stage(plan.id, PlanStage.ANALYZING)
-    assert repository.get(plan.id) == plan
     running = repository.claim(plan.id)
     assert running is not None
-    assert running.stage is PlanStage.ANALYZING
+    assert (running.stage, running.reading) == (PlanStage.ANALYZING, None)
 
-    repository.enter_stage(plan.id, PlanStage.SELECTING)
+    repository.enter_stage(running.entered(PlanStage.SELECTING, READING))
     entered = repository.get(plan.id)
     assert entered is not None
-    assert entered.stage is PlanStage.SELECTING
+    assert (entered.stage, entered.reading) == (PlanStage.SELECTING, READING)
     repository.finish(entered.failed("文"))
+    repository.enter_stage(running.entered(PlanStage.PLACING, READING))
 
     finished = repository.get(plan.id)
     assert finished is not None
-    assert (finished.status, finished.stage) == (PlanStatus.FAILED, None)
+    assert (finished.status, finished.stage, finished.reading) == (
+        PlanStatus.FAILED,
+        None,
+        None,
+    )
 
 
-def test_a_stalled_plan_loses_its_stage(
+def test_a_stalled_plan_loses_its_stage_and_reading(
     engine: Engine, repository: SqlPlanRepository, owner: UUID
 ) -> None:
     plan = waiting(repository, owner)
-    repository.claim(plan.id)
-    repository.enter_stage(plan.id, PlanStage.SEARCHING)
+    running = repository.claim(plan.id)
+    assert running is not None
+    repository.enter_stage(running.entered(PlanStage.SEARCHING, READING))
     with engine.begin() as connection:
         connection.execute(
             update(PlanRow)
@@ -377,7 +383,7 @@ def test_a_stalled_plan_loses_its_stage(
 
     stalled = repository.get(plan.id)
     assert stalled is not None
-    assert (stalled.status, stalled.stage) == (PlanStatus.FAILED, None)
+    assert (stalled.status, stalled.stage, stalled.reading) == (PlanStatus.FAILED, None, None)
 
 
 def test_a_plan_that_has_not_finished_cannot_be_saved_as_finished(
@@ -423,6 +429,7 @@ def test_plans_running_past_the_limit_fail_and_recent_ones_keep_running(
         {"status": "running", "result": None, "failure": "文"},
         {"status": "pending", "result": None, "failure": None, "stage": "analyzing"},
         {"status": "running", "result": None, "failure": None, "stage": "resting"},
+        {"status": "pending", "result": None, "failure": None, "reading": {"skills": []}},
     ],
     ids=[
         "unknown-status",
@@ -432,9 +439,10 @@ def test_plans_running_past_the_limit_fail_and_recent_ones_keep_running(
         "running-with-failure",
         "pending-with-stage",
         "unknown-stage",
+        "pending-with-reading",
     ],
 )
-def test_the_table_refuses_a_status_that_does_not_match_its_result_failure_and_stage(
+def test_the_table_refuses_a_status_that_does_not_match_its_result_failure_stage_or_reading(
     engine: Engine, repository: SqlPlanRepository, owner: UUID, row: dict[str, Any]
 ) -> None:
     with pytest.raises(IntegrityError), engine.begin() as connection:

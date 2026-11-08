@@ -10,6 +10,7 @@ from app.application.build_plans import SERVER_FAILURE
 from app.application.ports import PlanFormatError
 from app.application.search_courses import SearchCourses, query_and_skills
 from app.domain.course import TimeSlot, Weekday
+from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
 from tests.builders import (
@@ -80,6 +81,7 @@ def test_a_requested_plan_is_saved_waiting_for_the_user_and_accepted_with_its_lo
             "credit_limit": 16,
             "fixed_courses": [],
         },
+        "reading": None,
         "result": None,
         "failure": None,
     }
@@ -116,7 +118,30 @@ def test_a_running_plan_is_shown_with_its_stage() -> None:
 
     shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
 
-    assert (shown["status"], shown["stage"]) == ("running", "selecting")
+    assert (shown["status"], shown["stage"], shown["reading"]) == ("running", "selecting", None)
+
+
+def test_a_running_plan_is_shown_with_how_its_occupation_was_read() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = Plan(
+        uuid4(),
+        users.id_of("google-a"),
+        sample_conditions(),
+        PlanStatus.RUNNING,
+        stage=PlanStage.SEARCHING,
+        reading=OccupationProfile("職業", "広く読んだ職業", "前提の文", ("甲", "乙", "丙")),
+    )
+    plans.store(plan)
+
+    shown = client(plans=plans, users=users).get(f"/api/v1/plans/{plan.id}").json()
+
+    assert shown["reading"] == {
+        "occupation": "職業",
+        "interpretation": "広く読んだ職業",
+        "assumption": "前提の文",
+        "skills": ["甲", "乙", "丙"],
+    }
 
 
 def test_a_succeeded_plan_is_shown_with_its_result() -> None:

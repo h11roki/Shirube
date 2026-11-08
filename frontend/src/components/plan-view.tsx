@@ -42,15 +42,18 @@ const ANNOUNCE_DELAY_MS = 500;
 
 export function PlanView() {
   const { id } = useParams<{ id: string }>();
+  return <PlanOf key={id} id={id} />;
+}
+
+function PlanOf({ id }: { id: string }) {
   const router = useRouter();
   const [plan, setPlan] = useState<Plan>();
   const [watch, setWatch] = useState<Watch>("waiting");
   const [error, setError] = useState<{ message: string; status: number }>();
   const [round, setRound] = useState(0);
-  const [progressSeenFor, setProgressSeenFor] = useState<string>();
+  const [sawProgress, setSawProgress] = useState(false);
   const [notice, setNotice] = useState("");
   const deleted = useRef(false);
-  const sawProgress = progressSeenFor === id;
   const completion = plan ? completionNotice(plan, sawProgress) : "";
   const prefix =
     plan && !error ? planTitlePrefix(plan, sawProgress) : undefined;
@@ -79,7 +82,7 @@ export function PlanView() {
         seen = true;
         setPlan(latest);
         if (state !== "finished") {
-          setProgressSeenFor(id);
+          setSawProgress(true);
         }
         setWatch(state);
         setError(undefined);

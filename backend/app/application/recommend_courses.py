@@ -4,6 +4,7 @@ from typing import Protocol
 
 from app.application.ports import CourseRepository, CourseSelector, OccupationAnalyzer
 from app.application.search_courses import SearchCourses, SearchError
+from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import (
     CandidateCourse,
     Recommendation,
@@ -24,7 +25,7 @@ class Recommender(Protocol):
         year: int,
         department: str,
         semesters: Sequence[Semester],
-        enter: Callable[[RecommendStep], None] = lambda step: None,
+        enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
         excluded: Set[str] = frozenset(),
     ) -> Recommendation: ...
 
@@ -50,12 +51,12 @@ class RecommendCourses:
         year: int,
         department: str,
         semesters: Sequence[Semester],
-        enter: Callable[[RecommendStep], None] = lambda step: None,
+        enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
         excluded: Set[str] = frozenset(),
     ) -> Recommendation:
         candidates = self._search.candidates(year, department, semesters, excluded)
         profile = self._analyzer.analyze(occupation)
-        enter(RecommendStep.SEARCHING)
+        enter(RecommendStep.SEARCHING, profile)
         [matches] = candidates.pick([profile], self._candidate_limit)
         if not matches:
             return Recommendation(profile, (), ())
@@ -65,5 +66,5 @@ class RecommendCourses:
         if missing:
             raise SearchError(f"シラバスが DB にありません: {'、'.join(missing)}")
         offered = [CandidateCourse(match.name, pages[match.syllabus_code]) for match in matches]
-        enter(RecommendStep.SELECTING)
+        enter(RecommendStep.SELECTING, profile)
         return arrange(profile, matches, self._selector.select(profile, offered))

@@ -42,7 +42,14 @@ def test_a_recommendation_not_remembered_is_made_and_kept_for_the_lifetime() -> 
     recommender, inner, store = cached()
     steps: list[RecommendStep] = []
 
-    made = recommender.run("職業", 2026, "情", SEMESTERS, steps.append, {"科目B", "開講の無い科目"})
+    made = recommender.run(
+        "職業",
+        2026,
+        "情",
+        SEMESTERS,
+        lambda step, _: steps.append(step),
+        {"科目B", "開講の無い科目"},
+    )
 
     assert made == RECOMMENDATION
     assert inner.calls == [("職業", 2026, "情", SEMESTERS, frozenset({"科目B", "開講の無い科目"}))]
@@ -62,7 +69,9 @@ def test_a_remembered_recommendation_is_used_without_the_recommender_or_its_step
     steps: list[RecommendStep] = []
 
     with caplog.at_level(logging.INFO):
-        again = recommender.run("職業", 2026, "情", SEMESTERS, steps.append, {"科目C", "科目B"})
+        again = recommender.run(
+            "職業", 2026, "情", SEMESTERS, lambda step, _: steps.append(step), {"科目C", "科目B"}
+        )
 
     assert again == RECOMMENDATION
     assert inner.calls == []

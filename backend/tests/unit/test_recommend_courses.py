@@ -168,20 +168,25 @@ def test_a_ranked_course_whose_syllabus_is_missing_is_a_search_error() -> None:
         recommend.run("職業", 2026, "情", ALL_SEMESTERS)
 
 
-def test_steps_are_reported_after_the_occupation_is_read_and_before_the_llm_selects() -> None:
+def test_steps_are_reported_with_the_reading_after_it_and_before_the_llm_selects() -> None:
     analyzer = FakeOccupationAnalyzer({"職業": PROFILE})
     selector = FakeCourseSelector([CourseChoice("科目A", Relevance.CORE, "理由A")])
-    events: list[tuple[RecommendStep, int, int]] = []
+    events: list[tuple[RecommendStep, OccupationProfile, int, int]] = []
 
     recommend_over({"科目A": 0.9}, selector, analyzer).run(
         "職業",
         2026,
         "情",
         ALL_SEMESTERS,
-        lambda step: events.append((step, len(analyzer.calls), len(selector.calls))),
+        lambda step, profile: events.append(
+            (step, profile, len(analyzer.calls), len(selector.calls))
+        ),
     )
 
-    assert events == [(RecommendStep.SEARCHING, 1, 0), (RecommendStep.SELECTING, 1, 0)]
+    assert events == [
+        (RecommendStep.SEARCHING, PROFILE, 1, 0),
+        (RecommendStep.SELECTING, PROFILE, 1, 0),
+    ]
 
 
 def test_selecting_is_not_reported_when_nothing_is_found() -> None:
@@ -193,7 +198,7 @@ def test_selecting_is_not_reported_when_nothing_is_found() -> None:
     steps: list[RecommendStep] = []
 
     RecommendCourses(search, repository, analyzer, FakeCourseSelector([]), 30).run(
-        "職業", 2026, "情", ALL_SEMESTERS, steps.append
+        "職業", 2026, "情", ALL_SEMESTERS, lambda step, _: steps.append(step)
     )
 
     assert steps == [RecommendStep.SEARCHING]

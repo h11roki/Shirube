@@ -188,6 +188,23 @@ def test_only_a_running_plan_has_a_stage_and_finishing_clears_it() -> None:
         Plan(uuid4(), uuid4(), CONDITIONS, stage=PlanStage.ANALYZING)
 
 
+def test_only_a_running_plan_has_the_reading_of_its_occupation_and_finishing_clears_it() -> None:
+    reading = OccupationProfile("職業", "広く読んだ職業", "前提の文", ("甲", "乙", "丙"))
+    running = Plan(
+        uuid4(), uuid4(), CONDITIONS, PlanStatus.RUNNING, stage=PlanStage.SEARCHING, reading=reading
+    )
+
+    assert running.entered(PlanStage.PLACING, reading) == replace(running, stage=PlanStage.PLACING)
+    assert running.succeeded(RESULT).reading is None
+    assert running.failed("文").reading is None
+    with pytest.raises(PlanError, match="読み取りを持つのは作成中の道標だけです: pending"):
+        Plan(uuid4(), uuid4(), CONDITIONS, reading=reading)
+    with pytest.raises(PlanError, match="読み取った職業が条件と違います: 別の職業"):
+        running.entered(PlanStage.SELECTING, replace(reading, occupation="別の職業"))
+    with pytest.raises(PlanError, match="作成中でない道標は段に入れません: failed"):
+        running.failed("文").entered(PlanStage.SELECTING, reading)
+
+
 def test_plan_needs_each_fixed_course_placed_or_unplaced_once_too() -> None:
     plan = sample_plan_with_fixed(uuid4())
 

@@ -4,9 +4,12 @@ import type { Page } from "@playwright/test";
 import { TICKET_GROUND, TICKET_NOTCH_SHAPE } from "@/components/styles";
 import {
   classChoicesSummary,
+  OCCUPATION_LABEL,
+  REBUILD_LABEL,
   dropFixedLabel,
   fixedCoursesSummary,
   forgetTakenLabel,
+  readingLabel,
   takenCoursesSummary,
 } from "@/lib/labels";
 import { transferRoutes } from "@/lib/roadmap";
@@ -19,6 +22,9 @@ import {
   FAILED_PLAN,
   OFFERED_COURSES,
   PLAN_LIST,
+  READING,
+  READING_PLAN,
+  REREAD_PLAN,
   RUNNING_PLAN,
   TAKEN_COURSES,
   expect,
@@ -175,6 +181,28 @@ const SCREENS: Screen[] = [
       expect(
         page.getByRole("heading", { name: /道標を作っています/ }),
       ).toBeVisible(),
+  },
+  {
+    name: "作成中(職業名を広く読み替えた)",
+    path: `/plans/${READING_PLAN.id}`,
+    signedIn: true,
+    answers: { [planApi(READING_PLAN)]: READING_PLAN },
+    ready: (page) =>
+      expect(
+        page.getByText(readingLabel(READING.interpretation)),
+      ).toBeVisible(),
+  },
+  {
+    name: "広く読み替えた道標を別の職業名で作り直す",
+    path: `/plans/${REREAD_PLAN.id}`,
+    signedIn: true,
+    answers: { [planApi(REREAD_PLAN)]: REREAD_PLAN },
+    ready: async (page) => {
+      await page.getByRole("button", { name: REBUILD_LABEL }).click();
+      await expect(
+        page.getByRole("textbox", { name: OCCUPATION_LABEL }),
+      ).toBeFocused();
+    },
   },
   {
     name: "作れなかった道標",

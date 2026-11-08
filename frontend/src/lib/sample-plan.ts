@@ -4,6 +4,7 @@ export const SAMPLE_PLAN = {
   id: "de4d4f3e-5c1c-4673-b6c7-93ba0a97e5e3",
   status: "succeeded",
   stage: null,
+  reading: null,
   conditions: {
     occupation: "データサイエンティスト",
     department: "情",

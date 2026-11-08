@@ -11,6 +11,7 @@ import { JourneySummary } from "@/components/journey-summary";
 import { Kicker } from "@/components/kicker";
 import { PlanCaution, SourceNote } from "@/components/plan-caution";
 import { QueryLink } from "@/components/query-link";
+import { RebuildForm } from "@/components/rebuild-form";
 import { RelevanceLegend } from "@/components/relevance-legend";
 import { RELEVANCE_TONES } from "@/components/relevance-tones";
 import { RouteMap } from "@/components/route-map";
@@ -28,6 +29,7 @@ import {
   RESULT_VIEW_LABELS,
   type TakenChange,
   answeredLabel,
+  assumptionLabel,
   failedAnswerLabel,
   unmarkTakenLabel,
   semesterLabel,
@@ -167,9 +169,12 @@ export function PlanResultView({
             )}
             <DestinationPlate destination={destination} arriving={arriving} />
             {profile.assumption && (
-              <p className="max-w-2xl text-sm text-sub">
-                前提: {profile.assumption}
-              </p>
+              <div className="grid justify-items-start gap-2">
+                <p className="max-w-2xl text-sm text-sub">
+                  {assumptionLabel(profile.assumption)}
+                </p>
+                <RebuildForm conditions={conditions} />
+              </div>
             )}
             <PlanCaution />
             <JourneySummary

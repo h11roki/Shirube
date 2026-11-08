@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 
 from app.application.ports import CourseRepository, RecommendationKey, RecommendationStore
 from app.application.recommend_courses import Recommender, RecommendStep
+from app.domain.occupation import OccupationProfile
 from app.domain.recommendation import Recommendation
 from app.domain.roadmap import Semester, removed_codes
 
@@ -35,7 +36,7 @@ class CachedRecommender:
         year: int,
         department: str,
         semesters: Sequence[Semester],
-        enter: Callable[[RecommendStep], None] = lambda step: None,
+        enter: Callable[[RecommendStep, OccupationProfile], None] = lambda step, profile: None,
         excluded: Set[str] = frozenset(),
     ) -> Recommendation:
         key = RecommendationKey(

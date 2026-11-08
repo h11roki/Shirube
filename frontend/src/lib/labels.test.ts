@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import type { PlacedCourse, Plan } from "@/lib/api/client";
 import {
+  assumptionLabel,
   classLabel,
+  readingLabel,
   roleLabel,
   semesterLabel,
   semesterReading,
@@ -217,5 +219,12 @@ describe("labels", () => {
     expect(completionNotice(inState("succeeded"), true)).toBe("");
     expect(completionNotice(inState("running"), true)).toBe("");
     expect(completionNotice(inState("failed"), true)).toBe("");
+  });
+});
+
+describe("読み取りの知らせ", () => {
+  it("解釈した職業として作っていることと、前提を出す", () => {
+    expect(readingLabel("ITエンジニア")).toBe("ITエンジニアとして作っています");
+    expect(assumptionLabel("広く読んだ")).toBe("前提: 広く読んだ");
   });
 });
