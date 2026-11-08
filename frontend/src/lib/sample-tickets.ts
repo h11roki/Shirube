@@ -6,11 +6,9 @@ import { halfWidthAlphanumerics } from "@/lib/ticket-face";
 
 type RecommendedCourse = PlacedCourse & { relevance: RecommendedRelevance };
 
-const SAMPLE_COURSES = SAMPLE_PLAN.result.semesters
-  .flatMap((semester): PlacedCourse[] => semester.courses)
-  .filter(
-    (course): course is RecommendedCourse => course.relevance !== "fixed",
-  );
+const SAMPLE_COURSES = SAMPLE_PLAN.result.semesters.flatMap(
+  (semester): RecommendedCourse[] => semester.courses,
+);
 const SENTENCE = /[^。！？!?]*[。！？!?]+[」』）)】〕］〉》”’]*/g;
 
 export function lastSentence(text: string): string {
