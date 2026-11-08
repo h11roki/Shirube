@@ -4,8 +4,10 @@ import { encode } from "next-auth/jwt";
 import type {
   ClassChoices,
   OfferedCourses,
+  PlacedCourse,
   Plan,
   PlanList,
+  PlanResult,
   TakenCourses,
 } from "@/lib/api/client";
 import { SAMPLE_PLAN } from "@/lib/sample-plan";
@@ -13,6 +15,35 @@ import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import { E2E_AUTH_SECRET, E2E_ORIGIN } from "./env";
 
 const SESSION_COOKIE = "authjs.session-token";
+
+export type FinishedPlan = Plan & { result: PlanResult };
+
+export function withSemesterCourses(
+  plan: FinishedPlan,
+  index: number,
+  change: (courses: PlacedCourse[]) => PlacedCourse[],
+): FinishedPlan {
+  const credits = (courses: PlacedCourse[]) =>
+    courses.reduce((total, course) => total + course.credits, 0);
+  return {
+    ...plan,
+    result: {
+      ...plan.result,
+      semesters: plan.result.semesters.map((semester, at) => {
+        if (at !== index) {
+          return semester;
+        }
+        const courses = change(semester.courses);
+        return {
+          ...semester,
+          credits:
+            semester.credits + credits(courses) - credits(semester.courses),
+          courses,
+        };
+      }),
+    },
+  };
+}
 
 export function asRunning(plan: Plan): Plan {
   return { ...plan, status: "running", stage: "selecting", result: null };

@@ -1,6 +1,6 @@
 import type { Locator, Page } from "@playwright/test";
 
-import type { Plan } from "@/lib/api/client";
+import type { PlacedCourse, Plan } from "@/lib/api/client";
 import { PRIVACY_TITLE, PROGRESS_HEADING, STAGE_LABELS } from "@/lib/labels";
 import { STAGES } from "@/lib/progress";
 import { resultViewHref } from "@/lib/result-view";
@@ -16,6 +16,7 @@ import {
   planApi,
   signIn,
   test,
+  withSemesterCourses,
 } from "./fixtures";
 
 const NARROW_WIDTHS = [320, 375];
@@ -78,27 +79,17 @@ const TICKET_NAMES = [
   BRACKETED_NAME,
 ];
 
-const BRACKETED_COURSE = {
+const BRACKETED_COURSE: PlacedCourse = {
   ...SAMPLE_PLAN.result.semesters[0].courses[0],
   name: BRACKETED_NAME.join(""),
   section_code: BRACKETED_NAME.join(""),
+  slots: [{ weekday: "tue", period: 1 }],
 };
 
-const TICKET_PLAN = {
-  ...SAMPLE_PLAN,
-  result: {
-    ...SAMPLE_PLAN.result,
-    semesters: SAMPLE_PLAN.result.semesters.map((semester, index) =>
-      index === 0
-        ? {
-            ...semester,
-            credits: semester.credits + BRACKETED_COURSE.credits,
-            courses: [...semester.courses, BRACKETED_COURSE],
-          }
-        : semester,
-    ),
-  },
-} satisfies Plan;
+const TICKET_PLAN = withSemesterCourses(SAMPLE_PLAN, 0, (courses) => [
+  ...courses,
+  BRACKETED_COURSE,
+]);
 
 const UNPLACED_PLAN: Plan = {
   ...TICKET_PLAN,

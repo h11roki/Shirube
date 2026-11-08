@@ -4,7 +4,6 @@ import type {
   OfferedCourse,
   PlacedCourse,
   Plan,
-  PlanResult,
   Relevance,
   Weekday,
 } from "@/lib/api/client";
@@ -46,6 +45,7 @@ import { SAMPLE_PLAN } from "@/lib/sample-plan";
 import {
   CLASS_CHOICES,
   FAILED_PLAN,
+  type FinishedPlan,
   OFFERED_COURSES,
   PLAN_LIST,
   READING,
@@ -59,6 +59,7 @@ import {
   planApi,
   signIn,
   test,
+  withSemesterCourses,
 } from "./fixtures";
 
 const LATER = "01:00";
@@ -74,22 +75,14 @@ const ASKED_PLAN: Plan = {
   result: { ...SAMPLE_PLAN.result, offered_earlier: [TAKEN.name] },
 };
 
-function markedTaken(plan: Plan & { result: PlanResult }): Plan {
+function markedTaken(plan: FinishedPlan): Plan {
+  const rearranged = withSemesterCourses(plan, 0, (courses) =>
+    courses.filter((course) => course.name !== TAKEN.name),
+  );
   return {
-    ...plan,
+    ...rearranged,
     result: {
-      ...plan.result,
-      semesters: plan.result.semesters.map((semester, index) =>
-        index === 0
-          ? {
-              ...semester,
-              credits: semester.credits - TAKEN.credits,
-              courses: semester.courses.filter(
-                (course) => course.name !== TAKEN.name,
-              ),
-            }
-          : semester,
-      ),
+      ...rearranged.result,
       taken: [TAKEN],
       offered_earlier: [TAKEN.name],
     },
@@ -429,29 +422,13 @@ test.describe("乗換の欄", () => {
   if (!moved) {
     throw new Error("見本の道標の 2 学期目に礎が無い");
   }
-  const TRANSFER_PLAN = {
-    ...SAMPLE_PLAN,
-    result: {
-      ...SAMPLE_PLAN.result,
-      semesters: SAMPLE_PLAN.result.semesters.map((semester, index) => {
-        if (index === MOVED_FROM) {
-          return {
-            ...semester,
-            credits: semester.credits - moved.credits,
-            courses: semester.courses.filter((course) => course !== moved),
-          };
-        }
-        if (index === MOVED_FROM + 1) {
-          return {
-            ...semester,
-            credits: semester.credits + moved.credits,
-            courses: [...semester.courses, moved],
-          };
-        }
-        return semester;
-      }),
-    },
-  } satisfies Plan;
+  const TRANSFER_PLAN = withSemesterCourses(
+    withSemesterCourses(SAMPLE_PLAN, MOVED_FROM, (courses) =>
+      courses.filter((course) => course !== moved),
+    ),
+    MOVED_FROM + 1,
+    (courses) => [...courses, moved],
+  );
   const routes = transferRoutes(TRANSFER_PLAN.result.semesters);
   const transfer = [...routes.departures.values()].find(
     (each) => each.to.station < each.from.station,
