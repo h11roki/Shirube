@@ -21,7 +21,7 @@ import {
   revealElement,
   useTransferFocusValue,
 } from "@/components/transfer-focus";
-import { WeekTable } from "@/components/week-table";
+import { StationWeek } from "@/components/week-table";
 import type { SemesterPlan } from "@/lib/api/client";
 import {
   CONTINUING_LABEL,
@@ -360,7 +360,7 @@ function Station({
         hidden={!open}
         className="min-w-0 border border-line bg-note p-3.5 motion-safe:animate-rise"
       >
-        {open && <WeekTable courses={all} />}
+        {open && <StationWeek courses={all} />}
       </div>
     </li>
   );

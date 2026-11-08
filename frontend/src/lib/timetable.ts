@@ -6,15 +6,15 @@ const MIN_PERIODS = 5;
 
 export type PeriodTime = { start: string; end: string };
 
-const PERIOD_TIMES: Readonly<Record<number, PeriodTime>> = {
-  1: { start: "9:00", end: "10:35" },
-  2: { start: "10:45", end: "12:20" },
-  3: { start: "13:10", end: "14:45" },
-  4: { start: "14:55", end: "16:30" },
-  5: { start: "16:40", end: "18:15" },
-  6: { start: "18:25", end: "20:00" },
-  7: { start: "20:10", end: "21:45" },
-};
+const PERIOD_TIMES: readonly PeriodTime[] = [
+  { start: "9:00", end: "10:35" },
+  { start: "10:45", end: "12:20" },
+  { start: "13:10", end: "14:45" },
+  { start: "14:55", end: "16:30" },
+  { start: "16:40", end: "18:15" },
+  { start: "18:25", end: "20:00" },
+  { start: "20:10", end: "21:45" },
+];
 
 export type WeekRow = {
   period: number;
@@ -38,7 +38,7 @@ export function weekTable(courses: PlacedCourse[]): WeekTable {
   const rows = Array.from({ length: lastPeriod }, (_, index) => index + 1).map(
     (period) => ({
       period,
-      time: PERIOD_TIMES[period] ?? null,
+      time: PERIOD_TIMES.at(period - 1) ?? null,
       cells: weekdays.map((weekday) =>
         courses.filter((course) =>
           course.slots.some(
@@ -53,4 +53,17 @@ export function weekTable(courses: PlacedCourse[]): WeekTable {
     rows,
     unscheduled: courses.filter((course) => course.slots.length === 0),
   };
+}
+
+export type DayLesson = { period: number; course: PlacedCourse };
+
+export type DaySchedule = { weekday: Weekday; lessons: DayLesson[] };
+
+export function daySchedules(table: WeekTable): DaySchedule[] {
+  return table.weekdays.map((weekday, index) => ({
+    weekday,
+    lessons: table.rows.flatMap((row) =>
+      row.cells[index].map((course) => ({ period: row.period, course })),
+    ),
+  }));
 }
