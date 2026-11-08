@@ -175,6 +175,7 @@ def test_a_succeeded_plan_is_shown_with_its_result() -> None:
         "section_code": "10000",
         "class_code": "6T",
         "slots": [{"weekday": "mon", "period": 1}, {"weekday": "mon", "period": 2}],
+        "room": "F101",
         "credits": 2,
         "class_confirmed": True,
     }
@@ -540,6 +541,7 @@ def test_a_succeeded_plan_shows_its_fixed_courses_as_planned_without_a_reason() 
             "section_code": "10010",
             "class_code": "6T",
             "slots": [{"weekday": "tue", "period": 1}],
+            "room": "F101",
             "credits": 2,
             "class_confirmed": True,
         }

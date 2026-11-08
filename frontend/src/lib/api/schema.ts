@@ -283,6 +283,8 @@ export interface components {
             class_code: string | null;
             /** Slots */
             slots: components["schemas"]["SlotOut"][];
+            /** Room */
+            room: string | null;
             /** Credits */
             credits: number;
             /** Class Confirmed */

@@ -71,6 +71,7 @@ class PlacedCourseOut(CourseOut):
     section_code: str
     class_code: str | None
     slots: list[SlotOut]
+    room: str | None
     credits: int
     class_confirmed: bool
 
@@ -167,6 +168,7 @@ def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseO
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
+        room=section.room,
         credits=section.credits,
         class_confirmed=placed.class_confirmed,
     )

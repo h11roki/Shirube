@@ -1179,6 +1179,17 @@
             "type": "array",
             "title": "Slots"
           },
+          "room": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Room"
+          },
           "credits": {
             "type": "integer",
             "title": "Credits"
@@ -1199,6 +1210,7 @@
           "section_code",
           "class_code",
           "slots",
+          "room",
           "credits",
           "class_confirmed"
         ],
