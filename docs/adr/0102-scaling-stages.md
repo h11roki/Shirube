@@ -30,7 +30,7 @@ flowchart TD
     now --> cap{"全体の上限に当たる日が<br/>週に 2 日以上"}
     cap -- はい --> raise["1. 全体の上限を上げる<br/>(1 件 1 円として月の額を決める)"]
     raise --> wait{"待ちの中央値が 1 分、<br/>最大が 5 分を超える"}
-    wait -- はい --> workers["2. worker を増やす<br/>(compose の scale。足りなければ t4g.medium)"]
+    wait -- はい --> workers["2. worker を増やす<br/>(compose の replicas。足りなければ t4g.medium)"]
     workers --> rate{"LLM の毎分の上限で<br/>失敗が出る"}
     rate -- はい --> tier["3. OpenAI の tier を上げるか、<br/>選び直しの票を減らす"]
     now --> data{"大学や学部を足して<br/>チャンクが 10 万を超えるか、<br/>検索の段が 1 秒を超える"}
@@ -44,7 +44,7 @@ flowchart TD
 | 段階 | 詰まる所 | 合図(見る所) | 打つ手 | 費用 |
 |---|---|---|---|---|
 | 1 | 全体の 1 日の上限 | 日ごとの件数が 30 に届く日が週に 2 日以上(`report`) | 全体の上限(`DAILY_PLAN_LIMIT_TOTAL`)を上げる。1 人の上限は変えない | 1 日 100 件で月 3,000 円ほど。使い回しが当たる分だけ減る |
-| 2 | worker の数 | 待ちの中央値が 1 分、最大が 5 分を超える(`report`)。health の待ちが stalled | `docker compose -f compose.prod.yaml up -d --scale worker=N`。メモリが足りなければ t4g.medium に上げる | worker は 0 円。t4g.medium で EC2 が月 35〜40 ドルほど |
+| 2 | worker の数 | 待ちの中央値が 1 分、最大が 5 分を超える(`report`)。health の待ちが stalled | `compose.prod.yaml` の worker に `deploy.replicas` を書く(`--scale` で増やしても、次の入れ替えの `up` で 1 つに戻る)。メモリが足りなければ t4g.medium に上げる | worker は 0 円。t4g.medium で EC2 が月 35〜40 ドルほど |
 | 3 | LLM の毎分の上限 | 失敗の原因に `rate_limit_exceeded` が出る(`report`) | 支払いの累計で tier が上がるのを待つか、`SELECTION_VOTES` を下げる(精度とのかね合いは pair で測る) | tier は支払い次第。票を減らすと 1 件の費用も減る |
 | 4 | 検索 | チャンクが 10 万を超えるか、作った記録(`plan_builds` の段ごとの秒)で検索の段の中央値が 1 秒を超える | HNSW 索引を張り、年度と学部の条件を距離の計算より先に効かせる。評価の再現率を測り直す | 0 円(DB のメモリが増える) |
 | 5 | 1 台 | メモリや CPU が常に張り付く。入れ替えの数十秒の止まりや、1 台が壊れたときの戻し(バックアップから)が許せない規模になる | DB を RDS(自動のバックアップと時点の戻し)に出し、backend、worker、frontend を 2 台以上と ALB にする(このとき IaC を先に作る) | 月 50〜100 ドルほど増える |
