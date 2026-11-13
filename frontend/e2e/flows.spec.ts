@@ -854,33 +854,72 @@ test.describe("道標を消す", () => {
   });
 });
 
-test("幅 320px で、車内の路線図の帯の駅を押すと、帯はその駅を真ん中に寄せる", async ({
-  page,
-  api,
-}) => {
-  api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
-  await page.setViewportSize({ width: 320, height: 800 });
-  await page.goto(`/plans/${SAMPLE_PLAN.id}`);
-  const strip = page.getByRole("navigation", { name: "路線図" });
-  for (const index of [2, 3]) {
-    const station = strip.getByRole("button").nth(index);
-    await station.click();
-    await expect(station).toHaveAttribute("aria-current", "location");
+test.describe("車内の路線図の帯", () => {
+  test.beforeEach(async ({ page, api }) => {
+    api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+    await page.setViewportSize({ width: 320, height: 800 });
+    await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+  });
+
+  async function pickStop(page: Page, index: number) {
+    const strip = page.getByRole("navigation", { name: "路線図" });
+    const stop = strip.getByRole("button").nth(index);
+    await stop.click();
+    await expect(stop).toHaveAttribute("aria-current", "location");
     await fontsReady(page);
-    await expect
-      .poll(() =>
-        strip.evaluate((nav) => {
-          const current = nav.querySelector("[aria-current]")!;
-          const outer = nav.getBoundingClientRect();
-          const inner = current.getBoundingClientRect();
-          return Math.abs(
-            inner.left + inner.width / 2 - (outer.left + outer.width / 2),
-          );
-        }),
-      )
-      .toBeLessThanOrEqual(1);
+    await expect.poll(() => offCenter(strip)).toBeLessThanOrEqual(1);
+    return strip;
   }
+
+  test("幅 320px で駅を押すと、帯はその駅を真ん中に寄せる", async ({
+    page,
+  }) => {
+    await pickStop(page, 2);
+    await pickStop(page, 3);
+  });
+
+  test("画面の幅が変わっても、今の駅を真ん中に寄せ直す", async ({ page }) => {
+    const strip = await pickStop(page, 2);
+    await page.setViewportSize({ width: 375, height: 800 });
+    await expect.poll(() => offCenter(strip)).toBeLessThanOrEqual(1);
+  });
+
+  test("利用者が帯を横に動かしたあとは、画面の幅が変わっても寄せ直さない", async ({
+    page,
+  }) => {
+    const strip = await pickStop(page, 2);
+    const centered = await strip.evaluate((nav) => nav.scrollLeft);
+    const box = await strip.boundingBox();
+    await page.mouse.move(box!.x + box!.width / 2, box!.y + box!.height / 2);
+    await page.mouse.wheel(40, 0);
+    await expect
+      .poll(() => strip.evaluate((nav) => nav.scrollLeft))
+      .toBeGreaterThan(centered);
+    const moved = await strip.evaluate((nav) => nav.scrollLeft);
+    await page.setViewportSize({ width: 340, height: 800 });
+    expect(
+      await strip.evaluate(
+        (nav) =>
+          new Promise((resolve) =>
+            requestAnimationFrame(() =>
+              requestAnimationFrame(() => resolve(nav.scrollLeft)),
+            ),
+          ),
+      ),
+    ).toBe(moved);
+  });
 });
+
+async function offCenter(strip: Locator) {
+  return strip.evaluate((nav) => {
+    const current = nav.querySelector("[aria-current]")!;
+    const outer = nav.getBoundingClientRect();
+    const inner = current.getBoundingClientRect();
+    return Math.abs(
+      inner.left + inner.width / 2 - (outer.left + outer.width / 2),
+    );
+  });
+}
 
 test.describe("時間割帳の週", () => {
   test.beforeEach(({ api }) => {
@@ -1027,11 +1066,11 @@ async function openHeader(page: Page) {
   await expect(toggle).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(nav).toBeFocused();
+  await fontsReady(page);
   return { logo, toggle, nav };
 }
 
 async function boxesOf(...locators: Locator[]) {
-  await fontsReady(locators[0].page());
   return Promise.all(
     locators.map(async (locator) => {
       const box = await locator.boundingBox();

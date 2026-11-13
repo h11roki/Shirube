@@ -187,6 +187,15 @@ export function RouteMap({
   );
 }
 
+function centerCurrentStop(nav: HTMLElement | null) {
+  const current = nav?.querySelector<HTMLElement>("[aria-current]");
+  if (nav && current) {
+    nav.scrollTo({
+      left: current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2,
+    });
+  }
+}
+
 function RouteStrip({
   semesters,
   destinationWords,
@@ -212,27 +221,34 @@ function RouteStrip({
   ];
   const strip = useRef<HTMLElement>(null);
   const line = useRef<HTMLOListElement>(null);
+  const moved = useRef(false);
+  useEffect(() => {
+    moved.current = false;
+    centerCurrentStop(strip.current);
+  }, [active]);
   useEffect(() => {
     const nav = strip.current;
     if (!nav || !line.current) {
       return;
     }
-    const centering = new ResizeObserver(() => {
-      const current = nav.querySelector<HTMLElement>("[aria-current]");
-      if (current) {
-        nav.scrollTo({
-          left:
-            current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2,
-        });
+    const resized = new ResizeObserver(() => {
+      if (!moved.current) {
+        centerCurrentStop(nav);
       }
     });
-    centering.observe(nav);
-    centering.observe(line.current);
-    return () => centering.disconnect();
-  }, [active]);
+    resized.observe(nav);
+    resized.observe(line.current);
+    return () => resized.disconnect();
+  }, []);
+  const hold = () => {
+    moved.current = true;
+  };
   return (
     <nav
       ref={strip}
+      onPointerDown={hold}
+      onWheel={hold}
+      onKeyDown={hold}
       aria-label="路線図"
       className="sticky top-2 z-20 scroll-px-6 overflow-x-auto border border-line bg-sheet px-6 py-2"
     >
