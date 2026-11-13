@@ -32,6 +32,7 @@ import {
   assumptionLabel,
   failedAnswerLabel,
   readAsLabel,
+  wasRenamed,
   unmarkTakenLabel,
   semesterLabel,
 } from "@/lib/labels";
@@ -165,7 +166,7 @@ export function PlanResultView({
         <div className="grid gap-8">
           <section className="grid gap-4">
             <h1 className="sr-only">{destination.name}への道標</h1>
-            {destination.name !== profile.interpretation && (
+            {wasRenamed(conditions.occupation, profile.interpretation) && (
               <Kicker>{readAsLabel(profile.interpretation)}</Kicker>
             )}
             <DestinationPlate destination={destination} arriving={arriving} />

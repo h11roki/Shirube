@@ -19,6 +19,7 @@ import {
   WAITING_LABEL,
   assumptionLabel,
   readingLabel,
+  wasRenamed,
   semesterLabel,
 } from "@/lib/labels";
 import {
@@ -89,7 +90,10 @@ export function PlanProgress({
         <div aria-live="polite" className="grid gap-3">
           {plan.reading?.assumption && (
             <div className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
-              {plan.reading.interpretation !== plan.conditions.occupation && (
+              {wasRenamed(
+                plan.conditions.occupation,
+                plan.reading.interpretation,
+              ) && (
                 <p className="font-bold">
                   {readingLabel(plan.reading.interpretation)}
                 </p>

@@ -20,7 +20,7 @@ def is_single_line(text: str) -> bool:
 
 
 def _comparable(name: str) -> str:
-    return "".join(unicodedata.normalize("NFKC", name).split())
+    return "".join(unicodedata.normalize("NFKC", name).casefold().split())
 
 
 @dataclass(frozen=True)

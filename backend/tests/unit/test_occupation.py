@@ -99,7 +99,7 @@ def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None
 
 @pytest.mark.parametrize(
     "interpretation",
-    ["FPGAエンジニア", "ＦＰＧＡ　エンジニア", " FPGA エンジニア "],
+    ["FPGAエンジニア", "ＦＰＧＡ　エンジニア", "fpga エンジニア"],
 )
 def test_a_reading_that_only_changes_spaces_or_width_keeps_the_name_the_user_wrote(
     interpretation: str,
