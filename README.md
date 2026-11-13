@@ -228,7 +228,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 
 - main は GitHub の ruleset で保護し、PR を通して必須の check が全て通らないとマージできません([`.github/rulesets/main.json`](.github/rulesets/main.json))
 - E2E テストは、全ての画面を幅 375px と 1280px、明るい見た目と暗い見た目で開き、axe で WCAG 2.2 の A と AA の違反が無いか、幅 320px で横にはみ出さないか、文字を 200% にしても切れないかを確かめます。折り返しのテストは、Chromium のほかに WebKit(iPhone のまね)でも流します([ADR 0056](docs/adr/0056-accessibility.md)、[0070](docs/adr/0070-text-resize-test.md))
-- テストの数(2026-11-13): backend 934、Vitest 168、E2E 295、デプロイのスクリプトの場面 16
+- テストの数(2026-11-13): backend 937、Vitest 168、E2E 295、デプロイのスクリプトの場面 16
 - カバレッジ: backend は行と分岐で 89.0%、frontend の表示の決まり(`src/lib`)は文 99.5%、分岐 95.0% です。下限(backend 87%、frontend は文 97%、分岐 93%)を下回ったら CI が落とします([ADR 0098](docs/adr/0098-coverage.md))
 
 ## 安全性
