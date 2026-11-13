@@ -23,13 +23,22 @@ INSTRUCTIONS = f"""\
 電子情報工学科の授業がそのまま備える職業(組込み、半導体、通信、制御、データ分析など)は、\
 そのまま解釈し、入力された職業名をそのまま書く。職業名が、学科の授業に無い応用分野や、授業で扱わない道具や製品で決まる\
 細かい職種(Webエンジニア、フロントエンドエンジニア、スマホアプリ開発者、クラウドエンジニアなど)\
-のときだけ、学科の授業で備えられる広い職業として解釈する。\
-例えば「Webエンジニア」は「ITエンジニア」と読む
+のときだけ、学科の授業で備えられる職業として解釈する。\
+そのときも、元の職業の仕事の向き(扱う対象や技術の領域)を職業名に残し、\
+「ITエンジニア」や「制御エンジニア」のように、違う職種が同じ名前になるまとめ方をしない。\
+例えば「Webエンジニア」は「Web システムのソフトウェアエンジニア」、\
+「フロントエンドエンジニア」は「Web 画面のソフトウェアエンジニア」と読む。\
+営業、企画、コンサルタント、起業家のように技術を使う側の職業は、\
+職業名に技術の領域が入っていなければ、学科の技術のどの領域を扱う職業かを職業名に入れる。\
+例えば「新規事業の企画担当」は「IT サービスの新規事業の企画担当」と読む。\
+職業名にもう技術の領域が入っているとき(通信会社の法人営業など)は、\
+入力された職業名をそのまま書く
 - assumption: 職業名の解釈が複数に割れるときは、\
 電子情報工学科の学生が目指すことの多い解釈を 1 つ選び、\
-そう解釈したという前提を 1 文で書く。細かい職種を広い職業として読んだときも、\
-そう読んだことと理由を前提に 1 文で書く\
-(例: Webエンジニアを、Web を含むソフトウェア開発全般の IT エンジニアとして読んだ)。\
+そう解釈したという前提を 1 文で書く。細かい職種を広い職業として読んだときと、\
+技術を使う側の職業に技術の領域を入れたときも、そう読んだことと理由を前提に 1 文で書く\
+(例: Webエンジニアを、Web の仕組みとソフトウェア開発を土台に \
+Web システムを作るエンジニアとして読んだ)。\
 どちらでもないときは null
 - skills: その職業の仕事で直接使う知識・技能を、\
 重要なものから順に {SKILL_COUNT.start}〜{SKILL_COUNT.stop - 1} 個。重複させない。\
@@ -53,12 +62,16 @@ class _Profile(BaseModel):
 
 
 class OpenAIOccupationAnalyzer:
-    def __init__(self, chat: ChatOpenAI) -> None:
+    def __init__(self, chat: ChatOpenAI, instructions: str) -> None:
         self._client = chat.with_structured_output(_Profile, method="json_schema", strict=True)
+        self._instructions = instructions
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
+    def connect(
+        cls, model: str, api_key: SecretStr, timeout: float, retries: int, instructions: str
+    ) -> Self:
+        chat = ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries)
+        return cls(chat, instructions)
 
     def analyze(self, occupation: str) -> OccupationProfile:
         unreadable: list[str] = []
@@ -81,7 +94,9 @@ class OpenAIOccupationAnalyzer:
 
     def _profile(self, occupation: str) -> OccupationProfile:
         try:
-            output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
+            output = self._client.invoke(
+                [SystemMessage(self._instructions), HumanMessage(occupation)]
+            )
             if not isinstance(output, _Profile):
                 raise TypeError(f"答えの形が違います: {output!r}")
             assumption = output.assumption.strip() if output.assumption else None

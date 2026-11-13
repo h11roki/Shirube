@@ -34,6 +34,7 @@ from app.infrastructure.db.users import SqlUserRepository
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS as SELECTION_INSTRUCTIONS
 from app.infrastructure.llm.openai_course_selector import OpenAICourseSelector
 from app.infrastructure.llm.openai_embedder import OpenAIEmbedder
+from app.infrastructure.llm.openai_occupation_analyzer import INSTRUCTIONS as READING_INSTRUCTIONS
 from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
 from app.infrastructure.llm.openai_reason_judge import OpenAIReasonJudge
 from app.infrastructure.llm.usage_meter import LangChainUsageMeter
@@ -81,17 +82,22 @@ def openai_embedder(settings: Settings) -> OpenAIEmbedder:
     )
 
 
-def openai_occupation_analyzer(settings: Settings) -> OpenAIOccupationAnalyzer:
+def openai_occupation_analyzer(
+    settings: Settings, instructions: str = READING_INSTRUCTIONS
+) -> OpenAIOccupationAnalyzer:
     return OpenAIOccupationAnalyzer.connect(
         settings.chat_model,
         openai_api_key(settings),
         settings.openai_timeout_seconds,
         settings.openai_max_retries,
+        instructions,
     )
 
 
-def occupation_analyzer(settings: Settings) -> OccupationAnalyzer:
-    analyzer = openai_occupation_analyzer(settings)
+def occupation_analyzer(
+    settings: Settings, instructions: str = READING_INSTRUCTIONS
+) -> OccupationAnalyzer:
+    analyzer = openai_occupation_analyzer(settings, instructions)
     if settings.occupation_reading_cache_size == 0:
         return analyzer
     return CachedOccupationAnalyzer(analyzer, settings.occupation_reading_cache_size)
