@@ -64,22 +64,19 @@ class SqlCourseRepository:
             return {page.code: page for page in _load_syllabi(db, year, primary_codes)}
 
     def syllabus_codes(self, year: int) -> dict[str, str]:
-        with DbSession(self._engine) as db:
-            rows = db.execute(
-                select(SyllabusCodeRow.code, SyllabusCodeRow.syllabus_code).where(
-                    SyllabusCodeRow.year == year
-                )
-            )
-            return {code: syllabus_code for code, syllabus_code in rows}
+        return self._pages_of(year, None)
 
     def syllabus_pages(self, year: int, codes: Set[str]) -> dict[str, str]:
+        return self._pages_of(year, codes)
+
+    def _pages_of(self, year: int, codes: Set[str] | None) -> dict[str, str]:
+        query = select(SyllabusCodeRow.code, SyllabusCodeRow.syllabus_code).where(
+            SyllabusCodeRow.year == year
+        )
+        if codes is not None:
+            query = query.where(SyllabusCodeRow.code.in_(codes))
         with DbSession(self._engine) as db:
-            rows = db.execute(
-                select(SyllabusCodeRow.code, SyllabusCodeRow.syllabus_code).where(
-                    SyllabusCodeRow.year == year, SyllabusCodeRow.code.in_(codes)
-                )
-            )
-            return {code: syllabus_code for code, syllabus_code in rows}
+            return {code: syllabus_code for code, syllabus_code in db.execute(query)}
 
     def syllabus_urls(self, year: int, primary_codes: Set[str]) -> dict[str, str]:
         with DbSession(self._engine) as db:
