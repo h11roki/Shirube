@@ -43,9 +43,9 @@ export const SAMPLE_PLAN = {
             reason:
               "データ収集→整形加工→データベース抽出→可視化までを概観し、分析前処理や管理・保護の手順を仕事で再現できる。",
             prerequisite_for: null,
-            syllabus_code: "34926",
+            syllabus_code: "34925",
             syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwdFQAS/202634926?language=ja",
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwcHQAS/202634925?language=ja",
             section_code: "34925",
             class_code: "G1",
             slots: [],
@@ -59,9 +59,9 @@ export const SAMPLE_PLAN = {
             reason:
               "データ解析で不可欠な確率・仮説検定・区間推定を学び、実験/サンプルから根拠ある結論を作る基礎になる。データのばらつきを数値で扱える。",
             prerequisite_for: null,
-            syllabus_code: "32505",
+            syllabus_code: "32506",
             syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwbpQAC/202632505?language=ja",
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwcnQAC/202632506?language=ja",
             section_code: "32506",
             class_code: "6B",
             slots: [
@@ -80,9 +80,9 @@ export const SAMPLE_PLAN = {
             reason:
               "データ記述や分析手法、機械学習の基礎、深層学習の流れを演習で習得し、データ分析の進め方を現場で使える形にする。",
             prerequisite_for: null,
-            syllabus_code: "34924",
+            syllabus_code: "34923",
             syllabus_url:
-              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwbJQAS/202634924?language=ja",
+              "https://syllabus.ritsumei.ac.jp/syllabus/s/r-syllabus/a0ifD000003RwaLQAS/202634923?language=ja",
             section_code: "34923",
             class_code: "G1",
             slots: [],

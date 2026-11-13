@@ -95,3 +95,21 @@ def test_page_urls_are_kept_and_looked_up_by_primary_code(repository: SqlCourseR
         "10001": "https://syllabus.test/10001"
     }
     assert repository.syllabus_urls(YEAR + 1, {"10001"}) == {}
+
+
+def test_the_page_of_each_class_code_is_looked_up_only_for_the_codes_asked(
+    repository: SqlCourseRepository,
+) -> None:
+    repository.replace_syllabi(
+        YEAR,
+        [
+            syllabus("10001", aliases=(CourseName("10002", "科目10002"),), year=YEAR),
+            syllabus("10003", year=YEAR),
+        ],
+    )
+
+    assert repository.syllabus_codes(YEAR, {"10001", "10002", "99999"}) == {
+        "10001": "10001",
+        "10002": "10001",
+    }
+    assert repository.syllabus_codes(YEAR + 1, {"10001"}) == {}

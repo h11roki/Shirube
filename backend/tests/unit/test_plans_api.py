@@ -14,6 +14,7 @@ from app.domain.occupation import OccupationProfile
 from app.domain.plan import Plan, PlanStage, PlanStatus
 from app.domain.quota import PlanCounts
 from tests.builders import (
+    moved_to_class,
     sample_conditions,
     sample_plan,
     sample_plan_asking,
@@ -142,6 +143,33 @@ def test_a_running_plan_is_shown_with_how_its_occupation_was_read() -> None:
         "assumption": "前提の文",
         "skills": ["甲", "乙", "丙"],
     }
+
+
+def test_a_placed_course_links_to_the_syllabus_page_of_the_class_it_is_placed_in() -> None:
+    plans = FakePlanRepository()
+    users = FakeUserRepository()
+    plan = moved_to_class(sample_plan(uuid4(), users.id_of("google-a")), "10005", "6B")
+    plans.store(plan)
+    courses, search = courses_ranked_by({"科目A": 0.9, "科目B": 0.8})
+    courses.stored_syllabi[0] = replace(courses.stored_syllabi[0], url=SYLLABUS_URL)
+    courses.stored_syllabi.append(replace(syllabus("10005"), url="https://syllabus.test/10005"))
+
+    result = (
+        client((courses, search), plans=plans, users=users)
+        .get(f"/api/v1/plans/{plan.id}")
+        .json()["result"]
+    )
+
+    placed = result["semesters"][0]["courses"][0]
+    assert (
+        placed["name"],
+        placed["section_code"],
+        placed["syllabus_code"],
+        placed["syllabus_url"],
+    ) == ("科目A", "10005", "10005", "https://syllabus.test/10005")
+    assert [(course["name"], course["syllabus_code"]) for course in result["unplaced"]] == [
+        ("科目D", "10003")
+    ]
 
 
 def test_a_succeeded_plan_is_shown_with_its_result() -> None:

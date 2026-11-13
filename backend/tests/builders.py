@@ -141,6 +141,17 @@ def sample_sections() -> tuple[CourseSection, ...]:
     )
 
 
+def moved_to_class(plan: Plan, section_code: str, class_code: str) -> Plan:
+    assert plan.result is not None
+    spring, *later = plan.result.roadmap.semesters
+    first, *others = spring.courses
+    moved = replace(first, section=replace(first.section, code=section_code, class_code=class_code))
+    roadmap = replace(
+        plan.result.roadmap, semesters=(replace(spring, courses=(moved, *others)), *later)
+    )
+    return replace(plan, result=replace(plan.result, roadmap=roadmap))
+
+
 def sample_plan_with_fixed(plan_id: UUID, owner_id: UUID = SAMPLE_OWNER) -> Plan:
     plan = sample_plan(plan_id, owner_id)
     assert plan.result is not None

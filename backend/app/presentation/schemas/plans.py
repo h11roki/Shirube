@@ -1,10 +1,10 @@
-from collections.abc import Mapping
 from datetime import datetime
 from typing import Annotated, Literal
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, field_validator
 
+from app.application.syllabus_links import PlanLinks
 from app.domain.course import ALL_GRADES, Term, Weekday
 from app.domain.occupation import OccupationProfile, is_single_line
 from app.domain.plan import Plan, PlanResult, PlanStage, PlanStatus
@@ -141,30 +141,32 @@ class PlanListOut(BaseModel):
     total: int
 
 
-def _course_out(course: PlannedCourse, links: Mapping[str, str]) -> CourseOut:
+def _course_out(course: PlannedCourse, page: str | None, links: PlanLinks) -> CourseOut:
+    url = None if page is None else links.urls.get(page)
     if isinstance(course, FixedCourse):
         return CourseOut(
             name=course.name,
             relevance=FIXED,
             reason="",
             prerequisite_for=None,
-            syllabus_code=course.syllabus_code,
-            syllabus_url=None if course.syllabus_code is None else links.get(course.syllabus_code),
+            syllabus_code=page,
+            syllabus_url=url,
         )
     return CourseOut(
         name=course.name,
         relevance=course.relevance.value,
         reason=course.reason,
         prerequisite_for=course.prerequisite_for,
-        syllabus_code=course.syllabus_code,
-        syllabus_url=links.get(course.syllabus_code),
+        syllabus_code=page,
+        syllabus_url=url,
     )
 
 
-def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseOut:
+def _placed_out(placed: PlacedCourse, links: PlanLinks) -> PlacedCourseOut:
     section = placed.section
+    page = links.page_of(section.code, placed.course.syllabus_code)
     return PlacedCourseOut(
-        **_course_out(placed.course, links).model_dump(),
+        **_course_out(placed.course, page, links).model_dump(),
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
@@ -174,7 +176,7 @@ def _placed_out(placed: PlacedCourse, links: Mapping[str, str]) -> PlacedCourseO
     )
 
 
-def plan_out(plan: Plan, links: Mapping[str, str]) -> PlanOut:
+def plan_out(plan: Plan, links: PlanLinks) -> PlanOut:
     conditions = plan.conditions
     return PlanOut(
         id=plan.id,
@@ -205,7 +207,7 @@ def _profile_out(profile: OccupationProfile) -> ProfileOut:
     )
 
 
-def _result_out(result: PlanResult, links: Mapping[str, str]) -> ResultOut:
+def _result_out(result: PlanResult, links: PlanLinks) -> ResultOut:
     return ResultOut(
         profile=_profile_out(result.recommendation.profile),
         semesters=[
@@ -218,8 +220,10 @@ def _result_out(result: PlanResult, links: Mapping[str, str]) -> ResultOut:
             )
             for semester_plan in result.roadmap.semesters
         ],
-        unplaced=[_course_out(course, links) for course in result.roadmap.unplaced],
-        taken=[_course_out(course, links) for course in result.roadmap.taken],
+        unplaced=[
+            _course_out(course, course.syllabus_code, links) for course in result.roadmap.unplaced
+        ],
+        taken=[_course_out(course, course.syllabus_code, links) for course in result.roadmap.taken],
         offered_earlier=sorted(result.roadmap.offered_earlier),
         unlinked=[
             UnlinkedOut(

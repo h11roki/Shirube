@@ -9,7 +9,7 @@ from app.application.delete_plan import DeletePlan
 from app.application.get_plan import GetPlan
 from app.application.list_plans import ListPlans
 from app.application.request_plan import RequestPlan
-from app.application.syllabus_links import SyllabusLinks
+from app.application.syllabus_links import PlanLinks, SyllabusLinks
 from app.domain.plan import Plan
 from app.domain.roadmap import DEFAULT_START_TERM, Semester
 from app.presentation.api.taken_courses import TakenCourseName
@@ -74,7 +74,7 @@ def plans_router(
             body.fixed_courses,
         )
         response.headers["Location"] = request.app.url_path_for("show_plan", plan_id=str(plan.id))
-        return plan_out(plan, {})
+        return plan_out(plan, PlanLinks())
 
     @router.get("/plans")
     def index(user_id: Annotated[UUID, Depends(current_user)]) -> PlanListOut:
