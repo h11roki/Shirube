@@ -23,13 +23,19 @@ class SyllabusLinks:
             return PlanLinks()
         year = plan.conditions.year
         roadmap = plan.result.roadmap
-        placed = {
-            course.section.code
+        placed = [
+            course
             for semester in roadmap.semesters
             for course in (*semester.courses, *semester.continuing)
+        ]
+        section_pages = self._courses.syllabus_codes(
+            year, {course.section.code for course in placed}
+        )
+        course_pages = {course.syllabus_code for course in plan.result.recommendation.courses} | {
+            course.course.syllabus_code
+            for course in placed
+            if course.course.syllabus_code is not None
         }
-        section_pages = self._courses.syllabus_pages(year, placed)
-        course_pages = {course.syllabus_code for course in plan.result.recommendation.courses}
         urls = self._courses.syllabus_urls(year, course_pages | set(section_pages.values()))
         linked = {code: page for code, page in section_pages.items() if page in urls}
         return PlanLinks(urls, linked)

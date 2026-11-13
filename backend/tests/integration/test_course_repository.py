@@ -108,8 +108,8 @@ def test_the_page_of_each_class_code_is_looked_up_only_for_the_codes_asked(
         ],
     )
 
-    assert repository.syllabus_pages(YEAR, {"10001", "10002", "99999"}) == {
+    assert repository.syllabus_codes(YEAR, {"10001", "10002", "99999"}) == {
         "10001": "10001",
         "10002": "10001",
     }
-    assert repository.syllabus_pages(YEAR + 1, {"10001"}) == {}
+    assert repository.syllabus_codes(YEAR + 1, {"10001"}) == {}

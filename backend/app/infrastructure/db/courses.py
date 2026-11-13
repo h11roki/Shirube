@@ -63,13 +63,7 @@ class SqlCourseRepository:
         with DbSession(self._engine) as db:
             return {page.code: page for page in _load_syllabi(db, year, primary_codes)}
 
-    def syllabus_codes(self, year: int) -> dict[str, str]:
-        return self._pages_of(year, None)
-
-    def syllabus_pages(self, year: int, codes: Set[str]) -> dict[str, str]:
-        return self._pages_of(year, codes)
-
-    def _pages_of(self, year: int, codes: Set[str] | None) -> dict[str, str]:
+    def syllabus_codes(self, year: int, codes: Set[str] | None = None) -> dict[str, str]:
         query = select(SyllabusCodeRow.code, SyllabusCodeRow.syllabus_code).where(
             SyllabusCodeRow.year == year
         )
