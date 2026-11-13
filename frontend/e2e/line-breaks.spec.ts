@@ -231,6 +231,7 @@ function breaksOnlyBetween(lines: string[], parts: readonly string[]) {
 }
 
 async function escapedBox(text: Locator): Promise<string> {
+  await fontsReady(text.page());
   return text.evaluate((element) => {
     const range = document.createRange();
     range.selectNodeContents(element);
@@ -667,6 +668,7 @@ for (const [width, place] of [
       .first();
     await expect(name).toBeVisible();
     const ticket = page.locator("article").filter({ has: name }).first();
+    await fontsReady(page);
     const nameBox = await name.boundingBox();
     const stubBox = await ticket.locator("dl").boundingBox();
     if (!nameBox || !stubBox) {

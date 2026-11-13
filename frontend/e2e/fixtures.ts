@@ -264,6 +264,10 @@ export async function enlargeText(page: Page) {
 
 export async function fontsReady(page: Page) {
   await page.evaluate(async () => {
+    document.body.getBoundingClientRect();
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve)),
+    );
     await document.fonts.ready;
   });
 }

@@ -187,6 +187,15 @@ export function RouteMap({
   );
 }
 
+function centerCurrentStop(nav: HTMLElement | null) {
+  const current = nav?.querySelector<HTMLElement>("[aria-current]");
+  if (nav && current) {
+    nav.scrollTo({
+      left: current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2,
+    });
+  }
+}
+
 function RouteStrip({
   semesters,
   destinationWords,
@@ -211,23 +220,42 @@ function RouteStrip({
     },
   ];
   const strip = useRef<HTMLElement>(null);
+  const line = useRef<HTMLOListElement>(null);
+  const moved = useRef(false);
   useEffect(() => {
-    const current = strip.current?.querySelector<HTMLElement>("[aria-current]");
-    if (strip.current && current) {
-      strip.current.scrollTo({
-        left:
-          current.offsetLeft -
-          (strip.current.clientWidth - current.offsetWidth) / 2,
-      });
-    }
+    moved.current = false;
+    centerCurrentStop(strip.current);
   }, [active]);
+  useEffect(() => {
+    const nav = strip.current;
+    if (!nav || !line.current) {
+      return;
+    }
+    const resized = new ResizeObserver(() => {
+      if (!moved.current) {
+        centerCurrentStop(nav);
+      }
+    });
+    resized.observe(nav);
+    resized.observe(line.current);
+    return () => resized.disconnect();
+  }, []);
+  const hold = () => {
+    moved.current = true;
+  };
   return (
     <nav
       ref={strip}
+      onPointerDown={hold}
+      onWheel={hold}
+      onKeyDown={hold}
       aria-label="路線図"
       className="sticky top-2 z-20 scroll-px-6 overflow-x-auto border border-line bg-sheet px-6 py-2"
     >
-      <ol className="flex w-max min-w-full items-start justify-between">
+      <ol
+        ref={line}
+        className="flex w-max min-w-full items-start justify-between"
+      >
         {stops.map((stop, index) => {
           const goal = index === stops.length - 1;
           return (
