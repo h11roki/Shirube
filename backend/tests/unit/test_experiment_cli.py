@@ -456,6 +456,7 @@ def test_pair_builds_each_side_with_the_prompt_it_was_given(
     prompt = tmp_path / "prompt.txt"
     prompt.write_text("試す指示文", encoding="utf-8")
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.setenv("OCCUPATION_READING_CACHE_SIZE", "0")
     given: list[Prompts] = []
 
     class Stopped(Exception):
@@ -478,6 +479,26 @@ def test_pair_builds_each_side_with_the_prompt_it_was_given(
         main(["pair", "--label", "prompt", "--after", f"{setting_name}={prompt}"])
 
     assert given == [Prompts(), tried]
+
+
+@pytest.mark.parametrize("cached", ["before", "after"])
+def test_pair_refuses_to_compare_reading_prompts_while_a_side_remembers_its_readings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, cached: str
+) -> None:
+    prompt = tmp_path / "reading.txt"
+    prompt.write_text("試す読み取り", encoding="utf-8")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.setenv("OCCUPATION_READING_CACHE_SIZE", "0")
+    monkeypatch.setattr(experiment_cli, "_experiment", lambda *args: pytest.fail("流した"))
+    flags = {"before": [], "after": [f"OCCUPATION_PROMPT={prompt}"]}
+    flags[cached].append("OCCUPATION_READING_CACHE_SIZE=500")
+    command = ["pair", "--label", "reading"]
+    for side, overrides in flags.items():
+        for override in overrides:
+            command += [f"--{side}", override]
+
+    with pytest.raises(SystemExit, match="OCCUPATION_READING_CACHE_SIZE=0"):
+        main(command)
 
 
 def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:

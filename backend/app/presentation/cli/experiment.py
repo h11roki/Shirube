@@ -123,7 +123,7 @@ UNRECORDED_SETTINGS = {
 PROFILES = ("analyzed", "handwritten")
 READING_PROMPT_SETTING = "OCCUPATION_PROMPT"
 SELECTION_PROMPT_SETTING = "SELECTION_PROMPT"
-PROMPT_SETTINGS = (READING_PROMPT_SETTING, SELECTION_PROMPT_SETTING)
+PROMPT_FIELDS = {READING_PROMPT_SETTING: "reading", SELECTION_PROMPT_SETTING: "selection"}
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE", READING_PROMPT_SETTING)
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
@@ -202,12 +202,11 @@ def trial_prompt(name: str, path: str) -> str:
 def trial_prompts(overrides: list[tuple[str, str]]) -> Prompts:
     given = dict(overrides)
     return Prompts(
-        reading=trial_prompt(READING_PROMPT_SETTING, given[READING_PROMPT_SETTING])
-        if READING_PROMPT_SETTING in given
-        else READING_INSTRUCTIONS,
-        selection=trial_prompt(SELECTION_PROMPT_SETTING, given[SELECTION_PROMPT_SETTING])
-        if SELECTION_PROMPT_SETTING in given
-        else SELECTION_INSTRUCTIONS,
+        **{
+            field: trial_prompt(name, given[name])
+            for name, field in PROMPT_FIELDS.items()
+            if name in given
+        }
     )
 
 
@@ -816,11 +815,12 @@ def _run(args: argparse.Namespace) -> None:
     settings = load_settings()
     engine = database_engine(settings)
     meter = LangChainUsageMeter()
-    experiment = _experiment(args, settings, dataset, engine, meter, Prompts())
+    prompts = Prompts()
+    experiment = _experiment(args, settings, dataset, engine, meter, prompts)
     trials = _trials(experiment, dataset, judgments, args.repeat)
     created = datetime.now(UNIVERSITY_TIME)
     commit = current_commit()
-    config = config_document(args, settings, dataset, Prompts())
+    config = config_document(args, settings, dataset, prompts)
     path = out / f"{created:%Y%m%d-%H%M%S}-{args.label}.json"
     reserve(out, [path])
     collection, spent_yen = _collected(
@@ -865,14 +865,18 @@ def _pair(args: argparse.Namespace) -> None:
     prompts = {side: trial_prompts(overrides[side]) for side in Side}
     settings = {
         side: load_settings(
-            **{
-                name.lower(): value
-                for name, value in overrides[side]
-                if name not in PROMPT_SETTINGS
-            }
+            **{name.lower(): value for name, value in overrides[side] if name not in PROMPT_FIELDS}
         )
         for side in Side
     }
+    if prompts[Side.BEFORE].reading != prompts[Side.AFTER].reading and any(
+        settings[side].occupation_reading_cache_size for side in Side
+    ):
+        sys.exit(
+            "読み取りの指示文を比べるときは、回ごとに読み直すよう、--before と --after の両方に "
+            "OCCUPATION_READING_CACHE_SIZE=0 を書いてください(覚えると 2 回目からは 1 回目の読みを"
+            "使い回し、読み取りの揺れが 1 回分しか入らない。ADR 0065、0103)"
+        )
     engine = database_engine(settings[Side.BEFORE])
     meter = LangChainUsageMeter()
     experiments = {
