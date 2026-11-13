@@ -44,3 +44,13 @@
 
 - Dependabot の PR が多すぎて追えなくなったとき(自動でマージする条件を決める)
 - audit の除外が増えたとき
+
+## 追記: 使う側の範囲が直す版を許さない脆弱性(2026-11-13)
+
+minimatch の GHSA-g3hv-75wg-m249(moderate、7.0.0 以上 11.0.1 未満)は、lint だけで使う typescript-eslint の `@typescript-eslint/typescript-estree` が、最新の 8.72.2 でも `minimatch@^10.2.2` を求めるので、使う側を上げても直らない。直す版はあるので除外にはせず、使う側の範囲を越えて直す版に替える。
+
+- `frontend/pnpm-workspace.yaml` の `overrides` で、7.0.0 以上 11.0.1 未満の minimatch を 11.0.5(7 日の cooldown を過ぎた版)に替える。11 で外れたのは `makeRe()` や `Minimatch#regexp` などで、typescript-estree は `minimatch(path, pattern, { dot: true })` しか呼ばない(それも `allowDefaultProject` を書いたときだけで、このリポジトリは書いていない)。3 系と 5 系の minimatch は脆弱な範囲の外なのでそのまま
+- override は版を固定するので、使う側が直す版を許したら消す。上書きが増えたときも見直す
+- 開発と取り込みの依存の beautifulsoup4 から入る soupsieve の CVE-2026-126190(high)は、4.0.1 に上げて直す(4.0.0 で直り、4.1 は出て 3 日で cooldown の前)。メジャーの上げなので、保存したシラバスの 530 頁を 3.0.3 と 4.0.1 で解析して、結果が全て同じことを確かめた
+
+除外より上書きを先に考えるのは、除外は脆弱な版を入れたままにし、上書きは入れないで済むから。上書きできないとき(使う側が直す版の呼び方で動かないとき)だけ除外にする。
