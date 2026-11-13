@@ -91,7 +91,7 @@ export function PlanProgress({
           {plan.reading?.assumption && (
             <div className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
               {wasRenamed(
-                plan.conditions.occupation,
+                conditions.occupation,
                 plan.reading.interpretation,
               ) && (
                 <p className="font-bold">

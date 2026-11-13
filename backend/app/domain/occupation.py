@@ -57,7 +57,7 @@ class OccupationProfile:
         assumption: str | None,
         skills: tuple[str, ...],
     ) -> Self:
-        renamed = assumption and _comparable(interpretation) != _comparable(occupation)
+        renamed = bool(assumption) and _comparable(interpretation) != _comparable(occupation)
         return cls(occupation, interpretation if renamed else occupation, assumption, skills)
 
     @property
