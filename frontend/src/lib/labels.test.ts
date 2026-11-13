@@ -5,6 +5,7 @@ import {
   assumptionLabel,
   classLabel,
   readAsLabel,
+  wasRenamed,
   readingLabel,
   roleLabel,
   semesterLabel,
@@ -228,6 +229,11 @@ describe("読み取りの知らせ", () => {
   it("解釈した職業として作っていることと、前提を出す", () => {
     expect(readingLabel("ITエンジニア")).toBe("ITエンジニアとして作っています");
     expect(assumptionLabel("広く読んだ")).toBe("前提: 広く読んだ");
+  });
+
+  it("解釈が入力した職業名と違うときだけ、読み替えたとみなす", () => {
+    expect(wasRenamed("Webエンジニヤ", "Webエンジニア")).toBe(true);
+    expect(wasRenamed("Webエンジニア", "Webエンジニア")).toBe(false);
   });
 
   it("完成の画面では、読み替えた職業を行き先に添える", () => {

@@ -71,10 +71,10 @@ export const RUNNING_PLAN = asRunning({
 });
 
 export const READING = {
-  occupation: "Webエンジニア",
-  interpretation: "Web システムのソフトウェアエンジニア",
+  occupation: "Webエンジニヤ",
+  interpretation: "Webエンジニア",
   assumption:
-    "Webエンジニアを、Web の仕組みとソフトウェア開発を土台に Web システムを作るエンジニアとして読んだ",
+    "「Webエンジニヤ」を、Web サイトや Web アプリケーションを作る Webエンジニアの誤字として読み、Web の仕組みとソフトウェア開発を土台にする職業として作った",
   skills: SAMPLE_PLAN.result.profile.skills,
 };
 

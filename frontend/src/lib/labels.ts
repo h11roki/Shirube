@@ -40,6 +40,13 @@ export const STAGE_LABELS: Record<PlanStage, readonly string[]> = {
 
 export const WAITING_LABEL = "順番を待っています";
 
+export function wasRenamed(
+  occupation: string,
+  interpretation: string,
+): boolean {
+  return occupation !== interpretation;
+}
+
 export function readAsLabel(interpretation: string): string {
   return `読み替えた職業 ${interpretation}`;
 }

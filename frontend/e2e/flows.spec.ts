@@ -1081,7 +1081,7 @@ async function boxesOf(...locators: Locator[]) {
 }
 
 test.describe("読み替えの知らせ", () => {
-  test("作成中に、広く読み替えた職業として作っていることと前提を、読み上げの枠に出す", async ({
+  test("作成中に、読み替えた職業として作っていることと前提を、読み上げの枠に出す", async ({
     page,
     api,
   }) => {
@@ -1092,6 +1092,23 @@ test.describe("読み替えの知らせ", () => {
       .filter({ hasText: readingLabel(READING.interpretation) });
     await expect(notice).toBeVisible();
     await expect(notice).toContainText(assumptionLabel(READING.assumption));
+  });
+
+  test("作成中に、入力のまま読んだ職業は読み替えとして知らせず、前提だけを出す", async ({
+    page,
+    api,
+  }) => {
+    const kept: Plan = {
+      ...READING_PLAN,
+      reading: { ...READING, interpretation: READING.occupation },
+    };
+    api.answer({ [planApi(kept)]: kept });
+    await page.goto(`/plans/${kept.id}`);
+    const notice = page
+      .locator('[aria-live="polite"]')
+      .filter({ hasText: assumptionLabel(READING.assumption) });
+    await expect(notice).toBeVisible();
+    await expect(notice).not.toContainText(readingLabel(READING.occupation));
   });
 
   test("完成の画面では、行き先を入力した職業名にし、読み替えた職業を板の上に添える", async ({
