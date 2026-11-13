@@ -75,3 +75,13 @@ def test_a_class_without_its_own_page_keeps_the_page_of_the_course() -> None:
 
     assert links.page_of("10099", "10000") == "10000"
     assert links.urls["10000"] == "https://syllabus.test/10000"
+
+
+def test_a_class_page_without_a_url_keeps_the_page_of_the_course() -> None:
+    courses = FakeCourseRepository(
+        syllabi=(replace(syllabus("10000"), url="https://syllabus.test/10000"), syllabus("10005"))
+    )
+
+    links = SyllabusLinks(courses).of(moved_to_class(sample_plan(uuid4()), "10005", "6B"))
+
+    assert links.page_of("10005", "10000") == "10000"

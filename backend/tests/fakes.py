@@ -153,6 +153,9 @@ class FakeCourseRepository:
             for code in (page.code, *(alias.code for alias in page.aliases))
         }
 
+    def syllabus_pages(self, year: int, codes: Set[str]) -> dict[str, str]:
+        return {code: page for code, page in self.syllabus_codes(year).items() if code in codes}
+
     def syllabus_urls(self, year: int, primary_codes: Set[str]) -> dict[str, str]:
         return {
             page.code: page.url

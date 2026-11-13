@@ -23,15 +23,15 @@ class SyllabusLinks:
             return PlanLinks()
         year = plan.conditions.year
         roadmap = plan.result.roadmap
-        page_of = self._courses.syllabus_codes(year)
         placed = {
             course.section.code
             for semester in roadmap.semesters
             for course in (*semester.courses, *semester.continuing)
         }
-        section_pages = {code: page_of[code] for code in placed if code in page_of}
+        section_pages = self._courses.syllabus_pages(year, placed)
         course_pages = {course.syllabus_code for course in plan.result.recommendation.courses} | {
             course.syllabus_code for course in roadmap.fixed if course.syllabus_code is not None
         }
         urls = self._courses.syllabus_urls(year, course_pages | set(section_pages.values()))
-        return PlanLinks(urls, section_pages)
+        linked = {code: page for code, page in section_pages.items() if page in urls}
+        return PlanLinks(urls, linked)

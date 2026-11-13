@@ -141,36 +141,32 @@ class PlanListOut(BaseModel):
     total: int
 
 
-def _course_out(course: PlannedCourse, links: PlanLinks) -> CourseOut:
+def _course_out(course: PlannedCourse, page: str | None, links: PlanLinks) -> CourseOut:
+    url = None if page is None else links.urls.get(page)
     if isinstance(course, FixedCourse):
         return CourseOut(
             name=course.name,
             relevance=FIXED,
             reason="",
             prerequisite_for=None,
-            syllabus_code=course.syllabus_code,
-            syllabus_url=None
-            if course.syllabus_code is None
-            else links.urls.get(course.syllabus_code),
+            syllabus_code=page,
+            syllabus_url=url,
         )
     return CourseOut(
         name=course.name,
         relevance=course.relevance.value,
         reason=course.reason,
         prerequisite_for=course.prerequisite_for,
-        syllabus_code=course.syllabus_code,
-        syllabus_url=links.urls.get(course.syllabus_code),
+        syllabus_code=page,
+        syllabus_url=url,
     )
 
 
 def _placed_out(placed: PlacedCourse, links: PlanLinks) -> PlacedCourseOut:
     section = placed.section
-    course = _course_out(placed.course, links)
-    page = links.page_of(section.code, course.syllabus_code)
+    page = links.page_of(section.code, placed.course.syllabus_code)
     return PlacedCourseOut(
-        **course.model_dump(exclude={"syllabus_code", "syllabus_url"}),
-        syllabus_code=page,
-        syllabus_url=None if page is None else links.urls.get(page),
+        **_course_out(placed.course, page, links).model_dump(),
         section_code=section.code,
         class_code=section.class_code,
         slots=[SlotOut(weekday=slot.weekday, period=slot.period) for slot in section.slots],
@@ -224,8 +220,10 @@ def _result_out(result: PlanResult, links: PlanLinks) -> ResultOut:
             )
             for semester_plan in result.roadmap.semesters
         ],
-        unplaced=[_course_out(course, links) for course in result.roadmap.unplaced],
-        taken=[_course_out(course, links) for course in result.roadmap.taken],
+        unplaced=[
+            _course_out(course, course.syllabus_code, links) for course in result.roadmap.unplaced
+        ],
+        taken=[_course_out(course, course.syllabus_code, links) for course in result.roadmap.taken],
         offered_earlier=sorted(result.roadmap.offered_earlier),
         unlinked=[
             UnlinkedOut(
