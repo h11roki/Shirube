@@ -264,6 +264,7 @@ export async function enlargeText(page: Page) {
 
 export async function fontsReady(page: Page) {
   await page.evaluate(async () => {
+    document.body.getBoundingClientRect();
     await document.fonts.ready;
   });
 }

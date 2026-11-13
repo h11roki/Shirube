@@ -854,6 +854,34 @@ test.describe("道標を消す", () => {
   });
 });
 
+test("幅 320px で、車内の路線図の帯の駅を押すと、帯はその駅を真ん中に寄せる", async ({
+  page,
+  api,
+}) => {
+  api.answer({ [planApi(SAMPLE_PLAN)]: SAMPLE_PLAN });
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto(`/plans/${SAMPLE_PLAN.id}`);
+  const strip = page.getByRole("navigation", { name: "路線図" });
+  for (const index of [2, 3]) {
+    const station = strip.getByRole("button").nth(index);
+    await station.click();
+    await expect(station).toHaveAttribute("aria-current", "location");
+    await fontsReady(page);
+    await expect
+      .poll(() =>
+        strip.evaluate((nav) => {
+          const current = nav.querySelector("[aria-current]")!;
+          const outer = nav.getBoundingClientRect();
+          const inner = current.getBoundingClientRect();
+          return Math.abs(
+            inner.left + inner.width / 2 - (outer.left + outer.width / 2),
+          );
+        }),
+      )
+      .toBeLessThanOrEqual(1);
+  }
+});
+
 test.describe("時間割帳の週", () => {
   test.beforeEach(({ api }) => {
     api.answer({ [planApi(WEEK_PLAN)]: WEEK_PLAN });
@@ -1003,6 +1031,7 @@ async function openHeader(page: Page) {
 }
 
 async function boxesOf(...locators: Locator[]) {
+  await fontsReady(locators[0].page());
   return Promise.all(
     locators.map(async (locator) => {
       const box = await locator.boundingBox();

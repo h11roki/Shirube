@@ -211,24 +211,24 @@ function RouteStrip({
     },
   ];
   const strip = useRef<HTMLElement>(null);
+  const line = useRef<HTMLOListElement>(null);
   useEffect(() => {
-    let mounted = true;
-    const center = () => {
-      const current =
-        strip.current?.querySelector<HTMLElement>("[aria-current]");
-      if (mounted && strip.current && current) {
-        strip.current.scrollTo({
+    const nav = strip.current;
+    if (!nav || !line.current) {
+      return;
+    }
+    const centering = new ResizeObserver(() => {
+      const current = nav.querySelector<HTMLElement>("[aria-current]");
+      if (current) {
+        nav.scrollTo({
           left:
-            current.offsetLeft -
-            (strip.current.clientWidth - current.offsetWidth) / 2,
+            current.offsetLeft - (nav.clientWidth - current.offsetWidth) / 2,
         });
       }
-    };
-    center();
-    void document.fonts.ready.then(center);
-    return () => {
-      mounted = false;
-    };
+    });
+    centering.observe(nav);
+    centering.observe(line.current);
+    return () => centering.disconnect();
   }, [active]);
   return (
     <nav
@@ -236,7 +236,10 @@ function RouteStrip({
       aria-label="路線図"
       className="sticky top-2 z-20 scroll-px-6 overflow-x-auto border border-line bg-sheet px-6 py-2"
     >
-      <ol className="flex w-max min-w-full items-start justify-between">
+      <ol
+        ref={line}
+        className="flex w-max min-w-full items-start justify-between"
+      >
         {stops.map((stop, index) => {
           const goal = index === stops.length - 1;
           return (
