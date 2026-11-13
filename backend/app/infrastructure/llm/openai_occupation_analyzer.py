@@ -53,12 +53,16 @@ class _Profile(BaseModel):
 
 
 class OpenAIOccupationAnalyzer:
-    def __init__(self, chat: ChatOpenAI) -> None:
+    def __init__(self, chat: ChatOpenAI, instructions: str) -> None:
         self._client = chat.with_structured_output(_Profile, method="json_schema", strict=True)
+        self._instructions = instructions
 
     @classmethod
-    def connect(cls, model: str, api_key: SecretStr, timeout: float, retries: int) -> Self:
-        return cls(ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries))
+    def connect(
+        cls, model: str, api_key: SecretStr, timeout: float, retries: int, instructions: str
+    ) -> Self:
+        chat = ChatOpenAI(model=model, api_key=api_key, timeout=timeout, max_retries=retries)
+        return cls(chat, instructions)
 
     def analyze(self, occupation: str) -> OccupationProfile:
         unreadable: list[str] = []
@@ -81,7 +85,9 @@ class OpenAIOccupationAnalyzer:
 
     def _profile(self, occupation: str) -> OccupationProfile:
         try:
-            output = self._client.invoke([SystemMessage(INSTRUCTIONS), HumanMessage(occupation)])
+            output = self._client.invoke(
+                [SystemMessage(self._instructions), HumanMessage(occupation)]
+            )
             if not isinstance(output, _Profile):
                 raise TypeError(f"答えの形が違います: {output!r}")
             assumption = output.assumption.strip() if output.assumption else None

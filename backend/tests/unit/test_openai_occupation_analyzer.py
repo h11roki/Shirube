@@ -5,7 +5,7 @@ import pytest
 
 from app.application.ports import OccupationAnalysisError
 from app.domain.occupation import OccupationProfile
-from app.infrastructure.llm.openai_occupation_analyzer import OpenAIOccupationAnalyzer
+from app.infrastructure.llm.openai_occupation_analyzer import INSTRUCTIONS, OpenAIOccupationAnalyzer
 from tests.fakes import chat_answering, chat_failing
 
 
@@ -14,7 +14,7 @@ def analyzer_answering(
     requests: list[dict[str, Any]] | None = None,
     then: tuple[dict[str, Any], ...] = (),
 ) -> OpenAIOccupationAnalyzer:
-    return OpenAIOccupationAnalyzer(chat_answering(message, requests, then=then))
+    return OpenAIOccupationAnalyzer(chat_answering(message, requests, then=then), INSTRUCTIONS)
 
 
 def answer(**fields: Any) -> dict[str, Any]:
@@ -91,7 +91,7 @@ def test_refused_or_unusable_answers_are_analysis_errors(message: dict[str, Any]
 
 
 def test_a_failed_api_call_is_an_analysis_error() -> None:
-    analyzer = OpenAIOccupationAnalyzer(chat_failing(400))
+    analyzer = OpenAIOccupationAnalyzer(chat_failing(400), INSTRUCTIONS)
 
     with pytest.raises(OccupationAnalysisError, match="職業: OpenAI の API 呼び出しに失敗しました"):
         analyzer.analyze("職業")

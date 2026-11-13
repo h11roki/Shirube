@@ -48,6 +48,7 @@ from app.domain.recommendation import (
     Relevance,
 )
 from app.infrastructure.llm.openai_course_selector import INSTRUCTIONS
+from app.infrastructure.llm.openai_occupation_analyzer import INSTRUCTIONS as READING_INSTRUCTIONS
 from app.presentation.cli import experiment as experiment_cli
 from app.presentation.cli.experiment import (
     HELDOUT_RUNS,
@@ -55,6 +56,7 @@ from app.presentation.cli.experiment import (
     OVERLAPS,
     RUNS,
     Collection,
+    Prompts,
     arguments,
     collect,
     compare,
@@ -68,7 +70,8 @@ from app.presentation.cli.experiment import (
     setting,
     summary_document,
     trial_document,
-    trial_instructions,
+    trial_prompt,
+    trial_prompts,
     with_unrecorded,
 )
 from app.presentation.cli.records import digest, label
@@ -395,8 +398,17 @@ def test_a_trial_prompt_is_read_without_the_surrounding_blanks(tmp_path: Path) -
     prompt = tmp_path / "selection.txt"
     prompt.write_text("試す指示文\n", encoding="utf-8")
 
-    assert trial_instructions(str(prompt)) == "試す指示文"
-    assert trial_instructions(None) == INSTRUCTIONS
+    assert trial_prompt("SELECTION_PROMPT", str(prompt)) == "試す指示文"
+
+
+def test_trial_prompts_replace_only_the_prompts_that_were_given(tmp_path: Path) -> None:
+    prompt = tmp_path / "reading.txt"
+    prompt.write_text("試す読み取り", encoding="utf-8")
+
+    assert trial_prompts([]) == Prompts(READING_INSTRUCTIONS, INSTRUCTIONS)
+    assert trial_prompts([("OCCUPATION_PROMPT", str(prompt)), ("SELECTION_VOTES", "1")]) == (
+        Prompts("試す読み取り", INSTRUCTIONS)
+    )
 
 
 @pytest.mark.parametrize(
@@ -428,16 +440,23 @@ def test_a_trial_prompt_that_cannot_be_used_is_refused(
         prompt.write_text(texts[kind], encoding="utf-8")
 
     with pytest.raises(SystemExit, match=message):
-        trial_instructions(str(prompt))
+        trial_prompt("SELECTION_PROMPT", str(prompt))
 
 
-def test_pair_builds_each_side_with_the_selection_prompt_it_was_given(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+@pytest.mark.parametrize(
+    ("setting_name", "tried"),
+    [
+        ("SELECTION_PROMPT", Prompts(selection="試す指示文")),
+        ("OCCUPATION_PROMPT", Prompts(reading="試す指示文")),
+    ],
+)
+def test_pair_builds_each_side_with_the_prompt_it_was_given(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, setting_name: str, tried: Prompts
 ) -> None:
-    prompt = tmp_path / "selection.txt"
+    prompt = tmp_path / "prompt.txt"
     prompt.write_text("試す指示文", encoding="utf-8")
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
-    given: list[str] = []
+    given: list[Prompts] = []
 
     class Stopped(Exception):
         pass
@@ -447,16 +466,18 @@ def test_pair_builds_each_side_with_the_selection_prompt_it_was_given(
             raise Stopped
 
     def built(*args: object) -> Unrun:
-        given.append(str(args[-1]))
+        prompts = args[-1]
+        assert isinstance(prompts, Prompts)
+        given.append(prompts)
         return Unrun()
 
     monkeypatch.setattr(experiment_cli, "_experiment", built)
     monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: None)
 
     with pytest.raises(Stopped):
-        main(["pair", "--label", "prompt", "--after", f"SELECTION_PROMPT={prompt}"])
+        main(["pair", "--label", "prompt", "--after", f"{setting_name}={prompt}"])
 
-    assert given == [INSTRUCTIONS, "試す指示文"]
+    assert given == [Prompts(), tried]
 
 
 def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
@@ -484,7 +505,10 @@ def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:
     assert args.budget == 200
 
 
-@pytest.mark.parametrize("override", ["CHAT_MODEL=gpt-5.4-nano", "OCCUPATION_READING_CACHE_SIZE=0"])
+@pytest.mark.parametrize(
+    "override",
+    ["CHAT_MODEL=gpt-5.4-nano", "OCCUPATION_READING_CACHE_SIZE=0", "OCCUPATION_PROMPT=reading.txt"],
+)
 def test_pair_refuses_reading_settings_when_the_skills_are_handwritten(
     override: str, capsys: pytest.CaptureFixture[str]
 ) -> None:
