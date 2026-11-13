@@ -61,6 +61,7 @@ import {
   asRunning,
   enlargeText,
   expect,
+  fontsReady,
   planApi,
   signIn,
   test,
@@ -470,6 +471,7 @@ test.describe("乗換の欄", () => {
       await expect(departure).toContainText(
         `${hopPlace(transfer.to)} ${stationsAway(transfer.from.station, transfer.to.station)}`,
       );
+      await fontsReady(page);
       expect(
         await page.evaluate(
           () => document.documentElement.scrollWidth - innerWidth,
@@ -901,6 +903,7 @@ test.describe("時間割帳の週", () => {
       const table = page.getByRole("table");
       await expect(table).toBeVisible();
       await expect(list).toBeHidden();
+      await fontsReady(page);
       expect(
         await table.evaluate((grid) =>
           [...grid.querySelectorAll("td > span")]

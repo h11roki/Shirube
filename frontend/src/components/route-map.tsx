@@ -212,14 +212,23 @@ function RouteStrip({
   ];
   const strip = useRef<HTMLElement>(null);
   useEffect(() => {
-    const current = strip.current?.querySelector<HTMLElement>("[aria-current]");
-    if (strip.current && current) {
-      strip.current.scrollTo({
-        left:
-          current.offsetLeft -
-          (strip.current.clientWidth - current.offsetWidth) / 2,
-      });
-    }
+    let mounted = true;
+    const center = () => {
+      const current =
+        strip.current?.querySelector<HTMLElement>("[aria-current]");
+      if (mounted && strip.current && current) {
+        strip.current.scrollTo({
+          left:
+            current.offsetLeft -
+            (strip.current.clientWidth - current.offsetWidth) / 2,
+        });
+      }
+    };
+    center();
+    void document.fonts.ready.then(center);
+    return () => {
+      mounted = false;
+    };
   }, [active]);
   return (
     <nav
