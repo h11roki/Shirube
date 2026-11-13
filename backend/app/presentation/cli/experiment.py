@@ -7,7 +7,7 @@ import sys
 import traceback
 from collections import Counter, defaultdict
 from collections.abc import Callable, Iterator, Mapping, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from datetime import datetime
 from pathlib import Path
 from typing import Any
@@ -123,7 +123,7 @@ UNRECORDED_SETTINGS = {
 PROFILES = ("analyzed", "handwritten")
 READING_PROMPT_SETTING = "OCCUPATION_PROMPT"
 SELECTION_PROMPT_SETTING = "SELECTION_PROMPT"
-PROMPT_FIELDS = {READING_PROMPT_SETTING: "reading", SELECTION_PROMPT_SETTING: "selection"}
+PROMPT_SETTINGS = (READING_PROMPT_SETTING, SELECTION_PROMPT_SETTING)
 READING_SETTINGS = ("CHAT_MODEL", "OCCUPATION_READING_CACHE_SIZE", READING_PROMPT_SETTING)
 PAIRABLE_SETTINGS = (
     *READING_SETTINGS,
@@ -201,13 +201,17 @@ def trial_prompt(name: str, path: str) -> str:
 
 def trial_prompts(overrides: list[tuple[str, str]]) -> Prompts:
     given = dict(overrides)
-    return Prompts(
-        **{
-            field: trial_prompt(name, given[name])
-            for name, field in PROMPT_FIELDS.items()
-            if name in given
-        }
-    )
+    prompts = Prompts()
+    if READING_PROMPT_SETTING in given:
+        prompts = replace(
+            prompts, reading=trial_prompt(READING_PROMPT_SETTING, given[READING_PROMPT_SETTING])
+        )
+    if SELECTION_PROMPT_SETTING in given:
+        prompts = replace(
+            prompts,
+            selection=trial_prompt(SELECTION_PROMPT_SETTING, given[SELECTION_PROMPT_SETTING]),
+        )
+    return prompts
 
 
 @dataclass(frozen=True)
@@ -865,17 +869,27 @@ def _pair(args: argparse.Namespace) -> None:
     prompts = {side: trial_prompts(overrides[side]) for side in Side}
     settings = {
         side: load_settings(
-            **{name.lower(): value for name, value in overrides[side] if name not in PROMPT_FIELDS}
+            **{
+                name.lower(): value
+                for name, value in overrides[side]
+                if name not in PROMPT_SETTINGS
+            }
         )
         for side in Side
     }
-    if prompts[Side.BEFORE].reading != prompts[Side.AFTER].reading and any(
-        settings[side].occupation_reading_cache_size for side in Side
+    readings_differ = (
+        prompts[Side.BEFORE].reading != prompts[Side.AFTER].reading
+        or settings[Side.BEFORE].chat_model != settings[Side.AFTER].chat_model
+    )
+    if (
+        args.repeat > 1
+        and readings_differ
+        and any(settings[side].occupation_reading_cache_size for side in Side)
     ):
         sys.exit(
-            "読み取りの指示文を比べるときは、回ごとに読み直すよう、--before と --after の両方に "
-            "OCCUPATION_READING_CACHE_SIZE=0 を書いてください(覚えると 2 回目からは 1 回目の読みを"
-            "使い回し、読み取りの揺れが 1 回分しか入らない。ADR 0065、0103)"
+            "読み取りの指示文かモデルを比べるときは、回ごとに読み直すよう、--before と --after の"
+            "両方に OCCUPATION_READING_CACHE_SIZE=0 を書いてください(覚えると 2 回目からは 1 回目の"
+            "読みを使い回し、読み取りの揺れが 1 回分しか入らない。ADR 0065、0103)"
         )
     engine = database_engine(settings[Side.BEFORE])
     meter = LangChainUsageMeter()

@@ -482,15 +482,17 @@ def test_pair_builds_each_side_with_the_prompt_it_was_given(
 
 
 @pytest.mark.parametrize("cached", ["before", "after"])
-def test_pair_refuses_to_compare_reading_prompts_while_a_side_remembers_its_readings(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, cached: str
+@pytest.mark.parametrize("changed", ["prompt", "model"])
+def test_pair_refuses_to_compare_readings_while_a_side_remembers_its_readings(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path, cached: str, changed: str
 ) -> None:
     prompt = tmp_path / "reading.txt"
     prompt.write_text("試す読み取り", encoding="utf-8")
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
     monkeypatch.setenv("OCCUPATION_READING_CACHE_SIZE", "0")
     monkeypatch.setattr(experiment_cli, "_experiment", lambda *args: pytest.fail("流した"))
-    flags = {"before": [], "after": [f"OCCUPATION_PROMPT={prompt}"]}
+    reading = f"OCCUPATION_PROMPT={prompt}" if changed == "prompt" else "CHAT_MODEL=gpt-5.4-nano"
+    flags = {"before": [], "after": [reading]}
     flags[cached].append("OCCUPATION_READING_CACHE_SIZE=500")
     command = ["pair", "--label", "reading"]
     for side, overrides in flags.items():
@@ -499,6 +501,37 @@ def test_pair_refuses_to_compare_reading_prompts_while_a_side_remembers_its_read
 
     with pytest.raises(SystemExit, match="OCCUPATION_READING_CACHE_SIZE=0"):
         main(command)
+
+
+def test_pair_lets_a_single_round_compare_readings_with_the_reading_cache_on(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    prompt = tmp_path / "reading.txt"
+    prompt.write_text("試す読み取り", encoding="utf-8")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://shirube:shirube@localhost:1/none")
+    monkeypatch.setenv("OCCUPATION_READING_CACHE_SIZE", "500")
+
+    class Built(Exception):
+        pass
+
+    def built(*args: object) -> None:
+        raise Built
+
+    monkeypatch.setattr(experiment_cli, "_experiment", built)
+    monkeypatch.setattr(experiment_cli, "database_engine", lambda settings: None)
+
+    with pytest.raises(Built):
+        main(
+            [
+                "pair",
+                "--label",
+                "reading",
+                "--repeat",
+                "1",
+                "--after",
+                f"OCCUPATION_PROMPT={prompt}",
+            ]
+        )
 
 
 def test_pair_reads_the_settings_of_every_before_and_after_flag() -> None:

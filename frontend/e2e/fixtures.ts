@@ -72,9 +72,9 @@ export const RUNNING_PLAN = asRunning({
 
 export const READING = {
   occupation: "Webエンジニア",
-  interpretation: "ITエンジニア",
+  interpretation: "Web システムのソフトウェアエンジニア",
   assumption:
-    "Webエンジニアを、Web を含むソフトウェア開発全般の IT エンジニアとして読んだ",
+    "Webエンジニアを、Web の仕組みとソフトウェア開発を土台に Web システムを作るエンジニアとして読んだ",
   skills: SAMPLE_PLAN.result.profile.skills,
 };
 
