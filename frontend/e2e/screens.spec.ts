@@ -186,7 +186,7 @@ const SCREENS: Screen[] = [
       ).toBeVisible(),
   },
   {
-    name: "作成中(職業名を広く読み替えた)",
+    name: "作成中(職業名を読み替えた)",
     path: `/plans/${READING_PLAN.id}`,
     signedIn: true,
     answers: { [planApi(READING_PLAN)]: READING_PLAN },
@@ -196,7 +196,7 @@ const SCREENS: Screen[] = [
       ).toBeVisible(),
   },
   {
-    name: "広く読み替えた道標を別の職業名で作り直す",
+    name: "読み替えた道標を別の職業名で作り直す",
     path: `/plans/${REREAD_PLAN.id}`,
     signedIn: true,
     answers: { [planApi(REREAD_PLAN)]: REREAD_PLAN },

@@ -1081,7 +1081,7 @@ async function boxesOf(...locators: Locator[]) {
 }
 
 test.describe("読み替えの知らせ", () => {
-  test("作成中に、広く読み替えた職業として作っていることと前提を、読み上げの枠に出す", async ({
+  test("作成中に、読み替えた職業として作っていることと前提を、読み上げの枠に出す", async ({
     page,
     api,
   }) => {
