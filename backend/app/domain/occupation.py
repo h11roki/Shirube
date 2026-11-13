@@ -1,4 +1,5 @@
 import re
+import unicodedata
 from dataclasses import dataclass
 from typing import Self
 
@@ -16,6 +17,10 @@ class OccupationProfileError(ValueError):
 
 def is_single_line(text: str) -> bool:
     return bool(text.strip()) and text.splitlines() == [text]
+
+
+def _comparable(name: str) -> str:
+    return "".join(unicodedata.normalize("NFKC", name).split())
 
 
 @dataclass(frozen=True)
@@ -52,7 +57,8 @@ class OccupationProfile:
         assumption: str | None,
         skills: tuple[str, ...],
     ) -> Self:
-        return cls(occupation, interpretation if assumption else occupation, assumption, skills)
+        renamed = assumption and _comparable(interpretation) != _comparable(occupation)
+        return cls(occupation, interpretation if renamed else occupation, assumption, skills)
 
     @property
     def unreadable_parts(self) -> tuple[str, ...]:

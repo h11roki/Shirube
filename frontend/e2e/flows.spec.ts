@@ -1094,6 +1094,23 @@ test.describe("読み替えの知らせ", () => {
     await expect(notice).toContainText(assumptionLabel(READING.assumption));
   });
 
+  test("作成中に、入力のまま読んだ職業は読み替えとして知らせず、前提だけを出す", async ({
+    page,
+    api,
+  }) => {
+    const kept: Plan = {
+      ...READING_PLAN,
+      reading: { ...READING, interpretation: READING.occupation },
+    };
+    api.answer({ [planApi(kept)]: kept });
+    await page.goto(`/plans/${kept.id}`);
+    const notice = page
+      .locator('[aria-live="polite"]')
+      .filter({ hasText: assumptionLabel(READING.assumption) });
+    await expect(notice).toBeVisible();
+    await expect(notice).not.toContainText(readingLabel(READING.occupation));
+  });
+
   test("完成の画面では、行き先を入力した職業名にし、読み替えた職業を板の上に添える", async ({
     page,
     api,

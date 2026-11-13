@@ -97,6 +97,34 @@ def test_a_reading_without_an_assumption_keeps_the_name_the_user_wrote() -> None
     assert broadened.interpretation == "ITエンジニア"
 
 
+@pytest.mark.parametrize(
+    "interpretation",
+    ["FPGAエンジニア", "ＦＰＧＡ　エンジニア", " FPGA エンジニア "],
+)
+def test_a_reading_that_only_changes_spaces_or_width_keeps_the_name_the_user_wrote(
+    interpretation: str,
+) -> None:
+    profile = OccupationProfile.read(
+        "FPGA エンジニア",
+        interpretation,
+        "FPGA を扱う設計職として読んだ",
+        ("論理回路", "HDL", "計算機"),
+    )
+
+    assert profile.interpretation == "FPGA エンジニア"
+
+
+def test_a_corrected_typo_with_an_assumption_is_kept() -> None:
+    profile = OccupationProfile.read(
+        "Webエンジニヤ",
+        "Webエンジニア",
+        "誤字として読んだ",
+        ("Web の仕組み", "データベース", "ネットワーク"),
+    )
+
+    assert profile.interpretation == "Webエンジニア"
+
+
 def test_letters_the_user_typed_are_readable_anywhere_in_the_answer() -> None:
     broken = OccupationProfile("職業", "職業", None, ("甲", "乙", "ग्राफ"))
     quoted = OccupationProfile(

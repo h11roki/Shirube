@@ -89,9 +89,11 @@ export function PlanProgress({
         <div aria-live="polite" className="grid gap-3">
           {plan.reading?.assumption && (
             <div className="grid gap-1 border border-line bg-paper px-4 py-3 text-sm">
-              <p className="font-bold">
-                {readingLabel(plan.reading.interpretation)}
-              </p>
+              {plan.reading.interpretation !== plan.conditions.occupation && (
+                <p className="font-bold">
+                  {readingLabel(plan.reading.interpretation)}
+                </p>
+              )}
               <p className="text-sub">
                 {assumptionLabel(plan.reading.assumption)}
               </p>
