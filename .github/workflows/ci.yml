@@ -35,7 +35,8 @@ jobs:
       - run: uv sync --frozen
       - run: uv run ruff check .
       - run: uv run ruff format --check .
-      - run: uv run ruff check --line-length 100 ../frontend/brand/make.py
+      - run: uv run ruff check --line-length 100 ../frontend/brand
+      - run: uv run python ../frontend/brand/catchphrase_font.py --check
       - run: uv run mypy
       - run: uv run pytest --cov --cov-fail-under=87
       - name: カバレッジを job の要約に書く

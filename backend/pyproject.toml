@@ -20,6 +20,7 @@ audit = [
     "pip-audit>=2.10.1",
 ]
 dev = [
+    "fonttools[woff]>=4.68.0",
     "httpx>=0.28.1",
     "httpx2>=2.16.0",
     "mypy>=2.4.1",
