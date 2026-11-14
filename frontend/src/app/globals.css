@@ -54,6 +54,9 @@
     system-ui, sans-serif;
   --font-serif:
     var(--font-shippori-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --font-catchphrase:
+    var(--font-catchphrase-subset, var(--font-shippori-mincho)),
+    var(--font-shippori-mincho), "Hiragino Mincho ProN", "Yu Mincho", serif;
   --text-label: 0.6875rem;
   --text-direction: 0.71875rem;
   --text-fine: 0.8125rem;
