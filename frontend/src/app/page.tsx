@@ -16,6 +16,7 @@ const catchphraseFont = localFont({
   src: "../fonts/catchphrase.woff2",
   weight: "800",
   display: "swap",
+  adjustFontFallback: false,
   variable: "--font-catchphrase-subset",
 });
 
