@@ -45,13 +45,17 @@ def fetch(name: str) -> bytes:
 
 
 def build() -> None:
-    font = TTFont(BytesIO(fetch(FONT_FILE)))
+    font = TTFont(BytesIO(fetch(FONT_FILE)), recalcTimestamp=False)
     license_text = fetch(LICENSE_FILE)
     options = subset.Options()
     options.name_IDs = ["*"]
     subsetter = subset.Subsetter(options)
-    subsetter.populate(text="".join(sorted(catchphrase_characters())))
+    characters = catchphrase_characters()
+    subsetter.populate(text="".join(sorted(characters)))
     subsetter.subset(font)
+    absent = characters - {chr(code) for code in font.getBestCmap()}
+    if absent:
+        raise SystemExit(f"{FONT_FILE} に無い字があります: {''.join(sorted(absent))}")
     font.flavor = "woff2"
     FONTS.mkdir(exist_ok=True)
     font.save(OUTPUT)
