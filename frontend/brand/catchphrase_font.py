@@ -30,7 +30,10 @@ def catchphrase_characters() -> set[str]:
     match = re.search(r"export const CATCHPHRASE = \[(.*?)\];", SITE.read_text(), re.DOTALL)
     if match is None:
         raise SystemExit(f"CATCHPHRASE が {SITE} に見つかりません")
-    return set("".join(re.findall(r'"([^"]*)"', match.group(1))))
+    literal = r'"([^"\\]*)"'
+    if re.fullmatch(rf"\s*{literal}(\s*,\s*{literal})*\s*,?\s*", match.group(1)) is None:
+        raise SystemExit("CATCHPHRASE は二重引用符の文字列だけを並べてください")
+    return set("".join(re.findall(literal, match.group(1))))
 
 
 def fetch(name: str) -> bytes:
