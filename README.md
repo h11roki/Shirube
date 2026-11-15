@@ -264,7 +264,7 @@ LLM を使う部分の守りは、入口を狭くし、出口を限ることに�
 - 指示を混ぜた職業名(プロンプトインジェクション)を 3 件流しました。指示文を出させる、解釈に API キーを書かせる、といった指示です。3 件とも指示には従わず、候補に無い授業も指示文の中身も出ませんでした(API キーはもともと LLM に渡していません)。保証ではなく、その日の振る舞いの記録です。指示文かモデルを替えたら流し直します
 - 失敗の文は決まった文だけを返します。道標の受け付けは 1 人 1 日 3 件、全体で 1 日 30 件までで、OpenAI は前払いにして自動の補充を切っています([ADR 0038 受け付けの上限](docs/adr/0038-plan-quota.md))
 - フロントの Route Handler は、送り元を確かめてほかのサイトからの要求を断ります。全てのページと API に CSP などのヘッダーを付けます。health の API を除き、バックエンドは 5 分で切れる JWT でだけ呼べます([ADR 0027 バックエンドの認証](docs/adr/0027-auth-backend.md)、[0039 要求の守り](docs/adr/0039-request-guard.md))
-- サーバーは 80 と 443 だけを外に開け、SSH の 22 番は閉じています。入るときは AWS Systems Manager の Session Manager を通し、AWS の鍵と SSH の鍵の両方が要ります([ADR 0106 SSM を通した SSH](docs/adr/0106-ssm-session-manager.md))
+- サーバーは 80 と 443 だけを外に開け、SSH の 22 番は閉じています。入るときは AWS Systems Manager の Session Manager を通し、GitHub での許可で取る 12 時間の AWS の鍵が要ります([ADR 0106 SSM を通した SSH](docs/adr/0106-ssm-session-manager.md))
 - 依存の既知の脆弱性を CI で止め、Dependabot は出てから 7 日経った版だけを上げ、CodeQL がコードを調べます。脆弱性の報告の仕方は [SECURITY.md](SECURITY.md) にあります([ADR 0096 依存と脆弱性](docs/adr/0096-supply-chain.md))
 
 ## 設計

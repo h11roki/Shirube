@@ -28,12 +28,12 @@
 - 手元は `~/.ssh/config` に、インスタンスの ID へ `aws ssm start-session --document-name AWS-StartSSHSession` で繋ぐ `ProxyCommand` を書き、`ssh shirube` と `scp ... shirube:~/` をそのまま使う。AWS CLI の Session Manager のプラグインが要る(Homebrew の `session-manager-plugin`)。鍵は `aws login --profile shirube` の鍵を使う
 - EC2 のメタデータの応答の届く段数(`http_put_response_hop_limit`)を 2 から 1 にし、Docker のコンテナからロールの鍵を取れないようにする(ロールを使うのはサーバーの上のエージェントだけで、アプリは AWS の API を使わない)
 - ロール、ポリシーの付け、インスタンスプロファイルにも `prevent_destroy` を付ける(22 番を閉じたので、消えるとサーバーに入る道が無くなる)
-- SSH の鍵の組と sshd はそのまま残す。SSM は通り道だけを替え、入るにはこれまでどおり SSH の鍵が要る
+- SSH の鍵の組と sshd はそのまま残す。SSM は通り道だけを替え、SSH で入るにはこれまでどおり SSH の鍵が要る
 - セッションの記録(S3 や CloudWatch Logs への出力)は付けない
 
 ## 理由
 
-- 1 は、外から sshd に届く口を無くしつつ、`scp` や手元の ssh の設定、手順書のコマンドを替えずに使える。入るには AWS の鍵(12 時間で切れ、GitHub の Builder ID の許可が要る)と SSH の鍵の両方が要る
+- 1 は、外から sshd に届く口を無くしつつ、`scp` や手元の ssh の設定、手順書のコマンドを替えずに使える。入る関門は AWS の鍵(12 時間で切れ、GitHub の Builder ID の許可が要る)になる。その鍵があれば、SSH の鍵が無くても Session Manager の既定のシェル(`ssm-user`、sudo できる)で入れるので、SSH の鍵は関門を増やさない
 - 2 はシェルの利用者が `ssm-user` になり、`scp` も使えないので、手順書(科目のデータの送り方など)を全て書き直すことになる
 - 3 は自宅の IP が変わるたびに書き換えて apply する手間があり、出先からは入れない。口も残る
 - 4 は Instance Connect Endpoint を VPC に作る必要があり、EC2 にも Instance Connect の設定が要る。費用はかからないが、Session Manager より資源が増える
@@ -41,6 +41,7 @@
 
 ## 受け入れたトレードオフ
 
+- AWS の鍵だけでサーバーの root になれる。既定のシェルを止めて `AWS-StartSSHSession` だけに絞るには Session Manager の設定や IAM で権限を分ける必要があり、手元の鍵はプロジェクトの全ての権限を持つロール(`AccountFullAccessRole`)なので、絞っても同じ鍵で外せる。今は AWS の鍵を関門と見なす
 - 手元に Session Manager のプラグインと `~/.ssh/config` の設定が要り、`aws login` の鍵が切れていると入れない(90 日を過ぎるとブラウザで許可し直す)
 - SSM が使えない(エージェントが止まる、AWS 側の障害)と、サーバーに入れない。そのときは、コンソールかこの Terraform でセキュリティグループに自分の IP の 22 番を一時的に足して入る
 - EC2 のロールは、Systems Manager のための管理ポリシーの権限を持つ(サーバーの上で直に動くプロセスはその鍵を使える。コンテナからは段数で届かない)。アプリは AWS の API を使わないので、ほかの権限は足さない

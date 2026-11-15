@@ -33,6 +33,21 @@ import {
   id = "eipalloc-04fdbd4a8055e2ead"
 }
 
+import {
+  to = aws_iam_role.server
+  id = "shirube-server"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.server_ssm
+  id = "shirube-server/arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+import {
+  to = aws_iam_instance_profile.server
+  id = "shirube-server"
+}
+
 resource "aws_key_pair" "server" {
   key_name   = "shirube"
   public_key = trimspace(file("${path.module}/shirube.pub"))
