@@ -13,6 +13,12 @@ provider "aws" {
   region = "ap-southeast-2"
 }
 
+variable "ssh_cidr" {
+  description = "SSM が使えないときだけ、一時的に 22 番を開ける自分の IP(例 203.0.113.4/32)"
+  type        = string
+  default     = null
+}
+
 import {
   to = aws_key_pair.server
   id = "shirube"
@@ -62,6 +68,16 @@ resource "aws_security_group" "server" {
   name        = "launch-wizard-1"
   description = "launch-wizard-1 created 2026-10-30T16:33:58.505Z"
   vpc_id      = "vpc-0a756800e8e4ff052"
+
+  dynamic "ingress" {
+    for_each = var.ssh_cidr == null ? [] : [var.ssh_cidr]
+    content {
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      cidr_blocks = [ingress.value]
+    }
+  }
 
   ingress {
     protocol    = "tcp"
