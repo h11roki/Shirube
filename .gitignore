@@ -17,3 +17,7 @@ node_modules/
 backend/data/
 .pnpm-store/
 .coverage
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
