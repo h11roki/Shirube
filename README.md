@@ -182,7 +182,7 @@ flowchart LR
 
 ## 主な設計判断
 
-設計判断は全て [ADR](docs/adr/README.md)(Architecture Decision Record)に、比べた案、選んだ理由、受け入れたトレードオフと一緒に残しています。104 本のうち、まず読んでほしいものです。
+設計判断は全て [ADR](docs/adr/README.md)(Architecture Decision Record)に、比べた案、選んだ理由、受け入れたトレードオフと一緒に残しています。そのうち、まず読んでほしいものです。
 
 ### LLM と評価
 
