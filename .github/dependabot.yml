@@ -54,6 +54,9 @@ updates:
       timezone: Asia/Tokyo
     cooldown:
       default-days: 7
+    groups:
+      terraform:
+        update-types: [minor, patch]
 
   - package-ecosystem: docker
     directories: [/backend, /frontend]

@@ -21,3 +21,5 @@ backend/data/
 *.tfstate
 *.tfstate.*
 *.tfplan
+crash.log
+*_override.tf

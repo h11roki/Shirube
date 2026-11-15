@@ -51,7 +51,7 @@ cp .env.example .env && chmod 600 .env
 
 ### AWS の資源
 
-EC2、セキュリティグループ、Elastic IP、SSH の鍵の組は、`infra/main.tf` の Terraform で持つ(ADR 0105)。手で作った資源を `import` のブロックで取り込んだもので、state は手元の `infra/terraform.tfstate` だけに置く(git の管理外)。state が無いときも、同じ設定の `plan` と `apply` で取り込み直せる(取り込みは AWS の資源を変えない)。
+EC2、セキュリティグループ、Elastic IP、SSH の鍵の組は、`infra/main.tf` の Terraform で持つ(ADR 0105)。手で作った資源を `import` のブロックで取り込んだもので、state は手元の `infra/terraform.tfstate` だけに置く(git の管理外)。state が無いときも、同じ設定から取り込み直せる。そのときも下と同じに、保存した plan が取り込みだけ(変更、追加、削除が 0)であることを確かめてから `apply` する(手で変えた所があると、取り込みと一緒に設定のとおりに戻してしまうため)。EC2 と Elastic IP は `prevent_destroy` で、作り直しや削除になる plan を止める。
 
 鍵は AWS Settings の「AI コーディングツールで AWS の認証情報を使う」で作ったプロファイル(ここでは `shirube`)から取る。アカウントにルートユーザーは無く、サインインは AWS Builder ID(GitHub)で行う。鍵は 12 時間使え、90 日まではブラウザで許可し直さずに延ばせる。
 
@@ -61,7 +61,7 @@ AWS_PROFILE=shirube terraform -chdir=infra init
 AWS_PROFILE=shirube terraform -chdir=infra plan
 ```
 
-`plan` が「No changes」なら、本番は設定のとおり。差が出たら、コンソールで手で変えた所を設定に戻すか、設定を直してから `apply` する。設定を変えるときは ADR に書いてから、保存した plan(`plan -out`)を確かめて `apply` する。CI の scripts の job が `terraform fmt -check` と `validate` を流す(AWS には繋がない)。
+`plan` が「No changes」なら、本番は設定のとおり。差が出たら、コンソールで手で変えた所を設定に戻すか、設定を直してから `apply` する。設定を変えるときは ADR に書いてから、保存した plan(`plan -out=change.tfplan`、git の管理外)を確かめて `apply change.tfplan` する。CI の scripts の job が `terraform fmt -check` と `validate` を流す(AWS には繋がない)。Dependabot がプロバイダを上げる PR は、CI では差を確かめられないので、手元で `plan` が No changes のままかを確かめてからマージする。
 
 ### 初めてのデプロイ
 

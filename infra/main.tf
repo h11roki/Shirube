@@ -1,5 +1,5 @@
 terraform {
-  required_version = ">= 1.5"
+  required_version = "~> 1.17"
 
   required_providers {
     aws = {
@@ -104,11 +104,19 @@ resource "aws_instance" "server" {
   tags = {
     Name = "Shirube"
   }
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_eip" "server" {
   domain   = "vpc"
   instance = aws_instance.server.id
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 output "public_ip" {
