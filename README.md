@@ -15,7 +15,7 @@
 - **今の数字**: 開発用 50 職業で、選んだ授業のうち判定者の誰も関係ありとしなかったものが 15%、期待する科目のうち柱に選んだものが 64% です。推薦 1 件は約 1 円です([指標と今の精度](#指標と今の精度))
 - **見どころ**: 指示文(プロンプト)や検索を変えたら、開発用 50 職業で前と後を交互に流し、職業ごとの並べ替え検定で比べます。採る条件は測る前に ADR に書き、採らなかった改善も残しています。見ていない職業への効き目は、取っておいた確かめ用(ホールドアウト)20 職業で、直しを決めたあとに確かめます(これまで 3 回。今の読み取りの文面([ADR 0104 職業名を入力のまま読む](docs/adr/0104-keep-occupation-name.md))は、開発用だけで採り、確かめ用では測っていません)([評価と改善](#評価と改善))
 - **作りの選び方**: エージェントにせず、読み取り → 検索 → 選び直し → 配置の決まった段にしています。段ごとに測れること、1 件で LLM を呼ぶ回数が決まって費用と時間を見積もれること、LLM に道具を渡さずに済むことを優先しました([推薦の仕組み](#推薦の仕組み))
-- **設計判断**: 比べた案と選んだ理由を 104 本の ADR に残しています。まず読んでほしい 10 本は [主な設計判断](#主な設計判断) にあります
+- **設計判断**: 比べた案と選んだ理由を 105 本の ADR に残しています。まず読んでほしい 10 本は [主な設計判断](#主な設計判断) にあります
 - **作り方**: 2026-10-14 から個人で作り、コードの多くは Claude Code が書きました。何を作るか、評価の設計、改善を採るかは作者が決めています。例えば、ねらいの指標で差が出なかった案を、結果を見てから指標を替えて採ることはせず、採りませんでした([作り方](#作り方))
 
 ## 何ができるか
@@ -246,7 +246,7 @@ Claude Code に守らせる決まり(層の依存の向き、ADR を先に書く
 | backend | ruff、mypy(strict)、pytest(DB の結合テストを含む)、カバレッジの下限 |
 | frontend | lint、型、Vitest、整形、E2E テスト(Playwright) |
 | production | 本番の構成を本番と同じ Arm の runner で組み立てて起動し、HTTPS、HSTS、ログインの戻り先を確かめる |
-| scripts | デプロイのスクリプトの shellcheck と、場面ごとのテスト(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど) |
+| scripts | デプロイのスクリプトの shellcheck と、場面ごとのテスト(戻し、マイグレーションの失敗、途中で止まった版のやり直しなど)、Terraform の書き方と構文 |
 | audit、CodeQL | 依存の既知の脆弱性と、コードの静的解析 |
 
 - main は GitHub の ruleset で保護し、PR を通して必須の check が全て通らないとマージできません([`.github/rulesets/main.json`](.github/rulesets/main.json))
@@ -288,6 +288,7 @@ flowchart TB
 </picture>
 
 - **構成**: AWS EC2 の 1 台(t4g.small、シドニー)で Docker Compose を動かし、Caddy が Let's Encrypt の証明書を取って HTTPS を受けます。ドメインは DuckDNS の無料のサブドメインです。DB と backend のポートは外に出しません([ADR 0075 本番の構成](docs/adr/0075-production-setup.md))
+- **IaC**: EC2、セキュリティグループ、Elastic IP、SSH の鍵の組は Terraform で持ちます。コンソールで手で作った資源を取り込み、本番を変えずに plan の差が無いことを確かめました([ADR 0105 Terraform への取り込み](docs/adr/0105-terraform-import.md))
 - **デプロイ**: サーバーが取りに行く形です。main にマージすると、CI が全て通った版だけ Arm のイメージを作って GHCR に置きます。サーバーの cron は 5 分おきに新しい版を見つけ、マイグレーション、入れ替え、ヘルスチェックまで行い、応えなければ前の版に戻します。マイグレーションを流した版は戻さず、人が確かめるまで入れ替えを止めます。CI に SSH の入口や鍵を持たせません([ADR 0094 取りに行くデプロイ](docs/adr/0094-pull-deploy.md))
 - **監視**: GitHub Actions の定期実行が 15 分ごとに外から確かめ、落ちたら GitHub のメールで知らせます。見るのは、トップ、ログインせずに呼んだ API の応答、health の API(DB に届くか、待ちの滞り、OpenAI の残高切れ、動いている版)、証明書の残り、本番が main に追いついているかです([ADR 0095 監視](docs/adr/0095-health-monitor.md))
 - **バックアップ**: 毎日取って 7 日分を残し、毎週、使い捨てのコンテナに戻して、本番のスキーマと科目の表と合うかを確かめます。初めの演習で、戻しの手順にマイグレーションが抜けていたのを見つけて直しました([ADR 0097 戻しの演習](docs/adr/0097-restore-drill.md))
@@ -306,7 +307,7 @@ flowchart TB
 | LLM / 埋め込み | OpenAI API(gpt-5.4-mini、gpt-5.4-nano、text-embedding-3-large) |
 | 評価データの判定 | Claude のサブエージェント |
 | シラバスの取り込み | Playwright、BeautifulSoup |
-| 本番 | AWS EC2、Docker Compose、Caddy、DuckDNS |
+| 本番 | AWS EC2、Terraform、Docker Compose、Caddy、DuckDNS |
 | CI / CD / 監視 | GitHub Actions、GHCR、サーバーの cron が取りに行くデプロイ、Actions の定期実行による外からの監視 |
 
 ## 関連文書
@@ -321,8 +322,8 @@ shirube ("signpost") helps university students plan their courses by working bac
 
 - **Evaluation-driven**: changes to prompts and retrieval are compared on 50 development occupations with interleaved runs and permutation tests, and acceptance criteria are written in an ADR before measuring. The labels come from three Claude judges (a different model family from the OpenAI models the app uses) and have not been checked against human judgement. A 20-occupation held-out set is used only after a change is decided; it has been used three times, with direction-only criteria, and the current configuration was adopted on the development set alone. Rejected changes are documented too.
 - **A staged pipeline, not an agent**: occupation interpretation with structured output, retrieval, selection by a three-vote majority, and greedy timetable placement. Each stage is measured on its own, course names are constrained to the candidates by an enum, and a recommendation costs about 1 JPY.
-- **In production**: FastAPI and Next.js on one AWS EC2 instance, pull-based deployment with rollback (a version that ran migrations is held for a person instead), external monitoring every 15 minutes, and daily quotas with prepaid billing as cost limits.
-- **How it was built**: most of the code was written by Claude Code. The author made the product and design decisions, designed the evaluation and chose which changes to adopt, as recorded in 104 ADRs.
+- **In production**: FastAPI and Next.js on one AWS EC2 instance whose resources are imported into Terraform, pull-based deployment with rollback (a version that ran migrations is held for a person instead), external monitoring every 15 minutes, and daily quotas with prepaid billing as cost limits.
+- **How it was built**: most of the code was written by Claude Code. The author made the product and design decisions, designed the evaluation and chose which changes to adopt, as recorded in 105 ADRs.
 
 The rest of the documentation is in Japanese.
 

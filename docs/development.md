@@ -30,7 +30,7 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 ### 初めに用意するもの
 
 1. AWS: 新しい登録の無料プランでアカウントを作り、AWS Settings(https://settings.aws.com)で MFA を付ける。地域はシドニー(`ap-southeast-2`)に決まる。無料プランはクレジットが尽きるか 6 か月で閉じ、その前に AWS からクレジットの残り(50%、25%、10%)と期限(15、7、2 日前)のメールが登録のアドレスに届くので、それを合図に続けるかを決める(時期の見込みは ADR 0076)
-2. EC2: シドニーに、Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 を全体に、22 を自分の IP だけに開ける。Elastic IP を割り当てる
+2. EC2: シドニーに、Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 を全体に、22 を自分の IP だけに開ける。Elastic IP を割り当てる。今の本番の資源とその設定は `infra/main.tf` にある(下の「AWS の資源」。今の本番は 22 を全体に開けている。ADR 0105)
 3. DuckDNS: https://www.duckdns.org でサブドメインを作り、Elastic IP を向ける
 4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面を「本番」に公開する(使うのは基本の情報だけなので Google の審査は要らない。公開する前は、同意画面のテストの利用者に足した人だけがログインできる。ADR 0075 の追記)
 5. OpenAI: 前払いにして自動の補充を切る(ADR 0038)
@@ -48,6 +48,20 @@ cp .env.example .env && chmod 600 .env
 ```
 
 `.env` には、`SITE_DOMAIN`(サブドメイン)、`POSTGRES_PASSWORD`(`openssl rand -hex 24`)、`OPENAI_API_KEY`、`AUTH_JWT_SECRET` と `AUTH_SECRET`(どちらも `openssl rand -hex 32` で別々に作る)、`AUTH_GOOGLE_ID`、`AUTH_GOOGLE_SECRET` を書く。足りなければ compose がどれが無いかを言って止まる。推薦の設定(`EMBEDDING_MODEL`、`SEARCH_BY_SKILL`、`SELECTION_VOTES`、`SELECTION_MIN_VOTES`、`SELECTION_VOTE_DELAY_SECONDS`、`OCCUPATION_READING_CACHE_SIZE`、`RECOMMENDATION_CACHE_DAYS`)は、書けば backend と worker に渡り、書かなければ既定で動く。埋め込みのモデルを既定から替えるなら、手元で埋め込んだモデルと同じにする。サーバーの時刻は日本時間にする(cron のバックアップの時刻とファイル名の日付のため)。
+
+### AWS の資源
+
+EC2、セキュリティグループ、Elastic IP、SSH の鍵の組は、`infra/main.tf` の Terraform で持つ(ADR 0105)。手で作った資源を `import` のブロックで取り込んだもので、state は手元の `infra/terraform.tfstate` だけに置く(git の管理外)。state が無いときも、同じ設定から取り込み直せる。そのときも下と同じに、保存した plan が取り込みだけ(変更、追加、削除が 0)であることを確かめてから `apply` する(手で変えた所があると、取り込みと一緒に設定のとおりに戻してしまうため)。取り込んだ 4 つは全て `prevent_destroy` で、作り直しや削除になる plan を止める。
+
+鍵は AWS Settings の「AI コーディングツールで AWS の認証情報を使う」で作ったプロファイル(ここでは `shirube`)から取る。アカウントにルートユーザーは無く、サインインは AWS Builder ID(GitHub)で行う。鍵は 12 時間使え、90 日まではブラウザで許可し直さずに延ばせる。
+
+```sh
+aws login --profile shirube
+AWS_PROFILE=shirube terraform -chdir=infra init
+AWS_PROFILE=shirube terraform -chdir=infra plan
+```
+
+`plan` が「No changes」なら、本番は設定のとおり。差が出たら、コンソールで手で変えた所を元に戻すか、設定を直して、下と同じに保存した plan を確かめてから `apply` する。設定を変えるときは ADR に書いてから、保存した plan(`plan -out=change.tfplan`、git の管理外)を確かめて `apply change.tfplan` する。CI の scripts の job が `terraform fmt -check` と `validate` を流す(AWS には繋がない)。Dependabot がプロバイダを上げる PR は、CI では差を確かめられないので、手元で `plan` が No changes のままかを確かめてからマージする。
 
 ### 初めてのデプロイ
 

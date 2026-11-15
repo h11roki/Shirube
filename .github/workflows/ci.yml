@@ -126,6 +126,18 @@ jobs:
       - uses: actions/checkout@v7
       - run: shellcheck --severity=warning deploy.sh backup.sh restore-drill.sh tests/deploy/run.sh tests/deploy/shims/*
       - run: tests/deploy/run.sh
+      - uses: hashicorp/setup-terraform@dfe3c3f87815947d99a8997f908cb6525fc44e9e # v4.0.1
+        if: ${{ !cancelled() }}
+        with:
+          terraform_version: 1.17.2
+          terraform_wrapper: false
+      - name: Terraform の書き方と構文(AWS には繋がない)
+        if: ${{ !cancelled() }}
+        working-directory: infra
+        run: |
+          terraform fmt -check -recursive
+          terraform init -backend=false -input=false -lockfile=readonly
+          terraform validate
 
   audit:
     runs-on: ubuntu-24.04
