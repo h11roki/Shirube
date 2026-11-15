@@ -13,6 +13,12 @@ provider "aws" {
   region = "ap-southeast-2"
 }
 
+variable "ssh_cidr" {
+  description = "SSM が使えないときだけ、一時的に 22 番を開ける自分の IP(例 203.0.113.4/32)"
+  type        = string
+  default     = null
+}
+
 import {
   to = aws_key_pair.server
   id = "shirube"
@@ -33,6 +39,21 @@ import {
   id = "eipalloc-04fdbd4a8055e2ead"
 }
 
+import {
+  to = aws_iam_role.server
+  id = "shirube-server"
+}
+
+import {
+  to = aws_iam_role_policy_attachment.server_ssm
+  id = "shirube-server/arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+import {
+  to = aws_iam_instance_profile.server
+  id = "shirube-server"
+}
+
 resource "aws_key_pair" "server" {
   key_name   = "shirube"
   public_key = trimspace(file("${path.module}/shirube.pub"))
@@ -48,11 +69,14 @@ resource "aws_security_group" "server" {
   description = "launch-wizard-1 created 2026-10-30T16:33:58.505Z"
   vpc_id      = "vpc-0a756800e8e4ff052"
 
-  ingress {
-    protocol    = "tcp"
-    from_port   = 22
-    to_port     = 22
-    cidr_blocks = ["0.0.0.0/0"]
+  dynamic "ingress" {
+    for_each = var.ssh_cidr == null ? [] : [var.ssh_cidr]
+    content {
+      protocol    = "tcp"
+      from_port   = 22
+      to_port     = 22
+      cidr_blocks = [ingress.value]
+    }
   }
 
   ingress {
@@ -81,12 +105,47 @@ resource "aws_security_group" "server" {
   }
 }
 
+resource "aws_iam_role" "server" {
+  name = "shirube-server"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_role_policy_attachment" "server_ssm" {
+  role       = aws_iam_role.server.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
+resource "aws_iam_instance_profile" "server" {
+  name = "shirube-server"
+  role = aws_iam_role.server.name
+
+  lifecycle {
+    prevent_destroy = true
+  }
+}
+
 resource "aws_instance" "server" {
   ami                    = "ami-0be7d1b5b9749d43a"
   instance_type          = "t4g.small"
   subnet_id              = "subnet-0093229e282dfee29"
   vpc_security_group_ids = [aws_security_group.server.id]
   key_name               = aws_key_pair.server.key_name
+  iam_instance_profile   = aws_iam_instance_profile.server.name
 
   credit_specification {
     cpu_credits = "unlimited"
@@ -94,7 +153,7 @@ resource "aws_instance" "server" {
 
   metadata_options {
     http_tokens                 = "required"
-    http_put_response_hop_limit = 2
+    http_put_response_hop_limit = 1
   }
 
   root_block_device {
@@ -119,6 +178,10 @@ resource "aws_eip" "server" {
   lifecycle {
     prevent_destroy = true
   }
+}
+
+output "instance_id" {
+  value = aws_instance.server.id
 }
 
 output "public_ip" {
