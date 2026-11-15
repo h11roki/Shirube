@@ -145,4 +145,5 @@ ADR の中の「README の「本番」」「README の「推薦の評価」」�
 | [0102](0102-scaling-stages.md) | 利用者が増えたら、構成を先に変えず、記録の合図を見て上限、worker、索引、台数の順に広げる | 承認 |
 | [0103](0103-specific-broad-reading.md) | 細かい職種を広く読むときも、仕事の向きを残した職業名にし、「ITエンジニア」にまとめない | 置き換え(0104) |
 | [0104](0104-keep-occupation-name.md) | 職業名は入力のまま読み、誤字のときだけ直す | 承認(選び直しの指標は残高の補充後に pair で確かめる) |
-| [0105](0105-terraform-import.md) | 本番の AWS の資源を Terraform に取り込み、今の形のまま plan の差が無いことを確かめる | 承認 |
+| [0105](0105-terraform-import.md) | 本番の AWS の資源を Terraform に取り込み、今の形のまま plan の差が無いことを確かめる | 承認(SSH の口は 0106 で閉じた) |
+| [0106](0106-ssm-session-manager.md) | サーバーへは SSM Session Manager を通した SSH で入り、セキュリティグループの 22 番を閉じる | 承認 |
