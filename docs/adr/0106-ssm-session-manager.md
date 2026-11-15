@@ -26,6 +26,8 @@
 - Terraform で IAM のロール(EC2 が引き受ける)に AWS 管理の `AmazonSSMManagedInstanceCore` だけを付け、インスタンスプロファイルにして EC2 に付ける。付け替えは EC2 を止めずにできる
 - エージェントが Systems Manager に登録され、手元から SSM を通して SSH で入れることを確かめてから、セキュリティグループから 22 番の規則を消す。2 つは別の apply にし、どちらも保存した plan を高橋さんに見せてから流す
 - 手元は `~/.ssh/config` に、インスタンスの ID へ `aws ssm start-session --document-name AWS-StartSSHSession` で繋ぐ `ProxyCommand` を書き、`ssh shirube` と `scp ... shirube:~/` をそのまま使う。AWS CLI の Session Manager のプラグインが要る(Homebrew の `session-manager-plugin`)。鍵は `aws login --profile shirube` の鍵を使う
+- EC2 のメタデータの応答の届く段数(`http_put_response_hop_limit`)を 2 から 1 にし、Docker のコンテナからロールの鍵を取れないようにする(ロールを使うのはサーバーの上のエージェントだけで、アプリは AWS の API を使わない)
+- ロール、ポリシーの付け、インスタンスプロファイルにも `prevent_destroy` を付ける(22 番を閉じたので、消えるとサーバーに入る道が無くなる)
 - SSH の鍵の組と sshd はそのまま残す。SSM は通り道だけを替え、入るにはこれまでどおり SSH の鍵が要る
 - セッションの記録(S3 や CloudWatch Logs への出力)は付けない
 
@@ -41,7 +43,7 @@
 
 - 手元に Session Manager のプラグインと `~/.ssh/config` の設定が要り、`aws login` の鍵が切れていると入れない(90 日を過ぎるとブラウザで許可し直す)
 - SSM が使えない(エージェントが止まる、AWS 側の障害)と、サーバーに入れない。そのときは、コンソールかこの Terraform でセキュリティグループに自分の IP の 22 番を一時的に足して入る
-- EC2 のロールは、Systems Manager のための管理ポリシーの権限を持つ(サーバーの中のプロセスがその鍵を使える)。アプリは AWS の API を使わないので、ほかの権限は足さない
+- EC2 のロールは、Systems Manager のための管理ポリシーの権限を持つ(サーバーの上で直に動くプロセスはその鍵を使える。コンテナからは段数で届かない)。アプリは AWS の API を使わないので、ほかの権限は足さない
 
 ## 再検討する条件
 

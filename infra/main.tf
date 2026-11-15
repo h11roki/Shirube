@@ -84,16 +84,28 @@ resource "aws_iam_role" "server" {
       Principal = { Service = "ec2.amazonaws.com" }
     }]
   })
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "server_ssm" {
   role       = aws_iam_role.server.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_iam_instance_profile" "server" {
   name = "shirube-server"
   role = aws_iam_role.server.name
+
+  lifecycle {
+    prevent_destroy = true
+  }
 }
 
 resource "aws_instance" "server" {
@@ -110,7 +122,7 @@ resource "aws_instance" "server" {
 
   metadata_options {
     http_tokens                 = "required"
-    http_put_response_hop_limit = 2
+    http_put_response_hop_limit = 1
   }
 
   root_block_device {
@@ -135,6 +147,10 @@ resource "aws_eip" "server" {
   lifecycle {
     prevent_destroy = true
   }
+}
+
+output "instance_id" {
+  value = aws_instance.server.id
 }
 
 output "public_ip" {

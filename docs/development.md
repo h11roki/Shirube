@@ -30,13 +30,13 @@ EC2 1 台で `compose.prod.yaml` を動かし、Caddy が HTTPS を受けて fro
 ### 初めに用意するもの
 
 1. AWS: 新しい登録の無料プランでアカウントを作り、AWS Settings(https://settings.aws.com)で MFA を付ける。地域はシドニー(`ap-southeast-2`)に決まる。無料プランはクレジットが尽きるか 6 か月で閉じ、その前に AWS からクレジットの残り(50%、25%、10%)と期限(15、7、2 日前)のメールが登録のアドレスに届くので、それを合図に続けるかを決める(時期の見込みは ADR 0076)
-2. EC2: シドニーに、Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 だけを全体に開け、22 は開けない(サーバーへは SSM Session Manager を通して入る。下の「サーバーに入る」)。Elastic IP を割り当てる。今の本番の資源とその設定は `infra/main.tf` にある(下の「AWS の資源」)
+2. EC2: シドニーに、Ubuntu の Arm、t4g.small、ディスクは gp3 で 20GB。セキュリティグループは 80 と 443 だけを全体に開け、22 は開けない。サーバーへは SSM Session Manager を通して入るので、起動のときに IAM のインスタンスプロファイル `shirube-server`(`AmazonSSMManagedInstanceCore` だけを持つロール。`infra/main.tf`)を付ける(付けないとエージェントが登録されず、入る道が無い。下の「サーバーに入る」)。Elastic IP を割り当てる。今の本番の資源とその設定は `infra/main.tf` にある(下の「AWS の資源」)
 3. DuckDNS: https://www.duckdns.org でサブドメインを作り、Elastic IP を向ける
 4. Google: OAuth クライアントの承認済みのリダイレクト URI に `https://<サブドメイン>/api/auth/callback/google` を足し、同意画面を「本番」に公開する(使うのは基本の情報だけなので Google の審査は要らない。公開する前は、同意画面のテストの利用者に足した人だけがログインできる。ADR 0075 の追記)
 5. OpenAI: 前払いにして自動の補充を切る(ADR 0038)
 6. GitHub: リポジトリの変数(Settings → Secrets and variables → Actions → Variables)の `SITE_DOMAIN` にサブドメインを書く。CI が frontend のイメージを作るときに `SITE_URL` に入れる(ADR 0094)
 
-サーバーでは、スワップを足し(初めてのデプロイや GHCR が使えないときにサーバーで `next build` するときの、メモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れて今の利用者を docker のグループに足し(sudo なしで `docker compose` と cron のバックアップを動かすため。足したら入り直す)、リポジトリを置いて `.env` を書く。
+サーバーには下の「サーバーに入る」のとおりに入り、スワップを足し(初めてのデプロイや GHCR が使えないときにサーバーで `next build` するときの、メモリの不足を補う)、Docker と compose のプラグインを公式の手順で入れて今の利用者を docker のグループに足し(sudo なしで `docker compose` と cron のバックアップを動かすため。足したら入り直す)、リポジトリを置いて `.env` を書く。
 
 ```sh
 sudo fallocate -l 2G /swapfile && sudo chmod 600 /swapfile && sudo mkswap /swapfile && sudo swapon /swapfile
@@ -67,7 +67,7 @@ AWS_PROFILE=shirube terraform -chdir=infra plan
 
 セキュリティグループは 22 番を開けず、SSH は SSM Session Manager を通す(ADR 0106)。EC2 には `AmazonSSMManagedInstanceCore` だけを持つロールを付けてあり、Ubuntu に入っている SSM のエージェントが Systems Manager に登録される(Systems Manager と IAM は無料プランで使える)。入るには、`aws login` の鍵と SSH の鍵の両方が要る。
 
-手元には AWS CLI の Session Manager のプラグインを入れ(`brew install --cask session-manager-plugin`)、`~/.ssh/config` に次を書く(`IdentityFile` は起動のときに作った鍵の組の秘密鍵)。
+手元には AWS CLI の Session Manager のプラグインを入れ(`brew install --cask session-manager-plugin`)、`~/.ssh/config` に次を書く(`IdentityFile` は起動のときに作った鍵の組の秘密鍵、インスタンスの ID は `terraform -chdir=infra output instance_id`)。
 
 ```
 Host shirube
@@ -77,7 +77,7 @@ Host shirube
   ProxyCommand aws ssm start-session --profile shirube --region ap-southeast-2 --target %h --document-name AWS-StartSSHSession --parameters portNumber=%p
 ```
 
-`aws login --profile shirube` のあと、`ssh shirube` で入り、`scp <ファイル> shirube:~/` で送る。以下の「サーバーで」はこうして入ったシェルを指す。SSM が使えない(エージェントが止まった、AWS の障害)ときは、`infra/main.tf` のセキュリティグループに自分の IP の 22 番を一時的に足し、保存した plan を確かめて apply してから入り、終わったら消す。
+`aws login --profile shirube` のあと、`ssh shirube` で入り、`scp <ファイル> shirube:~/` で送る。この文書の「サーバーで」はこうして入ったシェルを指す。SSM が使えない(エージェントが止まった、AWS の障害)ときは、`infra/main.tf` のセキュリティグループに自分の IP の 22 番を一時的に足し、保存した plan を確かめて apply してから入り、終わったら消す。
 
 ### 初めてのデプロイ
 
