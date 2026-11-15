@@ -1,5 +1,5 @@
 terraform {
-  required_version = "~> 1.17"
+  required_version = "~> 1.17.0"
 
   required_providers {
     aws = {
@@ -38,7 +38,8 @@ resource "aws_key_pair" "server" {
   public_key = trimspace(file("${path.module}/shirube.pub"))
 
   lifecycle {
-    ignore_changes = [public_key]
+    ignore_changes  = [public_key]
+    prevent_destroy = true
   }
 }
 
@@ -48,7 +49,6 @@ resource "aws_security_group" "server" {
   vpc_id      = "vpc-0a756800e8e4ff052"
 
   ingress {
-    description = ""
     protocol    = "tcp"
     from_port   = 22
     to_port     = 22
@@ -56,7 +56,6 @@ resource "aws_security_group" "server" {
   }
 
   ingress {
-    description = ""
     protocol    = "tcp"
     from_port   = 80
     to_port     = 80
@@ -64,7 +63,6 @@ resource "aws_security_group" "server" {
   }
 
   ingress {
-    description = ""
     protocol    = "tcp"
     from_port   = 443
     to_port     = 443

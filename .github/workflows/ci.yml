@@ -130,11 +130,18 @@ jobs:
         with:
           terraform_version: 1.17.2
           terraform_wrapper: false
+      - uses: actions/cache@v6
+        with:
+          path: ${{ runner.temp }}/terraform-plugins
+          key: terraform-${{ hashFiles('infra/.terraform.lock.hcl') }}
       - name: Terraform の書き方と構文(AWS には繋がない)
         working-directory: infra
+        env:
+          TF_PLUGIN_CACHE_DIR: ${{ runner.temp }}/terraform-plugins
         run: |
+          mkdir -p "$TF_PLUGIN_CACHE_DIR"
           terraform fmt -check -recursive
-          terraform init -backend=false -input=false
+          terraform init -backend=false -input=false -lockfile=readonly
           terraform validate
 
   audit:

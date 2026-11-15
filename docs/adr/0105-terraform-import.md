@@ -54,7 +54,8 @@ CI での確かめ
 - 鍵はプロバイダに書かず、`AWS_PROFILE` で渡す(手元のプロファイルの名前を設定に持ち込まない)
 - CI の scripts の job で `terraform fmt -check` と、バックエンドを使わない `terraform init` のあとの `terraform validate` を流す。CI には AWS の鍵を渡さない
 - AWS のプロバイダの版は Dependabot が、ほかの依存と同じに毎週、出てから 7 日経った版だけを上げる(ADR 0096)。CI では差を確かめられないので、その PR は手元で plan が No changes のままかを確かめてからマージする
-- EC2 と Elastic IP に `prevent_destroy` を付け、作り直しや削除になる plan を止める。EC2 のルートのボリュームに DB とバックアップがあり、Elastic IP が変わると DuckDNS の向き先も変わるため
+- EC2、Elastic IP、SSH の鍵の組に `prevent_destroy` を付け、作り直しや削除になる plan を止める。EC2 のルートのボリュームに DB とバックアップがあり、Elastic IP が変わると DuckDNS の向き先も変わり、鍵の組を作り直すと手元の秘密鍵で入れなくなるため。`infra/shirube.pub` は、手元の秘密鍵から作った公開鍵と同じであることを確かめた
+- Terraform の本体の版は CI と同じ 1.17 の系列に絞る(`~> 1.17.0`)。CI の `init` は `-lockfile=readonly` で、コミットしたロックと違う版を選べば落ちる
 - state を無くして取り込み直すときも、保存した plan が取り込みだけであることを確かめてから apply する
 - SSH の鍵の組は、AWS が取り込むときに公開鍵を返さないので、公開鍵(`infra/shirube.pub`、秘密ではない)を設定に置き、差としては見ない(`ignore_changes`)。見ないと、取り込むたびに鍵の組を作り直す差が出る
 - 今の SSH の口、暗号化していないボリューム、unlimited のクレジットは、取り込むときにはそのままにする。SSH は次の変更で SSM Session Manager に移して 22 番を閉じ、ADR に書いてから apply する。ボリュームの暗号化とクレジットは、作り直しや費用の決めごとと一緒に、そのとき決める
