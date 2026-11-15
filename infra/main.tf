@@ -50,13 +50,6 @@ resource "aws_security_group" "server" {
 
   ingress {
     protocol    = "tcp"
-    from_port   = 22
-    to_port     = 22
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    protocol    = "tcp"
     from_port   = 80
     to_port     = 80
     cidr_blocks = ["0.0.0.0/0"]
@@ -81,12 +74,35 @@ resource "aws_security_group" "server" {
   }
 }
 
+resource "aws_iam_role" "server" {
+  name = "shirube-server"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Action    = "sts:AssumeRole"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "server_ssm" {
+  role       = aws_iam_role.server.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_instance_profile" "server" {
+  name = "shirube-server"
+  role = aws_iam_role.server.name
+}
+
 resource "aws_instance" "server" {
   ami                    = "ami-0be7d1b5b9749d43a"
   instance_type          = "t4g.small"
   subnet_id              = "subnet-0093229e282dfee29"
   vpc_security_group_ids = [aws_security_group.server.id]
   key_name               = aws_key_pair.server.key_name
+  iam_instance_profile   = aws_iam_instance_profile.server.name
 
   credit_specification {
     cpu_credits = "unlimited"
