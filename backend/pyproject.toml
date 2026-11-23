@@ -4,14 +4,14 @@ version = "0.1.0"
 requires-python = ">=3.13"
 dependencies = [
     "alembic>=1.20.1",
-    "fastapi>=0.162.0",
-    "langchain-openai>=1.7.3",
-    "openai>=3.42.1",
+    "fastapi>=0.163.1",
+    "langchain-openai>=1.8.0",
+    "openai>=3.51.0",
     "pgvector>=0.5.1",
     "psycopg[binary]>=3.3.6",
-    "pydantic-settings>=2.16.2",
+    "pydantic-settings>=2.16.3",
     "pyjwt>=2.15.1",
-    "sqlalchemy>=2.1.6",
+    "sqlalchemy>=2.1.8",
     "uvicorn[standard]>=0.54.0",
 ]
 
@@ -28,13 +28,13 @@ dev = [
     "pytest>=9.2.0",
     "pytest-cov>=7",
     "reportlab>=5.1.0",
-    "ruff>=0.17.3",
-    "types-reportlab>=5.0.0.20261008",
+    "ruff>=0.17.5",
+    "types-reportlab>=5.1.0.20261104",
 ]
 scraper = [
     "beautifulsoup4>=4.15.0",
     "pdfplumber>=0.11.10",
-    "playwright>=1.64.1",
+    "playwright>=1.65.2",
 ]
 
 [tool.uv]
